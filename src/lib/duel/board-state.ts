@@ -27,10 +27,36 @@ export interface BoardCard {
   defenseValue: number | null;
   baseAttack: number | null;
   baseDefense: number | null;
+  /**
+   * Nível **atual** (com efeitos aplicados) — 0 num Xyz ou Link, que não têm
+   * nível. `null` fora do campo ou numa carta que o observador não vê.
+   */
+  level: number | null;
+  /** Rank atual de um Xyz; 0 nos outros. */
+  rank: number | null;
+  /** Rating e setas de um Link (`OcgLinkMarker`); `null` nos outros. */
+  link: { rating: number; markers: number } | null;
+  /**
+   * Escalas de Pêndulo atuais. Vêm para toda carta em campo (0/0 em quem não é
+   * Pêndulo): é a tela que decide, pelo tipo da carta, se elas valem algo ali.
+   */
+  scales: { left: number; right: number } | null;
+  /**
+   * Materiais Xyz encaixados, por passcode. Informação pública: material fica
+   * com a face para cima embaixo do monstro.
+   */
+  overlays: number[];
 }
 
 export interface BoardPlayer {
-  /** 5 zonas de monstro (Goat não usa as extra monster zones). */
+  /**
+   * Zonas de monstro deste jogador, pelo índice do core: 0–4 são as principais
+   * e 5–6 as **Zonas de Monstro Extra** (Master Rule 4/5). No Goat as duas
+   * últimas ficam sempre vazias — a regra de 2005 não as tem.
+   *
+   * As Zonas Extra são compartilhadas: a zona 5 de um jogador é a zona 6 do
+   * outro. Quem desenha a mesa resolve qual ocupante mostrar (ver `DuelBoard`).
+   */
   monsters: (BoardCard | null)[];
   /** 5 zonas de magia/armadilha + a zona de campo. */
   spells: (BoardCard | null)[];
@@ -39,6 +65,11 @@ export interface BoardPlayer {
   /** Conteúdo das pilhas — para o jogador poder abrir e conferir. */
   grave: BoardCard[];
   banished: BoardCard[];
+  /**
+   * Extra Deck. O do observador vem inteiro; o do oponente só com as cartas
+   * **viradas para cima** — os Pêndulos que voltaram para lá são públicos pela
+   * regra, o resto do Extra Deck dele continua secreto.
+   */
   extra: BoardCard[];
   /**
    * Carta do topo do cemitério, à parte da lista.
@@ -53,6 +84,8 @@ export interface BoardPlayer {
   graveSize: number;
   banishedSize: number;
   extraSize: number;
+  /** Quantas cartas do Extra Deck estão viradas para cima (Pêndulos). */
+  extraFaceUp: number;
 }
 
 export interface BoardState {
@@ -67,6 +100,26 @@ const ZONE_FLAGS = (OcgQueryFlags.CODE |
   OcgQueryFlags.DEFENSE |
   OcgQueryFlags.BASE_ATTACK |
   OcgQueryFlags.BASE_DEFENSE) as OcgQueryFlags;
+
+/**
+ * O que só faz sentido para carta em campo: nível/rank atuais, Link, escalas e
+ * materiais Xyz.
+ *
+ * ⚠️ `OcgQueryFlags.TYPE` fica de fora de propósito: o binding (0.1.4) não sabe
+ * desserializar esse campo — sozinho ele lança `eof`, e junto de outros
+ * desalinha a resposta inteira (zonas trocadas, `code` indefinido). O tipo da
+ * carta vem do banco oficial/catálogo, que é estático e serve à tela.
+ */
+const FIELD_FLAGS = (ZONE_FLAGS |
+  OcgQueryFlags.LEVEL |
+  OcgQueryFlags.RANK |
+  OcgQueryFlags.LINK |
+  OcgQueryFlags.LSCALE |
+  OcgQueryFlags.RSCALE |
+  OcgQueryFlags.OVERLAY_CARD) as OcgQueryFlags;
+
+/** Zonas de monstro: 5 principais + 2 Zonas Extra. */
+const MONSTER_ZONE_COUNT = 7;
 
 /** Lê um número de um campo da query, ou null quando ausente. */
 function num(raw: Record<string, unknown>, key: string): number | null {
@@ -95,8 +148,13 @@ function toBoardCard(
   const faceDown = (position & OcgPosition.FACEDOWN) !== 0;
   const defense = (position & OcgPosition.DEFENSE) !== 0;
 
+  const visible = !faceDown || canSeeHidden;
+  const link = raw.link as { rating?: number; marker?: number } | undefined;
+  const left = num(raw, "leftScale");
+  const right = num(raw, "rightScale");
+
   return {
-    code: faceDown && !canSeeHidden ? null : code,
+    code: visible ? code : null,
     position,
     sequence,
     controller,
@@ -110,6 +168,13 @@ function toBoardCard(
     // e o ATK/DEF impresso caía no catálogo, mascarando o erro.
     baseAttack: num(raw, "baseAttack"),
     baseDefense: num(raw, "baseDefense"),
+    // Nada disto vaza de carta oculta: o nível ou as setas de um monstro
+    // baixado já dizem que carta ele é.
+    level: visible ? num(raw, "level") : null,
+    rank: visible ? num(raw, "rank") : null,
+    link: visible && link?.rating ? { rating: link.rating, markers: link.marker ?? 0 } : null,
+    scales: visible && left !== null && right !== null ? { left, right } : null,
+    overlays: visible && Array.isArray(raw.overlayCards) ? (raw.overlayCards as number[]) : [],
   };
 }
 
@@ -118,10 +183,11 @@ function queryZone(
   handle: OcgDuelHandle,
   controller: 0 | 1,
   location: OcgLocation,
+  flags: OcgQueryFlags = ZONE_FLAGS,
 ): (Record<string, unknown> | null)[] {
   try {
     return core.duelQueryLocation(handle, {
-      flags: ZONE_FLAGS,
+      flags,
       controller,
       location,
     }) as (Record<string, unknown> | null)[];
@@ -145,11 +211,11 @@ function readPlayer(
 ): BoardPlayer {
   const isViewer = controller === viewer;
 
-  const monsterRaw = queryZone(core, handle, controller, OcgLocation.MZONE);
-  const spellRaw = queryZone(core, handle, controller, OcgLocation.SZONE);
+  const monsterRaw = queryZone(core, handle, controller, OcgLocation.MZONE, FIELD_FLAGS);
+  const spellRaw = queryZone(core, handle, controller, OcgLocation.SZONE, FIELD_FLAGS);
   const handRaw = queryZone(core, handle, controller, OcgLocation.HAND);
 
-  const monsters = Array.from({ length: 5 }, (_, index) =>
+  const monsters = Array.from({ length: MONSTER_ZONE_COUNT }, (_, index) =>
     toBoardCard(
       monsterRaw[index] ?? null,
       index,
@@ -212,6 +278,11 @@ function readPlayer(
       defenseValue: null,
       baseAttack: null,
       baseDefense: null,
+      level: null,
+      rank: null,
+      link: null,
+      scales: null,
+      overlays: [],
     });
   });
 
@@ -260,6 +331,12 @@ function readPlayer(
     }
   }
 
+  // O Extra Deck é lido mesmo no modo leve: é uma consulta só, e é dela que
+  // sai a contagem de Pêndulos virados para cima, que muda justamente no meio
+  // das jogadas (Pêndulo destruído volta para lá com a face para cima).
+  const extraAll = pile(OcgLocation.EXTRA);
+  const extraFaceUp = extraAll.filter((card) => !card.faceDown);
+
   return {
     monsters,
     spells,
@@ -267,12 +344,16 @@ function readPlayer(
     hand,
     grave,
     banished: light ? [] : pile(OcgLocation.REMOVED),
-    extra: light || !isViewer ? [] : pile(OcgLocation.EXTRA),
+    // Do oponente, só o que é público. `pile` já zera o código das viradas
+    // para baixo; tirá-las da lista é o que impede a CONTAGEM e a POSIÇÃO de
+    // cada uma de virar pista. (Vem até no modo leve: a consulta já foi feita.)
+    extra: isViewer ? extraAll : extraFaceUp,
     graveTop: graveTopCard(),
     deckSize: core.duelQueryCount(handle, controller, OcgLocation.DECK),
     graveSize,
     banishedSize: core.duelQueryCount(handle, controller, OcgLocation.REMOVED),
     extraSize: core.duelQueryCount(handle, controller, OcgLocation.EXTRA),
+    extraFaceUp: extraFaceUp.length,
   };
 }
 

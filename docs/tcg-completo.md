@@ -652,3 +652,36 @@ Puxada para antes da mesa: para desenhar e testar Link, Xyz e Pêndulo na tela
   serve do disco (`.cache/card-images/`) com cache de um ano. Fim do hotlink.
 - O construtor continua no pool Goat (1.690 cartas) até a Fase 6 dar formato a
   cada deck; a declaração de nome (ANNOUNCE_CARD) segue o formato do duelo.
+
+### Fase 2 — feita
+
+- `board-state.ts`: 7 zonas de monstro (5–6 são as Zonas Extra), nível/rank
+  atuais, rating e setas Link, escalas e materiais Xyz por carta em campo — nada
+  disso vaza de carta oculta. Extra Deck do oponente: só os Pêndulos virados
+  para cima (os outros nem entram na lista); `extraFaceUp` dá a contagem.
+- ⚠ O binding não desserializa `OcgQueryFlags.TYPE` (lança `eof`; junto de
+  outras flags desalinha a resposta inteira). O tipo vem do catálogo/banco
+  oficial.
+- `field-places.ts` decodifica monstro 0–6 e magia 0–5 (Zona de Campo). Medido
+  em 20 duelos: no jogo normal o core nunca libera esses bits, nem no Goat nem
+  em MR5 — só as invocações do Extra Deck. O Goat não muda.
+- Mesa TCG (`format: "tcg"` no snapshot): fileira das Zonas Extra com a trilha
+  de fases em grade no meio, alinhada às colunas 2 e 4 para as setas se lerem;
+  ocupante da zona compartilhada desenhado pela ótica de quem olha (o do
+  oponente de cabeça para baixo); setas no slot (giram com a carta); zonas
+  apontadas tracejadas (`link-geometry.ts`, conferida contra o engine para os
+  dois assentos); selo Nível/Rank/LINK; escalas ◂/▸ nas zonas 1 e 5; selo de
+  materiais que abre a lista; ATK/LINK-n no lugar do DEF; Extra Deck com "↑N"
+  e o do oponente abrindo só os públicos. A mesa Goat continua idêntica.
+- Leitura da carta: linha de tipo moderna ([Dragão/Sincro/Regulador/Efeito]),
+  Rank, Link com as setas, escalas e materiais.
+- Modais de pilha passaram a seguir o tabuleiro vivo (antes guardavam a lista do
+  momento do clique).
+- Testes: `test:modern-summons` 8/8 (inclui materiais, geometria contra o
+  engine e o Extra Deck do oponente); `test:board-modern` (navegador, mesa de
+  teste montada pelo `scenario` da sessão) com capturas em 1440×900, 1280×720
+  e 1024×640; `test:viewports`, `test:browser`, `test:browser-online`,
+  `test:hidden`, `test:multiplayer` passando. O `test:multiplayer` tinha uma
+  checagem de sanidade que reprovava ~1 em 6 vezes (lia só a mão do último
+  snapshot); agora usa a maior mão vista.
+- Ainda não dá para invocar do Extra Deck clicando — é a Fase 4.

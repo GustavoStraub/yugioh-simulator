@@ -28,6 +28,8 @@ Há atalhos no `package.json` para todos eles (`npm run test:cards`,
 | `node tools/harness/test-cards.mjs` | Para cada uma das ~1.700 cartas do pool Goat: o script carrega sem erro de Lua? A carta é oferecida para ativar/invocar no Main Phase 1? |
 | `npm run test:tcg-pool` | O mesmo do `test-cards`, para as ~13 mil cartas TCG com script, em Master Rule 2020 e com os monstros de Extra Deck no Extra Deck. Roda em 4 processos (`--jobs N`). Falhas já conhecidas ficam listadas no próprio arquivo e não reprovam. |
 | `npm run test:modern-summons` | Sincro, Xyz, Link e Pêndulo pelo caminho da tela (`autoResponseFor` → `buildPromptPlan`, `decodeFieldMask`, `readBoardState`), mais a leitura de volta das escalas e setas que o core guardou. |
+| `npm run test:board-modern` | Navegador: mesa TCG montada por `scenario` (Link em cada Zona Extra, escalas, Xyz, Pêndulo destruído indo para o Extra Deck do oponente). Confere setas, zonas apontadas, selos e o Extra Deck público; fotos em `.cache/shots/tcg-*.png`. Precisa da app no ar (`APP_URL`). |
+| `npm run test:formats` | A `DuelSession` roda as regras do formato pedido (Goat compra no 1º turno, TCG não). |
 | `node tools/harness/test-archetypes.mjs` | Cartas de arquétipo, com companheiros do mesmo `setcode` em campo/mão/deck: o efeito **enxerga** os parceiros? |
 | `node tools/harness/test-ui-prompts.mjs` | Joga duelos inteiros e submete cada pergunta do engine ao mesmo código que a tela usa. Acha prompts que a UI não sabe responder — a causa de duelo congelado. |
 | `node tools/harness/test-ui-rare-prompts.mjs` | Força os prompts raros (ANNOUNCE_*, SELECT_SUM, SORT_CARD, SELECT_DISFIELD) pondo na mão a carta que produz cada um. São justamente os que passam despercebidos num duelo comum. |

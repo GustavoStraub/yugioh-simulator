@@ -42,6 +42,7 @@ import { readBoardState } from "@/lib/duel/board-state";
 import { findPromptMessage } from "@/lib/duel/bot-responder";
 import { buildPromptPlan } from "@/lib/duel/duel-actions";
 import { decodeFieldMask } from "@/lib/duel/field-places";
+import { pointedZones } from "@/lib/duel/link-geometry";
 import { isCandidateOnBoard, needsCardPicker } from "@/lib/duel/prompt-reach";
 
 import { messageName } from "./card-scan.mjs";
@@ -61,6 +62,7 @@ const CARD = {
   timegazer: 20409757, // Pêndulo, escalas 8/8
   skull: 70781052, // Summoned Skull — Normal, Nível 6
   darkMagician: 46986414, // Dark Magician — Normal, Nível 7
+  raigeki: 12580477, // destrói os monstros do oponente
 };
 
 /** Nomes das cartas do teste, do `cards.cdb` — só para o relatório ser legível. */
@@ -170,7 +172,7 @@ function materialChoice(message) {
  *   mensagem). Esgotadas as jogadas, o cenário termina no próximo IDLECMD.
  * @param expectSummoned passcodes que precisam estar na mesa no fim.
  */
-async function scenario({ name, place, hand = [], steps, expectSummoned }) {
+async function scenario({ name, place, hand = [], steps, expectSummoned, expectOverlays = {} }) {
   const findings = [];
   const duel = await createDuel({
     mode: OcgDuelMode.MODE_MR5,
@@ -235,6 +237,14 @@ async function scenario({ name, place, hand = [], steps, expectSummoned }) {
   const onBoard = new Set(
     board.players[0].monsters.filter(Boolean).map((card) => card.code),
   );
+  for (const [code, materials] of Object.entries(expectOverlays)) {
+    const card = board.players[0].monsters.find((c) => c?.code === Number(code));
+    const got = [...(card?.overlays ?? [])].sort().join(",");
+    const want = [...materials].sort().join(",");
+    if (got !== want) {
+      findings.push(`materiais de ${duel.name(Number(code))}: mesa mostra [${got}], esperado [${want}]`);
+    }
+  }
   const summoned = new Set(
     [...duel.of(OcgMessageType.SPSUMMONING), ...duel.of(OcgMessageType.SUMMONING)].map((m) => m.code),
   );
@@ -294,6 +304,110 @@ async function readback() {
   return { name: "Leitura de volta (escalas e setas)", findings };
 }
 
+/**
+ * A geometria das setas (`link-geometry.ts`, que a mesa usa para marcar as
+ * zonas apontadas) contra o ENGINE.
+ *
+ * Em Master Rule 2020 um monstro do Extra Deck só desce na Zona Extra ou numa
+ * zona principal para onde um Link aponta. Com a Zona Extra já ocupada por um
+ * Decode Talker, o SELECT_PLACE de uma Invocação-Link libera exatamente as
+ * zonas principais apontadas por ele — é a resposta do engine contra a qual a
+ * conta da tela é comparada. Feito para os dois assentos: o Link do jogador 1
+ * está de cabeça para baixo, e é aí que a conta mais facilmente erra.
+ */
+async function geometryCheck(controller) {
+  const findings = [];
+  const duel = await createDuel({
+    mode: OcgDuelMode.MODE_MR5,
+    place: [
+      { player: controller, zone: Zone.MZONE, code: CARD.decodeTalker, sequence: 5 },
+      { player: controller, zone: Zone.MZONE, code: CARD.elf, sequence: 4 },
+      { player: controller, zone: Zone.EXTRA, code: CARD.linkSpider },
+    ],
+    decks: [FILLER_DECK, FILLER_DECK],
+    cards: NAMES,
+  });
+  let freeOwn = null;
+  let summoned = false;
+  duel.run((message) => {
+    if (message.type === OcgMessageType.SELECT_IDLECMD) {
+      if (message.player !== controller) {
+        return { type: OcgResponseType.SELECT_IDLECMD, action: SelectIdleCMDAction.TO_EP, index: null };
+      }
+      if (summoned) return STOP;
+      const index = message.special_summons.findIndex((c) => c.code === CARD.linkSpider);
+      if (index < 0) {
+        findings.push("Link Spider não oferecido");
+        return STOP;
+      }
+      summoned = true;
+      return { type: OcgResponseType.SELECT_IDLECMD, action: SelectIdleCMDAction.SELECT_SPECIAL_SUMMON, index };
+    }
+    if (message.player !== controller) return null;
+    if (message.type === OcgMessageType.SELECT_PLACE && summoned && freeOwn === null) {
+      freeOwn = decodeFieldMask(message.field_mask, message.player)
+        .filter((p) => p.player === controller && p.location === OcgLocation.MZONE && p.sequence <= 4)
+        .map((p) => p.sequence)
+        .sort();
+      return STOP;
+    }
+    return materialChoice(message);
+  });
+  const expected = pointedZones({ controller, sequence: 5 }, 0x85)
+    .filter((z) => z.controller === controller && z.sequence <= 4)
+    .map((z) => z.sequence)
+    .sort();
+  if (freeOwn === null) findings.push("o engine não perguntou a zona da Invocação-Link");
+  else if (freeOwn.join(",") !== expected.join(",")) {
+    findings.push(`engine libera [${freeOwn}], a geometria da tela diz [${expected}]`);
+  }
+  duel.destroy();
+  return { name: `Geometria Link contra o engine (jogador ${controller})`, findings };
+}
+
+/**
+ * O Extra Deck do oponente na mesa: só o que é público.
+ *
+ * Um Pêndulo destruído volta para o Extra Deck VIRADO PARA CIMA, e aí é
+ * público — os dois veem. O resto do Extra Deck dele continua secreto: nem
+ * código, nem lugar na lista.
+ */
+async function extraDeckVisibility() {
+  const findings = [];
+  const duel = await createDuel({
+    mode: OcgDuelMode.MODE_MR5,
+    place: [
+      { player: 1, zone: Zone.MZONE, code: CARD.stargazer, sequence: 2 },
+      { player: 1, zone: Zone.EXTRA, code: CARD.utopia },
+      { player: 0, zone: Zone.HAND, code: CARD.raigeki },
+    ],
+    decks: [FILLER_DECK, FILLER_DECK],
+    cards: NAMES,
+  });
+  let acted = false;
+  duel.run((message) => {
+    if (message.type !== OcgMessageType.SELECT_IDLECMD || message.player !== 0) return null;
+    if (acted) return STOP;
+    const index = message.activates.findIndex((c) => c.code === CARD.raigeki);
+    if (index < 0) return STOP;
+    acted = true;
+    return { type: OcgResponseType.SELECT_IDLECMD, action: SelectIdleCMDAction.SELECT_ACTIVATE, index };
+  });
+  const minhaOtica = readBoardState(duel.core, duel.handle, 0).players[1];
+  const dele = readBoardState(duel.core, duel.handle, 1).players[1];
+  if (!acted) findings.push("Raigeki não foi ativado");
+  if (minhaOtica.extraSize !== 2) findings.push(`Extra Deck do oponente com ${minhaOtica.extraSize} cartas (esperado 2)`);
+  if (minhaOtica.extraFaceUp !== 1) findings.push(`viradas para cima: ${minhaOtica.extraFaceUp} (esperado 1)`);
+  const codes = minhaOtica.extra.map((card) => card.code);
+  if (codes.join(",") !== String(CARD.stargazer)) {
+    findings.push(`a lista do Extra Deck do oponente traz [${codes}] — só o Pêndulo podia vir`);
+  }
+  if (minhaOtica.extra.some((card) => card.faceDown)) findings.push("carta virada para baixo listada");
+  if (dele.extra.length !== 2) findings.push(`o dono vê ${dele.extra.length} cartas no próprio Extra Deck (esperado 2)`);
+  duel.destroy();
+  return { name: "Extra Deck do oponente: só o Pêndulo virado para cima", findings };
+}
+
 const IDLE = {
   special: { list: "special_summons", action: SelectIdleCMDAction.SELECT_SPECIAL_SUMMON },
   activate: { list: "activates", action: SelectIdleCMDAction.SELECT_ACTIVATE },
@@ -319,6 +433,8 @@ const SCENARIOS = [
     ],
     steps: [{ ...IDLE.special, code: CARD.utopia, label: "Invocar Utopia" }],
     expectSummoned: [CARD.utopia],
+    // Os materiais aparecem na mesa (selo do slot e leitura da carta).
+    expectOverlays: { [CARD.utopia]: [CARD.elf, CARD.ox] },
   },
   {
     name: "Link — Mystical Elf → Link Spider",
@@ -351,6 +467,9 @@ async function main() {
   const results = [];
   for (const spec of SCENARIOS) results.push(await scenario(spec));
   results.push(await readback());
+  results.push(await geometryCheck(0));
+  results.push(await geometryCheck(1));
+  results.push(await extraDeckVisibility());
 
   let failures = 0;
   for (const { name, findings } of results) {

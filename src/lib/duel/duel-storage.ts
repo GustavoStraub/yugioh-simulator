@@ -1,4 +1,5 @@
-import type { DuelDeckPayload } from "@/lib/types";
+import type { ScenarioCard } from "@/lib/duel/duel-session";
+import type { DuelDeckPayload, DuelFormat } from "@/lib/types";
 
 export const DUEL_SETUP_STORAGE_KEY = "yugioh-goat-duel-setup-v1";
 
@@ -8,6 +9,13 @@ export interface StoredDuelSetup {
   opponentId: string;
   opponentName: string;
   opponentDeck: DuelDeckPayload;
+  /** Regras do duelo; ausente num duelo preparado antes do TCG = Goat. */
+  format?: DuelFormat;
+  /**
+   * Mesa de teste (`DuelSessionConfig.scenario`). Nenhuma tela grava isto: só
+   * os testes de navegador, que montam o duelo direto no `sessionStorage`.
+   */
+  scenario?: ScenarioCard[];
 }
 
 export function saveDuelSetup(setup: StoredDuelSetup): void {

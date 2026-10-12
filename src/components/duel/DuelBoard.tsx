@@ -9,7 +9,12 @@ import { useCardText } from "@/hooks/useCardText";
 import { useDuelFeedback, type DuelFlash } from "@/hooks/useDuelFeedback";
 import { playSfx } from "@/lib/audio/sfx";
 import type { DuelEventListener } from "@/lib/duel/duel-events";
-import { attributeLabel, translateRace, translateType } from "@/lib/card-labels";
+import {
+  attributeLabel,
+  monsterTypeParts,
+  translateRace,
+  translateType,
+} from "@/lib/card-labels";
 import { PHASE_TRACK, phaseLabel } from "@/lib/duel/phase-labels";
 import {
   buildPromptPlan,
@@ -26,6 +31,7 @@ import {
 } from "@/lib/duel/engine-strings";
 import { needsCardPicker } from "@/lib/duel/prompt-reach";
 import type { BoardCard, BoardPlayer } from "@/lib/duel/board-state";
+import { linkedZones } from "@/lib/duel/link-geometry";
 import type {
   DuelChainLink,
   DuelLogEntry,
@@ -34,7 +40,12 @@ import type {
 } from "@/lib/duel/duel-session";
 import type { CardRegistry } from "@/lib/domain/card-registry";
 
-import { DuelCardSlot, DuelPile, StatValue } from "@/components/duel/DuelCardSlot";
+import {
+  CARD_SHAPE,
+  DuelCardSlot,
+  DuelPile,
+  StatValue,
+} from "@/components/duel/DuelCardSlot";
 import { SoundControl } from "@/components/duel/SoundControl";
 import { AttackFlightLayer } from "@/components/duel/AttackFlight";
 import { DrawFlightLayer } from "@/components/duel/DrawFlight";
@@ -90,7 +101,7 @@ interface DuelBoardProps {
 }
 
 const EMPTY_PLAYER: BoardPlayer = {
-  monsters: Array(5).fill(null),
+  monsters: Array(7).fill(null),
   spells: Array(5).fill(null),
   field: null,
   hand: [],
@@ -102,6 +113,7 @@ const EMPTY_PLAYER: BoardPlayer = {
   graveSize: 0,
   banishedSize: 0,
   extraSize: 0,
+  extraFaceUp: 0,
 };
 
 /**
@@ -115,6 +127,30 @@ type PreviewCard = Pick<BoardCard, "code"> & Partial<Omit<BoardCard, "code">>;
 
 /** Sequência da zona de campo dentro da SZONE (as 5 primeiras são magia/armadilha). */
 const FIELD_ZONE_SEQUENCE = 5;
+
+/**
+ * Materiais Xyz como "cartas" de pilha, para reaproveitar o modal das pilhas.
+ * São públicos (ficam com a face para cima embaixo do monstro).
+ */
+function overlayCards(card: BoardCard): BoardCard[] {
+  return card.overlays.map((code, index) => ({
+    ...card,
+    code,
+    sequence: index,
+    location: OcgLocation.OVERLAY,
+    faceDown: false,
+    defense: false,
+    attack: null,
+    defenseValue: null,
+    baseAttack: null,
+    baseDefense: null,
+    level: null,
+    rank: null,
+    link: null,
+    scales: null,
+    overlays: [],
+  }));
+}
 
 export function DuelBoard({
   snapshot,
@@ -139,10 +175,16 @@ export function DuelBoard({
   const [picked, setPicked] = useState<number[]>([]);
   /** Painel do próprio deck, de onde se desiste. */
   const [deckAberto, setDeckAberto] = useState(false);
-  /** Pilha aberta para consulta (cemitério, banidas, extra). */
+  /**
+   * Pilha aberta para consulta (cemitério, banidas, extra, materiais).
+   *
+   * Guarda COMO achar a lista, não a lista: com o modal aberto a pilha muda
+   * (uma carta cai no cemitério, um Pêndulo volta para o Extra Deck) e uma
+   * cópia tirada no clique mostraria o passado.
+   */
   const [openPile, setOpenPile] = useState<{
     title: string;
-    cards: BoardCard[];
+    pick: (players: { you: BoardPlayer; foe: BoardPlayer }) => BoardCard[];
   } | null>(null);
   /** Histórico de revelações aberto. */
   const [revelacoesAbertas, setRevelacoesAbertas] = useState(false);
@@ -209,6 +251,26 @@ export function DuelBoard({
   const board = snapshot.boards[me];
   const you = board?.players[me] ?? EMPTY_PLAYER;
   const foe = board?.players[foeSeat] ?? EMPTY_PLAYER;
+
+  /**
+   * Mesa de Master Rule 2020: Zonas de Monstro Extra, Pêndulo nas pontas da
+   * fileira de magias, Nível/Rank/Link à vista. No Goat a mesa continua a de
+   * 2005 — cinco zonas por fileira e nada que a regra não tinha.
+   */
+  const isTcg = snapshot.format === "tcg";
+
+  /** Zona → nomes dos Links que apontam para ela. */
+  const linkedBy = useMemo(() => {
+    const names = new Map<string, string[]>();
+    if (!board || !isTcg) return names;
+    linkedZones(board).forEach((codes, key) => {
+      names.set(
+        key,
+        codes.map((code) => registry?.get(code)?.name ?? `Carta ${code}`),
+      );
+    });
+    return names;
+  }, [board, isTcg, registry]);
 
   // Online o snapshot já vem recortado (`projectSnapshot`); num duelo local ele
   // traz as duas óticas, e o filtro aqui é o que impede o histórico de mostrar
@@ -335,7 +397,76 @@ export function DuelBoard({
     };
   };
 
-  const shared = { registry, onHover: setPreview, slotProps };
+  /** Abre os materiais Xyz de um monstro (selo no slot). */
+  const openMaterials = (card: BoardCard) => () =>
+    setOpenPile({
+      title: `Materiais Xyz — ${registry?.get(card.code ?? 0)?.name ?? "monstro"}`,
+      // O monstro é reencontrado pela zona: os materiais mudam (desanexar é
+      // o custo mais comum de um Xyz) com o modal aberto.
+      pick: (players) => {
+        const lado = card.controller === me ? players.you : players.foe;
+        const atual = lado.monsters[card.sequence];
+        return atual ? overlayCards(atual) : [];
+      },
+    });
+
+  const shared = {
+    registry,
+    onHover: setPreview,
+    slotProps,
+    isTcg,
+    linkedBy,
+    openMaterials,
+  };
+
+  /**
+   * Uma Zona de Monstro Extra, vista de `me`.
+   *
+   * As duas Zonas Extra são compartilhadas: a da esquerda (na tela de quem
+   * olha) é a zona 5 de `me` e a zona 6 do oponente. Quem estiver nela é
+   * desenhado — de cabeça para baixo se for do oponente —, e é pela identidade
+   * DELE que a zona casa com as ações e as seleções do engine.
+   */
+  function extraZone(side: "left" | "right") {
+    const mineSeq = side === "left" ? 5 : 6;
+    const foeSeq = side === "left" ? 6 : 5;
+    const mine = you.monsters[mineSeq] ?? null;
+    const theirs = foe.monsters[foeSeq] ?? null;
+    const card = mine ?? theirs;
+    const owner = theirs && !mine ? foeSeat : me;
+    const sequence = owner === me ? mineSeq : foeSeq;
+    let zone: SelectFieldPlace = { player: owner, location: OcgLocation.MZONE, sequence };
+    let props = slotProps(card, zone);
+    // Vazia: a zona pode ter sido oferecida pela identidade do oponente (um
+    // efeito que invoca para o lado dele) — vale a que estiver clicável.
+    if (!card && !props.onClick) {
+      const alt: SelectFieldPlace = {
+        player: foeSeat,
+        location: OcgLocation.MZONE,
+        sequence: foeSeq,
+      };
+      const altProps = slotProps(null, alt);
+      if (altProps.onClick) {
+        zone = alt;
+        props = altProps;
+      }
+    }
+    const key = cardKey(zone.player, zone.location, zone.sequence);
+    return (
+      <DuelCardSlot
+        card={card}
+        registry={registry}
+        placeholder="Extra"
+        upsideDown={owner === foeSeat}
+        zoneKey={key}
+        onHover={setPreview}
+        showLevel
+        linkedBy={linkedBy.get(key)}
+        onOpenMaterials={card?.overlays.length ? openMaterials(card) : undefined}
+        {...props}
+      />
+    );
+  }
   const showModal = plan?.presentation === "modal" && !busy;
 
   // A regra mora em `prompt-reach.ts` porque o harness também precisa dela:
@@ -345,9 +476,36 @@ export function DuelBoard({
     selection != null && needsCardPicker(selection.candidates, me);
 
   /** Abre a lista de uma pilha. Cemitério e banidas são públicos dos dois
-   *  lados; o Extra Deck só o próprio jogador consulta. */
-  const openWith = (title: string, cards: BoardCard[]) => () =>
-    setOpenPile({ title, cards });
+   *  lados; do Extra Deck do oponente só se vê o que está virado para cima. */
+  const openWith =
+    (title: string, pick: (players: { you: BoardPlayer; foe: BoardPlayer }) => BoardCard[]) =>
+    () =>
+      setOpenPile({ title, pick });
+
+  /**
+   * O conteúdo da pilha aberta, vindo do tabuleiro de agora.
+   *
+   * Durante uma jogada em andamento a sessão lê o tabuleiro no modo leve, sem
+   * o conteúdo das pilhas — a lista chega vazia por um instante. Nesse caso
+   * fica a última lista cheia, em vez de o modal piscar "Vazio".
+   */
+  const pileCards = useMemo(
+    () => (openPile ? openPile.pick({ you, foe }) : []),
+    [openPile, you, foe],
+  );
+  // Ajustado durante o render (o mesmo padrão do `lastPrompt` acima): a última
+  // lista cheia DESTA pilha.
+  const [ultimaPilha, setUltimaPilha] = useState<{
+    de: typeof openPile;
+    cards: BoardCard[];
+  }>({ de: null, cards: [] });
+  if (pileCards.length > 0 && (ultimaPilha.de !== openPile || ultimaPilha.cards !== pileCards)) {
+    setUltimaPilha({ de: openPile, cards: pileCards });
+  }
+  const pileShown =
+    pileCards.length === 0 && snapshot.isProcessing && ultimaPilha.de === openPile
+      ? ultimaPilha.cards
+      : pileCards;
 
   return (
     <div className="tf-playmat relative flex min-h-0 flex-1 flex-col overflow-hidden">
@@ -440,11 +598,25 @@ export function DuelBoard({
                   dataPile={`deck-${foeSeat}`}
                 />
               }
-              right={<DuelPile label="Extra" count={foe.extraSize} />}
+              right={
+                <DuelPile
+                  label="Extra"
+                  count={foe.extraSize}
+                  badge={faceUpBadge(foe.extraFaceUp)}
+                  // Do Extra Deck do oponente só se vê o que é público: os
+                  // Pêndulos virados para cima.
+                  onOpen={
+                    foe.extraFaceUp > 0
+                      ? openWith("Extra Deck do oponente — viradas para cima", (p) => p.foe.extra)
+                      : undefined
+                  }
+                  openTitle="Ver os Pêndulos virados para cima no Extra Deck do oponente"
+                />
+              }
               {...shared}
             />
             <FieldRow
-              cards={foe.monsters}
+              cards={foe.monsters.slice(0, 5)}
               owner={foeSeat}
               zone="monster"
               mirrored
@@ -454,14 +626,14 @@ export function DuelBoard({
                     <DuelPile
                       label="Banidas"
                       count={foe.banishedSize}
-                      onOpen={openWith("Banidas do oponente", foe.banished)}
+                      onOpen={openWith("Banidas do oponente", (p) => p.foe.banished)}
                     />
                   }
                   grave={
                     <DuelPile
                       label="Cemit."
                       count={foe.graveSize}
-                      onOpen={openWith("Cemitério do oponente", foe.grave)}
+                      onOpen={openWith("Cemitério do oponente", (p) => p.foe.grave)}
                       topCard={foe.graveTop}
                       registry={registry}
                       upsideDown
@@ -475,17 +647,42 @@ export function DuelBoard({
             />
 
             {/* Trilha de fases entre os dois campos, como no Tag Force —
-                clicar avança a fase quando o engine permite. */}
-            <PhaseTrack
-              phase={snapshot.phase}
-              turn={snapshot.turnCount}
-              actions={plan?.global ?? []}
-              disabled={busy}
-              onRespond={respond}
-            />
+                clicar avança a fase quando o engine permite. No TCG ela vira
+                coluna, no meio da fileira das Zonas Extra: assim as duas zonas
+                ficam exatamente sobre as colunas 2 e 4, que é o que faz as
+                setas Link de quem está nelas se lerem. */}
+            {isTcg ? (
+              <div
+                data-row="extra-monster-zones"
+                className="flex min-h-0 flex-1 items-center justify-center gap-1.5"
+              >
+                <div className={CARD_SHAPE} />
+                <div className={CARD_SHAPE} />
+                {extraZone("left")}
+                <PhaseTrack
+                  vertical
+                  phase={snapshot.phase}
+                  turn={snapshot.turnCount}
+                  actions={plan?.global ?? []}
+                  disabled={busy}
+                  onRespond={respond}
+                />
+                {extraZone("right")}
+                <div className={CARD_SHAPE} />
+                <div className={CARD_SHAPE} />
+              </div>
+            ) : (
+              <PhaseTrack
+                phase={snapshot.phase}
+                turn={snapshot.turnCount}
+                actions={plan?.global ?? []}
+                disabled={busy}
+                onRespond={respond}
+              />
+            )}
 
             <FieldRow
-              cards={you.monsters}
+              cards={you.monsters.slice(0, 5)}
               owner={me}
               zone="monster"
               left={<FieldSpellSlot player={you} owner={me} {...shared} />}
@@ -495,7 +692,7 @@ export function DuelBoard({
                     <DuelPile
                       label="Cemit."
                       count={you.graveSize}
-                      onOpen={openWith("Seu Cemitério", you.grave)}
+                      onOpen={openWith("Seu Cemitério", (p) => p.you.grave)}
                       topCard={you.graveTop}
                       registry={registry}
                     />
@@ -504,7 +701,7 @@ export function DuelBoard({
                     <DuelPile
                       label="Banidas"
                       count={you.banishedSize}
-                      onOpen={openWith("Suas banidas", you.banished)}
+                      onOpen={openWith("Suas banidas", (p) => p.you.banished)}
                     />
                   }
                 />
@@ -519,7 +716,8 @@ export function DuelBoard({
                 <DuelPile
                   label="Extra"
                   count={you.extraSize}
-                  onOpen={openWith("Seu Extra Deck", you.extra)}
+                  badge={faceUpBadge(you.extraFaceUp)}
+                  onOpen={openWith("Seu Extra Deck", (p) => p.you.extra)}
                 />
               }
               right={
@@ -625,7 +823,7 @@ export function DuelBoard({
         {openPile && (
           <PileModal
             title={openPile.title}
-            cards={openPile.cards}
+            cards={pileShown}
             registry={registry}
             onHover={setPreview}
             onClose={() => setOpenPile(null)}
@@ -723,6 +921,18 @@ interface SharedSlotProps {
   registry: CardRegistry | null;
   onHover: (card: BoardCard | null) => void;
   slotProps: SlotPropsFn;
+  /** Mesa de Master Rule 2020 (ver `isTcg` no `DuelBoard`). */
+  isTcg: boolean;
+  /** Zona → nomes dos Links que apontam para ela. */
+  linkedBy: Map<string, string[]>;
+  openMaterials: (card: BoardCard) => () => void;
+}
+
+/** Selo de "N viradas para cima" do Extra Deck, quando houver alguma. */
+function faceUpBadge(count: number): { text: string; title: string } | null {
+  return count > 0
+    ? { text: `↑${count}`, title: `${count} carta(s) virada(s) para cima (públicas)` }
+    : null;
 }
 
 function FieldRow({
@@ -735,6 +945,9 @@ function FieldRow({
   registry,
   onHover,
   slotProps,
+  isTcg,
+  linkedBy,
+  openMaterials,
 }: SharedSlotProps & {
   cards: (BoardCard | null)[];
   owner: 0 | 1;
@@ -754,19 +967,40 @@ function FieldRow({
   return (
     <div className="flex min-h-0 flex-1 items-center justify-center gap-1.5">
       {left}
-      {ordered.map(({ card, sequence }) => (
-        <DuelCardSlot
-          key={sequence}
-          card={card}
-          registry={registry}
-          placeholder={`${prefix}${sequence + 1}`}
-          rotated={zone === "monster" && Boolean(card?.defense)}
-          upsideDown={mirrored}
-          zoneKey={cardKey(owner, location, sequence)}
-          onHover={onHover}
-          {...slotProps(card, { player: owner, location, sequence })}
-        />
-      ))}
+      {ordered.map(({ card, sequence }) => {
+        const key = cardKey(owner, location, sequence);
+        // Pêndulo nas pontas da fileira de magias (zonas 1 e 5) vale como
+        // escala — a da esquerda usa a escala esquerda da carta.
+        const pendulumZone = isTcg && zone === "spell" && (sequence === 0 || sequence === 4);
+        const isPendulum =
+          card?.code != null &&
+          (registry?.get(card.code)?.frameType.includes("pendulum") ?? false);
+        return (
+          <DuelCardSlot
+            key={sequence}
+            card={card}
+            registry={registry}
+            placeholder={
+              pendulumZone ? `${prefix}${sequence + 1} · P` : `${prefix}${sequence + 1}`
+            }
+            rotated={zone === "monster" && Boolean(card?.defense)}
+            upsideDown={mirrored}
+            zoneKey={key}
+            onHover={onHover}
+            showLevel={isTcg && zone === "monster"}
+            scaleSide={
+              pendulumZone && isPendulum && !card?.faceDown
+                ? sequence === 0
+                  ? "left"
+                  : "right"
+                : null
+            }
+            linkedBy={zone === "monster" ? linkedBy.get(key) : undefined}
+            onOpenMaterials={card?.overlays.length ? openMaterials(card) : undefined}
+            {...slotProps(card, { player: owner, location, sequence })}
+          />
+        );
+      })}
       {right}
     </div>
   );
@@ -821,7 +1055,10 @@ function FieldSpellSlot({
   registry,
   onHover,
   slotProps,
-}: SharedSlotProps & { player: BoardPlayer; owner: 0 | 1 }) {
+}: Pick<SharedSlotProps, "registry" | "onHover" | "slotProps"> & {
+  player: BoardPlayer;
+  owner: 0 | 1;
+}) {
   return (
     <DuelCardSlot
       card={player.field}
@@ -844,7 +1081,10 @@ function Hand({
   registry,
   onHover,
   slotProps,
-}: SharedSlotProps & { cards: BoardCard[]; seat: 0 | 1 }) {
+}: Pick<SharedSlotProps, "registry" | "onHover" | "slotProps"> & {
+  cards: BoardCard[];
+  seat: 0 | 1;
+}) {
   return (
     <div
       // Índice ABSOLUTO — ver o comentário no `dataPile` da fileira acima.
@@ -895,6 +1135,7 @@ function PhaseTrack({
   actions,
   disabled,
   onRespond,
+  vertical = false,
 }: {
   phase: number | null;
   /** Turnos já iniciados. 0 = o duelo ainda não começou. */
@@ -902,12 +1143,58 @@ function PhaseTrack({
   actions: GlobalAction[];
   disabled?: boolean;
   onRespond: (response: OcgResponse) => void;
+  /**
+   * Coluna em vez de trilha: no TCG a trilha mora entre as duas Zonas Extra,
+   * na largura de uma carta.
+   */
+  vertical?: boolean;
 }) {
   const actionFor = (short: string) => {
     const match = PHASE_ACTION_MATCH.find((entry) => entry.short === short);
     if (!match) return null;
     return actions.find((action) => match.test.test(action.label)) ?? null;
   };
+
+  if (vertical) {
+    return (
+      <div
+        // z-50 pelo mesmo motivo da trilha horizontal (ver abaixo). Grade de
+        // duas colunas, lida como texto (DP SP / M1 BP / M2 EP): numa coluna
+        // só, sete botões na altura de uma carta ficavam ilegíveis em telas
+        // baixas.
+        className={`relative z-50 grid ${CARD_SHAPE} grid-cols-2 grid-rows-4 gap-[4%] py-[4%]`}
+      >
+        <span
+          title={`Turno ${turn}`}
+          className="tf-phase-pip col-span-2 flex min-h-0 items-center justify-center rounded font-mono text-[11px] font-bold text-[color:var(--tf-gold-bright)]"
+        >
+          {turn > 0 ? `T${turn}` : "—"}
+        </span>
+        {PHASE_TRACK.map((entry) => {
+          const action = actionFor(entry.short);
+          const active = phase === entry.value;
+          return (
+            <button
+              key={entry.value}
+              type="button"
+              disabled={!action || disabled}
+              onClick={() => action && onRespond(action.response)}
+              title={action ? action.label : phaseLabel(entry.value)}
+              className={`min-h-0 rounded text-[11px] font-bold leading-none transition ${
+                active
+                  ? "tf-phase-pip tf-phase-pip-active"
+                  : action
+                    ? "tf-phase-pip cursor-pointer text-[color:var(--tf-gold-bright)] hover:bg-[color:var(--tf-gold)] hover:text-black"
+                    : "tf-phase-pip cursor-default text-[color:var(--tf-gold-dim)]/50"
+              }`}
+            >
+              {entry.short}
+            </button>
+          );
+        })}
+      </div>
+    );
+  }
 
   return (
     // z-50: os avisos grandes do centro (SEU TURNO, dano) passam por cima do
@@ -2213,16 +2500,27 @@ function CardPreview({
 
   const image =
     definition.images[0]?.image_url ?? definition.images[0]?.image_url_small;
-  const isMonster = definition.atk !== undefined && definition.atk !== null;
+  const isMonster = definition.type.includes("Monster");
+  const isLink = Boolean(definition.linkval) || Boolean(card?.link);
+  const isXyz = definition.frameType.includes("xyz");
+  const isPendulum = definition.frameType.includes("pendulum");
 
-  // Linha de tipo no formato do Tag Force: [Dragão/Efeito]
+  // Linha de tipo no formato da carta: [Dragão/Sincro/Regulador/Efeito]
   const typeLine = isMonster
-    ? `[${translateRace(definition.race) ?? "?"}/${translateType(definition.type)
-        .replace(/^Monstro (de )?/i, "")
-        .trim()}]`
+    ? `[${[translateRace(definition.race) ?? "?", ...monsterTypeParts(definition.humanReadableCardType, definition.type)].join("/")}]`
     : `[${translateType(definition.type)}${
         definition.race ? ` / ${translateRace(definition.race)}` : ""
       }]`;
+
+  // Valores ATUAIS quando a carta está em campo (o core informa); os impressos
+  // quando ela está na mão, numa pilha ou num modal.
+  const rating = card?.link?.rating ?? definition.linkval ?? 0;
+  const markers = card?.link?.markers ?? definition.linkMarkers ?? 0;
+  const rank = card?.rank || (isXyz ? (definition.level ?? 0) : 0);
+  const level = card?.level || (!isXyz && !isLink ? (definition.level ?? 0) : 0);
+  const leftScale = card?.scales?.left ?? definition.scale;
+  const rightScale = card?.scales?.right ?? definition.scale;
+  const materials = card?.overlays ?? [];
 
   return (
     <div className="tf-panel flex min-h-0 flex-1 flex-col gap-2 overflow-hidden rounded-md p-2.5">
@@ -2244,13 +2542,17 @@ function CardPreview({
               base={card?.baseAttack ?? definition.atk ?? null}
             />
           </span>
-          <span className="text-[color:var(--tf-gold-dim)]">
-            DEF/{" "}
-            <StatValue
-              value={card?.defenseValue ?? definition.def ?? null}
-              base={card?.baseDefense ?? definition.def ?? null}
-            />
-          </span>
+          {isLink ? (
+            <span className="text-sky-300">LINK-{rating}</span>
+          ) : (
+            <span className="text-[color:var(--tf-gold-dim)]">
+              DEF/{" "}
+              <StatValue
+                value={card?.defenseValue ?? definition.def ?? null}
+                base={card?.baseDefense ?? definition.def ?? null}
+              />
+            </span>
+          )}
         </div>
       )}
 
@@ -2262,10 +2564,48 @@ function CardPreview({
           {typeLine}
         </p>
         {isMonster && (
-          <p className="text-[12px] text-amber-300">
-            {definition.level ? `${"★".repeat(Math.min(definition.level, 12))} ` : ""}
-            {attributeLabel(definition.attribute) ?? ""}
+          <p className="flex flex-wrap items-center gap-x-2 text-[12px] text-amber-300">
+            {isLink ? (
+              <span className="flex items-center gap-1.5 text-sky-300">
+                <LinkArrowsGlyph markers={markers} />
+                Link {rating}
+              </span>
+            ) : rank ? (
+              <span title={`Rank ${rank}`} className="text-zinc-100">
+                Rank {rank} {"☆".repeat(Math.min(rank, 13))}
+              </span>
+            ) : level ? (
+              <span title={`Nível ${level}`}>{"★".repeat(Math.min(level, 12))}</span>
+            ) : null}
+            <span>{attributeLabel(definition.attribute) ?? ""}</span>
           </p>
+        )}
+        {isPendulum && leftScale !== undefined && (
+          <p className="text-[12px] font-semibold">
+            <span className="text-sky-300">Escala ◂{leftScale}</span>
+            <span className="text-[color:var(--tf-gold-dim)]"> · </span>
+            <span className="text-rose-300">{rightScale}▸</span>
+          </p>
+        )}
+        {materials.length > 0 && (
+          <div className="mt-1.5">
+            <p className="text-[11px] font-semibold uppercase tracking-wide text-violet-300">
+              ◈ Materiais Xyz ({materials.length})
+            </p>
+            <div className="mt-1 flex flex-wrap gap-1">
+              {materials.map((code, index) => {
+                const material = registry?.get(code);
+                return (
+                  <span
+                    key={`${code}-${index}`}
+                    className="rounded bg-violet-950/70 px-1.5 py-0.5 text-[11px] text-violet-100"
+                  >
+                    {material ? texto.name(material) : `Carta ${code}`}
+                  </span>
+                );
+              })}
+            </div>
+          </div>
         )}
       </div>
 
@@ -2273,5 +2613,25 @@ function CardPreview({
         {texto.desc(definition)}
       </p>
     </div>
+  );
+}
+
+/**
+ * As setas de um Link em miniatura (3×3), para a leitura da carta — a mesma
+ * disposição da carta impressa, com o centro vazio.
+ */
+function LinkArrowsGlyph({ markers }: { markers: number }) {
+  const cells = [0x040, 0x080, 0x100, 0x008, 0, 0x020, 0x001, 0x002, 0x004];
+  return (
+    <span className="inline-grid grid-cols-3 gap-px" aria-hidden>
+      {cells.map((bit, index) => (
+        <span
+          key={index}
+          className={`h-1.5 w-1.5 rounded-[1px] ${
+            bit === 0 ? "bg-transparent" : markers & bit ? "bg-red-500" : "bg-zinc-700"
+          }`}
+        />
+      ))}
+    </span>
   );
 }

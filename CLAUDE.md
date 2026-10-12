@@ -61,6 +61,10 @@ Modules imported by both the Next graph and the plain-Node server must not impor
 
 Engine message → `findPromptMessage` (`bot-responder.ts`) → `autoResponseFor` (`auto-response.ts`, answers prompts with no real choice) → for humans, `buildPromptPlan` (`duel-actions.ts`) turns it into a `PromptPlan` (per-card actions, field places, selections, modals) that `components/duel/DuelBoard.tsx` renders. A plan with nothing actionable freezes the duel; `test:ui` and `test:ui-rare` exist to catch that. **When `PromptPlan` gains a field, update `planIsActionable` in both `test-ui-prompts.mjs` and `test-ui-rare-prompts.mjs`.**
 
+### Modern board (TCG)
+
+`DuelSnapshot.format` drives the table: Goat keeps the 2005 layout; TCG adds the Extra Monster Zone row (shared zones — the left one is `me` seq 5 *or* the opponent's seq 6, drawn from the viewer's perspective), Link arrows, pointed-zone outlines (`link-geometry.ts`), Level/Rank/LINK badges, Pendulum scales on S/T zones 0 and 4, Xyz material badges, and a public face-up Extra Deck. `BoardPlayer.monsters` has 7 entries (5–6 are the Extra Zones). Never add `OcgQueryFlags.TYPE` to a query — the binding can't parse it (throws `eof`, and misaligns combined queries). Local duels accept a test-only `scenario` (cards placed at start) via the stored setup; `test:board-modern` uses it.
+
 ### Hidden information
 
 Board reads are per viewer (`readBoardState(core, handle, viewer)` in `board-state.ts`); prompt candidates are masked (`maskHiddenCards`, `prompt-mask.ts`); online, `projectSnapshot` (`src/server/duel/room.ts`) strips everything a seat may not see before sending. Design rationale: `docs/multiplayer.md`.

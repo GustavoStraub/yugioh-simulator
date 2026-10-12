@@ -29,6 +29,7 @@
     "test:browser-announce": "node tools/harness/test-browser-announce.mjs",
     "test:browser-online": "node tools/harness/test-browser-online.mjs",
     "test:browser-decks": "node tools/harness/test-browser-decks.mjs",
+    "test:board-modern": "node tools/harness/test-board-modern.mjs",
     "shots": "node tools/harness/screenshot.mjs",
     "test:triggers": "node tools/harness/test-triggers.mjs",
     "test:remaining": "node tools/harness/test-remaining.mjs",

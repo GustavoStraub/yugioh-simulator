@@ -432,3 +432,28 @@ body {
 .tf-dice {
   animation: tf-dice-roll 1.2s cubic-bezier(0.2, 0.7, 0.2, 1) forwards;
 }
+
+/* ----- Mesa moderna (TCG) --------------------------------------------------
+   Setas Link: triângulos nas bordas da arte. As acesas brilham em vermelho,
+   como na carta impressa; as apagadas ficam quase invisíveis, mas presentes —
+   é a posição relativa que se lê de relance.
+------------------------------------------------------------------------- */
+.tf-link-arrow {
+  display: block;
+  width: 70%;
+  height: 55%;
+  clip-path: polygon(50% 0, 100% 100%, 0 100%);
+  background: rgba(10, 10, 10, 0.55);
+}
+
+.tf-link-arrow-on {
+  background: linear-gradient(180deg, #ff8a7a, #d4202a);
+  filter: drop-shadow(0 0 2px rgba(255, 90, 70, 0.95));
+}
+
+/* Zona para onde um Link aponta: contorno tracejado, discreto o bastante para
+   não competir com o realce de "clique aqui", que é outro assunto. */
+.tf-slot-linked {
+  outline: 1px dashed rgba(255, 120, 100, 0.75);
+  outline-offset: -3px;
+}

@@ -72,6 +72,28 @@ const DEFAULT_SEATS: [SeatConfig, SeatConfig] = [
   { kind: "bot", name: "O oponente" },
 ];
 
+/**
+ * Uma carta já em jogo quando o duelo começa (ver `DuelSessionConfig.scenario`).
+ * `location`/`position` são os valores do core (`OcgLocation`/`OcgPosition`).
+ */
+export interface ScenarioCard {
+  player: 0 | 1;
+  location: number;
+  sequence?: number;
+  position?: number;
+  code: number;
+}
+
+/** Onde um cenário pode pôr carta — nada de Deck reordenado ou zona inventada. */
+const SCENARIO_LOCATIONS = new Set<number>([
+  OcgLocation.HAND,
+  OcgLocation.MZONE,
+  OcgLocation.SZONE,
+  OcgLocation.GRAVE,
+  OcgLocation.REMOVED,
+  OcgLocation.EXTRA,
+]);
+
 export interface DuelSessionConfig {
   playerName: string;
   playerDeck: DuelDeckPayload;
@@ -87,6 +109,15 @@ export interface DuelSessionConfig {
    * TCG existir no app.
    */
   format?: DuelFormat;
+  /**
+   * Mesa de teste: cartas que já começam em jogo, além dos decks.
+   *
+   * Existe para os testes de navegador e as capturas chegarem direto a uma
+   * situação (um Link na Zona Extra, escalas armadas) sem jogar dez turnos —
+   * o mesmo `place` do harness. Não há caminho para isto na interface nem no
+   * duelo online: só quem monta o duelo por código.
+   */
+  scenario?: ScenarioCard[];
 }
 
 /**
@@ -378,11 +409,18 @@ export class DuelSession {
     const unknownCodes = new Set<number>();
 
     try {
+      const scenario = (config.scenario ?? []).filter(
+        (card) =>
+          (card.player === 0 || card.player === 1) &&
+          SCENARIO_LOCATIONS.has(card.location) &&
+          Number.isInteger(card.code),
+      );
       const allPasscodes = [
         ...config.playerDeck.main,
         ...config.playerDeck.extra,
         ...config.opponentDeck.main,
         ...config.opponentDeck.extra,
+        ...scenario.map((card) => card.code),
       ];
       this.appendLog("Carregando scripts base do engine...");
       const [{ core: coreScripts, support, patchesAusentes }, cardDb, engineStrings] =
@@ -488,6 +526,22 @@ export class DuelSession {
 
       this.loadDeck(0, config.playerDeck);
       this.loadDeck(1, config.opponentDeck);
+      for (const card of scenario) {
+        core.duelNewCard(handle, {
+          team: card.player,
+          duelist: 0,
+          code: card.code,
+          controller: card.player,
+          location: card.location as OcgLocation,
+          sequence: card.sequence ?? 0,
+          position: (card.position ??
+            (card.location === OcgLocation.MZONE
+              ? OcgPosition.FACEUP_ATTACK
+              : card.location === OcgLocation.SZONE || card.location === OcgLocation.EXTRA
+                ? OcgPosition.FACEDOWN
+                : OcgPosition.FACEUP)) as OcgPosition,
+        });
+      }
 
       this.appendLog(
         `Duelo iniciado — ${config.playerName} vs ${config.opponentName}`,
