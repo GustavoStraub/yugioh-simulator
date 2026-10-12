@@ -1,36 +1,213 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Yu-Gi-Oh! Goat
 
-## Getting Started
+Deck builder e simulador de duelo do formato Goat (abril de 2005), rodando o
+**ocgcore de verdade** (o engine do EDOPro) compilado para WebAssembly — contra
+o bot ou online, contra um amigo.
 
-First, run the development server:
+- `/` — construtor de decks
+- `/duel` — duelo contra o bot
+- `/duel/online` — duelo online (salas com link de convite)
+
+## Requisitos
+
+- **Node.js 22.18 ou mais novo** (desenvolvido no 26). O servidor roda
+  TypeScript direto, sem compilar, e isso só existe a partir daí.
+- **Internet** enquanto joga: o catálogo de cartas vem da
+  [YGOPRODeck](https://ygoprodeck.com/api-guide/) e o script de cada carta vem
+  do GitHub do [ProjectIgnis](https://github.com/ProjectIgnis/CardScripts),
+  baixados na hora e guardados em memória.
+- Para jogar pela internet: **`cloudflared`** (`brew install cloudflared`).
+
+## Rodar localmente
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+git clone https://github.com/GustavoStraub/yugioh-simulator.git
+cd yugioh-simulator
+npm install      # também copia o engine (wasm) para public/ocgcore
+npm run dev      # http://localhost:3000
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+O `npm run dev` sobe um servidor Node próprio (`server.mjs`) em vez do
+`next dev` puro — é ele quem serve o WebSocket do duelo online. Para depurar
+algo que não seja o online, `npm run dev:next` usa o Next sozinho.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Para rodar como em produção (mais rápido, sem recarregar ao salvar):
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+npm run build
+npm start        # http://localhost:3000
+```
 
-## Learn More
+O servidor imprime ao subir o endereço local, o da rede e a pasta onde os
+decks ficam salvos:
 
-To learn more about Next.js, take a look at the following resources:
+```
+  ▲ Yu-Gi-Oh! Goat — desenvolvimento
+    http://localhost:3000
+    http://192.168.0.42:3000
+    convite: http://192.168.0.42:3000/duel/online
+    decks: /caminho/do/projeto/.data/decks
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Jogar com amigos na mesma rede
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Com o servidor rodando (`npm run dev` ou `npm start`), qualquer aparelho do
+mesmo Wi-Fi entra pelo endereço de rede impresso acima. Duas abas do mesmo
+navegador também valem por dois jogadores — a identidade fica no
+`sessionStorage`, que é por aba.
 
-## Deploy on Vercel
+1. Abra `/duel/online`, escolha um deck e clique em **Criar sala nova**.
+2. Mande o link da sala para o amigo (a tela já monta com o IP da rede —
+   `localhost` só funciona para quem hospeda).
+3. Os dois clicam em **Estou pronto** e disputam **pedra, papel e tesoura** —
+   quem ganhar escolhe jogar o primeiro ou o segundo turno (empate joga de
+   novo).
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Se o amigo não conseguir abrir o link, o firewall do computador que hospeda
+pode estar barrando a porta 3000.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Jogar pela internet
+
+### Link temporário — um comando
+
+Builda, sobe o servidor, abre um túnel e te devolve o link pronto para mandar:
+
+```bash
+brew install cloudflared   # uma vez
+npm run public
+```
+
+```
+  ┌───────────────────────────────────────────────────────────┐
+  │  https://algo-aleatorio.trycloudflare.com/duel/online      │
+  └───────────────────────────────────────────────────────────┘
+```
+
+Enquanto o terminal estiver aberto, o jogo está no ar; `Ctrl+C` derruba
+servidor e túnel juntos. `npm run public -- --sem-build` pula a compilação (útil
+para reabrir o túnel), e `PORT=3001 npm run public` troca a porta.
+
+O túnel abre uma conexão **de dentro para fora**, então não precisa de
+encaminhamento de porta nem de acesso ao roteador — é a saída para quem não é
+dono da rede. De brinde ele entrega HTTPS, o que faz o botão de copiar link
+funcionar (a área de transferência do navegador só existe em contexto seguro).
+
+A URL muda a cada execução, e quem está jogando cai se o seu computador
+dormir ou o terminal fechar.
+
+### Endereço fixo
+
+Duas saídas:
+
+- **Túnel nomeado da Cloudflare** — precisa de conta e de um domínio na
+  Cloudflare. O servidor continua no seu computador
+  (`npm run build && npm start`), e o túnel aponta um subdomínio fixo para
+  `http://localhost:3000`. Se for usar o `next dev` atrás dele, ponha o domínio
+  em `DEV_ORIGINS`.
+- **Um servidor seu** (VPS, máquina de casa ligada direto):
+
+  ```bash
+  npm ci
+  npm run build
+  PORT=3000 npm start
+  ```
+
+  Atrás de um proxy reverso com HTTPS (Caddy, Nginx) que repasse o
+  **WebSocket** (cabeçalhos `Upgrade`/`Connection`) — sem isso o duelo online
+  não conecta. Guarde a pasta de decks (`DECKS_DIR`) num lugar que sobreviva a
+  um novo deploy.
+
+**Não roda em hospedagem serverless (Vercel e afins):** o duelo online precisa
+de um processo Node que fique de pé, segure as conexões WebSocket e guarde as
+salas em memória.
+
+## Configuração
+
+Tudo opcional, por variável de ambiente:
+
+| Variável | Padrão | Para quê |
+|---|---|---|
+| `PORT` | `3000` | Porta do servidor (e do `npm run public`) |
+| `HOST` | `0.0.0.0` | Interface em que o servidor escuta; `127.0.0.1` deixa só esta máquina entrar |
+| `DECKS_DIR` | `.data/decks` | Onde os decks são gravados |
+| `DUEL_DISCONNECT_GRACE_MS` | `45000` | Quanto esperar por quem caiu antes de liberar "encerrar a meu favor" |
+| `DUEL_HEARTBEAT_MS` | `30000` | Intervalo do ping que detecta conexão morta |
+| `CARDSCRIPTS_DIR` | `.cache/CardScripts` | Clone local dos scripts (`npm run fixtures`); sem ele, o servidor baixa do GitHub |
+| `DEV_ORIGINS` | — | Domínios extras liberados no `next dev` (separados por vírgula) |
+
+## Durante o duelo
+
+O engine roda **no servidor**, não no navegador: é o que impede que um jogador
+leia a mão do outro pelo console. Detalhes do desenho em
+[`docs/multiplayer.md`](docs/multiplayer.md).
+
+Para desistir, clique no **seu deck** e escolha 🏳️ *Render-se* (pede
+confirmação — é a única ação da mesa que não dá para desfazer). Os pontos de
+vida não são mexidos: só o resultado muda.
+
+Quando a partida acaba, a tela diz **por que** acabou (LP a zero, deck vazio,
+Exodia, rendição) e oferece um caminho só: *Voltar à sala*. Lá dentro cada um
+troca de deck se quiser e clica em **Estou pronto** de novo — a partida seguinte
+começa na mesma sala, com os assentos sorteados outra vez.
+
+Se alguém cair no meio do duelo, o lugar fica guardado e a pessoa volta no
+mesmo assento ao reabrir o link. Quem ficou vê o aviso na mesa e, depois de 45
+segundos (`DUEL_DISCONNECT_GRACE_MS`), pode encerrar o duelo a seu favor —
+ninguém fica preso a um tabuleiro que não anda mais.
+
+## Construtor de decks
+
+Na primeira visita o app pede o seu **nome**: é ele que identifica a sua
+coleção e é ele que o adversário vê na mesa. O nome **não** diferencia
+maiúsculas, acentos nem espaços — "Straub", "straub" e "STRAUB" são a mesma
+pessoa, com a mesma biblioteca.
+
+- **Biblioteca de decks** — crie, duplique, renomeie e apague quantos quiser.
+  Os decks são gravados **pelo servidor** em `.data/decks/<apelido>.json`
+  (`straub.json`), não no navegador: limpar os dados do site não leva nada
+  junto, e o arquivo dá para achar, ler e copiar à mão. O servidor imprime o
+  caminho da pasta ao subir.
+
+  Como o arquivo é do **apelido** e não do navegador, a coleção acompanha você:
+  outra porta (`:3000` e `:3100` são origens diferentes, com `localStorage`
+  separado), outro navegador, outro aparelho da rede — é só usar o mesmo nome.
+  Coleções antigas gravadas sob id aleatório são adotadas na primeira visita, e
+  se você aparecer em vários arquivos elas são **juntadas** (o original fica ao
+  lado como `.absorvido.bak`, para dar para desfazer à mão).
+
+  Fazer backup é copiar a pasta; apontar `DECKS_DIR` para um diretório
+  sincronizado (iCloud, Dropbox) dá os mesmos decks em outro computador, sem
+  banco nenhum.
+- **Sem banlist** — nenhuma carta é proibida ou limitada. A lista de abril de
+  2005 continua à vista na carta e no filtro, como informação; o único limite
+  que vale é o de 3 cópias, que é regra do jogo. (Os decks oficiais do app
+  sempre trouxeram cartas proibidas e sempre puderam ser jogados — a restrição
+  valia só para quem montava à mão.)
+- **Português e inglês** — o seletor `PT`/`EN` no cabeçalho troca o nome e o
+  texto das cartas. A busca acha nos dois idiomas de qualquer jeito, ignorando
+  acento: `dragao`, `DRAGÃO` e `blue eyes` levam ao mesmo lugar.
+
+## Testes
+
+Ver [`tools/harness/README.md`](tools/harness/README.md) — o harness roda o
+engine de verdade, sem navegador, e testa carta por carta. Antes da primeira
+vez:
+
+```bash
+npm run fixtures         # clona os scripts e baixa o pool Goat em .cache/
+```
+
+Os que cobrem o online:
+
+```bash
+npm run test:multiplayer     # sala, projeção por assento, codec, roteamento
+npm run test:browser-online  # duas abas de Chrome de verdade, duelando
+npm run test:browser-decks   # biblioteca de decks, persistência e idioma
+```
+
+## Documentação
+
+- [`docs/multiplayer.md`](docs/multiplayer.md) — como o duelo online foi
+  desenhado (servidor dono do engine, projeção por assento).
+- [`docs/tcg-completo.md`](docs/tcg-completo.md) — achados e plano para levar
+  o app ao pool completo do TCG.
