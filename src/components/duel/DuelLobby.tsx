@@ -10,7 +10,7 @@ import { useDeckEscolha } from "@/hooks/useDeckEscolha";
 import { DeckSelect } from "@/components/duel/DeckSelect";
 import { deckToDuelPayload } from "@/lib/domain/deck-serializer";
 import { isDeckDuelReady } from "@/lib/domain/deck-rules";
-import { presetToDuelPayload } from "@/lib/domain/preset-decks";
+import { kindGroupLabel, presetToDuelPayload } from "@/lib/domain/preset-decks";
 import { formatOf, type DuelDeckPayload } from "@/lib/types";
 import { PRESET_DECKS } from "@/lib/data/preset-decks-catalog";
 import { saveDuelSetup } from "@/lib/duel/duel-storage";
@@ -21,7 +21,8 @@ interface OpcaoDoBot {
   nome: string;
   cartas: number;
   deck: DuelDeckPayload;
-  grupo: "Decks prontos" | "Seus decks";
+  /** Rótulo do `<optgroup>`: a linha do deck pronto, ou "Seus decks". */
+  grupo: string;
 }
 
 export function DuelLobby() {
@@ -48,7 +49,9 @@ export function DuelLobby() {
         nome: preset.namePt,
         cartas: preset.main.length,
         deck: presetToDuelPayload(preset),
-        grupo: "Decks prontos",
+        // No TCG são ~100: agrupar pela linha (Estruturais, Lendários…) é o
+        // que torna o `<select>` navegável.
+        grupo: kindGroupLabel(preset.kind),
       }),
     );
     const meus = (meuDeck.biblioteca ?? [])
@@ -146,7 +149,7 @@ export function DuelLobby() {
             onChange={(event) => setOpponentId(event.target.value)}
             className="mt-4 w-full rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-amber-600"
           >
-            {(["Decks prontos", "Seus decks"] as const).map((grupo) => {
+            {[...new Set(opcoes.map((opcao) => opcao.grupo))].map((grupo) => {
               const doGrupo = opcoes.filter((opcao) => opcao.grupo === grupo);
               if (doGrupo.length === 0) return null;
               return (

@@ -32,6 +32,8 @@ Há atalhos no `package.json` para todos eles (`npm run test:cards`,
 | `npm run test:modern-play` | Navegador, só cliques: Sincro, Xyz e Link pelo Extra Deck que brilha, efeito de Cemitério, escalas + Invocação-Pêndulo e declaração de nome de arquétipo. Fotos de cada passo em `.cache/shots/jogo-*.png`. Precisa da app no ar (`APP_URL`). |
 | `npm run test:marks` | Marcas das cartas (contador, turnos, declaração, aviso, equipamento, alvo, negação, aviso de jogador, zona interditada) na `DuelSession` real, nas duas óticas e na projeção por assento. |
 | `npm run test:formats` | A `DuelSession` roda as regras do formato pedido (Goat compra no 1º turno, TCG não). |
+| `npm run test:presets` | Os decks pré-montados: validação de todos (Main/Extra, zona certa, dados oficiais e script, prova cruzada Goat × Yugipedia) e **uma partida bot × bot por deck TCG** em MR5, com cada prompt do assento 0 passando pela régua do `test:ui`. `--only id1,id2` repete partidas; `--skip-duels` só valida. |
+| `npm run test:sort-card` | "Recoloque as cartas do topo na ordem que quiser": a resposta é aceita (conserto do binding no `postinstall`) e a ordem escolhida na tela é a que fica no Deck. |
 | `node tools/harness/test-archetypes.mjs` | Cartas de arquétipo, com companheiros do mesmo `setcode` em campo/mão/deck: o efeito **enxerga** os parceiros? |
 | `node tools/harness/test-ui-prompts.mjs` | Joga duelos inteiros e submete cada pergunta do engine ao mesmo código que a tela usa. Acha prompts que a UI não sabe responder — a causa de duelo congelado. |
 | `node tools/harness/test-ui-rare-prompts.mjs` | Força os prompts raros (ANNOUNCE_*, SELECT_SUM, SORT_CARD, SELECT_DISFIELD) pondo na mão a carta que produz cada um. São justamente os que passam despercebidos num duelo comum. |

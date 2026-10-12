@@ -10,8 +10,8 @@ import { createEmptyDeck } from "@/lib/domain/deck-operations";
 import { deckToDuelPayload } from "@/lib/domain/deck-serializer";
 import { isDeckDuelReady } from "@/lib/domain/deck-rules";
 import { DECK_STORAGE_KEY, loadDeck } from "@/lib/domain/deck-storage";
-import { presetToDuelPayload } from "@/lib/domain/preset-decks";
-import type { DeckList, DuelDeckPayload } from "@/lib/types";
+import { kindGroupLabel, presetToDuelPayload } from "@/lib/domain/preset-decks";
+import { formatOf, type DeckList, type DuelDeckPayload } from "@/lib/types";
 
 /** Deck renderizado no servidor, onde não existe localStorage. */
 const SEM_DECK: DeckList = createEmptyDeck("Meu Deck Goat");
@@ -187,14 +187,18 @@ export function gruposDeDecks(escolha: DeckEscolha): GrupoDeDecks[] {
   // (o rótulo de reserva não traz contagem: o deck do navegador é o que está
   // aberto no construtor, e a contagem dele já está na tela de lá)
 
+  // Um grupo por formato e linha ("Goat · Decks Iniciais", "TCG · Decks
+  // Lendários"): com os ~100 decks TCG, um grupo só virava uma lista sem fim.
+  const prontos = new Map<string, { value: string; label: string }[]>();
+  for (const item of PRESET_DECKS) {
+    const grupo = `${formatOf(item.format) === "tcg" ? "TCG" : "Goat"} · ${kindGroupLabel(item.kind)}`;
+    const lista = prontos.get(grupo) ?? [];
+    lista.push({ value: item.id, label: `${item.namePt} (${item.main.length} cartas)` });
+    prontos.set(grupo, lista);
+  }
+
   return [
     { label: "Meus decks", opcoes: meus },
-    {
-      label: "Decks prontos",
-      opcoes: PRESET_DECKS.map((item) => ({
-        value: item.id,
-        label: `${item.namePt}${item.format === "tcg" ? " · TCG" : ""} (${item.main.length} cartas)`,
-      })),
-    },
+    ...[...prontos].map(([label, opcoes]) => ({ label, opcoes })),
   ];
 }

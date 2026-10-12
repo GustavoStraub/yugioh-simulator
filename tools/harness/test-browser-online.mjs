@@ -220,10 +220,17 @@ async function main() {
     // A ÚLTIMA opção de propósito: pegar "a próxima diferente" caía no mesmo
     // deck que a Ana já tinha escolhido, e aí o nome aparecer na tela dela era
     // legítimo — a checagem de privacidade acusava um vazamento que não havia.
+    // A última dos grupos **Goat**: a Ana está num deck Goat, e com os decks
+    // TCG no fim da lista a última opção virou um deck TCG — a sala, com
+    // razão, não abria o jokenpô entre formatos diferentes.
     const trocado = await bruno.evaluate(`
       const select = document.querySelector("select");
       if (!select) return null;
-      const opcao = [...select.options].filter((o) => o.value).at(-1);
+      const opcao = [...select.querySelectorAll("optgroup")]
+        .filter((grupo) => grupo.label.startsWith("Goat"))
+        .flatMap((grupo) => [...grupo.querySelectorAll("option")])
+        .filter((o) => o.value)
+        .at(-1);
       if (!opcao) return null;
       select.value = opcao.value;
       select.dispatchEvent(new Event("change", { bubbles: true }));

@@ -16,6 +16,7 @@
     "build:engine-strings": "node scripts/build-engine-strings.mjs",
     "build:catalog": "node --import ./tools/harness/ts-loader-register.mjs scripts/build-catalog.mjs",
     "sync:images": "node --import ./tools/harness/ts-loader-register.mjs scripts/sync-images.mjs",
+    "build:presets": "node --import ./tools/harness/ts-loader-register.mjs scripts/build-preset-decks.mjs",
     "test:cards": "node tools/harness/test-cards.mjs",
     "test:tcg-pool": "node tools/harness/test-tcg-pool.mjs",
     "test:archetypes": "node tools/harness/test-archetypes.mjs",
@@ -45,7 +46,9 @@
     "test:viewports": "node tools/harness/test-viewports.mjs",
     "test:multiplayer": "node --import ./tools/harness/ts-loader-register.mjs tools/harness/test-multiplayer.mjs",
     "test:connection": "node --import ./tools/harness/ts-loader-register.mjs tools/harness/test-connection.mjs",
-    "test:bot": "node --import ./tools/harness/ts-loader-register.mjs tools/harness/test-bot.mjs"
+    "test:bot": "node --import ./tools/harness/ts-loader-register.mjs tools/harness/test-bot.mjs",
+    "test:presets": "node --import ./tools/harness/ts-loader-register.mjs tools/harness/test-preset-decks.mjs",
+    "test:sort-card": "node --import ./tools/harness/ts-loader-register.mjs tools/harness/test-sort-card.mjs"
   },
   "dependencies": {
     "@n1xx1/ocgcore-wasm": "npm:@jsr/n1xx1__ocgcore-wasm@^0.1.4",

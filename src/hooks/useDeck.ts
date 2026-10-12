@@ -78,6 +78,19 @@ export function useDeck() {
   /** Decks aguardando gravação, por id — o debounce grava o último estado. */
   const pendentes = useRef(new Map<string, DeckList>());
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  /**
+   * Gravações e remoções vão ao servidor UMA de cada vez, na ordem em que
+   * aconteceram. Sem a fila, apagar um deck logo depois de mexer nele (renomear
+   * e apagar, carregar um deck pronto e apagar) mandava o "apagar" enquanto o
+   * "salvar" ainda estava a caminho — o salvar chegava depois e o deck
+   * apagado voltava à biblioteca.
+   */
+  const fila = useRef<Promise<void>>(Promise.resolve());
+  const enfileirar = useCallback((tarefa: () => Promise<void>) => {
+    // Cada tarefa trata o próprio erro; o `catch` só impede que uma falha
+    // inesperada trave a fila para as próximas.
+    fila.current = fila.current.then(tarefa).catch(() => undefined);
+  }, []);
 
   // Carrega a biblioteca. Tudo depois de um `await`, então não há cascata de
   // render (ver a regra `react-hooks/set-state-in-effect`).
@@ -149,7 +162,7 @@ export function useDeck() {
       timer.current = setTimeout(() => {
         const lote = [...pendentes.current.values()];
         pendentes.current.clear();
-        void (async () => {
+        enfileirar(async () => {
           for (const item of lote) {
             try {
               await persistDeck(perfil, item);
@@ -160,10 +173,10 @@ export function useDeck() {
               );
             }
           }
-        })();
+        });
       }, SALVAR_APOS_MS);
     },
-    [],
+    [enfileirar],
   );
 
   // Uma edição pendente não pode ir embora com a tela: sem isto, sair do
@@ -285,6 +298,9 @@ export function useDeck() {
     (id: string) => {
       if (!decks) return;
 
+      // A edição ainda não gravada do deck apagado não pode ir ao servidor
+      // depois — ela o recriaria.
+      pendentes.current.delete(id);
       const restante = decks.filter((candidate) => candidate.id !== id);
       // Nunca deixar a biblioteca vazia: sem deck aberto o construtor não teria
       // onde pôr a próxima carta.
@@ -300,14 +316,19 @@ export function useDeck() {
       }
 
       if (profile) {
-        void removeDeck(profile, id).catch((falha: unknown) =>
-          setSaveError(
-            falha instanceof Error ? falha.message : "Falha ao apagar o deck.",
-          ),
-        );
+        const perfil = profile;
+        enfileirar(async () => {
+          try {
+            await removeDeck(perfil, id);
+          } catch (falha) {
+            setSaveError(
+              falha instanceof Error ? falha.message : "Falha ao apagar o deck.",
+            );
+          }
+        });
       }
     },
-    [decks, profile, selectedId, agendarGravacao],
+    [decks, profile, selectedId, agendarGravacao, enfileirar],
   );
 
   const library: DeckLibrary = {

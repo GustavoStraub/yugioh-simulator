@@ -811,3 +811,77 @@ juntos.
   parte TCG (pool inteiro, Link no Extra com limite 15, resumo da banlist, a
   volta ao Goat marcando a carta fora do pool) — e ele agora apaga o perfil de
   teste que deixava em `.data/decks` a cada rodada.
+
+### Fase 7 — feita
+
+**107 decks pré-montados do TCG**, gerados por `npm run build:presets`
+(`scripts/build-preset-decks.mjs`) em `src/data/preset-decks-tcg.json`:
+
+| Linha | Decks |
+|---|---:|
+| Decks Iniciais (2002–2018, inclui Saber Force e Dark Legion) | 23 |
+| Decks Estruturais (SD1 a SDWD) | 59 |
+| Decks dos Deuses Egípcios | 2 |
+| Kit para 2 jogadores (Synchro e Xyz) | 2 |
+| Decks Lendários (YGLD, LDK2, LEDD, LEHD, L5DD, L26D — 3 por caixa) | 18 |
+| Edições especiais (NKRT, CH01, CH02) | 3 |
+
+- **Fonte**: as listas `Set Card Lists:<produto> (TCG-EN|NA)` da Yugipedia
+  (quantidade por linha e um `== X Deck ==` por deck nas caixas), resolvidas
+  para passcode pelo set code do `card_sets` da YGOPRODeck — com o nome como
+  reserva para os 8 códigos que a YGOPRODeck não tem. As páginas ficam em
+  `.cache/yugipedia/` (o build inteiro são ~10 requisições na primeira vez,
+  User-Agent próprio, 1,2 s entre elas; zero depois). Texto CC BY-SA 4.0: a
+  fonte vai em cada deck (`sourceUrl`) e no rodapé do seletor.
+- **Armadilhas do formato** (todas cobertas no script, com o porquê): as
+  colunas andam conforme o cabeçalho declara `print=`/`qty=`; sem `qty=`, três
+  cópias são três linhas — nada pode deduplicar por código; seções "Bonus",
+  "Promotional", "Tokens" e "Variant art cards" repetem códigos do deck (o
+  SDCH contava os 4 Familiar-Possessed duas vezes); o Extra Deck não é marcado
+  (sai do tipo da carta); os três Deuses do LDK2 aparecem na seção do Yugi mas
+  são brinde da caixa.
+- **Validação** (o build falha): Main 40–60, Extra ≤ 15, carta com dados
+  oficiais e script (ou Normal), e a conta do produto — as cartas dos decks
+  não passam do tamanho da caixa, e todas as linhas da lista não ficam abaixo
+  dele (a igualdade exata não serve: a lista mostra todos os "1 de 6 bônus").
+- **Fora**: os 3 decks do Legendary Arc-V Decks (2026) — cada um tem uma carta
+  lançada depois do snapshot dos dados oficiais (Odd-Eyes Override Dragon,
+  Lunalight Scarlet Tiger, Speedroid Darumaknocker). Voltam sozinhos quando o
+  `card-db.json` for regenerado com elas.
+- **Prova cruzada**: os 10 decks Goat, montados à mão anos antes de outra
+  fonte, batem carta a carta com os mesmos produtos gerados (só muda a arte de
+  algumas cartas).
+- **Lacuna da fonte**: o Sky Striker do L26D soma 54 na Yugipedia (a caixa diz
+  55: 1 Secreta + 6 Ultra + 48 Comuns; a lista tem 47 Comuns). Fica como está.
+- **Seletor**: busca (PT, EN, set code, ano, sem acento), filtro por linha e a
+  lista agrupada por linha em ordem de lançamento; os `<select>` do bot e da
+  sala online agrupam por formato e linha.
+- **Achados no caminho** (consertados, com teste):
+  - **Ordenar cartas do topo do Deck travava o duelo** (SORT_CARD). O binding
+    escrevia a quantidade antes da ordem; o core lê a ordem do byte 0 e
+    respondia RETRY para sempre — na tela o duelo congelava, contra o bot era
+    interrompido. Consertado no `postinstall` (`copy-ocgcore-wasm.mjs`, com
+    aviso alto se a âncora sumir). Valia para o Goat também.
+  - **E a ordem saía trocada**: a tela mandava "a carta de cada posição" e o
+    core lê "a posição de cada carta" — com 3 cartas, a escolhida para o topo
+    não ficava no topo. `sortOrderForCore`. Teste: `test:sort-card`.
+  - **Red-Eyes Darkness Metal Dragon** entrava sem efeito no navegador: no
+    commit fixado, o script só existe em `pre-errata/`, que o servidor online
+    lia e o navegador não. `script-source.ts` agora tenta `pre-errata/` por
+    último (só cartas sem script em `official/` chegam lá — é a única).
+  - **Deck apagado voltava**: apagar logo depois de mexer (menos de 600 ms)
+    deixava a gravação pendente chegar ao servidor depois do "apagar".
+    Gravações e remoções agora vão em fila, e o apagar descarta a pendente.
+    Coberto no `test:browser-decks` (falha sem o conserto).
+- Testes: `test:presets` (validação de todos + **uma partida bot × bot por
+  deck em MR5**, com cada prompt do assento 0 passando pela régua do
+  `test:ui`) — 107 de 107 terminam, 19 tipos de prompt exercitados, nenhum
+  sem resposta na tela; `test:sort-card`; `test:browser-decks` com o seletor
+  (107 decks, grupos, busca por set code, Blue-Eyes White Destiny carregando
+  40 + 10).
+- Testes antigos acertados: `test:connection` nunca jogava o jokenpô (falhava
+  em "o duelo começa" desde o primeiro commit) e apontava por padrão para a
+  porta 3000 — o dev server de quem desenvolve; agora joga o jokenpô e usa a
+  3210 do próprio roteiro. `test:browser-online` trocava para "o último deck
+  da lista", que passou a ser um deck TCG — a sala, com razão, não abria
+  Goat × TCG; agora pega o último dos grupos Goat.

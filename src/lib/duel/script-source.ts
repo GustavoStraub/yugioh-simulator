@@ -26,7 +26,12 @@ const CARDSCRIPTS_BASE = CARDSCRIPTS_RAW_BASE;
 
 const CACHE_TTL_MS = 1000 * 60 * 60 * 24;
 
-const scriptCache = new Map<string, { body: string; fetchedAt: number }>();
+/**
+ * `body: null` = nenhum candidato existe. Guardar a ausência importa: todo
+ * Monstro Normal pede o próprio script e não tem, e sem isso cada duelo
+ * refazia as três tentativas no GitHub para cada um deles.
+ */
+const scriptCache = new Map<string, { body: string | null; fetchedAt: number }>();
 
 /**
  * Ordem de tentativa para um caminho pedido.
@@ -38,7 +43,13 @@ const scriptCache = new Map<string, { body: string; fetchedAt: number }>();
  */
 function candidatesFor(scriptPath: string): string[] {
   if (/^c\d+\.lua$/i.test(scriptPath)) {
-    return [`official/${scriptPath}`, scriptPath];
+    // `pre-errata/` por último: no commit fixado, o Red-Eyes Darkness Metal
+    // Dragon (88264978) só tem script lá — o de `official/` virou outro
+    // passcode. Sem esta tentativa ele entrava no duelo do navegador sem
+    // efeito nenhum, enquanto o servidor online (que lê o clone com a mesma
+    // ordem de `node-assets.ts`) o achava. Só cartas sem script em
+    // `official/` chegam aqui, então nenhuma outra muda de versão.
+    return [`official/${scriptPath}`, scriptPath, `pre-errata/${scriptPath}`];
   }
   const fileName = scriptPath.split("/").pop() ?? scriptPath;
   return [scriptPath, `official/${fileName}`];
@@ -50,18 +61,27 @@ export async function fetchCardScript(scriptPath: string): Promise<string | null
   const now = Date.now();
   if (cached && now - cached.fetchedAt < CACHE_TTL_MS) return cached.body;
 
+  // A ausência só vai para o cache quando TODOS os candidatos responderam 404.
+  // Uma falha de rede ou um 5xx no meio deixaria a carta sem script por um
+  // dia inteiro.
+  let ausente = true;
   for (const candidate of candidatesFor(scriptPath)) {
     try {
       const response = await fetch(`${CARDSCRIPTS_BASE}/${candidate}`);
-      if (!response.ok) continue;
+      if (!response.ok) {
+        if (response.status !== 404) ausente = false;
+        continue;
+      }
 
       const body = await response.text();
       scriptCache.set(scriptPath, { body, fetchedAt: now });
       return body;
     } catch {
+      ausente = false;
       continue;
     }
   }
 
+  if (ausente) scriptCache.set(scriptPath, { body: null, fetchedAt: now });
   return null;
 }

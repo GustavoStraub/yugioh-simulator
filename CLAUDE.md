@@ -13,7 +13,7 @@ Code comments, UI text, docs and commit messages are in Portuguese (pt-BR), and 
 ## Commands
 
 ```bash
-npm install                # postinstall copies the engine wasm to public/ocgcore/ (git-ignored) and patches the binding's mod.js
+npm install                # postinstall copies the engine wasm to public/ocgcore/ (git-ignored) and patches the binding (mod.js default export; SORT_CARD response encoding)
 npm run dev                # custom server (server.mjs) + WebSocket on :3000 — the normal way to develop
 npm run dev:next           # plain `next dev`, without the online duel
 npm run build && npm start # production mode, same custom server
@@ -44,7 +44,7 @@ Browser tests (`test:browser*`, `test:attack`, `test:draw`, `test:viewports`, `s
 
 Diagnostic env flags: `SKIP_SCRIPT_PATCHES=1` shows the original error a script patch hides; `LEGACY_CARD_DATA=1` drops setcode/alias to measure their effect.
 
-Generated data is committed; regenerate with `npm run build:card-db` (`src/data/card-db.json` from ProjectIgnis BabelCDB `cards.cdb`) and `npm run build:engine-strings` (`src/data/engine-strings.json`).
+Generated data is committed; regenerate with `npm run build:presets` (`src/data/preset-decks-tcg.json`, the ~100 TCG preset decks, from Yugipedia lists cached in `.cache/yugipedia/` + YGOPRODeck set codes; it validates every deck and fails loudly), `npm run build:card-db` (`src/data/card-db.json` from ProjectIgnis BabelCDB `cards.cdb`) and `npm run build:engine-strings` (`src/data/engine-strings.json`).
 
 ## Architecture
 
@@ -59,7 +59,7 @@ Modules imported by both the Next graph and the plain-Node server must not impor
 
 ### Prompt pipeline
 
-Engine message → `findPromptMessage` (`bot-responder.ts`) → `autoResponseFor` (`auto-response.ts`, answers prompts with no real choice) → for humans, `buildPromptPlan` (`duel-actions.ts`) turns it into a `PromptPlan` (per-card actions, field places, selections, counter distribution, modals) that `components/duel/DuelBoard.tsx` renders. Actions on cards off the drawn table are reached through glowing piles (Extra Deck, GY, banished) or the "Outras jogadas" fallback — `actionReach` in `prompt-reach.ts`. Rules that must match the core exactly are mirrored from ygopro-core: `announce-filter.ts` (`is_declarable`) and `sum-selection.ts` (SELECT_SUM exact vs. at-least, two-value cards); the bot and the harness pilot use the same modules. A plan with nothing actionable freezes the duel; `test:ui` and `test:ui-rare` exist to catch that. **When `PromptPlan` gains a field, update `planIsActionable` in both `test-ui-prompts.mjs` and `test-ui-rare-prompts.mjs`.**
+Engine message → `findPromptMessage` (`bot-responder.ts`) → `autoResponseFor` (`auto-response.ts`, answers prompts with no real choice) → for humans, `buildPromptPlan` (`duel-actions.ts`) turns it into a `PromptPlan` (per-card actions, field places, selections, counter distribution, modals) that `components/duel/DuelBoard.tsx` renders. Actions on cards off the drawn table are reached through glowing piles (Extra Deck, GY, banished) or the "Outras jogadas" fallback — `actionReach` in `prompt-reach.ts`. Rules that must match the core exactly are mirrored from ygopro-core: `announce-filter.ts` (`is_declarable`) and `sum-selection.ts` (SELECT_SUM exact vs. at-least, two-value cards); the bot and the harness pilot use the same modules. A plan with nothing actionable freezes the duel; `test:ui` and `test:ui-rare` exist to catch that. **When `PromptPlan` gains a field, update `planIsActionable` in both `tools/harness/ui-audit.mjs` (shared by `test:ui` and `test:presets`) and `test-ui-rare-prompts.mjs`.**
 
 ### Modern board (TCG)
 
@@ -89,7 +89,7 @@ CardScripts is pinned to one commit (`src/lib/duel/cardscripts-pin.ts`) for the 
 
 ### Formats
 
-Each `DeckList` has `format: "goat" | "tcg"` (missing = Goat via `formatOf`/`normalizeDeck`); it travels inside `DuelDeckPayload.format` to local duels and online rooms (a room won't start Goat × TCG). `deck-rules.ts` holds per-format limits (`deckLimits`), pool membership (`isInFormatPool`: Goat pool vs. any card with official data), and the per-format banlist (`banStatus`, `banlistSummary`) — information only; the only hard rule is 3 copies.
+Each `DeckList` has `format: "goat" | "tcg"` (missing = Goat via `formatOf`/`normalizeDeck`); it travels inside `DuelDeckPayload.format` to local duels and online rooms (a room won't start Goat × TCG). `deck-rules.ts` holds per-format limits (`deckLimits`), pool membership (`isInFormatPool`: Goat pool vs. any card with official data), and the per-format banlist (`banStatus`, `banlistSummary`) — information only; the only hard rule is 3 copies. Preset decks: `src/data/preset-decks.json` (10 hand-built Goat decks) + `src/data/preset-decks-tcg.json` (generated — never hand-edit, rerun `build:presets`), merged in `lib/data/preset-decks-catalog.ts`; `test:presets` validates all of them and plays one bot × bot MR5 duel per TCG deck.
 
 ## Gotchas
 
@@ -97,6 +97,7 @@ Each `DeckList` has `format: "goat" | "tcg"` (missing = Goat via `formatOf`/`nor
 - `@n1xx1/ocgcore-wasm` must stay ≥ 0.1.4: 0.1.3 wrote the Pendulum right scale and Link markers at the wrong struct offsets (both reached the core as 0, so Pendulum Summon was never offered). On our side, a Link monster's `def` column in `cards.cdb` holds its **arrows** — `card-adapter.ts` (`linkFields`) and the harness `toOcgData` send it as `link_marker` with `defense: 0`. `test:modern-summons` reads both back from the core.
 - Duel rules come from the format: `DuelSessionConfig.format` (`"goat"` default → `MODE_GOAT`, `"tcg"` → `MODE_MR5`); per-format deck rules live in `FORMAT_RULES` (`types/duel.ts`). `test:formats` checks the session really runs each ruleset.
 - The binding sometimes throws `Error: eof` while deserializing a message (e.g. `SHUFFLE_SET_CARD`); both loops treat it as recoverable, with a cap — keep that.
+- The binding (0.1.4) prefixes the SORT_CARD/SORT_CHAIN response with a length byte the core doesn't read, so every explicit order got RETRY forever; `scripts/copy-ocgcore-wasm.mjs` patches `dist/index.js` at postinstall (a running dev server needs a restart to pick it up). The core reads the order as "position of each card", not "card at each position" — build UI orders through `sortOrderForCore`. `test:sort-card` covers both.
 - To stop a server you started, kill it by port or PID — never `pkill -f server.mjs`, which also kills the user's dev server.
 - `.env.github` (git-ignored) may hold a GitHub token used for pushes — never print it.
 

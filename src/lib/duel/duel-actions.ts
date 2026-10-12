@@ -48,12 +48,25 @@ export interface SelectionCandidate {
  * Ordenação de cartas (SORT_CARD) — efeitos do tipo "veja as N cartas do topo
  * do Deck e recoloque-as na ordem que quiser".
  *
- * A resposta esperada pelo core é: para cada posição `i`, o **índice original**
- * da carta que deve ficar ali. `null` mantém a ordem em que vieram.
+ * `build` recebe a ordem como a tela a pensa — para cada posição `i` (0 = topo),
+ * o **índice original** da carta que deve ficar ali — e devolve a resposta no
+ * formato do core, que é o inverso: para cada carta `i`, a **posição** dela
+ * (`field::sort_deck`: `tc[returns[i]] = select_cards[i]`). Com duas cartas
+ * as duas leituras coincidem; com três, `[2, 0, 1]` punha no topo a carta 1 em
+ * vez da 2. `null` mantém a ordem em que vieram.
  */
 export interface SortingMode {
   cards: SelectionCandidate[];
   build: (order: number[] | null) => OcgResponse;
+}
+
+/** Ordem "carta em cada posição" → ordem "posição de cada carta" (a do core). */
+export function sortOrderForCore(order: readonly number[]): number[] {
+  const positions = new Array<number>(order.length);
+  order.forEach((card, position) => {
+    positions[card] = position;
+  });
+  return positions;
 }
 
 /**
@@ -553,7 +566,10 @@ export function buildPromptPlan(
       );
       plan.sorting = {
         cards: candidatesOf(message.cards),
-        build: (order) => ({ type: OcgResponseType.SORT_CARD, order }),
+        build: (order) => ({
+          type: OcgResponseType.SORT_CARD,
+          order: order ? sortOrderForCore(order) : null,
+        }),
       };
       plan.global.push({
         label: "Manter a ordem atual",

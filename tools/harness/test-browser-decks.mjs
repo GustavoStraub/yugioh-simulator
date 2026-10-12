@@ -214,6 +214,55 @@ async function main() {
     const fora = await page.evaluate(`return document.querySelectorAll("[data-fora-do-pool]").length;`);
     conferir(fora === 1, "voltando ao Goat, o Link fica marcado como fora do pool", String(fora));
 
+    // --- decks oficiais TCG: ~100, com busca, grupos e carga certa ---
+    await page.evaluate(`
+      [...document.querySelectorAll("[data-format-switch] button")].find((b) => b.innerText.trim() === "TCG")?.click();
+      return true;
+    `);
+    await espera(500);
+    await page.clickText("Carregar deck oficial");
+    await espera(500);
+    const seletor = await page.evaluate(`
+      const caixa = document.querySelector("[data-preset-picker]");
+      return caixa && {
+        formato: caixa.dataset.presetPicker,
+        total: Number(caixa.querySelector("[data-preset-count]")?.dataset.presetCount ?? 0),
+        grupos: [...caixa.querySelectorAll("[data-preset-group]")].map((g) => g.dataset.presetGroup),
+      };
+    `);
+    conferir(
+      seletor?.formato === "tcg" && seletor.total >= 100,
+      `o seletor TCG lista os decks oficiais (${seletor?.total})`,
+    );
+    conferir(
+      ["starter", "structure", "legendary", "two-player", "egyptian-god"].every((g) => seletor?.grupos.includes(g)),
+      `agrupados por linha (${seletor?.grupos.join(", ")})`,
+    );
+    await page.evaluate(DIGITAR("[data-preset-search]", "sdwd"));
+    await espera(300);
+    const busca = await page.evaluate(`
+      return [...document.querySelectorAll("[data-preset-id]")].map((b) => b.dataset.presetId);
+    `);
+    conferir(busca.length === 1 && busca[0] === "tcg-sdwd", `a busca pelo set code acha o produto (${busca.join(", ")})`);
+    await page.evaluate(`
+      document.querySelector('[data-preset-id="tcg-sdwd"]')?.click();
+      return true;
+    `);
+    await espera(200);
+    await page.evaluate(`
+      [...document.querySelectorAll("[data-preset-picker] button")].find((b) => b.textContent.trim() === "Carregar deck")?.click();
+      return true;
+    `);
+    await espera(800);
+    const contagem = await page.evaluate(`
+      const zona = (nome) => [...document.querySelectorAll("p")].find((p) => p.textContent.trim() === nome)?.parentElement?.textContent.replace(/\s+/g, " ") ?? "";
+      return { main: zona("Principal"), extra: zona("Extra") };
+    `);
+    conferir(
+      /40\s*\/\s*60/.test(contagem.main) && /10\s*\/15/.test(contagem.extra),
+      `Blue-Eyes White Destiny carregou com 40 + 10 (${contagem.main} | ${contagem.extra})`,
+    );
+
     // --- apaga o deck de teste ---
     await page.clickText("PT", "button");
     await espera(300);
@@ -230,15 +279,26 @@ async function main() {
     `);
     conferir(Boolean(abriu), `reabriu o deck de teste para apagar (${abriu})`);
     await espera(400);
+    // Mexe no deck e apaga logo em seguida, dentro do atraso da gravação
+    // (600 ms): era assim que o "salvar" ainda pendente chegava ao servidor
+    // depois do "apagar" e o deck voltava.
+    await page.evaluate(`
+      document.querySelector('button[title^="Adicionar"]')?.click();
+      return true;
+    `);
     await page.clickText("Apagar");
-    await espera(200);
+    await espera(100);
     await page.clickText("Confirmar?");
-    await espera(1200);
+    await espera(2500);
     const final = await page.evaluate(LER_BIBLIOTECA);
     conferir(
       !final?.opcoes.some((texto) => texto.startsWith(nomeUnico)),
       "apagar o deck tira ele da biblioteca",
     );
+    const aindaNoServidor = (existsSync(DECKS_DIR) ? readdirSync(DECKS_DIR) : [])
+      .filter((nome) => nome.endsWith(".json"))
+      .some((nome) => readFileSync(join(DECKS_DIR, nome), "utf8").includes(nomeUnico));
+    conferir(!aindaNoServidor, "e do arquivo do servidor (a gravação pendente não o recria)");
 
     const erros = page.console.filter((c) => c.level === "error");
     conferir(page.errors.length === 0, "sem exceções não tratadas");
