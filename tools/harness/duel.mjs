@@ -196,7 +196,12 @@ export class HarnessDuel {
 
       const decision = policy(prompt, this);
       if (decision === STOP) return "STOPPED";
-      const chosen = decision ?? autoPilot(prompt, { play });
+      // `attempt` > 0 quer dizer que o core recusou a resposta anterior para
+      // ESTA pergunta: o piloto troca de resposta em vez de repetir a mesma
+      // até o teto. É o caso do monstro que "deve atacar se puder" (os
+      // Karakuri): passar a Battle Phase sem atacar não é legal com ele em
+      // campo, e o piloto passivo entrava em laço de RETRY por culpa dele.
+      const chosen = decision ?? autoPilot(prompt, { play, attempt: this.retries });
       if (!chosen) {
         this.unanswered.push(prompt.type);
         return "STUCK";
@@ -285,21 +290,58 @@ export function findPrompt(messages) {
 }
 
 /**
- * Primeiro bit ligado de uma máscara de opções (raça/atributo).
+ * Os `count` primeiros bits ligados de uma máscara de opções (raça/atributo).
  *
  * Devolve BigInt porque `OcgRace` é de 64 bits neste binding — o encoder da
  * resposta faz `o |= r` sobre um acumulador BigInt, e um Number ali estoura
  * com "Cannot mix BigInt and other types". Atributo é de 32 bits e usa Number.
  */
-function firstBit(mask, { asBigInt = false } = {}) {
+function firstBits(mask, count, { asBigInt = false } = {}) {
   const value = BigInt(mask);
-  for (let bit = 0n; bit < 64n; bit += 1n) {
+  const found = [];
+  for (let bit = 0n; bit < 64n && found.length < count; bit += 1n) {
     if ((value >> bit) & 1n) {
-      const found = 1n << bit;
-      return asBigInt ? found : Number(found);
+      const flag = 1n << bit;
+      found.push(asBigInt ? flag : Number(flag));
     }
   }
-  return asBigInt ? 1n : 1;
+  return found.length ? found : [asBigInt ? 1n : 1];
+}
+
+/**
+ * Índices de `selects` que somam o alvo de um SELECT_SUM.
+ *
+ * Soma EXATA primeiro, com o menor número de cartas: há cartas que pedem
+ * "exatamente N" (`Duel.SelectWithSumEqual`), e o "pega até passar" de antes
+ * dava RETRY nelas. Só sem combinação exata cai no "igual ou maior", que é o
+ * que o Ritual aceita.
+ */
+function sumIndices(message) {
+  const target = message.amount - message.selects_must.reduce((t, c) => t + (c.amount & 0xffff), 0);
+  if (target <= 0) return [];
+  const values = message.selects.map((card) => card.amount & 0xffff);
+  const n = Math.min(values.length, 16);
+  let best = null;
+  for (let mask = 1; mask < 1 << n; mask += 1) {
+    let total = 0;
+    const picked = [];
+    for (let i = 0; i < n; i += 1) {
+      if (mask & (1 << i)) {
+        total += values[i];
+        picked.push(i);
+      }
+    }
+    if (total === target && (!best || picked.length < best.length)) best = picked;
+  }
+  if (best) return best;
+  const picked = [];
+  let total = 0;
+  values.forEach((value, index) => {
+    if (total >= target) return;
+    picked.push(index);
+    total += value;
+  });
+  return picked;
 }
 
 function placesFrom(mask, player, count) {
@@ -330,7 +372,7 @@ function placesFrom(mask, player, count) {
  *   produzir a variedade de prompts que o teste de UI precisa examinar — com
  *   o piloto passivo o engine só chega a pedir três tipos de decisão.
  */
-export function autoPilot(message, { play = false } = {}) {
+export function autoPilot(message, { play = false, attempt = 0 } = {}) {
   switch (message.type) {
     case OcgMessageType.SELECT_IDLECMD: {
       if (play) {
@@ -357,11 +399,13 @@ export function autoPilot(message, { play = false } = {}) {
       return { type: OcgResponseType.SELECT_IDLECMD, action: SelectIdleCMDAction.TO_EP, index: null };
     }
     case OcgMessageType.SELECT_BATTLECMD:
-      if (play && message.attacks.length > 0) {
+      // Num RETRY, ataca — e com um atacante diferente a cada tentativa, para
+      // achar o monstro que é obrigado a atacar.
+      if ((play || attempt > 0) && message.attacks.length > 0) {
         return {
           type: OcgResponseType.SELECT_BATTLECMD,
           action: SelectBattleCMDAction.SELECT_BATTLE,
-          index: 0,
+          index: attempt > 0 ? (attempt - 1) % message.attacks.length : 0,
         };
       }
       if (play && message.to_m2)
@@ -407,29 +451,25 @@ export function autoPilot(message, { play = false } = {}) {
     }
     case OcgMessageType.SELECT_COUNTER:
       return { type: OcgResponseType.SELECT_COUNTER, counters: message.cards.map(() => 0) };
-    case OcgMessageType.SELECT_SUM: {
+    case OcgMessageType.SELECT_SUM:
       // Precisa somar `amount`; escolher "as N primeiras" é resposta inválida.
-      const target = message.amount - message.selects_must.reduce((t, c) => t + c.amount, 0);
-      const picked = [];
-      let total = 0;
-      message.selects.forEach((card, index) => {
-        if (total >= target) return;
-        picked.push(index);
-        total += card.amount;
-      });
-      return { type: OcgResponseType.SELECT_SUM, indicies: picked };
-    }
+      return { type: OcgResponseType.SELECT_SUM, indicies: sumIndices(message) };
     case OcgMessageType.SORT_CARD:
       return { type: OcgResponseType.SORT_CARD, order: null };
     case OcgMessageType.ROCK_PAPER_SCISSORS:
       return { type: OcgResponseType.ROCK_PAPER_SCISSORS, value: 1 };
+    // `count` valores distintos: Earthshaker declara DOIS atributos, e um só
+    // era resposta inválida (RETRY em laço).
     case OcgMessageType.ANNOUNCE_RACE:
       return {
         type: OcgResponseType.ANNOUNCE_RACE,
-        races: [firstBit(message.available, { asBigInt: true })],
+        races: firstBits(message.available, message.count, { asBigInt: true }),
       };
     case OcgMessageType.ANNOUNCE_ATTRIB:
-      return { type: OcgResponseType.ANNOUNCE_ATTRIB, attributes: [firstBit(message.available)] };
+      return {
+        type: OcgResponseType.ANNOUNCE_ATTRIB,
+        attributes: firstBits(message.available, message.count),
+      };
     // O core espera o ÍNDICE dentro de `options`, não o número em si.
     case OcgMessageType.ANNOUNCE_NUMBER:
       return { type: OcgResponseType.ANNOUNCE_NUMBER, value: 0 };
@@ -462,6 +502,11 @@ export async function createDuel({
    * carta não mede nada.
    */
   startingDraw = 0,
+  /**
+   * Regras do duelo (`OcgDuelMode`). Goat por padrão — é o formato da bateria
+   * antiga; as baterias do pool TCG passam `OcgDuelMode.MODE_MR5`.
+   */
+  mode = OcgDuelMode.MODE_GOAT,
 } = {}) {
   const db = loadCardDb();
   const errors = [];
@@ -469,7 +514,7 @@ export async function createDuel({
   errorSink = errors;
 
   const handle = core.createDuel({
-    flags: OcgDuelMode.MODE_GOAT,
+    flags: mode,
     // Semente fixa: um teste que falha precisa falhar de novo.
     seed: [seed, seed + 1n, seed + 2n, seed + 3n],
     team1: { startingLP: lifePoints[0], startingDrawCount: startingDraw, drawCountPerTurn: 1 },
@@ -516,11 +561,17 @@ export async function createDuel({
 
   for (const entry of place) {
     const { player = 0, zone, code } = entry;
+    // O Extra Deck nasce VIRADO PARA BAIXO, como no app (`duel-session.ts`).
+    // Não é detalhe: em Master Rule 4/5 o core só libera as Zonas de Monstro
+    // principais para carta do Extra Deck que estava virada para baixo
+    // (`get_rule_zone_fromex`). Virado para cima — o padrão antigo daqui —,
+    // Sincro e Xyz pareciam presos à Zona de Monstro Extra, e foi exatamente
+    // isso que enganou a primeira medição do pool TCG.
     const position =
       entry.position ??
       (zone === OcgLocation.MZONE
         ? OcgPosition.FACEUP_ATTACK
-        : zone === OcgLocation.SZONE
+        : zone === OcgLocation.SZONE || zone === OcgLocation.EXTRA
           ? OcgPosition.FACEDOWN
           : OcgPosition.FACEUP);
     core.duelNewCard(handle, {

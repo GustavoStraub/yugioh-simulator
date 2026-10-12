@@ -578,3 +578,33 @@ plano é acionável (mesma regra do `test-ui-prompts.mjs`) e se
 
 **Marcas (§3.4):** os padrões da tabela, procurados nos `official/c<id>.lua`
 do pool Goat (`.cache/goat-pool.json`) e do pool TCG (acima).
+
+## 12. Andamento
+
+Branch `tcg-completo`, um commit por fase. Decisões tomadas antes de começar:
+o **Goat continua** como segundo formato (Fase 6 entra), e o escopo é o plano
+inteiro.
+
+### Fase 0 — feita
+
+- CardScripts fixo no commit `f1522e75` (`src/lib/duel/cardscripts-pin.ts`):
+  rota `/api/scripts`, servidor online e clone do harness leem o mesmo
+  conjunto. `npm run fixtures` leva o clone até ele; o harness avisa se o
+  clone estiver em outro commit.
+- Harness: `createDuel({ mode })` e Extra Deck virado para baixo por padrão.
+  O piloto automático troca de resposta num RETRY (ataca com o monstro
+  obrigado a atacar, declara quantos valores o ANNOUNCE pede, procura soma
+  exata).
+- `npm run test:tcg-pool` (§3.1): 13.318 cartas, 24.589 cenários, **0 erros de
+  Lua**, 9.876 ativadas/invocadas. Os laços de RETRY eram quase todos do
+  piloto (Karakuri e afins "devem atacar"; Earthshaker declara 2 atributos);
+  sobram 2, ambos ANNOUNCE_CARD com filtro — o piloto declara nome fixo
+  (Fase 4). O `eof` do Wandering Mummy não apareceu nesta rodada.
+- `npm run test:modern-summons` (§3.2/§3.3) reproduz as falhas esperadas:
+  zonas 5–6 invisíveis para a tela, plano vazio no SELECT_PLACE do Link, Link
+  invisível na mesa, Invocação-Pêndulo não oferecida, escala direita e setas
+  zeradas no core.
+- Bateria Goat igual à de antes (0 vereditos mudaram em 3.108 cenários). O
+  `test:hidden` falhava já no `main` — a Boneca Chamariz não tinha alvo porque
+  o bot passou a ativar a magia que o teste esperava que ele baixasse; o
+  oponente agora baixa Cilindro Mágico.

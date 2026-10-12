@@ -29,12 +29,14 @@ Node 22.18+ (developed on 26): `server.mjs` and the harness run `.ts` modules di
 There is no test runner: each test is a standalone Node script in `tools/harness/` that drives the real wasm engine headless. `tools/harness/README.md` has the full table.
 
 ```bash
-npm run fixtures                   # once: clones CardScripts + downloads the Goat pool into .cache/ (engine tests read scripts from there)
+npm run fixtures                   # once: clones CardScripts at the pinned commit + downloads the Goat pool into .cache/ (engine tests read scripts from there)
 npm run test:cards                 # every Goat card: does the script load, is it offered in Main Phase 1?
 npm run test:cards -- 12345 67890  # only these passcodes; also --slice 0/8, --json out.json, --verbose
 npm run test:ui                    # plays whole duels and feeds every prompt to the UI's prompt code — finds freezes
 npm run test:multiplayer           # rooms, per-seat projection (hidden info), codec — no browser
 ```
+
+Full TCG pool and modern mechanics: `npm run test:tcg-pool` (every TCG card with a script, MR5, 4 processes, ~1 min) and `npm run test:modern-summons` (Synchro/Xyz/Link/Pendulum through the UI code path, plus Pendulum scale / Link arrow readback).
 
 Also: `test:archetypes`, `test:triggers`, `test:remaining`, `test:patches`, `test:ui-rare`, `test:hidden`, `test:endgame`, `test:cancel`, `test:bot`, `test:deck-library`, `test:connection`.
 
@@ -70,7 +72,7 @@ Board reads are per viewer (`readBoardState(core, handle, viewer)` in `board-sta
 
 ### Scripts
 
-The core's `scriptReader` is synchronous, so every script must be cached before the duel starts (`script-reader.ts`: `preloadCoreScripts`, `preloadDuelScripts`). Alternate-art passcodes use the original card's script (`OfficialCardDb.scriptPasscode`). `script-patches.ts` patches upstream scripts that the compiled core can't run, using whitespace-tolerant anchors; an unapplied patch is reported, never silent. The harness imports it without the loader, so it can't use the `@/` alias or runtime-only TS features.
+CardScripts is pinned to one commit (`src/lib/duel/cardscripts-pin.ts`) for the app route, the online server and the harness clone alike; bump it only together with the binding, then run the whole battery. The core's `scriptReader` is synchronous, so every script must be cached before the duel starts (`script-reader.ts`: `preloadCoreScripts`, `preloadDuelScripts`). Alternate-art passcodes use the original card's script (`OfficialCardDb.scriptPasscode`). `script-patches.ts` patches upstream scripts that the compiled core can't run, using whitespace-tolerant anchors; an unapplied patch is reported, never silent. The harness imports it without the loader, so it can't use the `@/` alias or runtime-only TS features.
 
 ### Online and persistence
 
@@ -79,7 +81,7 @@ The core's `scriptReader` is synchronous, so every script must be cached before 
 ## Gotchas
 
 - Duel rules are hard-coded to `OcgDuelMode.MODE_GOAT` (`duel-session.ts` and the harness `duel.mjs`).
-- In the harness, `createDuel({ place })` defaults Extra Deck cards to **face-up**; under modern rules (MR4/MR5) that confines Fusion/Synchro/Xyz to the Extra Monster Zone. Pass `position: OcgPosition.FACEDOWN`, as the app does.
+- In the harness, `createDuel({ place })` creates Extra Deck cards **face-down**, as the app does; a face-up Extra Deck under MR4/MR5 confines Synchro/Xyz to the Extra Monster Zone. `createDuel({ mode })` picks the rules (Goat by default).
 - `@n1xx1/ocgcore-wasm` 0.1.3 writes the Pendulum right scale and Link markers at the wrong struct offsets (both reach the core as 0); 0.1.4 fixes it. Irrelevant for Goat, blocking for Pendulum/Link — see `docs/tcg-completo.md`.
 - The binding sometimes throws `Error: eof` while deserializing a message (e.g. `SHUFFLE_SET_CARD`); both loops treat it as recoverable, with a cap — keep that.
 - To stop a server you started, kill it by port or PID — never `pkill -f server.mjs`, which also kills the user's dev server.

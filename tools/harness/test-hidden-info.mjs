@@ -65,6 +65,15 @@ const CARTA = {
   elf: 69140098,
   /** Remédio Secreto do Goblin — Magia Normal inofensiva que o bot só baixa. */
   magiaInerte: 11868825,
+  /**
+   * Cilindro Mágico — Armadilha que só ativa quando o adversário ataca.
+   *
+   * É o alvo da Boneca Chamariz: o bot só pode BAIXÁ-la (o roteiro da Boneca
+   * nunca ataca), então sempre há uma carta baixada do lado dele. A Remédio
+   * Secreto do Goblin fazia esse papel até o bot passar a ativá-la direto da
+   * mão para ganhar LP — e aí a Boneca nunca tinha alvo.
+   */
+  armadilhaInerte: 62279055,
   /** Olho Mágico da Verdade — Armadilha Contínua: mão do adversário revelada. */
   olhoMagico: 34694160,
 };
@@ -366,7 +375,7 @@ console.log("\nBoneca Chamariz — o dono vê qual carta dele foi revelada");
       ...Array(12).fill(CARTA.bonecaChamariz),
       ...Array(28).fill(CARTA.elf),
     ],
-    main1: Array(40).fill(CARTA.magiaInerte),
+    main1: Array(40).fill(CARTA.armadilhaInerte),
     decidir: (prompt, snap) => {
       // O alvo é a carta baixada DELE: sem isto o piloto escolheria a primeira
       // da lista, que pode ser uma minha.

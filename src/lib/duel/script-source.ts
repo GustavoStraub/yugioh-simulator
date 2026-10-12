@@ -13,8 +13,16 @@
  * aceitável; o que não vale é tratar o cache daqui como fonte única.
  */
 
-const CARDSCRIPTS_BASE =
-  "https://raw.githubusercontent.com/ProjectIgnis/CardScripts/master";
+// O servidor online resolve o `@/` pelo carregador do `server.mjs`
+// (`ts-loader-register.mjs`); o harness lê o mesmo pin por caminho relativo.
+import { CARDSCRIPTS_RAW_BASE } from "@/lib/duel/cardscripts-pin";
+
+/**
+ * Sempre o commit fixo, nunca o `master` — ver `cardscripts-pin.ts`. Ler o
+ * `master` fazia o jogo mudar sozinho quando o upstream passava a usar algo
+ * que o core compilado ainda não conhece.
+ */
+const CARDSCRIPTS_BASE = CARDSCRIPTS_RAW_BASE;
 
 const CACHE_TTL_MS = 1000 * 60 * 60 * 24;
 

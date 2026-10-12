@@ -11,8 +11,11 @@ node tools/harness/sync-fixtures.mjs      # clona CardScripts + baixa o pool Goa
 node scripts/build-card-db.mjs            # gera src/data/card-db.json
 ```
 
-Ambos escrevem em `.cache/` (fora do controle de versão) e só precisam rodar
-de novo quando você quiser dados mais novos.
+Ambos escrevem em `.cache/` (fora do controle de versão). O CardScripts fica
+**no commit fixo** de `src/lib/duel/cardscripts-pin.ts` — o mesmo que o app lê
+pela rota `/api/scripts` e pelo servidor online. Subir esse commit é decisão
+(junto com a versão do binding, seguida da bateria inteira); o harness avisa
+quando o clone está em outro commit.
 
 ## Os testes
 
@@ -23,6 +26,8 @@ Há atalhos no `package.json` para todos eles (`npm run test:cards`,
 | comando | o que responde |
 |---|---|
 | `node tools/harness/test-cards.mjs` | Para cada uma das ~1.700 cartas do pool Goat: o script carrega sem erro de Lua? A carta é oferecida para ativar/invocar no Main Phase 1? |
+| `npm run test:tcg-pool` | O mesmo do `test-cards`, para as ~13 mil cartas TCG com script, em Master Rule 2020 e com os monstros de Extra Deck no Extra Deck. Roda em 4 processos (`--jobs N`). Falhas já conhecidas ficam listadas no próprio arquivo e não reprovam. |
+| `npm run test:modern-summons` | Sincro, Xyz, Link e Pêndulo pelo caminho da tela (`autoResponseFor` → `buildPromptPlan`, `decodeFieldMask`, `readBoardState`), mais a leitura de volta das escalas e setas que o core guardou. |
 | `node tools/harness/test-archetypes.mjs` | Cartas de arquétipo, com companheiros do mesmo `setcode` em campo/mão/deck: o efeito **enxerga** os parceiros? |
 | `node tools/harness/test-ui-prompts.mjs` | Joga duelos inteiros e submete cada pergunta do engine ao mesmo código que a tela usa. Acha prompts que a UI não sabe responder — a causa de duelo congelado. |
 | `node tools/harness/test-ui-rare-prompts.mjs` | Força os prompts raros (ANNOUNCE_*, SELECT_SUM, SORT_CARD, SELECT_DISFIELD) pondo na mão a carta que produz cada um. São justamente os que passam despercebidos num duelo comum. |
@@ -60,6 +65,22 @@ APP_URL=http://127.0.0.1:3100 node tools/harness/test-browser.mjs
 ```
 
 Passe `--headed` para assistir.
+
+## Duelo roteirizado (`duel.mjs`)
+
+`createDuel({ place, decks, mode, ... })` monta o campo já arrumado:
+
+- `mode` — regras do core (`OcgDuelMode`); Goat por padrão, `MODE_MR5` para o
+  pool TCG.
+- O Extra Deck de `place` nasce **virado para baixo**, como no app. Virado para
+  cima, o core de Master Rule 4/5 só libera a Zona de Monstro Extra para
+  Sincro/Xyz — o teste pareceria mostrar um bug que o jogo não tem.
+- O piloto automático troca de resposta quando o core recusa a anterior
+  (RETRY): ataca com quem é obrigado a atacar, declara quantos valores o
+  ANNOUNCE pede, procura soma exata no SELECT_SUM.
+
+O cenário farto da varredura carta a carta mora em `card-scan.mjs`, usado pelo
+`test-cards` (pool Goat) e pelo `test-tcg-pool` (pool TCG).
 
 ## Flags comuns
 
