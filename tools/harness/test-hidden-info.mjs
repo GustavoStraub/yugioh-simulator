@@ -63,8 +63,18 @@ const CARTA = {
   bonecaChamariz: 7165085,
   /** Gemini Elf — nível 4, 1900 de ataque: bate sem precisar de tributo. */
   elf: 69140098,
-  /** Remédio Secreto do Goblin — Magia Normal inofensiva que o bot só baixa. */
-  magiaInerte: 11868825,
+  /**
+   * Guardião do Portão — não pode ser Invocado-Normal nem Baixado, e o bot não
+   * tem os três monstros que o trazem. É o deck do oponente nos roteiros que
+   * precisam da MÃO dele cheia: ele nunca joga nada, então a mão nunca esvazia
+   * e o campo dele fica vazio (o ataque é sempre direto).
+   *
+   * Antes era a Remédio Secreto do Goblin, "que o bot só baixa" — até o bot
+   * passar a ativá-la da mão para ganhar LP. A mão dele esvaziava e, ~1 em 4
+   * vezes, não havia carta para o Goblin Larápio descartar nem para o Espião
+   * escolher: o teste reprovava sem bug nenhum.
+   */
+  inerte: 25833572,
   /**
    * Cilindro Mágico — Armadilha que só ativa quando o adversário ataca.
    *
@@ -217,6 +227,24 @@ function naMaoDoOponente(prompt) {
 // ---------------------------------------------------------------------------
 // 1. O descarte do Goblin Larápio aparece no log.
 // ---------------------------------------------------------------------------
+/**
+ * Linhas de descarte do oponente que vieram do Goblin: depois de um ataque MEU,
+ * no mesmo turno. O oponente também descarta pelo limite de mão no End Phase
+ * dele, e esse não diz nada sobre o efeito.
+ */
+function descartesDoGoblin(log) {
+  const linhas = log.map((linha) => linha.text);
+  return log.filter((linha, index) => {
+    if (!linha.text.includes("O oponente descartou")) return false;
+    const turno = linhas.slice(0, index).findLastIndex((texto) => texto.startsWith("Turno "));
+    return (
+      turno >= 0 &&
+      linhas[turno].endsWith("Você") &&
+      linhas.slice(turno, index).some((texto) => texto.includes("Você atacou"))
+    );
+  });
+}
+
 console.log("\nGoblin Larápio — o descarte tem que aparecer");
 {
   const estado = { ativou: false, baixou: false };
@@ -271,17 +299,14 @@ console.log("\nGoblin Larápio — o descarte tem que aparecer");
       ...Array(32).fill(CARTA.elf),
     ],
     // Só magia: o bot baixa e nunca invoca, então o ataque é sempre direto.
-    main1: Array(40).fill(CARTA.magiaInerte),
+    main1: Array(40).fill(CARTA.inerte),
     decidir: roteiro,
     // "O oponente descartou" e não só "descartou": o limite de mão do End
     // Phase também produz descarte, e ele apareceria aqui como falso positivo.
-    pronto: (s) =>
-      s.log.some((linha) => linha.text.includes("O oponente descartou")),
+    pronto: (s) => descartesDoGoblin(s.log).length > 0,
   });
 
-  const descartes = snap.log.filter((linha) =>
-    linha.text.includes("O oponente descartou"),
-  );
+  const descartes = descartesDoGoblin(snap.log);
   conferir(estado.ativou, "a armadilha foi ativada");
   conferir(
     descartes.length > 0,
@@ -307,7 +332,7 @@ console.log("\nO Espião Inexperiente — escolher pelo verso, revelar depois");
   const base = decidirAtivando(CARTA.espiao, { estado });
   const snap = await jogar({
     main0: [...Array(10).fill(CARTA.espiao), ...Array(30).fill(CARTA.elf)],
-    main1: Array(40).fill(CARTA.magiaInerte),
+    main1: Array(40).fill(CARTA.inerte),
     decidir: (prompt, snap) => {
       if (prompt.type === OcgMessageType.SELECT_CARD && estado.ativou) {
         const mao = naMaoDoOponente(prompt);
@@ -342,7 +367,7 @@ console.log("\nConfisco — revela primeiro, então a face aparece na escolha");
   const base = decidirAtivando(CARTA.confisco, { estado });
   await jogar({
     main0: [...Array(10).fill(CARTA.confisco), ...Array(30).fill(CARTA.elf)],
-    main1: Array(40).fill(CARTA.magiaInerte),
+    main1: Array(40).fill(CARTA.inerte),
     decidir: (prompt, snap) => {
       if (prompt.type === OcgMessageType.SELECT_CARD && estado.ativou) {
         const mao = naMaoDoOponente(prompt);
@@ -465,7 +490,7 @@ console.log("\nOlho Mágico da Verdade — a mão do adversário fica aberta");
     // Deck de uma carta só: a armadilha precisa estar na mão de saída, e três
     // cópias em quarenta deixariam o teste dependendo do embaralhamento.
     main0: Array(40).fill(CARTA.olhoMagico),
-    main1: Array(40).fill(CARTA.magiaInerte),
+    main1: Array(40).fill(CARTA.inerte),
     decidir: roteiro,
     pronto: (s) => {
       if (!estado.ativou) return false;

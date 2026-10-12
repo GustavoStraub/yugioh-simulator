@@ -10,11 +10,11 @@
  * disco é a fonte única.
  */
 import { existsSync, readFileSync } from "node:fs";
-import { brotliCompressSync, constants, gzipSync } from "node:zlib";
 
 import type { CatalogFile } from "@/lib/catalog/catalog-format";
 import { CardRegistry } from "@/lib/domain/card-registry";
 import { CATALOG_PATH, buildCatalog } from "@/server/catalog/catalog-build";
+import { compressJson, type CompressedJson } from "@/server/http/compressed-json";
 
 let catalogPromise: Promise<CatalogFile> | null = null;
 let registryPromise: Promise<CardRegistry> | null = null;
@@ -51,36 +51,15 @@ export function loadCatalogRegistry(): Promise<CardRegistry> {
   return registryPromise;
 }
 
-/** O catálogo pronto para o HTTP: o JSON e as versões comprimidas. */
-export interface CatalogPayload {
-  etag: string;
-  json: Buffer;
-  gzip: Buffer;
-  brotli: Buffer;
-}
-
-let payloadPromise: Promise<CatalogPayload> | null = null;
-
 /**
- * O corpo da rota `/api/cards`, comprimido UMA vez por processo.
- *
- * O Next não comprime a resposta de um route handler aqui, e o catálogo cru tem
- * ~10 MB — comprimido fica em ~2 MB (gzip) ou menos (brotli). Comprimir a cada
- * requisição gastaria centenas de milissegundos de CPU por visita.
+ * O corpo da rota `/api/cards`, comprimido UMA vez por processo (ver
+ * `compressed-json.ts`). ETag = a `version` do catálogo, um hash do conteúdo.
  */
-export function loadCatalogPayload(): Promise<CatalogPayload> {
+let payloadPromise: Promise<CompressedJson> | null = null;
+
+export function loadCatalogPayload(): Promise<CompressedJson> {
   payloadPromise ??= loadCatalog()
-    .then((file) => {
-      const json = Buffer.from(JSON.stringify(file));
-      return {
-        etag: `"${file.version}"`,
-        json,
-        gzip: gzipSync(json),
-        brotli: brotliCompressSync(json, {
-          params: { [constants.BROTLI_PARAM_QUALITY]: 6 },
-        }),
-      };
-    })
+    .then((file) => compressJson(file, file.version))
     .catch((error) => {
       payloadPromise = null;
       throw error;

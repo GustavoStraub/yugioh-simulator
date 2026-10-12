@@ -457,3 +457,13 @@ body {
   outline: 1px dashed rgba(255, 120, 100, 0.75);
   outline-offset: -3px;
 }
+
+/* Zona inutilizada por um efeito (FIELD_DISABLED): hachurada em vermelho,
+   como uma zona interditada. */
+.tf-zone-disabled {
+  background-image: repeating-linear-gradient(
+    135deg,
+    rgba(220, 38, 38, 0.32) 0 6px,
+    transparent 6px 12px
+  );
+}

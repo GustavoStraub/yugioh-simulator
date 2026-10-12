@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { OcgLocation, type OcgResponse, type SelectFieldPlace } from "@n1xx1/ocgcore-wasm";
 
@@ -32,6 +32,7 @@ import {
 import { needsCardPicker } from "@/lib/duel/prompt-reach";
 import type { BoardCard, BoardPlayer } from "@/lib/duel/board-state";
 import { linkedZones } from "@/lib/duel/link-geometry";
+import { cardMarks, slotChips, type CardMark } from "@/lib/duel/card-marks";
 import type {
   DuelChainLink,
   DuelLogEntry,
@@ -149,6 +150,11 @@ function overlayCards(card: BoardCard): BoardCard[] {
     link: null,
     scales: null,
     overlays: [],
+    counters: [],
+    equippedTo: null,
+    targets: [],
+    negated: false,
+    hints: [],
   }));
 }
 
@@ -271,6 +277,47 @@ export function DuelBoard({
     });
     return names;
   }, [board, isTcg, registry]);
+
+  /**
+   * As marcas de uma carta (`card-marks.ts`), com os nomes resolvidos NA
+   * ÓTICA DE QUEM OLHA: "equipada a" uma carta baixada do oponente diz "carta
+   * baixada", não o nome dela.
+   */
+  const marksOf = useCallback(
+    (card: BoardCard | null | undefined): CardMark[] => {
+      if (!card || card.code === null) return [];
+      return cardMarks(card, {
+        engineStrings,
+        cardName: (code) => registry?.get(code)?.name ?? `Carta ${code}`,
+        nameAt: (zone) => {
+          const lado = zone.controller === me ? you : foe;
+          const alvo =
+            zone.location === OcgLocation.MZONE
+              ? lado.monsters[zone.sequence]
+              : zone.sequence === FIELD_ZONE_SEQUENCE
+                ? lado.field
+                : lado.spells[zone.sequence];
+          if (!alvo) return "uma carta";
+          if (alvo.code === null) return "uma carta baixada";
+          return registry?.get(alvo.code)?.name ?? `Carta ${alvo.code}`;
+        },
+      });
+    },
+    [engineStrings, registry, me, you, foe],
+  );
+
+  /**
+   * Zona inutilizada? A máscara do core vem na ótica do jogador 0 (bits 0–6
+   * monstros e 8–12 magias dele; +16 para o jogador 1).
+   */
+  const isDisabledZone = useCallback(
+    (owner: 0 | 1, location: number, sequence: number) => {
+      const bit =
+        (owner === 0 ? 0 : 16) + (location === OcgLocation.SZONE ? 8 : 0) + sequence;
+      return ((snapshot.disabledZones >>> bit) & 1) === 1;
+    },
+    [snapshot.disabledZones],
+  );
 
   // Online o snapshot já vem recortado (`projectSnapshot`); num duelo local ele
   // traz as duas óticas, e o filtro aqui é o que impede o histórico de mostrar
@@ -417,6 +464,8 @@ export function DuelBoard({
     isTcg,
     linkedBy,
     openMaterials,
+    marksOf,
+    isDisabledZone,
   };
 
   /**
@@ -463,6 +512,8 @@ export function DuelBoard({
         showLevel
         linkedBy={linkedBy.get(key)}
         onOpenMaterials={card?.overlays.length ? openMaterials(card) : undefined}
+        marks={slotChips(marksOf(card))}
+        disabledZone={isDisabledZone(zone.player as 0 | 1, zone.location, zone.sequence)}
         {...props}
       />
     );
@@ -518,6 +569,7 @@ export function DuelBoard({
             lp={snapshot.lifePoints[me]}
             active={snapshot.turnPlayer === me}
           />
+          <PlayerHints hints={snapshot.playerHints[me]} />
           <FlashLayer flashes={flashes} anchor="player" />
         </div>
         <div className="relative flex min-w-0 flex-1">
@@ -528,6 +580,7 @@ export function DuelBoard({
             active={snapshot.turnPlayer === foeSeat}
             align="right"
           />
+          <PlayerHints hints={snapshot.playerHints[foeSeat]} align="right" />
           <FlashLayer flashes={flashes} anchor="opponent" />
         </div>
         <SoundControl />
@@ -544,7 +597,7 @@ export function DuelBoard({
           disputar altura com ela.
         */}
         <aside className="flex w-[var(--tf-rail-left)] shrink-0 flex-col overflow-hidden p-2">
-          <CardPreview card={preview} registry={registry} />
+          <CardPreview card={preview} registry={registry} marksOf={marksOf} />
         </aside>
 
         {/* -------- campo -------- */}
@@ -926,6 +979,9 @@ interface SharedSlotProps {
   /** Zona → nomes dos Links que apontam para ela. */
   linkedBy: Map<string, string[]>;
   openMaterials: (card: BoardCard) => () => void;
+  /** Marcas de uma carta, já resolvidas para quem olha. */
+  marksOf: (card: BoardCard | null | undefined) => CardMark[];
+  isDisabledZone: (owner: 0 | 1, location: number, sequence: number) => boolean;
 }
 
 /** Selo de "N viradas para cima" do Extra Deck, quando houver alguma. */
@@ -948,6 +1004,8 @@ function FieldRow({
   isTcg,
   linkedBy,
   openMaterials,
+  marksOf,
+  isDisabledZone,
 }: SharedSlotProps & {
   cards: (BoardCard | null)[];
   owner: 0 | 1;
@@ -997,6 +1055,8 @@ function FieldRow({
             }
             linkedBy={zone === "monster" ? linkedBy.get(key) : undefined}
             onOpenMaterials={card?.overlays.length ? openMaterials(card) : undefined}
+            marks={slotChips(marksOf(card))}
+            disabledZone={isDisabledZone(owner, location, sequence)}
             {...slotProps(card, { player: owner, location, sequence })}
           />
         );
@@ -1055,7 +1115,8 @@ function FieldSpellSlot({
   registry,
   onHover,
   slotProps,
-}: Pick<SharedSlotProps, "registry" | "onHover" | "slotProps"> & {
+  marksOf,
+}: Pick<SharedSlotProps, "registry" | "onHover" | "slotProps" | "marksOf"> & {
   player: BoardPlayer;
   owner: 0 | 1;
 }) {
@@ -1066,6 +1127,7 @@ function FieldSpellSlot({
       placeholder="Campo"
       upsideDown={owner === 1}
       onHover={onHover}
+      marks={slotChips(marksOf(player.field))}
       {...slotProps(player.field, {
         player: owner,
         location: OcgLocation.SZONE,
@@ -2481,9 +2543,11 @@ function DuelLog({
 function CardPreview({
   card,
   registry,
+  marksOf,
 }: {
   card: PreviewCard | null;
   registry: CardRegistry | null;
+  marksOf: (card: BoardCard | null | undefined) => CardMark[];
 }) {
   const texto = useCardText();
   const definition = card?.code ? registry?.get(card.code) : undefined;
@@ -2521,6 +2585,11 @@ function CardPreview({
   const leftScale = card?.scales?.left ?? definition.scale;
   const rightScale = card?.scales?.right ?? definition.scale;
   const materials = card?.overlays ?? [];
+  // Só carta EM CAMPO tem marca (a da mão ou de um modal não tem zona).
+  const marks =
+    card && "counters" in card && card.counters !== undefined
+      ? marksOf(card as BoardCard)
+      : [];
 
   return (
     <div className="tf-panel flex min-h-0 flex-1 flex-col gap-2 overflow-hidden rounded-md p-2.5">
@@ -2587,6 +2656,30 @@ function CardPreview({
             <span className="text-rose-300">{rightScale}▸</span>
           </p>
         )}
+        {marks.length > 0 && (
+          <ul data-preview-marks className="mt-1.5 space-y-0.5">
+            {marks.map((mark, index) => (
+              <li
+                key={index}
+                className={`text-[12px] leading-snug ${
+                  mark.tone === "negated"
+                    ? "font-semibold text-red-300"
+                    : mark.tone === "counter"
+                      ? "text-amber-200"
+                      : mark.tone === "declared"
+                        ? "text-fuchsia-200"
+                        : mark.tone === "link"
+                          ? "text-emerald-200"
+                          : mark.tone === "turn"
+                            ? "text-sky-200"
+                            : "text-zinc-200"
+                }`}
+              >
+                {mark.chip.replace(/\d+$/, "")} {mark.text}
+              </li>
+            ))}
+          </ul>
+        )}
         {materials.length > 0 && (
           <div className="mt-1.5">
             <p className="text-[11px] font-semibold uppercase tracking-wide text-violet-300">
@@ -2633,5 +2726,37 @@ function LinkArrowsGlyph({ markers }: { markers: number }) {
         />
       ))}
     </span>
+  );
+}
+
+/**
+ * Avisos que valem para um jogador ("não pode Invocar-Especial neste turno"),
+ * pendurados embaixo da barra de LP dele — é para lá que se olha para saber o
+ * que cada um ainda pode fazer.
+ */
+function PlayerHints({
+  hints,
+  align = "left",
+}: {
+  hints: string[];
+  align?: "left" | "right";
+}) {
+  if (hints.length === 0) return null;
+  return (
+    <div
+      data-player-hints={hints.length}
+      className={`pointer-events-none absolute top-full z-40 mt-0.5 flex max-w-full flex-wrap gap-1 ${
+        align === "right" ? "right-0 justify-end" : "left-0"
+      }`}
+    >
+      {hints.map((hint) => (
+        <span
+          key={hint}
+          className="rounded bg-zinc-900/95 px-1.5 py-0.5 text-[10px] font-semibold text-amber-100 ring-1 ring-amber-400/50"
+        >
+          ⓘ {hint}
+        </span>
+      ))}
+    </div>
   );
 }

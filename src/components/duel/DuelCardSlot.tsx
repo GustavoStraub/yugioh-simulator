@@ -5,6 +5,7 @@ import { useState } from "react";
 import { OcgLocation } from "@n1xx1/ocgcore-wasm";
 
 import type { BoardCard } from "@/lib/duel/board-state";
+import type { CardMark } from "@/lib/duel/card-marks";
 import { useCardText } from "@/hooks/useCardText";
 import type { CardAction } from "@/lib/duel/duel-actions";
 import type { CardRegistry } from "@/lib/domain/card-registry";
@@ -75,7 +76,24 @@ interface DuelCardSlotProps {
   linkedBy?: string[];
   /** Abre a lista de materiais Xyz — só existe quando há material. */
   onOpenMaterials?: () => void;
+  /**
+   * Marcas da carta (contadores, turnos, declarações, avisos, equipamento,
+   * alvo, negação) já prontas para selo — ver `card-marks.ts`.
+   */
+  marks?: CardMark[];
+  /** Zona inutilizada por um efeito (`FIELD_DISABLED`): hachurada. */
+  disabledZone?: boolean;
 }
+
+/** Cor do selo por tipo de marca. */
+const MARK_TONE: Record<CardMark["tone"], string> = {
+  counter: "bg-amber-950/95 text-amber-200 ring-amber-400/60",
+  turn: "bg-sky-950/95 text-sky-200 ring-sky-400/60",
+  declared: "bg-fuchsia-950/95 text-fuchsia-200 ring-fuchsia-400/60",
+  notice: "bg-zinc-900/95 text-zinc-100 ring-zinc-300/50",
+  link: "bg-emerald-950/95 text-emerald-200 ring-emerald-400/60",
+  negated: "bg-red-950/95 text-red-200 ring-red-400/70",
+};
 
 /**
  * Uma zona do campo ou carta na mão. Mostra a arte quando a carta é conhecida,
@@ -105,6 +123,8 @@ export function DuelCardSlot({
   scaleSide = null,
   linkedBy = [],
   onOpenMaterials,
+  marks = [],
+  disabledZone = false,
 }: DuelCardSlotProps) {
   const texto = useCardText();
   const definition = card?.code ? registry?.get(card.code) : undefined;
@@ -163,7 +183,7 @@ export function DuelCardSlot({
         title={linkedBy.length ? `Apontada por: ${linkedBy.join(", ")}` : undefined}
         className={`tf-slot h-full w-full rounded-[4px] ${entering ? "tf-anim-card-in" : ""} ${
           linkedBy.length ? "tf-slot-linked" : ""
-        } ${
+        } ${disabledZone ? "tf-zone-disabled" : ""} ${
           // Uma classe só: a de intenção. Aplicar `tf-slot-active` junto fazia
           // duas regras disputarem a mesma `box-shadow`, e qual vencia dependia
           // da ordem no arquivo CSS — frágil e difícil de enxergar.
@@ -215,7 +235,9 @@ export function DuelCardSlot({
                   src={image}
                   alt={definition ? texto.name(definition) : "Carta"}
                   loading="lazy"
-                  className="h-full w-full object-cover"
+                  // Carta negada fica sem cor — como no EDOPro: o olho acha
+                  // de relance qual monstro está sem efeito.
+                  className={`h-full w-full object-cover ${card.negated ? "grayscale" : ""}`}
                 />
                 {/* Setas DENTRO do giro: elas são da carta, e um Link do
                     oponente (de cabeça para baixo) aponta para o seu lado. */}
@@ -270,6 +292,33 @@ export function DuelCardSlot({
             >
               {scaleSide === "left" ? `◂${scale}` : `${scale}▸`}
             </span>
+          </span>
+        )}
+
+        {/* Marcas, empilhadas no canto direito. A frase inteira vai na dica
+            e na leitura da carta; o selo só precisa dizer "tem algo aqui". */}
+        {marks.length > 0 && !showBack && (
+          <span
+            data-marks={marks.length}
+            className="pointer-events-none absolute right-0.5 top-[14%] z-10 flex flex-col items-end gap-0.5"
+          >
+            {marks.slice(0, 4).map((mark, index) => (
+              <span
+                key={index}
+                title={mark.text}
+                className={`pointer-events-auto rounded px-1 font-mono text-[10px] font-bold leading-tight ring-1 ${MARK_TONE[mark.tone]}`}
+              >
+                {mark.chip}
+              </span>
+            ))}
+            {marks.length > 4 && (
+              <span
+                title={marks.slice(4).map((mark) => mark.text).join("\n")}
+                className="pointer-events-auto rounded bg-black/85 px-1 text-[10px] font-bold text-zinc-200"
+              >
+                +{marks.length - 4}
+              </span>
+            )}
           </span>
         )}
 

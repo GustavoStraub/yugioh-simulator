@@ -6,6 +6,31 @@ import {
   type OcgDuelHandle,
 } from "@n1xx1/ocgcore-wasm";
 
+/** Uma zona do campo, sem a carta. */
+export interface ZoneRef {
+  controller: 0 | 1;
+  location: OcgLocation;
+  sequence: number;
+}
+
+/**
+ * Marca que o engine anuncia por mensagem (`CARD_HINT`) e que não dá para
+ * consultar depois — a sessão acompanha e entrega aqui.
+ *
+ * - `turn` — contagem de turnos (Espadas da Luz Reveladora: "falta 1 turno");
+ * - `card`/`race`/`attribute`/`number` — o que foi DECLARADO para esta carta
+ *   (Proibição, Transplante de DNA, um número de Nível);
+ * - `desc` — aviso que o efeito escreve na carta enquanto vale ("não pode
+ *   atacar", "efeito já usado neste turno"), já em texto.
+ */
+export type CardHint =
+  | { kind: "turn"; value: number }
+  | { kind: "card"; code: number }
+  | { kind: "race"; mask: number }
+  | { kind: "attribute"; mask: number }
+  | { kind: "number"; value: number }
+  | { kind: "desc"; text: string };
+
 /** Uma carta como o tabuleiro precisa exibi-la. */
 export interface BoardCard {
   /** Passcode, ou null quando a carta é oculta para o observador. */
@@ -46,6 +71,16 @@ export interface BoardCard {
    * com a face para cima embaixo do monstro.
    */
   overlays: number[];
+  /** Contadores na carta (tipo do core → quantidade). */
+  counters: { type: number; count: number }[];
+  /** A quem esta carta está equipada (Equipamento, Monstro União…). */
+  equippedTo: ZoneRef | null;
+  /** Alvos contínuos (Chamado do Assombrado → o monstro que ela trouxe). */
+  targets: ZoneRef[];
+  /** Os efeitos desta carta estão negados agora. */
+  negated: boolean;
+  /** Marcas anunciadas por mensagem — ver `CardHint`. */
+  hints: CardHint[];
 }
 
 export interface BoardPlayer {
@@ -116,7 +151,32 @@ const FIELD_FLAGS = (ZONE_FLAGS |
   OcgQueryFlags.LINK |
   OcgQueryFlags.LSCALE |
   OcgQueryFlags.RSCALE |
-  OcgQueryFlags.OVERLAY_CARD) as OcgQueryFlags;
+  OcgQueryFlags.OVERLAY_CARD |
+  OcgQueryFlags.COUNTERS |
+  OcgQueryFlags.EQUIP_CARD |
+  OcgQueryFlags.TARGET_CARD |
+  OcgQueryFlags.STATUS) as OcgQueryFlags;
+
+/**
+ * `STATUS_DISABLED` do core: os efeitos da carta estão negados agora (Skill
+ * Drain, Véu de Efeito, Contínua negada). É o que o EDOPro usa para pintar a
+ * carta de cinza.
+ */
+const STATUS_DISABLED = 0x0001;
+
+/** Marcas por zona, que a sessão acompanha (chave `controller:location:sequence`). */
+export type HintsByZone = ReadonlyMap<string, readonly CardHint[]>;
+
+function zoneRef(raw: unknown): ZoneRef | null {
+  if (!raw || typeof raw !== "object") return null;
+  const zone = raw as { controller?: number; location?: number; sequence?: number };
+  if (typeof zone.location !== "number" || zone.location === 0) return null;
+  return {
+    controller: zone.controller === 1 ? 1 : 0,
+    location: zone.location as OcgLocation,
+    sequence: zone.sequence ?? 0,
+  };
+}
 
 /** Zonas de monstro: 5 principais + 2 Zonas Extra. */
 const MONSTER_ZONE_COUNT = 7;
@@ -138,6 +198,8 @@ function toBoardCard(
   location: OcgLocation,
   /** Se o observador pode ver cartas viradas para baixo desse jogador. */
   canSeeHidden: boolean,
+  /** Marcas acompanhadas pela sessão, por zona. */
+  hints?: HintsByZone,
 ): BoardCard | null {
   if (!raw) return null;
 
@@ -175,7 +237,24 @@ function toBoardCard(
     link: visible && link?.rating ? { rating: link.rating, markers: link.marker ?? 0 } : null,
     scales: visible && left !== null && right !== null ? { left, right } : null,
     overlays: visible && Array.isArray(raw.overlayCards) ? (raw.overlayCards as number[]) : [],
+    // Marcas seguem a carta: carta oculta para quem olha não mostra nenhuma —
+    // um contador num monstro baixado já diria que monstro ele é.
+    counters: visible ? countersOf(raw.counters) : [],
+    equippedTo: visible ? zoneRef(raw.equipCard) : null,
+    targets:
+      visible && Array.isArray(raw.targetCards)
+        ? (raw.targetCards as unknown[]).map(zoneRef).filter((z): z is ZoneRef => z !== null)
+        : [],
+    negated: visible && !faceDown && ((num(raw, "status") ?? 0) & STATUS_DISABLED) !== 0,
+    hints: visible ? [...(hints?.get(`${controller}:${location}:${sequence}`) ?? [])] : [],
   };
+}
+
+function countersOf(raw: unknown): { type: number; count: number }[] {
+  if (!raw || typeof raw !== "object") return [];
+  return Object.entries(raw as Record<string, number>)
+    .map(([type, count]) => ({ type: Number(type), count: Number(count) }))
+    .filter((counter) => counter.count > 0);
 }
 
 function queryZone(
@@ -208,6 +287,7 @@ function readPlayer(
    * WASM, e durante uma jogada em andamento ninguém está com a lista aberta.
    */
   light: boolean,
+  hints?: HintsByZone,
 ): BoardPlayer {
   const isViewer = controller === viewer;
 
@@ -222,6 +302,7 @@ function readPlayer(
       controller,
       OcgLocation.MZONE,
       isViewer,
+      hints,
     ),
   );
 
@@ -232,6 +313,7 @@ function readPlayer(
       controller,
       OcgLocation.SZONE,
       isViewer,
+      hints,
     ),
   );
 
@@ -241,6 +323,7 @@ function readPlayer(
     controller,
     OcgLocation.SZONE,
     isViewer,
+    hints,
   );
 
   /**
@@ -283,6 +366,11 @@ function readPlayer(
       link: null,
       scales: null,
       overlays: [],
+      counters: [],
+      equippedTo: null,
+      targets: [],
+      negated: false,
+      hints: [],
     });
   });
 
@@ -364,11 +452,13 @@ export function readBoardState(
   viewer: 0 | 1 = 0,
   /** Leitura leve: pula o conteúdo das pilhas (mantém os contadores). */
   light = false,
+  /** Marcas anunciadas por mensagem, que a sessão acompanha (`CARD_HINT`). */
+  hints?: HintsByZone,
 ): BoardState {
   return {
     players: [
-      readPlayer(core, handle, 0, viewer, light),
-      readPlayer(core, handle, 1, viewer, light),
+      readPlayer(core, handle, 0, viewer, light, hints),
+      readPlayer(core, handle, 1, viewer, light, hints),
     ],
   };
 }

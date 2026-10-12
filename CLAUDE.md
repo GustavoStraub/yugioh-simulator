@@ -65,6 +65,10 @@ Engine message → `findPromptMessage` (`bot-responder.ts`) → `autoResponseFor
 
 `DuelSnapshot.format` drives the table: Goat keeps the 2005 layout; TCG adds the Extra Monster Zone row (shared zones — the left one is `me` seq 5 *or* the opponent's seq 6, drawn from the viewer's perspective), Link arrows, pointed-zone outlines (`link-geometry.ts`), Level/Rank/LINK badges, Pendulum scales on S/T zones 0 and 4, Xyz material badges, and a public face-up Extra Deck. `BoardPlayer.monsters` has 7 entries (5–6 are the Extra Zones). Never add `OcgQueryFlags.TYPE` to a query — the binding can't parse it (throws `eof`, and misaligns combined queries). Local duels accept a test-only `scenario` (cards placed at start) via the stored setup; `test:board-modern` uses it.
 
+### Card marks
+
+Two sources, merged into each viewer's `BoardCard`: **queries** on every board read (`COUNTERS`, `EQUIP_CARD`, `TARGET_CARD`, `STATUS` → `negated`) and **messages** tracked by the session (`CARD_HINT` per field zone — moves with the card on `MOVE`, dropped when it leaves the field; `PLAYER_HINT` → `snapshot.playerHints`; `FIELD_DISABLED` → `snapshot.disabledZones`, player-0 perspective). A card hidden from the viewer carries no marks. `card-marks.ts` turns them into slot chips and reading-panel sentences; `test:marks` covers them in both viewpoints and in `projectSnapshot`.
+
 ### Hidden information
 
 Board reads are per viewer (`readBoardState(core, handle, viewer)` in `board-state.ts`); prompt candidates are masked (`maskHiddenCards`, `prompt-mask.ts`); online, `projectSnapshot` (`src/server/duel/room.ts`) strips everything a seat may not see before sending. Design rationale: `docs/multiplayer.md`.

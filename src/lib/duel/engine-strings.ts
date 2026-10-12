@@ -43,6 +43,8 @@ export interface EngineStringsData {
   system: Record<string, string>;
   /** `cards.cdb.texts`: passcode -> [str1, str2, ...] (1-based na origem). */
   cards: Record<string, string[]>;
+  /** `strings.conf`, seção `!counter`: tipo do contador (decimal) -> nome. */
+  counters?: Record<string, string>;
 }
 
 /**
@@ -73,16 +75,140 @@ const SYSTEM_STRING_OVERRIDES_PT: Record<number, string> = {
   1212: "Cancelar",
   1213: "Sim", // Yes — Magic Drain usa isso como opção literal
   1214: "Não", // No
+
+  // Avisos de carta (3000–3314): o que fica escrito na carta enquanto um
+  // efeito vale — "não pode ser destruída em batalha", "não pode atacar". São
+  // as strings que a mesa mais mostra num duelo moderno (`EFFECT_FLAG_CLIENT_HINT`
+  // usa estes ids), e por isso vêm traduzidas.
+  3000: "Não pode ser destruída em batalha",
+  3001: "Não pode ser destruída por efeitos de card",
+  3002: "Não pode ser alvo de efeitos de card",
+  3003: "Não pode ser alvo de efeitos de monstro",
+  3004: "Não pode ser alvo de efeitos de Magia",
+  3005: "Não pode ser alvo de efeitos de Armadilha",
+  3006: "Não pode ser alvo de efeitos de Magia/Armadilha",
+  3007: "Não pode ser alvo de ataque",
+  3008: "Não pode ser destruída em batalha nem por efeitos de card",
+  3009: "Não pode ser alvo nem destruída por efeitos de card",
+  3010: "Não pode ser destruída por efeitos de monstro",
+  3011: "Não pode ser destruída por efeitos de Magia",
+  3012: "Não pode ser destruída por efeitos de Armadilha",
+  3013: "Não pode ser destruída por efeitos de Magia/Armadilha",
+  3030: "Não pode ser destruída pelos seus efeitos de card",
+  3031: "Não pode ser alvo dos seus efeitos de card",
+  3032: "Não pode ser alvo dos seus efeitos de monstro",
+  3033: "Não pode ser alvo das suas Magias",
+  3034: "Não pode ser alvo das suas Armadilhas",
+  3035: "Não pode ser alvo das suas Magias/Armadilhas",
+  3036: "Não pode ser destruída em batalha nem pelos seus efeitos de card",
+  3037: "Não pode ser alvo nem destruída pelos seus efeitos de card",
+  3060: "Não pode ser destruída por efeitos de card do oponente",
+  3061: "Não pode ser alvo de efeitos de card do oponente",
+  3062: "Não pode ser alvo de efeitos de monstro do oponente",
+  3063: "Não pode ser alvo de Magias do oponente",
+  3064: "Não pode ser alvo de Armadilhas do oponente",
+  3065: "Não pode ser alvo de Magias/Armadilhas do oponente",
+  3066: "Não pode ser destruída em batalha nem por efeitos do oponente",
+  3067: "Não pode ser alvo nem destruída por efeitos do oponente",
+  3100: "Não é afetada pelos efeitos de outros cards",
+  3101: "Não é afetada por efeitos de monstro",
+  3102: "Não é afetada por efeitos de Magia",
+  3103: "Não é afetada por efeitos de Armadilha",
+  3104: "Não é afetada por efeitos de Magia/Armadilha",
+  3105: "Não é afetada pelos seus efeitos de card",
+  3106: "Não é afetada pelos seus efeitos de monstro",
+  3107: "Não é afetada pelas suas Magias",
+  3108: "Não é afetada pelas suas Armadilhas",
+  3109: "Não é afetada pelas suas Magias/Armadilhas",
+  3110: "Não é afetada pelos efeitos do oponente",
+  3111: "Não é afetada por efeitos de monstro do oponente",
+  3112: "Não é afetada por Magias do oponente",
+  3113: "Não é afetada por Armadilhas do oponente",
+  3114: "Não é afetada por Magias/Armadilhas do oponente",
+  3200: "Deve atacar, se puder",
+  3201: "Pode atacar duas vezes",
+  3202: "Pode atacar monstros duas vezes",
+  3203: "Pode atacar duas vezes seguidas",
+  3204: "Pode atacar monstros duas vezes seguidas",
+  3205: "Pode atacar diretamente",
+  3206: "Não pode atacar",
+  3207: "Não pode atacar diretamente",
+  3208: "Causa dano de batalha perfurante",
+  3209: "Causa o dobro de dano de batalha",
+  3210: "Você não recebe dano de batalha envolvendo este card",
+  3211: "O oponente também recebe o dano de batalha deste card",
+  3212: "O oponente recebe o dano de batalha deste card no seu lugar",
+  3213: "Nenhum jogador recebe dano de batalha envolvendo este card",
+  3214: "O oponente não recebe dano de batalha envolvendo este card",
+  3300: "Banido quando sair do campo",
+  3301: "Volta ao Deck quando sair do campo",
+  3302: "Não pode ativar os efeitos dele",
+  3303: "Não pode ser oferecido como Tributo",
+  3304: "Não pode ser Tributo para uma Invocação-Tributo",
+  3305: "Não pode ser descartado",
+  3306: "Não pode ser banido",
+  3307: "Não se pode responder a este card",
+  3308: "Não pode ser negado",
+  3309: "Não pode ser Matéria de Fusão",
+  3310: "Não pode ser Matéria de Sincro",
+  3311: "Não pode ser Matéria Xyz",
+  3312: "Não pode ser Matéria de Link",
+  3313: "Não pode mudar de posição de batalha",
+  3314: "Não pode aplicar os efeitos dele",
+};
+
+/** Nomes de contador com tradução publicada; o resto vira "Contador X". */
+const COUNTER_NAMES_PT: Record<string, string> = {
+  "Spell Counter": "Marcador de Magia",
+  "Bushido Counter": "Marcador Bushido",
+  "Psychic Counter": "Marcador Psíquico",
+  "Shine Counter": "Marcador de Brilho",
+  "Crystal Counter": "Marcador de Cristal",
+  "Morph Counter": "Marcador de Metamorfose",
+  "Venom Counter": "Marcador de Veneno",
+  "Thunder Counter": "Marcador de Trovão",
+  "Greed Counter": "Marcador de Ganância",
+  "Black Feather Counter": "Marcador de Pena Negra",
+  "Karakuri Counter": "Marcador Karakuri",
+  "Chaos Counter": "Marcador do Caos",
+  "Gem Counter": "Marcador de Gema",
+  "Clock Counter": "Marcador de Relógio",
+  "Gate Counter": "Marcador de Portão",
+  "Zushin Counter": "Marcador Zushin",
+  "Ice Counter": "Marcador de Gelo",
+  "Flower Counter": "Marcador de Flor",
+  "Fog Counter": "Marcador de Névoa",
+  "Junk Counter": "Marcador de Sucata",
+  "Wedge Counter": "Marcador de Cunha",
 };
 
 /** Índice consultável das strings do engine. */
 export class EngineStringsDb {
   private readonly system: Record<string, string>;
   private readonly cards: Record<string, string[]>;
+  private readonly counters: Record<string, string>;
 
   constructor(data: EngineStringsData) {
     this.system = data.system;
     this.cards = data.cards;
+    this.counters = data.counters ?? {};
+  }
+
+  /**
+   * Nome de um tipo de contador ("Marcador de Magia"), pelo número que o core
+   * manda em `ADD_COUNTER` e na consulta `COUNTERS`.
+   *
+   * O bit 0x1000 marca um contador "permanente" (não sai quando o efeito que o
+   * pôs é negado) — é o mesmo contador para o jogador, então o nome é buscado
+   * com e sem ele.
+   */
+  counterName(type: number): string {
+    const english =
+      this.counters[String(type)] ?? this.counters[String(type & ~0x1000)] ?? null;
+    if (!english) return "Marcador";
+    if (COUNTER_NAMES_PT[english]) return COUNTER_NAMES_PT[english];
+    const match = /^(.+?) Counter$/.exec(english);
+    return match ? `Marcador ${match[1]}` : english.replace(/^Counter\b/, "Marcador");
   }
 
   /**
@@ -113,7 +239,7 @@ export class EngineStringsDb {
 }
 
 /** Banco vazio — usado quando o download de `/api/engine-strings` falha. */
-export const EMPTY_ENGINE_STRINGS = new EngineStringsDb({ system: {}, cards: {} });
+export const EMPTY_ENGINE_STRINGS = new EngineStringsDb({ system: {}, cards: {}, counters: {} });
 
 /** Busca as strings do engine servidas por `/api/engine-strings`. */
 export async function fetchEngineStrings(): Promise<EngineStringsDb> {

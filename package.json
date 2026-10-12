@@ -25,6 +25,7 @@
     "test:ui-rare": "node --import ./tools/harness/ts-loader-register.mjs tools/harness/test-ui-rare-prompts.mjs",
     "test:modern-summons": "node --import ./tools/harness/ts-loader-register.mjs tools/harness/test-modern-summons.mjs",
     "test:formats": "node --import ./tools/harness/ts-loader-register.mjs tools/harness/test-formats.mjs",
+    "test:marks": "node --import ./tools/harness/ts-loader-register.mjs tools/harness/test-marks.mjs",
     "test:browser": "node tools/harness/test-browser.mjs",
     "test:browser-announce": "node tools/harness/test-browser-announce.mjs",
     "test:browser-online": "node tools/harness/test-browser-online.mjs",

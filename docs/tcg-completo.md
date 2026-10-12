@@ -685,3 +685,42 @@ Puxada para antes da mesa: para desenhar e testar Link, Xyz e Pêndulo na tela
   checagem de sanidade que reprovava ~1 em 6 vezes (lia só a mão do último
   snapshot); agora usa a maior mão vista.
 - Ainda não dá para invocar do Extra Deck clicando — é a Fase 4.
+
+### Fase 3 — feita
+
+- **Por consulta** a cada leitura do tabuleiro (`board-state.ts`): contadores
+  (`COUNTERS`), equipada a (`EQUIP_CARD`), alvos contínuos (`TARGET_CARD`) e
+  negada (`STATUS_DISABLED`). É a verdade do core e sobrevive a reconexão.
+- **Por mensagem** na sessão: `CARD_HINT` num mapa por zona (turnos, carta /
+  Tipo / Atributo / número declarados, avisos de texto com contagem); anda com
+  a carta no `MOVE` e some quando ela sai do campo. `PLAYER_HINT` por assento e
+  `FIELD_DISABLED` (máscara na ótica do jogador 0) entram no `DuelSnapshot`
+  (`playerHints`, `disabledZones`).
+- As marcas entram no `BoardCard` de cada ótica — carta oculta para quem olha
+  não carrega marca nenhuma — e por isso o online e a reconexão recebem tudo
+  sem mudar a projeção.
+- `engine-strings` agora cobre **todas** as cartas (9.717 com strings) e os
+  134 tipos de contador; os ~75 avisos de sistema (3000–3314: "Não pode ser
+  destruída em batalha", "Não pode atacar"…) e os contadores comuns têm
+  português. As rotas de dados estáticos (catálogo, banco oficial, strings)
+  passaram a sair comprimidas com ETag (`compressed-json.ts`).
+- Mesa: selos no canto direito do slot (✦ contador, ⏱ turnos, 📢 declarado,
+  ⓘ avisos, 🔗 equipada, 🎯 alvo, ⊘ negada), arte em cinza na carta negada,
+  zonas interditadas hachuradas, avisos do jogador sob a barra de LP; a leitura
+  da carta lista tudo por extenso ("Marcador de Magia ×1", "Equipada a Mystical
+  Elf"). Log: contador ganho/perdido, equipamento, alvo e declarações (com o
+  nome só quando a carta é pública).
+- Achado: contador não-permanente **sai** quando a carta é negada (o Skill
+  Drain tira o Marcador de Magia do Breaker) — o core faz isso, a mesa
+  acompanha.
+- `npm run test:marks`: Breaker, Proibição, Chamado do Assombrado, Machado do
+  Desespero, Lança Proibida, Skill Drain, Espadas da Luz Reveladora, Ovelhas
+  Perdidas e Desmoronamento, conferidos nas duas óticas e na projeção por
+  assento (o que chega ao reconectar), mais a invariante "carta oculta não tem
+  marca". `test:board-modern` invoca o Breaker clicando e confere selo e
+  leitura no navegador.
+- O `test:hidden` tinha mais dois roteiros dependentes de o bot NÃO ativar a
+  Remédio Secreto do Goblin (Goblin Larápio e Espião, ~1 em 4 reprovando à
+  toa); o oponente deles agora tem um deck que o bot não consegue jogar
+  (Guardião do Portão), e o descarte do Goblin precisa vir depois de um ataque
+  meu no mesmo turno. 8/8 execuções seguidas passando.

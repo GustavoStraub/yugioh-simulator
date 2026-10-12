@@ -1,7 +1,9 @@
 import {
+  OcgCardHintType,
   OcgDuelMode,
   OcgHintType,
   OcgLocation,
+  OcgPlayerHintType,
   OcgLogType,
   OcgMessageType,
   OcgPosition,
@@ -17,7 +19,11 @@ import { autoResponseFor } from "@/lib/duel/auto-response";
 import { browserAssets } from "@/lib/duel/browser-assets";
 import type { DuelAssets } from "@/lib/duel/duel-assets";
 import type { DuelEvent, DuelEventListener } from "@/lib/duel/duel-events";
-import { readBoardState, type BoardState } from "@/lib/duel/board-state";
+import {
+  readBoardState,
+  type BoardState,
+  type CardHint,
+} from "@/lib/duel/board-state";
 import {
   cardDefinitionToOcgData,
   genericTokenData,
@@ -206,6 +212,18 @@ export interface DuelSnapshot {
   log: DuelLogEntry[];
   /** Revelações já ocorridas, da mais antiga para a mais recente. */
   reveals: DuelReveal[];
+  /**
+   * Avisos que valem para um JOGADOR, não para uma carta ("não pode
+   * Invocar-Especial neste turno", "não recebe dano neste turno"), por assento
+   * e já em texto. São públicos: a mesa mostra junto do LP de cada um.
+   */
+  playerHints: [string[], string[]];
+  /**
+   * Zonas inutilizadas agora (`FIELD_DISABLED`), na máscara do core e na ótica
+   * do jogador 0: bits 0–6 monstros e 8–12 magias dele, 16–22 e 24–28 do
+   * jogador 1. A mesa hachura essas zonas.
+   */
+  disabledZones: number;
   winner: number | null;
   /**
    * Por que o duelo acabou, em uma frase — "Os pontos de vida de X chegaram a
@@ -364,6 +382,28 @@ export class DuelSession {
   private revealedTo: [Set<string>, Set<string>] = [new Set(), new Set()];
   /** Id incremental das revelações do histórico. */
   private revealCounter = 0;
+  /**
+   * Marcas que o engine anuncia por mensagem (`CARD_HINT`), por zona do campo.
+   *
+   * Não existe consulta que as devolva: o EDOPro guarda no objeto da carta, do
+   * lado do cliente. Aqui a sessão faz o papel desse objeto — a marca anda
+   * junto no `MOVE` (troca de controle, mudança de zona) e some quando a carta
+   * sai do campo, porque a posição sozinha não identifica a carta: a mesma
+   * zona recebe outra carta depois.
+   *
+   * Cada zona tem UMA marca de valor (turnos, declaração — a nova substitui a
+   * anterior, como no EDOPro) e os avisos de texto com contagem (o mesmo aviso
+   * pode vir de dois efeitos, e só sai quando os dois acabam).
+   */
+  private cardHints = new Map<
+    string,
+    { value: CardHint | null; descs: Map<string, number> }
+  >();
+  /** Avisos por jogador (`PLAYER_HINT`), texto → quantas vezes está ativo. */
+  private playerHintCounts: [Map<string, number>, Map<string, number>] = [
+    new Map(),
+    new Map(),
+  ];
   /**
    * Um cérebro por assento de bot.
    *
@@ -990,6 +1030,7 @@ export class DuelSession {
         case OcgMessageType.MOVE: {
           const line = this.describeHandExit(message);
           if (line) this.appendLog(line);
+          this.moveCardHints(message.from, message.to);
           break;
         }
         case OcgMessageType.TOSS_COIN:
@@ -1123,12 +1164,181 @@ export class DuelSession {
         case OcgMessageType.START:
           this.appendLog("Duelo começou!");
           break;
+
+        // ---- Marcas nas cartas e nos jogadores ---------------------------
+        case OcgMessageType.CARD_HINT:
+          this.applyCardHint(message);
+          break;
+        case OcgMessageType.PLAYER_HINT: {
+          if (message.player !== 0 && message.player !== 1) break;
+          const text = this.engineStrings.describeOption(Number(message.description));
+          if (!text) break;
+          const counts = this.playerHintCounts[message.player];
+          const now = counts.get(text) ?? 0;
+          if (message.player_hint === OcgPlayerHintType.DESC_ADD) counts.set(text, now + 1);
+          else if (now <= 1) counts.delete(text);
+          else counts.set(text, now - 1);
+          const playerHints: [string[], string[]] = [
+            [...this.playerHintCounts[0].keys()],
+            [...this.playerHintCounts[1].keys()],
+          ];
+          this.update({ playerHints });
+          break;
+        }
+        case OcgMessageType.FIELD_DISABLED:
+          this.update({ disabledZones: message.field_mask >>> 0 });
+          break;
+        case OcgMessageType.ADD_COUNTER:
+        case OcgMessageType.REMOVE_COUNTER: {
+          const nome = this.publicNameAt(message.controller, message.location, message.sequence);
+          const contador = this.engineStrings.counterName(message.counter_type);
+          this.appendLog(
+            message.type === OcgMessageType.ADD_COUNTER
+              ? `✦ ${nome} recebeu ${message.count} ${contador}`
+              : `✦ ${nome} perdeu ${message.count} ${contador}`,
+          );
+          break;
+        }
+        case OcgMessageType.EQUIP:
+          this.appendLog(
+            `🔗 ${this.publicNameAt(message.card.controller, message.card.location, message.card.sequence)} ` +
+              `foi equipada a ${this.publicNameAt(message.target.controller, message.target.location, message.target.sequence)}`,
+          );
+          break;
+        case OcgMessageType.CARD_TARGET:
+          this.appendLog(
+            `🎯 ${this.publicNameAt(message.card.controller, message.card.location, message.card.sequence)} ` +
+              `passou a ter como alvo ${this.publicNameAt(message.target.controller, message.target.location, message.target.sequence)}`,
+          );
+          break;
         case OcgMessageType.RETRY:
           this.appendLog("Resposta inválida — tente novamente.");
           break;
         default:
           break;
       }
+    }
+  }
+
+  /** Chave da zona nas marcas, a mesma do `cardKey` da mesa. */
+  private hintKey(controller: number, location: number, sequence: number): string {
+    return `${controller}:${location}:${sequence}`;
+  }
+
+  /** A carta está no campo (onde as marcas por mensagem valem)? */
+  private onField(location: number): boolean {
+    return (
+      (location === OcgLocation.MZONE || location === OcgLocation.SZONE) &&
+      (location & OcgLocation.OVERLAY) === 0
+    );
+  }
+
+  /**
+   * Aplica um `CARD_HINT` à zona da carta.
+   *
+   * Só no campo: é onde a mesa desenha marca, e fora dele a posição (mão,
+   * cemitério) muda o tempo todo sem MOVE da própria carta.
+   */
+  private applyCardHint(message: {
+    controller: 0 | 1;
+    location: number;
+    sequence: number;
+    card_hint: OcgCardHintType;
+    description: bigint;
+  }): void {
+    if (!this.onField(message.location)) return;
+    const key = this.hintKey(message.controller, message.location, message.sequence);
+    const entry = this.cardHints.get(key) ?? { value: null, descs: new Map<string, number>() };
+    const raw = Number(message.description);
+    const nome = this.publicNameAt(message.controller, message.location, message.sequence);
+
+    switch (message.card_hint) {
+      case OcgCardHintType.TURN:
+        // Turno 0 é "zerou/terminou" — não vale marca nenhuma.
+        entry.value = raw > 0 ? { kind: "turn", value: raw } : null;
+        break;
+      case OcgCardHintType.CARD:
+        entry.value = { kind: "card", code: raw };
+        this.appendLog(`📢 ${nome} — carta declarada: ${this.cardName(raw)}`);
+        break;
+      case OcgCardHintType.RACE:
+        entry.value = { kind: "race", mask: raw };
+        this.appendLog(`📢 ${nome} — Tipo declarado`);
+        break;
+      case OcgCardHintType.ATTRIBUTE:
+        entry.value = { kind: "attribute", mask: raw };
+        this.appendLog(`📢 ${nome} — Atributo declarado`);
+        break;
+      case OcgCardHintType.NUMBER:
+        entry.value = { kind: "number", value: raw };
+        this.appendLog(`📢 ${nome} — número declarado: ${raw}`);
+        break;
+      case OcgCardHintType.DESC_ADD:
+      case OcgCardHintType.DESC_REMOVE: {
+        const text = this.engineStrings.describeOption(raw);
+        if (!text) break;
+        const now = entry.descs.get(text) ?? 0;
+        if (message.card_hint === OcgCardHintType.DESC_ADD) entry.descs.set(text, now + 1);
+        else if (now <= 1) entry.descs.delete(text);
+        else entry.descs.set(text, now - 1);
+        break;
+      }
+      default:
+        break;
+    }
+
+    if (entry.value || entry.descs.size > 0) this.cardHints.set(key, entry);
+    else this.cardHints.delete(key);
+  }
+
+  /** As marcas andam com a carta; fora do campo, somem. */
+  private moveCardHints(
+    from: { controller: number; location: number; sequence: number },
+    to: { controller: number; location: number; sequence: number },
+  ): void {
+    if (!this.onField(from.location)) return;
+    const key = this.hintKey(from.controller, from.location, from.sequence);
+    const entry = this.cardHints.get(key);
+    if (!entry) return;
+    this.cardHints.delete(key);
+    if (this.onField(to.location)) {
+      this.cardHints.set(this.hintKey(to.controller, to.location, to.sequence), entry);
+    }
+  }
+
+  /** As marcas por zona no formato que `readBoardState` mescla nas cartas. */
+  private hintsByZone(): Map<string, CardHint[]> {
+    const out = new Map<string, CardHint[]>();
+    this.cardHints.forEach((entry, key) => {
+      const hints: CardHint[] = [];
+      if (entry.value) hints.push(entry.value);
+      for (const text of entry.descs.keys()) hints.push({ kind: "desc", text });
+      out.set(key, hints);
+    });
+    return out;
+  }
+
+  /**
+   * Nome de uma carta numa zona, para a narração — ou "uma carta virada para
+   * baixo" quando ela não é pública. O log é lido pelos dois lados, e dizer o
+   * nome de uma carta baixada entregaria o segredo.
+   */
+  private publicNameAt(controller: number, location: number, sequence: number): string {
+    const { core, handle } = this;
+    if (!core || !handle) return "uma carta";
+    try {
+      const raw = core.duelQuery(handle, {
+        flags: (OcgQueryFlags.CODE | OcgQueryFlags.POSITION) as OcgQueryFlags,
+        controller: controller as 0 | 1,
+        location: location as OcgLocation,
+        sequence,
+        overlaySequence: 0,
+      }) as { code?: number; position?: number } | null;
+      if (!raw?.code) return "uma carta";
+      if (((raw.position ?? 0) & OcgPosition.FACEDOWN) !== 0) return "uma carta virada para baixo";
+      return this.cardName(raw.code);
+    } catch {
+      return "uma carta";
     }
   }
 
@@ -1315,7 +1525,7 @@ export class DuelSession {
         if (!core || !handle) {
           throw new Error("duelo encerrado durante a decisão do bot");
         }
-        const board = readBoardState(core, handle, seat, !full);
+        const board = readBoardState(core, handle, seat, !full, this.hintsByZone());
         cache.set(full, board);
         return board;
       },
@@ -1341,10 +1551,11 @@ export class DuelSession {
     // Uma leitura por assento que alguém realmente olha. Ler o tabuleiro do
     // bot dobraria as chamadas ao WASM por lote de mensagens sem ninguém ver
     // o resultado — e é justamente esse custo que o modo `light` contém.
+    const hints = this.hintsByZone();
     const boards = [0, 1].map((seat) =>
       this.seats[seat as 0 | 1].kind === "bot"
         ? null
-        : readBoardState(core, handle, seat as 0 | 1, light),
+        : readBoardState(core, handle, seat as 0 | 1, light, hints),
     ) as [BoardState | null, BoardState | null];
 
     this.update({ boards });
@@ -1366,6 +1577,8 @@ export class DuelSession {
 function createInitialSnapshot(): DuelSnapshot {
   return {
     format: DEFAULT_FORMAT,
+    playerHints: [[], []],
+    disabledZones: 0,
     boards: [null, null],
     lifePoints: [8000, 8000],
     turnPlayer: null,

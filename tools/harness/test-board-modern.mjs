@@ -39,6 +39,7 @@ const C = {
   timegazer: 20409757, // Pêndulo 8/8
   stargazer: 94415058, // Pêndulo 1/1
   raigeki: 12580477, // destrói os monstros do oponente
+  breaker: 71413901, // ganha 1 Marcador de Magia ao ser Invocado-Normal
 };
 
 const M = OcgLocation.MZONE;
@@ -60,6 +61,7 @@ const SCENARIO = [
   { player: 1, location: M, sequence: 3, code: C.stargazer },
   { player: 1, location: OcgLocation.EXTRA, code: C.utopia },
   { player: 0, location: OcgLocation.HAND, code: C.raigeki },
+  { player: 0, location: OcgLocation.HAND, code: C.breaker },
 ];
 
 const setup = {
@@ -148,6 +150,40 @@ async function main() {
     conferir(mesa.rankUtopia.includes("☆4"), "o Utopia mostra Rank 4", mesa.rankUtopia);
     conferir(mesa.nivelElf.includes("★4"), "o Mystical Elf mostra Nível 4", mesa.nivelElf);
     conferir(!mesa.rolagemHorizontal, "sem rolagem horizontal");
+
+    // Marcas: o Breaker invocado ganha o Marcador de Magia, e ele aparece no
+    // slot (selo) e na leitura da carta (frase).
+    console.log("\nMarcas na carta");
+    const invocou = await page.evaluate(`
+      const slot = [...document.querySelectorAll('[data-zone^="0:2:"]')]
+        .find((el) => /Breaker/.test(el.querySelector("img")?.alt ?? ""));
+      if (!slot) return false;
+      slot.querySelector('[role="button"]')?.click();
+      return true;
+    `);
+    await new Promise((r) => setTimeout(r, 300));
+    await page.clickText("Invocar");
+    await new Promise((r) => setTimeout(r, 600));
+    await page.evaluate(`document.querySelector('[data-zone="0:4:1"] [role="button"]')?.click(); return true;`);
+    let selo = null;
+    for (let i = 0; i < 30 && !selo; i += 1) {
+      await new Promise((r) => setTimeout(r, 400));
+      await page.clickText("Não responder");
+      selo = await page.evaluate(
+        `return document.querySelector('[data-zone="0:4:1"] [data-marks]')?.innerText ?? null;`,
+      );
+    }
+    conferir(invocou, "o Breaker está na mão e foi invocado pela tela");
+    conferir(/✦1/.test(selo ?? ""), "o slot do Breaker mostra o selo do Marcador de Magia", String(selo));
+    await page.evaluate(`
+      const alvo = document.querySelector('[data-zone="0:4:1"] .tf-slot');
+      alvo?.dispatchEvent(new MouseEvent("mouseover", { bubbles: true }));
+      return true;
+    `);
+    await new Promise((r) => setTimeout(r, 300));
+    const leitura = await page.evaluate(`return document.querySelector("[data-preview-marks]")?.innerText ?? "";`);
+    conferir(/Marcador de Magia ×1/.test(leitura), "a leitura da carta diz \"Marcador de Magia ×1\"", leitura);
+    writeFileSync(join(OUT, "tcg-marcas.png"), Buffer.from((await page.screenshot()).data, "base64"));
 
     // Raigeki: o Stargazer do oponente é destruído e volta para o Extra Deck
     // dele virado para cima.
