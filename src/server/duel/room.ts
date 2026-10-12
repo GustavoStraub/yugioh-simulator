@@ -1,9 +1,9 @@
 import type { OcgResponse } from "@n1xx1/ocgcore-wasm";
 
-import { CardRegistry } from "@/lib/domain/card-registry";
+import type { CardRegistry } from "@/lib/domain/card-registry";
 import { DECK_LIMITS } from "@/lib/domain/deck-rules";
-import { fetchGoatCards } from "@/lib/domain/goat-cards";
 import type { DuelEvent } from "@/lib/duel/duel-events";
+import { loadCatalogRegistry } from "@/server/catalog/catalog-store";
 import {
   createDuelSession,
   type DuelSession,
@@ -56,19 +56,11 @@ function toleranciaDeQuedaMs(): number {
  * Catálogo de cartas do processo.
  *
  * O engine precisa dele para criar cada carta (`cardReader`), e ele é o mesmo
- * para todas as salas — buscar por duelo seria uma ida à YGOPRODeck por partida.
+ * para todas as salas — o arquivo do catálogo é lido uma vez por processo
+ * (`catalog-store.ts`), e uma falha não fica em cache.
  */
-let registryPromise: Promise<CardRegistry> | null = null;
 function duelRegistry(): Promise<CardRegistry> {
-  registryPromise ??= fetchGoatCards()
-    .then((cards) => CardRegistry.fromApiResponse(cards))
-    .catch((error: unknown) => {
-      // Sem cache do fracasso: a próxima sala tenta de novo em vez de herdar
-      // uma falha de rede momentânea para sempre.
-      registryPromise = null;
-      throw error;
-    });
-  return registryPromise;
+  return loadCatalogRegistry();
 }
 
 /** O deck vem de um cliente, e cliente não é confiável. */

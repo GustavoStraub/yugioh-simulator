@@ -55,7 +55,7 @@ Generated data is committed; regenerate with `npm run build:card-db` (`src/data/
 - **`DuelAssets`** (`duel-assets.ts`): `browserAssets` fetches the wasm, scripts and card data over HTTP (`/ocgcore/*.wasm`, `/api/scripts/*`, `/api/card-db`, `/api/engine-strings`); `src/server/duel/node-assets.ts` reads them from disk, falling back to GitHub for scripts.
 - **Seats** (`SeatConfig`): `local` and `remote` park and publish `pendingPrompt` with a `promptId` (late answers are rejected); `bot` is answered in-process by `bot/bot-brain.ts` (heuristics), with `bot-responder.ts` as the always-legal fallback.
 
-Modules imported by both the Next graph and the plain-Node server must not import `next/server` — that is why `lib/domain/goat-cards.ts` and `lib/duel/script-source.ts` live outside the route handlers that wrap them.
+Modules imported by both the Next graph and the plain-Node server must not import `next/server` — that is why `server/catalog/catalog-store.ts` and `lib/duel/script-source.ts` live outside the route handlers that wrap them.
 
 ### Prompt pipeline
 
@@ -67,7 +67,8 @@ Board reads are per viewer (`readBoardState(core, handle, viewer)` in `board-sta
 
 ### Card data comes from two places
 
-- **YGOPRODeck catalog** (`goat-cards.ts` → `/api/cards` → `CardRegistry`): names, PT/EN text, images, banlist — display and search only.
+- **Catalog** (`src/server/catalog/catalog-build.ts` → `.cache/catalog/catalog.json` → `/api/cards` → `CardRegistry.fromCatalog`): names, PT/EN text, types, Link/Pendulum/Rank, banlists (`ban_tcg`, `ban_goat`), Goat-pool flag — display and search only. Built once from YGOPRODeck (`npm run build:catalog`, `-- --refresh` to update; the server builds it lazily if missing), indexed by the **official** passcode with every alternate art resolvable (YGOPRODeck sometimes uses an alt art as the main id). Cards without official data (`playable: false`, released after our `cards.cdb` snapshot) are display-only. `/api/cards` is precompressed (brotli/gzip) with an ETag.
+- **Images** are served from disk by `/card-images/<small|full|cropped>/<passcode>.jpg` (`card-images.ts`): each is fetched from YGOPRODeck once, rate-limited, then cached in `.cache/card-images/` — never hotlinked.
 - **Official engine data** (`src/data/card-db.json`, read by `official-card-data.ts`): type bitfields, setcodes, alias, level/scales. The engine must get this (`card-adapter.ts`); data derived from YGOPRODeck strings silently breaks every `IsSetCard` check.
 
 ### Scripts

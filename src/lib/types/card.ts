@@ -36,6 +36,20 @@ export interface CardDefinition {
   banlist?: BanlistInfo;
   /** Texto do efeito em inglês, quando o catálogo trouxe as duas versões. */
   descEn?: string;
+  /** Rating de um monstro Link (`level` vem vazio neles). */
+  linkval?: number;
+  /** Setas de um monstro Link, na máscara do core (`OcgLinkMarker`). */
+  linkMarkers?: number;
+  /** Escala de um monstro Pêndulo. */
+  scale?: number;
+  /** Está no pool do formato Goat (abril de 2005)? */
+  goat?: boolean;
+  /**
+   * O engine conhece a carta (há dados oficiais dela). `false` = lançada depois
+   * do snapshot dos dados oficiais: aparece no catálogo, mas não entra em deck.
+   * Ausente nos registros montados direto da resposta da YGOPRODeck (testes).
+   */
+  playable?: boolean;
 }
 
 /** Resposta bruta da YGOPRODeck — convertida para CardDefinition no registry. */
@@ -55,6 +69,6 @@ export interface YgoProDeckCard {
   archetype?: string;
   card_images: CardImage[];
   banlist_info?: BanlistInfo;
-  /** Preenchido por `goat-cards.ts` ao casar as respostas pt e en da API. */
+  /** Texto em inglês, quando um registro de teste casa as respostas pt e en da API. */
   desc_en?: string;
 }

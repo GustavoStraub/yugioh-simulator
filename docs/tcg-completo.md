@@ -628,3 +628,27 @@ inteiro.
   resolve com `SKIP_SCRIPT_PATCHES=1`); continua como rede de segurança.
 - O que sobra no `test:modern-summons` é a mesa (Fase 2): zonas 5–6 invisíveis
   para a tela, plano vazio no SELECT_PLACE do Link e o Link fora da mesa.
+
+### Fase 5a — catálogo e imagens (adiantada)
+
+Puxada para antes da mesa: para desenhar e testar Link, Xyz e Pêndulo na tela
+é preciso ter as cartas TCG no catálogo (nome, imagem, Rank/Link/Escala).
+
+- `npm run build:catalog` monta `.cache/catalog/catalog.json` a partir de quatro
+  buscas à YGOPRODeck (TCG em inglês e em português, pool Goat, fichas), uma vez
+  só; o servidor monta sozinho na primeira requisição se o arquivo faltar.
+  14.021 cartas, 13.906 com dados oficiais. As 115 restantes são de coleções
+  lançadas depois do snapshot do `cards.cdb` (24/08) — a maioria da coleção de
+  08/10/2026 — e de impressões de Speed Duel: aparecem no catálogo, mas não
+  entram em deck (sem dados nem script, entrariam como monstro qualquer).
+- Indexado pelo passcode **oficial**, com todas as artes alternativas
+  resolvíveis: a YGOPRODeck passou a usar uma arte alternativa como id
+  principal de algumas cartas (o Mago Negro aparece como 46986420), e o feed do
+  Goat lista outras só pela arte alternativa.
+- `/api/cards` serve o catálogo pré-comprimido (1,6 MB em brotli, 2,4 MB em
+  gzip; ~10 MB cru) com ETag — revisita é um 304.
+- Imagens: `/card-images/<small|full|cropped>/<passcode>.jpg` baixa cada imagem
+  da YGOPRODeck uma vez, em fila (~8/s) e sem duplicar downloads simultâneos, e
+  serve do disco (`.cache/card-images/`) com cache de um ano. Fim do hotlink.
+- O construtor continua no pool Goat (1.690 cartas) até a Fase 6 dar formato a
+  cada deck; a declaração de nome (ANNOUNCE_CARD) segue o formato do duelo.

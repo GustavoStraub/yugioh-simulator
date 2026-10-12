@@ -2,7 +2,9 @@
  * Baixa o que o harness precisa para rodar offline:
  *  - `.cache/CardScripts` — o ProjectIgnis/CardScripts no commit FIXO de
  *    `src/lib/duel/cardscripts-pin.ts` (o mesmo que o app lê);
- *  - `.cache/goat-pool.json` — o pool do formato Goat da YGOPRODeck.
+ *  - `.cache/goat-pool.json` — o pool do formato Goat da YGOPRODeck;
+ *  - `.cache/catalog/catalog.json` — o catálogo de cartas do app (ver
+ *    `src/server/catalog/catalog-build.ts`).
  *
  * Sem isso cada teste de carta faria requisições de rede, e testar mil e
  * seiscentas cartas viraria mil e seiscentas idas ao GitHub.
@@ -62,6 +64,22 @@ if (!existsSync(poolPath) || process.argv.includes("--refresh")) {
   );
   if (!response.ok) throw new Error(`YGOPRODeck respondeu ${response.status}`);
   writeFileSync(poolPath, await response.text());
+}
+
+// O catálogo de cartas (TCG + Goat + fichas) que o app e os testes de sessão
+// leem. Precisa do carregador de TypeScript, então roda num processo à parte.
+if (!existsSync(join(CACHE, "catalog/catalog.json")) || process.argv.includes("--refresh")) {
+  process.stdout.write("Montando o catálogo de cartas...\n");
+  execFileSync(
+    process.execPath,
+    [
+      "--import",
+      "./tools/harness/ts-loader-register.mjs",
+      "scripts/build-catalog.mjs",
+      ...(process.argv.includes("--refresh") ? ["--refresh"] : []),
+    ],
+    { cwd: REPO, stdio: "inherit" },
+  );
 }
 
 process.stdout.write("Fixtures prontas.\n");

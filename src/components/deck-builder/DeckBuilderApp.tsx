@@ -42,7 +42,10 @@ const ZONE_TABS: { value: DeckZone; label: string }[] = [
 ];
 
 export function DeckBuilderApp() {
-  const { cards, isLoading, error, reload, registry } = useCardRegistry();
+  const { cards: catalogo, isLoading, error, reload, registry } = useCardRegistry();
+  // O catálogo agora traz o TCG inteiro; o construtor continua no pool Goat
+  // até cada deck ter o seu formato (Fase 6 de `docs/tcg-completo.md`).
+  const cards = useMemo(() => catalogo.filter((card) => card.goat), [catalogo]);
   const {
     deck,
     library,

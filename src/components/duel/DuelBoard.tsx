@@ -175,6 +175,19 @@ export function DuelBoard({
     };
   }, []);
 
+  /**
+   * Nomes que se pode declarar (ANNOUNCE_CARD): o pool do formato do duelo.
+   * O catálogo traz o TCG inteiro; num duelo Goat, oferecer um Link para
+   * declarar seria oferecer um nome que nem existia em 2005.
+   */
+  const announcePool = useMemo(
+    () =>
+      cards.filter((card) =>
+        snapshot.format === "goat" ? card.goat : card.playable !== false,
+      ),
+    [cards, snapshot.format],
+  );
+
   const prompt = snapshot.pendingPrompt;
   const plan = useMemo(
     () => (prompt ? buildPromptPlan(prompt, engineStrings) : null),
@@ -651,7 +664,7 @@ export function DuelBoard({
           <AnnounceCardModal
             instruction={plan.instruction}
             opcodes={plan.announceCard.opcodes}
-            cards={cards}
+            cards={announcePool}
             onRespond={(code) => respond(plan.announceCard!.build(code))}
             onHover={setPreview}
           />
