@@ -170,7 +170,7 @@ export function gruposDeDecks(escolha: DeckEscolha): GrupoDeDecks[] {
   const meus = escolha.biblioteca?.length
     ? escolha.biblioteca.map((deck) => ({
         value: deck.id,
-        label: `${deck.name} (${totalDoMain(deck)} cartas)${
+        label: `${deck.name}${deck.format === "tcg" ? " · TCG" : ""} (${totalDoMain(deck)} cartas)${
           isDeckDuelReady(deck) ? "" : " — incompleto"
         }`,
       }))
@@ -193,7 +193,7 @@ export function gruposDeDecks(escolha: DeckEscolha): GrupoDeDecks[] {
       label: "Decks prontos",
       opcoes: PRESET_DECKS.map((item) => ({
         value: item.id,
-        label: `${item.namePt} (${item.main.length} cartas)`,
+        label: `${item.namePt}${item.format === "tcg" ? " · TCG" : ""} (${item.main.length} cartas)`,
       })),
     },
   ];

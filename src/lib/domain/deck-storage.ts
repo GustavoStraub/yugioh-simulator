@@ -1,4 +1,4 @@
-import { createEmptyDeck } from "./deck-operations";
+import { createEmptyDeck, normalizeDeck } from "./deck-operations";
 
 import type { DeckList } from "@/lib/types";
 
@@ -10,7 +10,7 @@ export function loadDeck(): DeckList {
   try {
     const raw = localStorage.getItem(DECK_STORAGE_KEY);
     if (!raw) return createEmptyDeck();
-    return JSON.parse(raw) as DeckList;
+    return normalizeDeck(JSON.parse(raw) as DeckList);
   } catch {
     return createEmptyDeck();
   }

@@ -8,6 +8,7 @@ import {
   createEmptyDeck,
   removeCardFromDeck,
   replaceDeck,
+  setDeckFormat,
 } from "@/lib/domain/deck-operations";
 import {
   duplicarDeck,
@@ -23,7 +24,7 @@ import { buildDeckCountMap, canAddCard } from "@/lib/domain/deck-rules";
 import { loadDeck, saveDeck } from "@/lib/domain/deck-storage";
 import { usePlayer } from "@/context/PlayerProvider";
 import type { Profile } from "@/lib/domain/profile";
-import type { CardDefinition, DeckList, DeckZone } from "@/lib/types";
+import type { CardDefinition, DeckList, DeckZone, DuelFormat } from "@/lib/types";
 
 /**
  * Deck renderizado no servidor, onde não existe navegador.
@@ -231,6 +232,19 @@ export function useDeck() {
     [setDeck],
   );
 
+  /**
+   * Muda o formato do deck aberto. As cartas ficam: o que não for do pool do
+   * formato novo aparece marcado no construtor (e o deck não duela até sair),
+   * em vez de sumir sem aviso.
+   */
+  const changeFormat = useCallback(
+    (format: DuelFormat) => {
+      setDeck((current) => setDeckFormat(current, format));
+      setLastActionError(null);
+    },
+    [setDeck],
+  );
+
   const loadPreset = useCallback(
     (preset: PresetDeckDefinition) => {
       setDeck((current) => replaceDeck(current, presetToDeckList(preset, current.id)));
@@ -256,9 +270,11 @@ export function useDeck() {
     [profile, agendarGravacao],
   );
 
+  // Deck novo nasce no formato do deck aberto: quem está montando TCG quer o
+  // próximo TCG também.
   const create = useCallback(() => {
-    adotar(createEmptyDeck(nomeUnico("Novo deck", decks ?? [])));
-  }, [adotar, decks]);
+    adotar(createEmptyDeck(nomeUnico("Novo deck", decks ?? []), deck.format));
+  }, [adotar, decks, deck.format]);
 
   const duplicate = useCallback(() => {
     if (deck.id === SEM_DECK.id) return;
@@ -315,6 +331,7 @@ export function useDeck() {
     tryRemoveCard,
     tryClearDeck,
     renameDeck,
+    changeFormat,
     loadPreset,
   };
 }

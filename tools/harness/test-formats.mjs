@@ -22,6 +22,11 @@ import { createDuelSession } from "@/lib/duel/duel-session";
 import { CardRegistry } from "@/lib/domain/card-registry";
 import { nodeAssets } from "@/server/duel/node-assets";
 
+import { banStatus, banlistSummary, canAddCard, deckValidationMessages } from "@/lib/domain/deck-rules";
+import { createEmptyDeck, normalizeDeck } from "@/lib/domain/deck-operations";
+import { deckToDuelPayload } from "@/lib/domain/deck-serializer";
+import { DuelRoom, deckProblem } from "@/server/duel/room";
+
 import { REPO } from "./env.mjs";
 
 /** Battle Ox — deck neutro, sem efeito nenhum no caminho. */
@@ -92,6 +97,86 @@ for (const [format, maoEsperada] of [
     mao === maoEsperada,
     `quem começa tem ${maoEsperada} cartas na Main Phase 1 (${mao})`,
   );
+}
+
+// ---------------------------------------------------------------------------
+// Regras de deck por formato — sem duelo.
+// ---------------------------------------------------------------------------
+console.log("\nDecks e formatos");
+{
+  const catalogo = JSON.parse(readFileSync(join(REPO, ".cache/catalog/catalog.json"), "utf8"));
+  const cat = CardRegistry.fromCatalog(catalogo);
+  const LINK_SPIDER = 98978921;
+  const CYBER_STEIN = 69015963;
+  const GAIA = 66889139;
+
+  // Deck salvo antes do TCG: sem `format`.
+  const antigo = { id: "antigo01", name: "Velho", main: [{ passcode: BOI, quantity: 3 }], extra: [], side: [], updatedAt: "2026-01-01T00:00:00.000Z" };
+  conferir(normalizeDeck(antigo).format === "goat", "deck antigo, sem formato, abre como Goat");
+  conferir(deckToDuelPayload(normalizeDeck(antigo)).format === "goat", "e vai ao duelo como Goat");
+
+  const goat = createEmptyDeck("G", "goat");
+  const tcg = createEmptyDeck("T", "tcg");
+  conferir(!canAddCard(goat, cat.get(LINK_SPIDER), "extra").ok, "um Link não entra num deck Goat");
+  conferir(canAddCard(tcg, cat.get(LINK_SPIDER), "extra").ok, "um Link entra no Extra de um deck TCG");
+  conferir(canAddCard(goat, cat.get(GAIA), "extra").ok, "Gaia (Fusão de 2005) entra no Extra Goat");
+
+  const extraCheio = (formato, n) => ({
+    ...createEmptyDeck("X", formato),
+    extra: [{ passcode: GAIA, quantity: n }],
+  });
+  conferir(!canAddCard(extraCheio("tcg", 15), cat.get(LINK_SPIDER), "extra").ok, "Extra Deck TCG para em 15");
+  conferir(canAddCard(extraCheio("goat", 15), cat.get(GAIA), "extra").ok === false, "(3 cópias já no Extra Goat: o limite de cópias vale)");
+  conferir(
+    canAddCard({ ...createEmptyDeck("X", "goat"), extra: [{ passcode: 1, quantity: 15 }] }, cat.get(GAIA), "extra").ok,
+    "Extra Goat passa de 15 (até 60)",
+  );
+  conferir(
+    deckValidationMessages({ ...createEmptyDeck("S", "tcg"), main: [{ passcode: BOI, quantity: 40 }], side: [{ passcode: BOI, quantity: 7 }] }).length === 0,
+    "Side Deck de 7 vale no TCG",
+  );
+  conferir(
+    deckValidationMessages({ ...createEmptyDeck("S", "goat"), main: [{ passcode: BOI, quantity: 40 }], side: [{ passcode: BOI, quantity: 7 }] }).length === 1,
+    "mas no Goat é 0 ou 15",
+  );
+
+  conferir(banStatus(cat.get(CYBER_STEIN), "goat") === null, "Cyber-Stein não aparece proibida na lista de 2005");
+  conferir(banStatus(cat.get(CYBER_STEIN), "tcg") === "Forbidden", "e aparece proibida na banlist TCG");
+  const comProibida = { ...createEmptyDeck("B", "tcg"), main: [{ passcode: CYBER_STEIN, quantity: 1 }] };
+  const resumo = banlistSummary(comProibida, cat);
+  conferir(!resumo.ok && /1 Proibida/.test(resumo.text), "o resumo do deck avisa a Proibida — sem bloquear", resumo.text);
+  conferir(canAddCard(comProibida, cat.get(CYBER_STEIN), "main").ok, "e ainda dá para pôr outra cópia (banlist é só informação)");
+
+  conferir(
+    deckProblem({ main: Array(40).fill(BOI), extra: Array(16).fill(GAIA), side: [], format: "tcg" }) !== null,
+    "online: Extra de 16 é recusado num deck TCG",
+  );
+  conferir(
+    deckProblem({ main: Array(40).fill(BOI), extra: Array(16).fill(GAIA), side: [], format: "goat" }) === null,
+    "e aceito num deck Goat",
+  );
+}
+
+console.log("\nSala online: formatos diferentes não começam");
+{
+  const mensagens = { a: [], b: [] };
+  const sala = new DuelRoom("FMT1");
+  const deckDe = (format) => ({ main: Array(40).fill(BOI), extra: [], side: [], format });
+  sala.join({ token: "token-a-xxxxxxxxxxxx", name: "Ana", deck: deckDe("goat"), send: (m) => mensagens.a.push(m) });
+  sala.join({ token: "token-b-xxxxxxxxxxxx", name: "Bruno", deck: deckDe("tcg"), send: (m) => mensagens.b.push(m) });
+  sala.setReady("token-a-xxxxxxxxxxxx", true);
+  sala.setReady("token-b-xxxxxxxxxxxx", true);
+  const lobby = mensagens.a.filter((m) => m.t === "lobby").at(-1);
+  conferir(lobby && !lobby.jokenpo && !lobby.started, "Goat × TCG: os dois prontos e o jokenpô não abre");
+  conferir(
+    lobby?.seats.map((seat) => seat.format).sort().join() === "goat,tcg",
+    "e a sala mostra o formato de cada um",
+    JSON.stringify(lobby?.seats),
+  );
+  sala.setDeck("token-b-xxxxxxxxxxxx", deckDe("goat"), "Goat também");
+  sala.setReady("token-b-xxxxxxxxxxxx", true);
+  const depois = mensagens.a.filter((m) => m.t === "lobby").at(-1);
+  conferir(Boolean(depois?.jokenpo), "trocando para o mesmo formato, o jokenpô abre");
 }
 
 if (falhas.length) {

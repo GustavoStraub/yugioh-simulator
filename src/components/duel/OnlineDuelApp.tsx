@@ -333,6 +333,17 @@ function SalaDeEspera({
                   <span className="ml-2 text-xs text-zinc-500">
                     {seat.deckName ?? (seat.hasDeck ? "deck escolhido" : "")}
                   </span>
+                  {seat.format && (
+                    <span
+                      className={`ml-2 rounded px-1.5 py-0.5 text-[10px] font-bold uppercase ${
+                        seat.format === "tcg"
+                          ? "bg-sky-900/60 text-sky-200"
+                          : "bg-amber-900/50 text-amber-200"
+                      }`}
+                    >
+                      {seat.format === "tcg" ? "TCG" : "Goat"}
+                    </span>
+                  )}
                 </span>
                 <span
                   className={`rounded-full px-2 py-0.5 text-xs font-semibold ${
@@ -352,10 +363,22 @@ function SalaDeEspera({
             )}
           </ul>
 
+          {cheia &&
+            seats.every((seat) => seat.format) &&
+            new Set(seats.map((seat) => seat.format)).size > 1 && (
+              <p
+                data-format-mismatch
+                className="mt-4 rounded-lg border border-amber-800/60 bg-amber-950/40 px-3 py-2 text-xs text-amber-200"
+              >
+                Os decks são de formatos diferentes (Goat × TCG). O duelo só
+                começa com os dois no mesmo formato — troque o deck acima.
+              </p>
+            )}
+
           <p className="mt-4 text-xs text-zinc-500">
             Com os dois prontos vem um pedra-papel-tesoura, e quem ganha escolhe
-            jogar primeiro ou por último — no Goat o primeiro turno vale demais
-            para ser sorteado.
+            jogar primeiro ou por último — o primeiro turno vale demais para ser
+            sorteado.
           </p>
         </section>
 

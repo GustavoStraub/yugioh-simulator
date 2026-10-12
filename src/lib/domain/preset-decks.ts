@@ -1,5 +1,6 @@
 import { randomId } from "@/lib/random-id";
-import type { DeckCardRef, DeckList, DuelDeckPayload, Passcode } from "@/lib/types";
+import { formatOf } from "@/lib/types";
+import type { DeckCardRef, DeckList, DuelDeckPayload, DuelFormat, Passcode } from "@/lib/types";
 
 export type PresetDeckKind = "starter" | "structure";
 
@@ -13,6 +14,8 @@ export interface PresetDeckDefinition {
   main: Passcode[];
   extra: Passcode[];
   side: Passcode[];
+  /** Formato do produto; ausente = Goat (os decks de 2002–2005). */
+  format?: DuelFormat;
 }
 
 export function passcodesToRefs(passcodes: Passcode[]): DeckCardRef[] {
@@ -34,7 +37,7 @@ export function presetToDeckList(
   return {
     id: deckId ?? randomId(),
     name: preset.namePt,
-    format: "goat",
+    format: formatOf(preset.format),
     main: passcodesToRefs(preset.main),
     extra: passcodesToRefs(preset.extra),
     side: passcodesToRefs(preset.side),
@@ -51,6 +54,7 @@ export function presetToDuelPayload(preset: PresetDeckDefinition): DuelDeckPaylo
     main: preset.main,
     extra: preset.extra,
     side: preset.side,
+    format: formatOf(preset.format),
   };
 }
 

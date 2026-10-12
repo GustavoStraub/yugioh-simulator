@@ -11,7 +11,7 @@
  *
  * - **Ritmo.** 20 requisições por segundo é o teto da YGOPRODeck, e uma grade
  *   do construtor pede dezenas de imagens de uma vez. As idas à origem passam
- *   por uma fila de ~8 por segundo.
+ *   por uma fila de ~14 por segundo.
  * - **Uma ida por imagem.** Duas abas pedindo a mesma carta ao mesmo tempo
  *   esperam o mesmo download.
  * - **Nada de caminho vindo do cliente.** O nome do arquivo é validado como
@@ -45,8 +45,13 @@ export function passcodeFromFile(file: string): number | null {
   return match ? Number(match[1]) : null;
 }
 
-/** Intervalo mínimo entre duas idas à YGOPRODeck (~8 por segundo). */
-const UPSTREAM_INTERVAL_MS = 125;
+/**
+ * Intervalo mínimo entre duas idas à YGOPRODeck (~14 por segundo).
+ *
+ * Abaixo do teto de 20/s com folga: um bloqueio custa uma hora sem imagem
+ * nenhuma, e a grade do construtor pede dezenas de uma vez na primeira visita.
+ */
+const UPSTREAM_INTERVAL_MS = 70;
 let nextSlot = 0;
 
 /** Espera a vez na fila de idas à origem. */

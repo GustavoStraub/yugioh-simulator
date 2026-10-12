@@ -42,7 +42,7 @@ export function SiteHeader() {
             Yu-Gi-Oh! Goat
           </h1>
           <p className="text-sm text-zinc-500">
-            Deck builder · duelo vs bot · Goat Format
+            Deck builder · duelo vs bot e online · Goat e TCG
           </p>
         </div>
         <AppNav />

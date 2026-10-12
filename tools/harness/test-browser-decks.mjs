@@ -8,7 +8,7 @@
  *
  * Uso: node tools/harness/test-browser-decks.mjs [--headed]
  */
-import { existsSync, readdirSync, readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync, rmSync } from "node:fs";
 import { join } from "node:path";
 
 import { launchChrome, openPage } from "./browser.mjs";
@@ -68,6 +68,8 @@ const LER_BIBLIOTECA = `
 async function main() {
   const headed = process.argv.includes("--headed");
   const { child, port } = await launchChrome({ headless: !headed });
+  /** Apelido desta execução — o arquivo da biblioteca dele é apagado no fim. */
+  let apelidoDoTeste = null;
 
   try {
     const page = await openPage(port);
@@ -76,6 +78,7 @@ async function main() {
     // fixo faria cada rodada herdar (e depois mexer em) a biblioteca das
     // anteriores — foi o que fez este teste apagar o deck da rodada passada.
     const apelido = `Teste Decks ${Date.now() % 1000000}`;
+    apelidoDoTeste = apelido;
     await apresentarSe(page, apelido);
     await esperarCatalogo(page);
 
@@ -168,6 +171,49 @@ async function main() {
       `o seletor de idioma troca o nome da carta (${nomePt} → ${nomeEn})`,
     );
 
+    // --- formato TCG: pool inteiro, Extra de 15, banlist TCG ---
+    await page.clickText("PT", "button");
+    await espera(300);
+    await page.evaluate(DIGITAR('input[placeholder^="Buscar"]', ""));
+    const trocou = await page.evaluate(`
+      const botao = [...document.querySelectorAll("[data-format-switch] button")].find((b) => b.innerText.trim() === "TCG");
+      botao?.click();
+      return Boolean(botao);
+    `);
+    await espera(800);
+    const poolTcg = await page.evaluate(`return Number(document.querySelector("[data-virtual-grid]")?.dataset.virtualGrid ?? 0);`);
+    conferir(trocou && poolTcg > 10000, `o deck virou TCG e o catálogo mostra o pool inteiro (${poolTcg} cartas)`);
+    await page.evaluate(DIGITAR('input[placeholder^="Buscar"]', "link spider"));
+    await espera(600);
+    await page.evaluate(`
+      const carta = [...document.querySelectorAll('button[title^="Adicionar"]')].find((b) => /Link Spider|Link Aranha/.test(b.title));
+      carta?.click();
+      return Boolean(carta);
+    `);
+    await espera(500);
+    const extra = await page.evaluate(`
+      const caixa = [...document.querySelectorAll("p")].find((p) => p.textContent.trim() === "Extra");
+      return caixa?.parentElement?.textContent.replace(/\s+/g, " ") ?? "";
+    `);
+    conferir(/1\s*\/15/.test(extra), `o Link foi para o Extra, com o limite do TCG (${extra})`);
+    const banlist = await page.evaluate(`return document.querySelector("[data-banlist-summary]")?.innerText ?? "";`);
+    conferir(/banlist TCG/.test(banlist), `o resumo da banlist TCG aparece (${banlist.trim()})`);
+    // De volta ao Goat, o Link fica marcado como fora do pool — sem sumir.
+    await page.evaluate(`
+      [...document.querySelectorAll("[data-format-switch] button")].find((b) => b.innerText.includes("Goat"))?.click();
+      return true;
+    `);
+    await espera(600);
+    // A aba "Extra" da grade do deck (o filtro de categoria do catálogo também
+    // se chama "Extra").
+    await page.evaluate(`
+      [...document.querySelectorAll("button")].find((b) => /^Extra\\s*\\d+$/.test(b.textContent.trim()))?.click();
+      return true;
+    `);
+    await espera(400);
+    const fora = await page.evaluate(`return document.querySelectorAll("[data-fora-do-pool]").length;`);
+    conferir(fora === 1, "voltando ao Goat, o Link fica marcado como fora do pool", String(fora));
+
     // --- apaga o deck de teste ---
     await page.clickText("PT", "button");
     await espera(300);
@@ -201,6 +247,19 @@ async function main() {
     erros.slice(0, 3).forEach((e) => console.log(`      ${e.text.slice(0, 160)}`));
   } finally {
     child.kill();
+    // `.data/decks` é a biblioteca DE VERDADE dos jogadores: o perfil que o
+    // teste criou não pode ficar lá (antes ficava um `teste-decks-*.json` a
+    // cada rodada).
+    if (apelidoDoTeste && existsSync(DECKS_DIR)) {
+      for (const nome of readdirSync(DECKS_DIR).filter((n) => n.endsWith(".json"))) {
+        try {
+          const dono = JSON.parse(readFileSync(join(DECKS_DIR, nome), "utf8")).profile?.name;
+          if (dono === apelidoDoTeste) rmSync(join(DECKS_DIR, nome));
+        } catch {
+          // Arquivo de outra pessoa, ilegível: não é nosso, fica.
+        }
+      }
+    }
   }
 
   console.log("");

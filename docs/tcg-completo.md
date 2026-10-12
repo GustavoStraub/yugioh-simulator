@@ -767,3 +767,47 @@ Puxada para antes da mesa: para desenhar e testar Link, Xyz e Pêndulo na tela
   "Iniciar duelo" antes de ele existir. O de cancelar o Tributo também
   procurava "tributo" na mesa inteira — e o histórico, agora em português,
   também diz "Tributo". Os três passam.
+
+### Fases 5 (resto) e 6 — feitas juntas
+
+O construtor TCG e os formatos lado a lado dependem um do outro (o pool, os
+limites e a banlist que aparecem vêm do formato do deck), então entraram
+juntos.
+
+- **Formato por deck** (`DeckList.format`): deck salvo antes do TCG não tem o
+  campo e abre como Goat (`normalizeDeck`), igual a antes. O formato viaja no
+  próprio `DuelDeckPayload` — duelo local, entrada na sala e troca de deck —,
+  sem campo novo em cada mensagem.
+- **Regras por formato** (`deck-rules.ts`): Main 40–60 nos dois; Extra até 60
+  no Goat e 15 no TCG; Side "0 ou 15" no Goat e até 15 no TCG; 3 cópias é a
+  única trava; carta fora do pool do formato não entra (Goat = pool de 2005;
+  TCG = toda carta com dados oficiais).
+- **Banlist só como informação**, cada formato com a sua lista: selo na carta,
+  filtro e resumo do deck ("Legal na banlist TCG" / "1 aviso: 1 Proibida").
+  Acabou o bug do Goat cair no `ban_tcg` de hoje (Cyber-Stein aparecia
+  "Proibida em abril/2005"). Conferido contra `banlist=tcg` da API: 222 de 222
+  — depois de corrigir o catálogo (abaixo).
+- **Catálogo**: a lista `format=tcg` da YGOPRODeck deixa de fora 97 cartas TCG
+  com script (Chaos Ruler, Bystial Druiswurm, Mudora…). A montagem agora
+  completa pelo `cards.cdb` (`ot & 2`), buscando por id o que faltou: 14.118
+  cartas, 14.003 jogáveis.
+- **Construtor**: troca de formato no próprio deck (as cartas ficam; o que sai
+  do pool aparece em vermelho e o deck não duela até sair), deck novo nasce no
+  formato do aberto, catálogo **virtualizado** (13.800 cartas no TCG sem travar
+  a busca), filtros de subtipo (Normal, Efeito, Ritual, Fusão, Sincro, Xyz,
+  Link, Pêndulo, Regulador…), Nível, Rank, Link e Escala, busca também no texto
+  em inglês, leitura da carta com Rank/Link/Escala.
+- **Duelo local**: o bot usa um deck do mesmo formato — um pronto, ou um da
+  sua biblioteca (o único adversário TCG até a Fase 7 trazer os decks prontos).
+- **Online**: cada assento mostra o formato do deck; Goat × TCG não começa (a
+  sala avisa), e a sessão nasce no formato dos dois.
+- **Imagens**: fila de ~14/s para a YGOPRODeck e `npm run sync:images` para
+  baixar tudo de antemão.
+- **Carga**: o catálogo inteiro (14 mil cartas, texto PT+EN) sai em 1,6 MB
+  (brotli). Antes eram ~5,6 MB sem compressão para as 1.690 cartas do Goat
+  (2,8 MB por idioma, §3.5).
+- Testes: `test:formats` (regras de deck dos dois formatos, banlist por
+  formato, validação online, sala Goat × TCG); `test:browser-decks` com uma
+  parte TCG (pool inteiro, Link no Extra com limite 15, resumo da banlist, a
+  volta ao Goat marcando a carta fora do pool) — e ele agora apaga o perfil de
+  teste que deixava em `.data/decks` a cada rodada.

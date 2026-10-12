@@ -19,21 +19,36 @@ import {
   BANLIST_OPTIONS,
   CATEGORY_OPTIONS,
   EMPTY_FILTERS,
+  MONSTER_KIND_OPTIONS,
   SORT_OPTIONS,
   activeFilterCount,
   applyCardFilters,
   availableLevels,
+  availableLinkRatings,
   availableRaces,
+  availableRanks,
+  availableScales,
+  isLink,
+  isXyz,
   type CardFilters,
+  type MonsterKind,
 } from "@/lib/domain/card-filters";
 import {
-  DECK_LIMITS,
+  banStatus,
+  banlistName,
+  banlistSummary,
+  cardsOutsidePool,
   countInZone,
+  deckLimits,
+  deckValidationMessages,
   getDefaultZone,
   MAX_COPIES_PER_CARD,
   isDeckDuelReady,
+  isInFormatPool,
 } from "@/lib/domain/deck-rules";
-import type { CardDefinition, DeckList, DeckZone } from "@/lib/types";
+import { VirtualCardGrid } from "@/components/deck-builder/VirtualCardGrid";
+import { FORMAT_RULES, formatOf } from "@/lib/types";
+import type { CardDefinition, DeckList, DeckZone, DuelFormat } from "@/lib/types";
 
 const ZONE_TABS: { value: DeckZone; label: string }[] = [
   { value: "main", label: "Principal" },
@@ -43,9 +58,6 @@ const ZONE_TABS: { value: DeckZone; label: string }[] = [
 
 export function DeckBuilderApp() {
   const { cards: catalogo, isLoading, error, reload, registry } = useCardRegistry();
-  // O catálogo agora traz o TCG inteiro; o construtor continua no pool Goat
-  // até cada deck ter o seu formato (Fase 6 de `docs/tcg-completo.md`).
-  const cards = useMemo(() => catalogo.filter((card) => card.goat), [catalogo]);
   const {
     deck,
     library,
@@ -56,8 +68,16 @@ export function DeckBuilderApp() {
     tryRemoveCard,
     tryClearDeck,
     renameDeck,
+    changeFormat,
     loadPreset,
   } = useDeck();
+  const formato = formatOf(deck.format);
+  // O catálogo traz o TCG inteiro; o construtor mostra o pool do formato do
+  // deck aberto — o de abril de 2005 num deck Goat.
+  const cards = useMemo(
+    () => catalogo.filter((card) => isInFormatPool(card, formato)),
+    [catalogo, formato],
+  );
 
   const [preview, setPreview] = useState<CardDefinition | null>(null);
   const [zone, setZone] = useState<DeckZone>("main");
@@ -67,8 +87,8 @@ export function DeckBuilderApp() {
   const activeFeedback = feedback ?? lastActionError ?? library.saveError;
 
   const catalog = useMemo(
-    () => applyCardFilters(cards, filters),
-    [cards, filters],
+    () => applyCardFilters(cards, filters, formato),
+    [cards, filters, formato],
   );
 
   // As opções de raça/nível seguem a categoria escolhida: filtrar "Magias" não
@@ -83,6 +103,15 @@ export function DeckBuilderApp() {
   );
   const raceOptions = useMemo(() => availableRaces(scoped), [scoped]);
   const levelOptions = useMemo(() => availableLevels(scoped), [scoped]);
+  const rankOptions = useMemo(() => availableRanks(scoped), [scoped]);
+  const linkOptions = useMemo(() => availableLinkRatings(scoped), [scoped]);
+  const scaleOptions = useMemo(() => availableScales(scoped), [scoped]);
+
+  /** Cartas do deck que não são do pool do formato (marcadas na grade). */
+  const foraDoPool = useMemo(
+    () => new Set(cardsOutsidePool(deck, registry)),
+    [deck, registry],
+  );
 
   function patch(next: Partial<CardFilters>) {
     setFilters((current) => ({ ...current, ...next }));
@@ -102,7 +131,7 @@ export function DeckBuilderApp() {
         <div className="text-center">
           <div className="mx-auto mb-4 h-10 w-10 animate-spin rounded-full border-2 border-[color:var(--tf-gold)] border-t-transparent" />
           <p className="text-sm text-zinc-400">
-            Carregando cartas do Goat Format...
+            Carregando o catálogo de cartas...
           </p>
         </div>
       </div>
@@ -150,11 +179,18 @@ export function DeckBuilderApp() {
           <DeckLibraryBar library={library} />
           <DeckHeader
             deck={deck}
+            registry={registry}
             onRename={renameDeck}
             onClear={tryClearDeck}
             onLoadPreset={loadPreset}
+            onChangeFormat={(format) => {
+              changeFormat(format);
+              // Os filtros do formato anterior (um Rank no TCG) não fazem
+              // sentido no outro.
+              setFilters(EMPTY_FILTERS);
+            }}
           />
-          <BigCardPreview card={preview} />
+          <BigCardPreview card={preview} format={formato} />
         </aside>
 
         {/* ---------- deck + catálogo ---------- */}
@@ -164,6 +200,7 @@ export function DeckBuilderApp() {
             zone={zone}
             onZoneChange={setZone}
             registry={registry}
+            foraDoPool={foraDoPool}
             onHover={setPreview}
             onRemove={(passcode) => {
               tryRemoveCard(passcode, zone);
@@ -179,22 +216,27 @@ export function DeckBuilderApp() {
               onReset={() => setFilters(EMPTY_FILTERS)}
               raceOptions={raceOptions}
               levelOptions={levelOptions}
+              rankOptions={rankOptions}
+              linkOptions={linkOptions}
+              scaleOptions={scaleOptions}
+              format={formato}
               resultCount={catalog.length}
             />
 
-            <div className="min-h-0 flex-1 overflow-y-auto p-2">
-              <div className="grid grid-cols-[repeat(auto-fill,minmax(104px,1fr))] gap-2">
-                {catalog.map((card) => (
-                  <CatalogCard
-                    key={card.passcode}
-                    card={card}
-                    inDeck={countByPasscode.get(card.passcode) ?? 0}
-                    onHover={setPreview}
-                    onAdd={() => handleAdd(card)}
-                  />
-                ))}
-              </div>
-            </div>
+            <VirtualCardGrid
+              items={catalog}
+              itemKey={(card) => card.passcode}
+              resetKey={`${formato}|${JSON.stringify(filters)}`}
+              render={(card) => (
+                <CatalogCard
+                  card={card}
+                  format={formato}
+                  inDeck={countByPasscode.get(card.passcode) ?? 0}
+                  onHover={setPreview}
+                  onAdd={() => handleAdd(card)}
+                />
+              )}
+            />
           </div>
         </section>
       </div>
@@ -307,6 +349,10 @@ function FilterBar({
   onReset,
   raceOptions,
   levelOptions,
+  rankOptions,
+  linkOptions,
+  scaleOptions,
+  format,
   resultCount,
 }: {
   filters: CardFilters;
@@ -314,6 +360,10 @@ function FilterBar({
   onReset: () => void;
   raceOptions: string[];
   levelOptions: number[];
+  rankOptions: number[];
+  linkOptions: number[];
+  scaleOptions: number[];
+  format: DuelFormat;
   resultCount: number;
 }) {
   const active = activeFilterCount(filters);
@@ -341,7 +391,15 @@ function FilterBar({
               type="button"
               onClick={() =>
                 // Trocar de categoria invalida raça/nível da categoria anterior.
-                onPatch({ category: entry.value, race: "", level: null })
+                onPatch({
+                  category: entry.value,
+                  race: "",
+                  level: null,
+                  kind: "",
+                  rank: null,
+                  linkRating: null,
+                  scale: null,
+                })
               }
               className={`rounded px-2.5 py-1.5 text-[11px] font-semibold transition ${
                 filters.category === entry.value
@@ -375,6 +433,17 @@ function FilterBar({
           }))}
         />
 
+        {isMonsterScope && (
+          <FilterSelect
+            label="Monstro"
+            value={filters.kind}
+            onChange={(value) => onPatch({ kind: value as MonsterKind | "" })}
+            options={MONSTER_KIND_OPTIONS.filter(
+              (option) => format === "tcg" || !option.tcgOnly,
+            )}
+          />
+        )}
+
         {isMonsterScope && levelOptions.length > 0 && (
           <FilterSelect
             label="Nível"
@@ -389,8 +458,37 @@ function FilterBar({
           />
         )}
 
+        {isMonsterScope && rankOptions.length > 0 && (
+          <FilterSelect
+            label="Rank"
+            value={filters.rank === null ? "" : String(filters.rank)}
+            onChange={(value) => onPatch({ rank: value === "" ? null : Number(value) })}
+            options={rankOptions.map((rank) => ({ value: String(rank), label: `Rank ${rank}` }))}
+          />
+        )}
+
+        {isMonsterScope && linkOptions.length > 0 && (
+          <FilterSelect
+            label="Link"
+            value={filters.linkRating === null ? "" : String(filters.linkRating)}
+            onChange={(value) =>
+              onPatch({ linkRating: value === "" ? null : Number(value) })
+            }
+            options={linkOptions.map((rating) => ({ value: String(rating), label: `Link-${rating}` }))}
+          />
+        )}
+
+        {isMonsterScope && scaleOptions.length > 0 && (
+          <FilterSelect
+            label="Escala"
+            value={filters.scale === null ? "" : String(filters.scale)}
+            onChange={(value) => onPatch({ scale: value === "" ? null : Number(value) })}
+            options={scaleOptions.map((scale) => ({ value: String(scale), label: `Escala ${scale}` }))}
+          />
+        )}
+
         <FilterSelect
-          label="Banlist"
+          label={format === "tcg" ? "Banlist TCG" : "Lista 2005"}
           value={filters.banlist}
           onChange={(value) => onPatch({ banlist: value })}
           options={BANLIST_OPTIONS}
@@ -508,16 +606,25 @@ function NumberInput({
 
 function DeckHeader({
   deck,
+  registry,
   onRename,
   onClear,
   onLoadPreset,
+  onChangeFormat,
 }: {
   deck: DeckList;
+  registry: ReturnType<typeof useCardRegistry>["registry"];
   onRename: (name: string) => void;
   onClear: () => void;
   onLoadPreset: Parameters<typeof PresetDeckPicker>[0]["onSelect"];
+  onChangeFormat: (format: DuelFormat) => void;
 }) {
-  const ready = isDeckDuelReady(deck);
+  const formato = formatOf(deck.format);
+  const limites = deckLimits(formato);
+  const foraDoPool = cardsOutsidePool(deck, registry);
+  const ready = isDeckDuelReady(deck) && foraDoPool.length === 0;
+  const avisos = deckValidationMessages(deck);
+  const banlist = banlistSummary(deck, registry);
 
   return (
     <div className="tf-panel shrink-0 space-y-2 rounded-md p-3">
@@ -528,10 +635,36 @@ function DeckHeader({
         className="w-full rounded border border-[color:var(--tf-slot-border)] bg-black/50 px-2 py-1.5 text-base font-semibold text-[color:var(--tf-gold-bright)] outline-none focus:border-[color:var(--tf-gold)]"
       />
 
+      {/* Formato do deck: decide o pool, os limites, a banlist que aparece
+          e as regras do duelo. Trocar não apaga carta — o que sair do pool
+          fica marcado. */}
+      <div data-format-switch className="grid grid-cols-2 gap-1">
+        {(["goat", "tcg"] as const).map((opcao) => (
+          <button
+            key={opcao}
+            type="button"
+            onClick={() => onChangeFormat(opcao)}
+            aria-pressed={formato === opcao}
+            title={
+              opcao === "goat"
+                ? "Goat Format — o pool e as regras de abril de 2005"
+                : "TCG de hoje — pool inteiro, Master Rule 2020"
+            }
+            className={`rounded px-2 py-1 text-[11px] font-bold transition ${
+              formato === opcao
+                ? "bg-[color:var(--tf-gold)] text-black"
+                : "border border-[color:var(--tf-slot-border)] text-[color:var(--tf-gold-dim)] hover:text-[color:var(--tf-gold-bright)]"
+            }`}
+          >
+            {FORMAT_RULES[opcao].label}
+          </button>
+        ))}
+      </div>
+
       <div className="grid grid-cols-3 gap-1 text-center">
         {ZONE_TABS.map((tab) => {
           const count = countInZone(deck, tab.value);
-          const limit = DECK_LIMITS[tab.value];
+          const limit = limites[tab.value];
           const bad = count > limit.max || (tab.value === "main" && count < limit.min);
           return (
             <div
@@ -563,8 +696,13 @@ function DeckHeader({
             Duelar
           </Link>
         ) : (
-          <span className="flex-1 rounded border border-[color:var(--tf-slot-border)] px-2 py-1.5 text-center text-[10px] text-amber-200/70">
-            Mín. {DECK_LIMITS.main.min} cartas
+          <span
+            title={[...avisos, ...(foraDoPool.length ? [`${foraDoPool.length} carta(s) fora do pool`] : [])].join("\n")}
+            className="flex-1 rounded border border-[color:var(--tf-slot-border)] px-2 py-1.5 text-center text-[10px] text-amber-200/70"
+          >
+            {foraDoPool.length > 0
+              ? `${foraDoPool.length} carta(s) fora do pool ${formato === "tcg" ? "TCG" : "Goat"}`
+              : avisos[0] ?? `Mín. ${limites.main.min} cartas`}
           </span>
         )}
         <button
@@ -576,7 +714,16 @@ function DeckHeader({
         </button>
       </div>
 
-      <PresetDeckPicker onSelect={onLoadPreset} />
+      {/* Banlist do formato — informação, nunca bloqueio. */}
+      <p
+        data-banlist-summary
+        className={`text-[11px] ${banlist.ok ? "text-emerald-300/80" : "text-amber-300"}`}
+      >
+        {banlist.ok ? "✓ " : "⚠ "}
+        {banlist.text}
+      </p>
+
+      <PresetDeckPicker onSelect={onLoadPreset} format={formato} />
     </div>
   );
 }
@@ -587,11 +734,17 @@ function DeckHeader({
  * Rótulo, não regra: a lista continua à vista para quem quer montar algo legal
  * de época, mas não barra mais nada — ver `MAX_COPIES_PER_CARD`.
  */
-function banlistStatus(card: CardDefinition): string | null {
-  return translateBanlist(card.banlist?.ban_goat ?? card.banlist?.ban_tcg);
+function banlistStatus(card: CardDefinition, format: DuelFormat): string | null {
+  return translateBanlist(banStatus(card, format) ?? undefined);
 }
 
-function BigCardPreview({ card }: { card: CardDefinition | null }) {
+function BigCardPreview({
+  card,
+  format,
+}: {
+  card: CardDefinition | null;
+  format: DuelFormat;
+}) {
   const texto = useCardText();
   if (!card) {
     return (
@@ -623,21 +776,30 @@ function BigCardPreview({ card }: { card: CardDefinition | null }) {
         </h3>
         <p className="mt-1 text-[12px] text-zinc-400">
           {translateType(card.type)}
-          {card.level ? ` · Nv. ${card.level}` : ""}
+          {isLink(card)
+            ? ` · Link-${card.linkval ?? "?"}`
+            : isXyz(card)
+              ? ` · Rank ${card.level ?? "?"}`
+              : card.level
+                ? ` · Nv. ${card.level}`
+                : ""}
+          {card.frameType.includes("pendulum") && card.scale !== undefined
+            ? ` · Escala ${card.scale}`
+            : ""}
         </p>
-        {card.atk !== undefined && (
+        {card.type.includes("Monster") && (
           <p className="mt-1 font-mono text-[13px] text-[color:var(--tf-gold)]">
             {attributeLabel(card.attribute) ?? "—"}
-            {card.race ? ` · ${translateRace(card.race)}` : ""} · ATK {card.atk} /
-            DEF {card.def ?? "?"}
+            {card.race ? ` · ${translateRace(card.race)}` : ""} · ATK {card.atk ?? "?"}
+            {isLink(card) ? "" : ` / DEF ${card.def ?? "?"}`}
           </p>
         )}
         <p className="mt-1 text-[12px] text-zinc-500">
           Máx. {maxCopies} cópia(s)
-          {/* A banlist virou informação, não restrição — ver `MAX_COPIES_PER_CARD`. */}
-          {banlistStatus(card) && (
+          {/* A banlist é informação, não restrição — ver `MAX_COPIES_PER_CARD`. */}
+          {banlistStatus(card, format) && (
             <span className="ml-2 text-amber-500/80">
-              · {banlistStatus(card)} na lista de abril/2005
+              · {banlistStatus(card, format)} na {banlistName(format)}
             </span>
           )}
         </p>
@@ -655,6 +817,7 @@ function DeckGrid({
   zone,
   onZoneChange,
   registry,
+  foraDoPool,
   onHover,
   onRemove,
 }: {
@@ -662,6 +825,8 @@ function DeckGrid({
   zone: DeckZone;
   onZoneChange: (zone: DeckZone) => void;
   registry: ReturnType<typeof useCardRegistry>["registry"];
+  /** Cartas que não são do pool do formato do deck — marcadas em vermelho. */
+  foraDoPool: Set<number>;
   onHover: (card: CardDefinition | null) => void;
   onRemove: (passcode: number) => void;
 }) {
@@ -712,8 +877,16 @@ function DeckGrid({
                 type="button"
                 onMouseEnter={() => onHover(entry.card ?? null)}
                 onClick={() => onRemove(entry.passcode)}
-                title={entry.card ? texto.name(entry.card) : String(entry.passcode)}
-                className="aspect-[59/86] overflow-hidden rounded-[3px] border border-[color:var(--tf-slot-border)] transition hover:ring-2 hover:ring-red-400"
+                title={
+                  (entry.card ? texto.name(entry.card) : String(entry.passcode)) +
+                  (foraDoPool.has(entry.passcode) ? " — fora do pool deste formato" : "")
+                }
+                data-fora-do-pool={foraDoPool.has(entry.passcode) || undefined}
+                className={`aspect-[59/86] overflow-hidden rounded-[3px] border transition hover:ring-2 hover:ring-red-400 ${
+                  foraDoPool.has(entry.passcode)
+                    ? "border-red-500 opacity-60 ring-2 ring-red-600"
+                    : "border-[color:var(--tf-slot-border)]"
+                }`}
               >
                 {entry.card?.images[0]?.image_url_small ? (
                   // eslint-disable-next-line @next/next/no-img-element
@@ -739,11 +912,13 @@ function DeckGrid({
 
 function CatalogCard({
   card,
+  format,
   inDeck,
   onHover,
   onAdd,
 }: {
   card: CardDefinition;
+  format: DuelFormat;
   inDeck: number;
   onHover: (card: CardDefinition | null) => void;
   onAdd: () => void;
@@ -764,7 +939,7 @@ function CatalogCard({
           ? `${texto.name(card)} — limite atingido (${maxCopies})`
           : `Adicionar ${texto.name(card)}`
       }
-      className={`relative aspect-[59/86] overflow-hidden rounded-[3px] border border-[color:var(--tf-slot-border)] transition ${
+      className={`relative block aspect-[59/86] w-full overflow-hidden rounded-[3px] border border-[color:var(--tf-slot-border)] transition ${
         full
           ? "cursor-not-allowed opacity-35"
           : "hover:ring-2 hover:ring-[color:var(--tf-gold)]"
@@ -789,9 +964,9 @@ function CatalogCard({
           {inDeck}
         </span>
       )}
-      {banlistStatus(card) && (
+      {banlistStatus(card, format) && (
         <span className="absolute inset-x-0 bottom-0 bg-amber-950/85 text-center text-[7px] font-bold uppercase text-amber-200">
-          {banlistStatus(card)}
+          {banlistStatus(card, format)}
         </span>
       )}
     </button>

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
-import { DECK_LIMITS } from "@/lib/domain/deck-rules";
+import { deckLimits } from "@/lib/domain/deck-rules";
+import { formatOf } from "@/lib/types";
 import type { DeckList } from "@/lib/types";
 import {
   deleteDeck,
@@ -25,11 +26,16 @@ function deckInvalido(deck: unknown): string | null {
     return "Deck sem identificador.";
   }
   if (typeof candidato.name !== "string") return "Deck sem nome.";
+  if (candidato.format !== undefined && candidato.format !== "goat" && candidato.format !== "tcg") {
+    return "Formato desconhecido.";
+  }
+  // Limite do formato do próprio deck: um deck TCG não guarda 60 no Extra.
+  const limites = deckLimits(formatOf(candidato.format));
 
   for (const zona of ["main", "extra", "side"] as const) {
     const cartas = candidato[zona];
     if (!Array.isArray(cartas)) return `Zona ${zona} ausente.`;
-    if (cartas.length > DECK_LIMITS[zona].max) return `Zona ${zona} passou do limite.`;
+    if (cartas.length > limites[zona].max) return `Zona ${zona} passou do limite.`;
     for (const ref of cartas) {
       if (
         !ref ||

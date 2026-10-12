@@ -25,6 +25,7 @@
 import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
+import { DatabaseSync } from "node:sqlite";
 import { fileURLToPath } from "node:url";
 
 import {
@@ -214,6 +215,74 @@ export function composeCatalog(
   return [...byId.values()].sort((a, b) => a.id - b.id);
 }
 
+/** O `cards.cdb` que `npm run build:card-db` baixa — de onde sai o `ot` (TCG/OCG). */
+const CDB_PATH = join(REPO, ".cache/cards.cdb");
+const OT_TCG = 0x2;
+const TYPE_TOKEN = 0x4000;
+
+/**
+ * Cartas TCG do banco oficial que a lista `format=tcg` da YGOPRODeck não traz.
+ *
+ * A YGOPRODeck classifica algumas cartas TCG como se não fossem (medido: 97
+ * com script, entre elas Chaos Ruler, Bystial Druiswurm e Mudora — três que
+ * estão até na banlist TCG). O banco oficial diz quem é TCG (`ot & 2`); o que
+ * faltar é buscado na YGOPRODeck por id. Sem o `cards.cdb` em disco (máquina
+ * que nunca rodou `build:card-db`), fica só a lista da YGOPRODeck.
+ */
+function tcgIdsMissing(listed: RawCard[], db: CardDbRows): number[] {
+  if (!existsSync(CDB_PATH)) return [];
+  const known = new Set<number>();
+  for (const card of listed) {
+    known.add(card.id);
+    for (const image of card.card_images) known.add(image.id);
+  }
+  const cdb = new DatabaseSync(CDB_PATH, { readOnly: true });
+  const rows = cdb
+    .prepare("select id, alias from datas where (ot & ?) != 0 and (type & ?) = 0")
+    .all(OT_TCG, TYPE_TOKEN) as { id: number | bigint; alias: number | bigint }[];
+  cdb.close();
+  return rows
+    .map((row) => ({ id: Number(row.id), alias: Number(row.alias) }))
+    .filter(({ id, alias }) => {
+      if (known.has(id) || !db[String(id)]) return false;
+      // Arte alternativa de carta já listada: a indexação por arte cobre.
+      return !(alias && Math.abs(alias - id) < ARTWORK_OFFSET && known.has(alias));
+    })
+    .map(({ id }) => id);
+}
+
+/** Busca cartas por id (em lotes), em inglês e em português. */
+async function rawByIds(
+  ids: number[],
+  refresh: boolean,
+): Promise<{ en: RawCard[]; pt: RawCard[] }> {
+  const path = join(CATALOG_DIR, "raw", "tcgExtra.json");
+  if (!refresh && existsSync(path)) {
+    const cached = JSON.parse(readFileSync(path, "utf8")) as { ids: number[]; en: RawCard[]; pt: RawCard[] };
+    if (cached.ids.join() === ids.join()) return cached;
+  }
+  const en: RawCard[] = [];
+  const pt: RawCard[] = [];
+  for (let start = 0; start < ids.length; start += 50) {
+    const lote = ids.slice(start, start + 50).join(",");
+    for (const [lista, extra] of [
+      [en, "&misc=yes"],
+      [pt, "&language=pt"],
+    ] as const) {
+      const response = await fetch(`${API}?id=${lote}${extra}`, { cache: "no-store" });
+      // 400 = nenhum daqueles ids existe NAQUELE idioma; não é falha.
+      if (response.ok) {
+        const payload = (await response.json()) as { data?: RawCard[] };
+        lista.push(...(payload.data ?? []));
+      }
+      await new Promise((resolve) => setTimeout(resolve, 250));
+    }
+  }
+  mkdirSync(dirname(path), { recursive: true });
+  writeFileSync(path, JSON.stringify({ ids, en, pt }));
+  return { en, pt };
+}
+
 /**
  * Baixa (se preciso), monta e grava o catálogo.
  *
@@ -225,7 +294,14 @@ export async function buildCatalog({ refresh = false } = {}): Promise<CatalogFil
     sources[key] = await rawSource(key, refresh);
   }
 
-  const cards = composeCatalog(sources, loadCardDb());
+  const db = loadCardDb();
+  const faltando = tcgIdsMissing(sources.tcgEn, db);
+  if (faltando.length > 0) {
+    const extra = await rawByIds(faltando, refresh);
+    sources.tcgEn = [...sources.tcgEn, ...extra.en];
+    sources.tcgPt = [...sources.tcgPt, ...extra.pt];
+  }
+  const cards = composeCatalog(sources, db);
   const rows = cards.map(encodeCatalogCard);
   const body = JSON.stringify(rows);
   const file: CatalogFile = {

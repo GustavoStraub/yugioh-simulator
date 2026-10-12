@@ -87,6 +87,10 @@ CardScripts is pinned to one commit (`src/lib/duel/cardscripts-pin.ts`) for the 
 
 `server.mjs` (custom Next server, binds `0.0.0.0`) → `src/server/duel/socket.ts` (WebSocket at `/api/duel-ws`; messages and BigInt-safe codec in `src/lib/net/duel-protocol.ts`) → `DuelRoom` (`room.ts`: seats held by token, rock-paper-scissors for the first turn, reconnection with a grace period). Rooms live in memory in that one process. Deck libraries are JSON files per nickname written by the server (`src/server/decks/store.ts` → `.data/decks/`, git-ignored — real user data, not fixtures).
 
+### Formats
+
+Each `DeckList` has `format: "goat" | "tcg"` (missing = Goat via `formatOf`/`normalizeDeck`); it travels inside `DuelDeckPayload.format` to local duels and online rooms (a room won't start Goat × TCG). `deck-rules.ts` holds per-format limits (`deckLimits`), pool membership (`isInFormatPool`: Goat pool vs. any card with official data), and the per-format banlist (`banStatus`, `banlistSummary`) — information only; the only hard rule is 3 copies.
+
 ## Gotchas
 
 - In the harness, `createDuel({ place })` creates Extra Deck cards **face-down**, as the app does; a face-up Extra Deck under MR4/MR5 confines Synchro/Xyz to the Extra Monster Zone. `createDuel({ mode })` picks the rules (Goat by default).

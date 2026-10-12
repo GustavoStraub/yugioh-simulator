@@ -1,6 +1,6 @@
 import { isTokenCard } from "@/lib/duel/card-adapter";
-import { isExtraDeckCard } from "@/lib/domain/deck-rules";
-import type { CardDefinition } from "@/lib/types";
+import { banStatus, isExtraDeckCard } from "@/lib/domain/deck-rules";
+import type { CardDefinition, DuelFormat } from "@/lib/types";
 
 export type CategoryFilter =
   | "all"
@@ -25,9 +25,17 @@ export interface CardFilters {
   attribute: string;
   /** Tipo/raça bruto da API (Dragon, Warrior, Normal, Continuous, ...). */
   race: string;
-  /** Nível exato, ou null para todos. */
+  /** Nível exato, ou null para todos (Xyz e Link não têm Nível). */
   level: number | null;
-  /** Status na banlist Goat: "" (todos), "legal", "Limited", ... */
+  /** Subtipo de monstro (Ritual, Sincro, Xyz, Link, Pêndulo...), ou "". */
+  kind: MonsterKind | "";
+  /** Rank de um Xyz, ou null. */
+  rank: number | null;
+  /** Rating de um Link, ou null. */
+  linkRating: number | null;
+  /** Escala de Pêndulo, ou null. */
+  scale: number | null;
+  /** Status na banlist DO FORMATO: "" (todos), "legal", "Limited", ... */
   banlist: string;
   minAtk: number | null;
   maxAtk: number | null;
@@ -40,6 +48,10 @@ export const EMPTY_FILTERS: CardFilters = {
   attribute: "",
   race: "",
   level: null,
+  kind: "",
+  rank: null,
+  linkRating: null,
+  scale: null,
   banlist: "",
   minAtk: null,
   maxAtk: null,
@@ -53,6 +65,83 @@ export const CATEGORY_OPTIONS: { value: CategoryFilter; label: string }[] = [
   { value: "trap", label: "Armadilhas" },
   { value: "extra", label: "Extra" },
 ];
+
+export type MonsterKind =
+  | "normal"
+  | "effect"
+  | "ritual"
+  | "fusion"
+  | "synchro"
+  | "xyz"
+  | "link"
+  | "pendulum"
+  | "tuner"
+  | "flip"
+  | "spirit"
+  | "union"
+  | "gemini"
+  | "toon";
+
+/**
+ * Subtipos de monstro do filtro. O formato decide quais aparecem: no Goat não
+ * existe Sincro, Xyz, Link nem Pêndulo — oferecer o filtro seria oferecer uma
+ * lista vazia.
+ */
+export const MONSTER_KIND_OPTIONS: { value: MonsterKind; label: string; tcgOnly?: boolean }[] = [
+  { value: "normal", label: "Normal" },
+  { value: "effect", label: "Efeito" },
+  { value: "ritual", label: "Ritual" },
+  { value: "fusion", label: "Fusão" },
+  { value: "synchro", label: "Sincro", tcgOnly: true },
+  { value: "xyz", label: "Xyz", tcgOnly: true },
+  { value: "link", label: "Link", tcgOnly: true },
+  { value: "pendulum", label: "Pêndulo", tcgOnly: true },
+  { value: "tuner", label: "Regulador", tcgOnly: true },
+  { value: "flip", label: "Virar (Flip)" },
+  { value: "spirit", label: "Espírito" },
+  { value: "union", label: "União" },
+  { value: "gemini", label: "Gêmeos" },
+  { value: "toon", label: "Toon" },
+];
+
+/** Palavras do tipo da YGOPRODeck ("Synchro Tuner Monster") por subtipo. */
+const KIND_WORD: Record<MonsterKind, string> = {
+  normal: "Normal",
+  effect: "Effect",
+  ritual: "Ritual",
+  fusion: "Fusion",
+  synchro: "Synchro",
+  xyz: "XYZ",
+  link: "Link",
+  pendulum: "Pendulum",
+  tuner: "Tuner",
+  flip: "Flip",
+  spirit: "Spirit",
+  union: "Union",
+  gemini: "Gemini",
+  toon: "Toon",
+};
+
+export function isMonster(card: CardDefinition): boolean {
+  return card.type.includes("Monster");
+}
+
+export function isXyz(card: CardDefinition): boolean {
+  return card.frameType.startsWith("xyz") || card.type.includes("XYZ");
+}
+
+export function isLink(card: CardDefinition): boolean {
+  return card.frameType === "link" || card.type.includes("Link");
+}
+
+function matchesKind(card: CardDefinition, kind: MonsterKind): boolean {
+  if (!isMonster(card)) return false;
+  const words = `${card.humanReadableCardType ?? ""} ${card.type}`;
+  // "Effect": todo monstro que não é Normal (os de Extra Deck sem a palavra
+  // no tipo — "Synchro Monster" — são de efeito na prática).
+  if (kind === "effect") return !words.includes("Normal") || words.includes("Effect");
+  return words.includes(KIND_WORD[kind]);
+}
 
 export const ATTRIBUTE_OPTIONS = [
   { value: "DARK", label: "TREVAS" },
@@ -96,8 +185,10 @@ function matchesCategory(card: CardDefinition, category: CategoryFilter): boolea
   }
 }
 
-function matchesBanlist(card: CardDefinition, filter: string): boolean {
-  const status = card.banlist?.ban_goat ?? card.banlist?.ban_tcg;
+function matchesBanlist(card: CardDefinition, filter: string, format: DuelFormat): boolean {
+  // Só a lista do formato: carta sem status no Goat é livre no Goat, mesmo que
+  // esteja proibida no TCG de hoje.
+  const status = banStatus(card, format);
   if (filter === "legal") return !status;
   return status === filter;
 }
@@ -115,12 +206,37 @@ export function availableRaces(cards: CardDefinition[]): string[] {
   return [...races].sort();
 }
 
+/** Níveis presentes (sem os Xyz, cujo `level` é Rank, nem os Link). */
 export function availableLevels(cards: CardDefinition[]): number[] {
   const levels = new Set<number>();
   for (const card of cards) {
-    if (card.level) levels.add(card.level);
+    if (card.level && !isXyz(card) && !isLink(card)) levels.add(card.level);
   }
   return [...levels].sort((a, b) => a - b);
+}
+
+export function availableRanks(cards: CardDefinition[]): number[] {
+  const ranks = new Set<number>();
+  for (const card of cards) {
+    if (isXyz(card) && card.level) ranks.add(card.level);
+  }
+  return [...ranks].sort((a, b) => a - b);
+}
+
+export function availableLinkRatings(cards: CardDefinition[]): number[] {
+  const ratings = new Set<number>();
+  for (const card of cards) {
+    if (card.linkval) ratings.add(card.linkval);
+  }
+  return [...ratings].sort((a, b) => a - b);
+}
+
+export function availableScales(cards: CardDefinition[]): number[] {
+  const scales = new Set<number>();
+  for (const card of cards) {
+    if (card.scale !== undefined && card.frameType.includes("pendulum")) scales.add(card.scale);
+  }
+  return [...scales].sort((a, b) => a - b);
 }
 
 /**
@@ -137,7 +253,7 @@ function normalizar(texto: string): string {
     .replace(/[\u0300-\u036f]/g, "");
 }
 
-/** Cache do texto pesquisável — recalcular a cada tecla custa caro em 1600+ cartas. */
+/** Cache do texto pesquisável — recalcular a cada tecla custa caro em ~14 mil cartas. */
 const buscavel = new WeakMap<CardDefinition, string>();
 
 function textoBuscavel(card: CardDefinition): string {
@@ -145,7 +261,9 @@ function textoBuscavel(card: CardDefinition): string {
   if (existente !== undefined) return existente;
 
   const texto = normalizar(
-    [card.name, card.nameEn ?? "", card.archetype ?? "", card.race ?? "", card.desc]
+    // Texto em português E em inglês: a carta sem tradução tem o texto só em
+    // inglês, e quem lê as cartas em inglês busca pelo que lê.
+    [card.name, card.nameEn ?? "", card.archetype ?? "", card.race ?? "", card.desc, card.descEn ?? ""]
       .join(" "),
   );
   buscavel.set(card, texto);
@@ -155,6 +273,8 @@ function textoBuscavel(card: CardDefinition): string {
 export function applyCardFilters(
   cards: CardDefinition[],
   filters: CardFilters,
+  /** Formato do deck aberto — decide qual banlist o filtro lê. */
+  format: DuelFormat = "goat",
 ): CardDefinition[] {
   // Cada palavra é um requisito separado: "dragao luz" acha o dragão de LUZ
   // sem depender da ordem em que os termos aparecem no texto da carta.
@@ -171,8 +291,19 @@ export function applyCardFilters(
     if (!matchesCategory(card, filters.category)) return false;
     if (filters.attribute && card.attribute !== filters.attribute) return false;
     if (filters.race && card.race !== filters.race) return false;
-    if (filters.level !== null && card.level !== filters.level) return false;
-    if (filters.banlist && !matchesBanlist(card, filters.banlist)) return false;
+    if (filters.level !== null && (card.level !== filters.level || isXyz(card) || isLink(card))) {
+      return false;
+    }
+    if (filters.kind && !matchesKind(card, filters.kind)) return false;
+    if (filters.rank !== null && (!isXyz(card) || card.level !== filters.rank)) return false;
+    if (filters.linkRating !== null && card.linkval !== filters.linkRating) return false;
+    if (
+      filters.scale !== null &&
+      (!card.frameType.includes("pendulum") || card.scale !== filters.scale)
+    ) {
+      return false;
+    }
+    if (filters.banlist && !matchesBanlist(card, filters.banlist, format)) return false;
     if (filters.minAtk !== null && (card.atk ?? -1) < filters.minAtk) return false;
     if (filters.maxAtk !== null && (card.atk ?? Infinity) > filters.maxAtk) {
       return false;
@@ -224,6 +355,10 @@ export function activeFilterCount(filters: CardFilters): number {
   if (filters.attribute) count += 1;
   if (filters.race) count += 1;
   if (filters.level !== null) count += 1;
+  if (filters.kind) count += 1;
+  if (filters.rank !== null) count += 1;
+  if (filters.linkRating !== null) count += 1;
+  if (filters.scale !== null) count += 1;
   if (filters.banlist) count += 1;
   if (filters.minAtk !== null) count += 1;
   if (filters.maxAtk !== null) count += 1;

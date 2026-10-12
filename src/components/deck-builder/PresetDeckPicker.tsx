@@ -8,22 +8,27 @@ import {
 } from "@/lib/data/preset-decks-catalog";
 import { kindLabel, presetCardCount } from "@/lib/domain/preset-decks";
 import type { PresetDeckDefinition } from "@/lib/domain/preset-decks";
+import { formatOf, type DuelFormat } from "@/lib/types";
 
 interface PresetDeckPickerProps {
   onSelect: (preset: PresetDeckDefinition) => void;
+  /** Só os decks deste formato — carregar um deck Goat num deck TCG misturaria pools. */
+  format: DuelFormat;
 }
 
 type KindFilter = "all" | PresetDeckDefinition["kind"];
 
-export function PresetDeckPicker({ onSelect }: PresetDeckPickerProps) {
+export function PresetDeckPicker({ onSelect, format }: PresetDeckPickerProps) {
   const [open, setOpen] = useState(false);
   const [filter, setFilter] = useState<KindFilter>("all");
   const [pending, setPending] = useState<PresetDeckDefinition | null>(null);
 
   const filtered = useMemo(() => {
-    if (filter === "all") return PRESET_DECKS;
-    return getPresetsByKind(filter);
-  }, [filter]);
+    const doFormato = (filter === "all" ? PRESET_DECKS : getPresetsByKind(filter)).filter(
+      (preset) => formatOf(preset.format) === format,
+    );
+    return doFormato;
+  }, [filter, format]);
 
   function handleConfirm() {
     if (!pending) return;
