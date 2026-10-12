@@ -22,7 +22,9 @@ import { findPromptMessage } from "@/lib/duel/bot-responder";
 import { announceCardMatches, buildPromptPlan } from "@/lib/duel/duel-actions";
 import { EngineStringsDb } from "@/lib/duel/engine-strings";
 
-import { REPO, loadGoatPool } from "./env.mjs";
+import { REPO, loadCardDb, loadGoatPool } from "./env.mjs";
+
+const cardDb = loadCardDb();
 import { createDuel, STOP, Zone } from "./duel.mjs";
 
 /**
@@ -91,7 +93,8 @@ function planIsActionable(plan) {
     plan.sorting !== null ||
     (plan.announce?.options.length ?? 0) > 0 ||
     plan.announceCard !== null ||
-    plan.placeSelection !== null
+    plan.placeSelection !== null ||
+    plan.counters !== null
   );
 }
 
@@ -163,11 +166,13 @@ async function exercitar(card, promptAlvo, pool, caso) {
       // nenhuma carta, o jogador abre a busca e não encontra nada.
       let candidatos = null;
       if (plano?.announceCard) {
+        // Com os dados oficiais: a mesma conta do core (`announce-filter.ts`).
         candidatos = pool.filter((c) =>
-          announceCardMatches(plano.announceCard.opcodes, {
-            passcode: c.id, name: c.name, type: c.type,
-            frameType: c.frameType, desc: "", images: [],
-          }),
+          announceCardMatches(
+            plano.announceCard.opcodes,
+            { passcode: c.id, name: c.name, type: c.type, frameType: c.frameType, desc: "", images: [] },
+            cardDb.get(c.id),
+          ),
         ).length;
       }
 

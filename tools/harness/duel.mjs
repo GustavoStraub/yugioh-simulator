@@ -23,6 +23,8 @@ import {
   ocgPositionParse,
 } from "@n1xx1/ocgcore-wasm";
 
+import { isDeclarable } from "../../src/lib/duel/announce-filter.ts";
+import { findSumSubset, sumRequestOf } from "../../src/lib/duel/sum-selection.ts";
 import { loadCardDb, loadCore, readScriptFile } from "./env.mjs";
 
 /**
@@ -212,7 +214,7 @@ export class HarnessDuel {
       // até o teto. É o caso do monstro que "deve atacar se puder" (os
       // Karakuri): passar a Battle Phase sem atacar não é legal com ele em
       // campo, e o piloto passivo entrava em laço de RETRY por culpa dele.
-      const chosen = decision ?? autoPilot(prompt, { play, attempt: this.retries });
+      const chosen = decision ?? autoPilot(prompt, { play, attempt: this.retries, db: this.db });
       if (!chosen) {
         this.unanswered.push(prompt.type);
         return "STUCK";
@@ -291,6 +293,7 @@ const PROMPT_TYPES = new Set([
   OcgMessageType.SELECT_UNSELECT_CARD, OcgMessageType.ROCK_PAPER_SCISSORS,
   OcgMessageType.ANNOUNCE_RACE, OcgMessageType.ANNOUNCE_ATTRIB,
   OcgMessageType.ANNOUNCE_CARD, OcgMessageType.ANNOUNCE_NUMBER,
+  OcgMessageType.SORT_CHAIN,
 ]);
 
 export function findPrompt(messages) {
@@ -317,42 +320,6 @@ function firstBits(mask, count, { asBigInt = false } = {}) {
     }
   }
   return found.length ? found : [asBigInt ? 1n : 1];
-}
-
-/**
- * Índices de `selects` que somam o alvo de um SELECT_SUM.
- *
- * Soma EXATA primeiro, com o menor número de cartas: há cartas que pedem
- * "exatamente N" (`Duel.SelectWithSumEqual`), e o "pega até passar" de antes
- * dava RETRY nelas. Só sem combinação exata cai no "igual ou maior", que é o
- * que o Ritual aceita.
- */
-function sumIndices(message) {
-  const target = message.amount - message.selects_must.reduce((t, c) => t + (c.amount & 0xffff), 0);
-  if (target <= 0) return [];
-  const values = message.selects.map((card) => card.amount & 0xffff);
-  const n = Math.min(values.length, 16);
-  let best = null;
-  for (let mask = 1; mask < 1 << n; mask += 1) {
-    let total = 0;
-    const picked = [];
-    for (let i = 0; i < n; i += 1) {
-      if (mask & (1 << i)) {
-        total += values[i];
-        picked.push(i);
-      }
-    }
-    if (total === target && (!best || picked.length < best.length)) best = picked;
-  }
-  if (best) return best;
-  const picked = [];
-  let total = 0;
-  values.forEach((value, index) => {
-    if (total >= target) return;
-    picked.push(index);
-    total += value;
-  });
-  return picked;
 }
 
 function placesFrom(mask, player, count) {
@@ -383,7 +350,21 @@ function placesFrom(mask, player, count) {
  *   produzir a variedade de prompts que o teste de UI precisa examinar — com
  *   o piloto passivo o engine só chega a pedir três tipos de decisão.
  */
-export function autoPilot(message, { play = false, attempt = 0 } = {}) {
+/**
+ * Primeiro passcode do banco oficial que o filtro do ANNOUNCE_CARD aceita — a
+ * mesma conta do core (`announce-filter.ts`). Declarar um nome fixo dava RETRY
+ * em laço em toda carta que pede um nome filtrado ("declare 1 'Gadget'").
+ */
+function declarableCode(opcodes, db) {
+  for (const key of Object.keys(db.rows)) {
+    const code = Number(key);
+    const data = db.get(code);
+    if (data && isDeclarable(opcodes, { code, ...data })) return code;
+  }
+  return 46986414;
+}
+
+export function autoPilot(message, { play = false, attempt = 0, db = null } = {}) {
   switch (message.type) {
     case OcgMessageType.SELECT_IDLECMD: {
       if (play) {
@@ -463,9 +444,11 @@ export function autoPilot(message, { play = false, attempt = 0 } = {}) {
     case OcgMessageType.SELECT_COUNTER:
       return { type: OcgResponseType.SELECT_COUNTER, counters: message.cards.map(() => 0) };
     case OcgMessageType.SELECT_SUM:
-      // Precisa somar `amount`; escolher "as N primeiras" é resposta inválida.
-      return { type: OcgResponseType.SELECT_SUM, indicies: sumIndices(message) };
+      // As regras do core (soma exata × "igual ou maior", carta de dois
+      // valores) — a mesma conta que a tela e o bot usam.
+      return { type: OcgResponseType.SELECT_SUM, indicies: findSumSubset(sumRequestOf(message)) };
     case OcgMessageType.SORT_CARD:
+    case OcgMessageType.SORT_CHAIN:
       return { type: OcgResponseType.SORT_CARD, order: null };
     case OcgMessageType.ROCK_PAPER_SCISSORS:
       return { type: OcgResponseType.ROCK_PAPER_SCISSORS, value: 1 };
@@ -485,7 +468,10 @@ export function autoPilot(message, { play = false, attempt = 0 } = {}) {
     case OcgMessageType.ANNOUNCE_NUMBER:
       return { type: OcgResponseType.ANNOUNCE_NUMBER, value: 0 };
     case OcgMessageType.ANNOUNCE_CARD:
-      return { type: OcgResponseType.ANNOUNCE_CARD, card: 46986414 };
+      return {
+        type: OcgResponseType.ANNOUNCE_CARD,
+        card: db ? declarableCode(message.opcodes, db) : 46986414,
+      };
     default:
       return null;
   }

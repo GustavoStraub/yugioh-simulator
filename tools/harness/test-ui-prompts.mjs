@@ -75,7 +75,8 @@ function planIsActionable(plan, viewer = 0) {
     plan.sorting !== null ||
     (plan.announce?.options.length ?? 0) > 0 ||
     plan.announceCard !== null ||
-    plan.placeSelection !== null
+    plan.placeSelection !== null ||
+    plan.counters !== null
   );
 }
 

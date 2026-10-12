@@ -76,8 +76,13 @@ async function main() {
   try {
     const page = await openPage(port);
     await page.goto(`${BASE}/duel`);
+    // O perfil vem ANTES do deck: sem nome, a portaria (`PlayerProvider`)
+    // segura a aplicação na pergunta "como você quer ser chamado?".
     await page.evaluate(
-      `localStorage.setItem("yugioh-goat-deck-v1", ${JSON.stringify(JSON.stringify(deck()))}); return true;`,
+      `localStorage.setItem("yugioh-goat-profile-v1", ${JSON.stringify(
+        JSON.stringify({ id: "harnessattackrot", name: "Testador" }),
+      )});
+       localStorage.setItem("yugioh-goat-deck-v1", ${JSON.stringify(JSON.stringify(deck()))}); return true;`,
     );
     await page.goto(`${BASE}/duel`);
     for (let i = 0; i < 60; i += 1) {
@@ -85,6 +90,9 @@ async function main() {
       if (!t.includes("Carregando catálogo")) break;
       await new Promise((r) => setTimeout(r, 1000));
     }
+    // Espera o botão existir: o catálogo (TCG inteiro) e a biblioteca de decks
+    // carregam antes, e clicar cedo demais não acha nada.
+    await page.waitForText("Iniciar duelo", { timeout: 60000 }).catch(() => {});
     if (!(await page.clickText("Iniciar duelo"))) throw new Error("não iniciou o duelo");
     await new Promise((r) => setTimeout(r, 1500));
     await page.evaluate(GRAMPO);

@@ -720,6 +720,7 @@ export function projectSnapshot(master: DuelSnapshot, seat: 0 | 1): DuelSnapshot
     boards: seat === 0 ? [master.boards[0], null] : [null, master.boards[1]],
     pendingPrompt: meuPrompt ? master.pendingPrompt : null,
     promptCard: meuPrompt ? master.promptCard : null,
+    promptHint: meuPrompt ? master.promptHint : null,
     log: master.log.filter(
       (entry) => entry.visibleTo === null || entry.visibleTo === seat,
     ),

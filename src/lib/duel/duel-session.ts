@@ -253,6 +253,13 @@ export interface DuelSnapshot {
   promptId: number;
   /** Carta a que o prompt atual se refere, quando o core informa via HINT. */
   promptCard: number | null;
+  /**
+   * O que a pergunta atual pede, em texto — a dica `SELECTMSG` que o core
+   * manda antes de cada escolha ("Selecione o(s) card(s) para usar como
+   * Matéria de Sincro"). A barra de seleção mostra isto no lugar do genérico
+   * "Selecione 1 carta"; `null` quando o core não disse.
+   */
+  promptHint: string | null;
   isProcessing: boolean;
   error: string | null;
 }
@@ -364,6 +371,8 @@ export class DuelSession {
   private eventListeners = new Set<DuelEventListener>();
   /** Passcode da última carta apontada por um HINT — contexto dos prompts. */
   private hintedCard: number | null = null;
+  /** Texto da última dica de seleção (`HINT SELECTMSG`) — ver `promptHint`. */
+  private selectHint: string | null = null;
   /** Dados oficiais das cartas (setcode, alias, type) — regras do engine. */
   private cardDb: OfficialCardDb = EMPTY_CARD_DB;
   /** Textos que o engine referencia por id (instruções, opções de efeito). */
@@ -612,10 +621,12 @@ export class DuelSession {
 
     this.core.duelSetResponse(this.handle, response);
     this.hintedCard = null;
+    this.selectHint = null;
     this.update({
       pendingPrompt: null,
       promptPlayer: null,
       promptCard: null,
+      promptHint: null,
       isProcessing: true,
     });
     await this.runLoop();
@@ -846,6 +857,7 @@ export class DuelSession {
         const automatic = autoResponseFor(prompt);
         if (automatic) {
           this.core.duelSetResponse(this.handle, automatic);
+          this.selectHint = null;
           continue;
         }
 
@@ -854,6 +866,7 @@ export class DuelSession {
             this.handle,
             this.botFor(promptPlayer).decide(this.botContext(prompt, promptPlayer)),
           );
+          this.selectHint = null;
           continue;
         }
 
@@ -871,6 +884,7 @@ export class DuelSession {
           promptPlayer,
           promptId: this.promptCounter,
           promptCard: this.hintedCard,
+          promptHint: this.selectHint,
           isProcessing: false,
         });
         break;
@@ -902,7 +916,17 @@ export class DuelSession {
           // — sem nunca dizer o que estava sendo pedido.
           if (HINT_TEXT_TYPES.has(message.hint_type)) {
             const text = this.engineStrings.describeOption(Number(message.hint));
-            if (text) this.appendLog(`💬 ${text}`);
+            // A dica é dirigida a quem vai escolher; narrá-la aos dois é ruído
+            // para o outro e, num efeito de busca, não esconde nada — mas a
+            // linha vai só para quem foi perguntado.
+            if (text) {
+              const para = message.player === 0 || message.player === 1 ? message.player : null;
+              this.appendLog(`💬 ${text}`, para);
+              // "%ls" é o nome da carta, que o core preenche do lado dele.
+              if (message.hint_type === OcgHintType.SELECTMSG && !text.includes("%ls")) {
+                this.selectHint = text;
+              }
+            }
           }
           break;
         }
@@ -1593,6 +1617,7 @@ function createInitialSnapshot(): DuelSnapshot {
     promptPlayer: null,
     promptId: 0,
     promptCard: null,
+    promptHint: null,
     isProcessing: false,
     error: null,
   };

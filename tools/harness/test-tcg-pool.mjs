@@ -52,12 +52,9 @@ const OT_TCG = 0x2;
  * daqui — e o teste passa a vigiar que ela não volte.
  */
 const KNOWN_FAILURES = new Map([
-  // RETRY em laço no ANNOUNCE_CARD: o piloto do harness declara sempre o mesmo
-  // nome, e estas duas pedem um nome filtrado (um "Gadget"; um nome que esteja
-  // no Deck). É o piloto, não a carta — some quando o piloto avaliar o filtro
-  // de opcodes com o banco oficial (Fase 4).
-  [18486927, "Ancient Gear Gadget — piloto declara nome fixo; a carta pede um 'Gadget'"],
-  [65681983, "Crossout Designator — piloto declara nome fixo; a carta pede um nome do Deck"],
+  // Vazio desde a Fase 4: os dois laços de RETRY que sobravam (Ancient Gear
+  // Gadget e Crossout Designator) eram o piloto declarando um nome fixo; ele
+  // agora avalia o filtro do core (`announce-filter.ts`).
 ]);
 
 /** O pool TCG com script, lido do `cards.cdb`. */

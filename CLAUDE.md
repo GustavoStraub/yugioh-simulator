@@ -59,7 +59,7 @@ Modules imported by both the Next graph and the plain-Node server must not impor
 
 ### Prompt pipeline
 
-Engine message → `findPromptMessage` (`bot-responder.ts`) → `autoResponseFor` (`auto-response.ts`, answers prompts with no real choice) → for humans, `buildPromptPlan` (`duel-actions.ts`) turns it into a `PromptPlan` (per-card actions, field places, selections, modals) that `components/duel/DuelBoard.tsx` renders. A plan with nothing actionable freezes the duel; `test:ui` and `test:ui-rare` exist to catch that. **When `PromptPlan` gains a field, update `planIsActionable` in both `test-ui-prompts.mjs` and `test-ui-rare-prompts.mjs`.**
+Engine message → `findPromptMessage` (`bot-responder.ts`) → `autoResponseFor` (`auto-response.ts`, answers prompts with no real choice) → for humans, `buildPromptPlan` (`duel-actions.ts`) turns it into a `PromptPlan` (per-card actions, field places, selections, counter distribution, modals) that `components/duel/DuelBoard.tsx` renders. Actions on cards off the drawn table are reached through glowing piles (Extra Deck, GY, banished) or the "Outras jogadas" fallback — `actionReach` in `prompt-reach.ts`. Rules that must match the core exactly are mirrored from ygopro-core: `announce-filter.ts` (`is_declarable`) and `sum-selection.ts` (SELECT_SUM exact vs. at-least, two-value cards); the bot and the harness pilot use the same modules. A plan with nothing actionable freezes the duel; `test:ui` and `test:ui-rare` exist to catch that. **When `PromptPlan` gains a field, update `planIsActionable` in both `test-ui-prompts.mjs` and `test-ui-rare-prompts.mjs`.**
 
 ### Modern board (TCG)
 

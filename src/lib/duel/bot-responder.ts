@@ -12,7 +12,7 @@ import {
 } from "@n1xx1/ocgcore-wasm";
 
 import { pickFieldPlaces } from "@/lib/duel/field-places";
-import { findSumSubset } from "@/lib/duel/sum-selection";
+import { findSumSubset, sumRequestOf } from "@/lib/duel/sum-selection";
 
 const PROMPT_TYPES = new Set<OcgMessageType>([
   OcgMessageType.SELECT_BATTLECMD,
@@ -35,6 +35,9 @@ const PROMPT_TYPES = new Set<OcgMessageType>([
   OcgMessageType.ANNOUNCE_ATTRIB,
   OcgMessageType.ANNOUNCE_CARD,
   OcgMessageType.ANNOUNCE_NUMBER,
+  // Efeitos de gatilho simultâneos do mesmo jogador: o core pede a ordem em
+  // que eles entram na corrente. Fora desta lista o duelo congelava.
+  OcgMessageType.SORT_CHAIN,
 ]);
 
 /**
@@ -176,15 +179,11 @@ export function botAutoResponse(message: OcgMessage): OcgResponse {
     }
 
     case OcgMessageType.SELECT_SUM:
-      // Precisa somar `amount`, não "escolher N cartas" — pegar as primeiras
-      // devolvia resposta inválida e o core respondia RETRY.
+      // Precisa somar `amount` pelas regras do core (exata ou "igual ou maior",
+      // ver `sum-selection.ts`) — pegar as primeiras dava RETRY.
       return {
         type: OcgResponseType.SELECT_SUM,
-        indicies: findSumSubset({
-          amount: message.amount,
-          selects: message.selects,
-          selectsMust: message.selects_must,
-        }),
+        indicies: findSumSubset(sumRequestOf(message)),
       };
 
     case OcgMessageType.SELECT_DISFIELD:
@@ -202,6 +201,10 @@ export function botAutoResponse(message: OcgMessage): OcgResponse {
         type: OcgResponseType.SORT_CARD,
         order: message.cards.map((_, index) => index),
       };
+
+    // Mesmo formato de resposta do SORT_CARD; `null` é a ordem padrão do core.
+    case OcgMessageType.SORT_CHAIN:
+      return { type: OcgResponseType.SORT_CARD, order: null };
 
     case OcgMessageType.SELECT_UNSELECT_CARD:
       return { type: OcgResponseType.SELECT_UNSELECT_CARD, index: 0 };

@@ -724,3 +724,46 @@ Puxada para antes da mesa: para desenhar e testar Link, Xyz e Pêndulo na tela
   toa); o oponente deles agora tem um deck que o bot não consegue jogar
   (Guardião do Portão), e o descarte do Goblin precisa vir depois de um ataque
   meu no mesmo turno. 8/8 execuções seguidas passando.
+
+### Fase 4 — feita
+
+- **Jogar de fora da mesa**: quando o prompt oferece jogada numa carta do
+  Extra Deck, do Cemitério ou das banidas, a pilha brilha e abre com as cartas
+  jogáveis em destaque e as jogadas delas; o que não mora numa pilha desenhada
+  (Deck, material Xyz) vai para "⚡ Outras jogadas". A regra de onde cada jogada
+  se alcança é `actionReach` (`prompt-reach.ts`), a mesma para tela e testes.
+- **ANNOUNCE_CARD** avaliado pela mesma conta do core (`announce-filter.ts`,
+  espelho de `is_declarable`: setcode com sub-arquétipo, alias e fichas só com
+  as flags, as exceções do core). A busca recebe o banco oficial sob demanda e,
+  quando o filtro deixa poucos nomes, já os lista. Bot e piloto do harness
+  declaram um nome legal — os dois RETRY que sobravam no pool TCG sumiram (a
+  lista de falhas conhecidas do `test:tcg-pool` ficou vazia).
+- **SELECT_SUM** pelas regras do core: soma exata (de `min` a `max` cartas) ×
+  "igual ou maior sem carta sobrando" (Ritual), e carta de dois valores
+  (`o1 | o2 << 16`) — antes o `amount` cru entrava como 262148.
+- **SELECT_COUNTER** vira distribuição (quantos sai de cada carta, até o que
+  cada uma tem, somando N); a resposta automática só quando é preciso tirar
+  todos.
+- **SORT_CHAIN** reconhecido (app, bot e harness) e respondido com a ordem
+  padrão do core — antes congelava.
+- Seleção em passos (SELECT_UNSELECT_CARD): o material já escolhido aparece
+  marcado; antes parecia igual aos que faltavam, e clicar nele de novo o tirava.
+- A dica `SELECTMSG` do core vira a instrução da seleção ("Selecione o(s)
+  card(s) para usar como Matéria de Sincro") e as ~60 dicas 500–579 estão em
+  português; a linha da dica no log vai só para quem escolhe.
+- Os modais do duelo (pilha, seletor, revelações) passaram a respeitar o idioma
+  das cartas escolhido pelo jogador — usavam sempre o nome em português.
+- `npm run test:modern-play` (navegador): Sincro, Xyz, Link, efeito de
+  Cemitério, escalas + Invocação-Pêndulo e declaração de um nome "Gadget", **só
+  com cliques**, com fotos de cada passo. Dois achados que eram do roteiro, não
+  do app: Timegazer Magician exige não controlar monstros para ativar (o engine
+  estava certo), e o gatilho de Invocação do Ancient Gear Gadget declara um
+  TIPO — o nome "Gadget" é o efeito de Ignição.
+- `npm run test:prompt-rules`: a conta do ANNOUNCE_CARD, do SELECT_SUM e do
+  SELECT_COUNTER caso a caso (29 casos), sem engine.
+- Três testes de navegador antigos (`test-browser-cancel`, `test-attack-
+  rotation`, `test-draw-landing`) não passavam nem no `main`: não gravavam o
+  perfil do jogador (a portaria do nome segurava o lobby) e clicavam em
+  "Iniciar duelo" antes de ele existir. O de cancelar o Tributo também
+  procurava "tributo" na mesa inteira — e o histórico, agora em português,
+  também diz "Tributo". Os três passam.

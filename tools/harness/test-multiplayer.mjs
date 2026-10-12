@@ -156,6 +156,7 @@ function planoRespondivel(prompt, assento) {
     plan.byCard.size > 0 ||
     plan.places.length > 0 ||
     plan.placeSelection !== null ||
+    plan.counters !== null ||
     plan.sorting !== null ||
     plan.announce !== null ||
     plan.announceCard !== null;

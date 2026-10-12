@@ -1,100 +1,148 @@
-import type { OcgCardLocSum } from "@n1xx1/ocgcore-wasm";
+import type { OcgCardLocSum, OcgMessageSelectSum } from "@n1xx1/ocgcore-wasm";
 
 /**
  * SELECT_SUM não é "escolha N cartas": é "escolha cartas cujos valores somem
- * `amount`". É o prompt usado, por exemplo, pelos tributos de uma
- * Invocação-Ritual, onde o valor de cada carta é o nível dela.
+ * `amount`" — os tributos de uma Invocação-Ritual, os materiais de certos
+ * efeitos, os Níveis que uma carta manda juntar.
+ *
+ * As regras são as do core (`field::process(SelectSum)` no ygopro-core), e há
+ * DOIS modos, que a primeira versão desta tela tratava como um só:
+ *
+ * - **Soma exata** (`Duel.SelectWithSumEqual`): de `min` a `max` cartas, e a
+ *   soma tem que dar EXATAMENTE o alvo. O byte que o binding chama de
+ *   `select_max` vem 0 neste modo.
+ * - **Soma igual ou maior** (`Duel.SelectWithSumGreater`, o do Ritual): passar
+ *   do alvo pode, mas sem carta sobrando — se dá para tirar a menor e ainda
+ *   chegar lá, a seleção é recusada. `select_max` vem 1.
+ *
+ * E cada carta pode valer **dois** números: o core empacota o valor como
+ * `o1 | o2 << 16` (um monstro que conta como Nível 4 OU 8 para um Ritual, por
+ * exemplo). Ler `amount` cru, como antes, somava 262148 no lugar de 4.
  *
  * As cartas de `selects_must` entram obrigatoriamente e já contam para a soma —
  * elas não fazem parte dos índices da resposta, que se referem só a `selects`.
  */
 export interface SumRequest {
   amount: number;
+  /** `exact` quando o core mandou `select_max` 0; `atLeast` quando 1. */
+  mode: "exact" | "atLeast";
+  /** Quantidade de cartas escolhidas (sem as obrigatórias) — só no modo exato. */
+  min: number;
+  max: number;
   selects: OcgCardLocSum[];
   selectsMust: OcgCardLocSum[];
 }
 
-/** O quanto ainda falta somar depois das cartas obrigatórias. */
-export function remainingTarget(request: SumRequest): number {
-  const mandatory = request.selectsMust.reduce(
-    (total, card) => total + card.amount,
-    0,
+/** A pergunta do core no formato que as funções daqui entendem. */
+export function sumRequestOf(message: OcgMessageSelectSum): SumRequest {
+  return {
+    amount: message.amount,
+    mode: message.select_max === 0 ? "exact" : "atLeast",
+    min: message.min,
+    max: message.max,
+    selects: message.selects,
+    selectsMust: message.selects_must,
+  };
+}
+
+/** Os dois valores possíveis de uma carta (o segundo é 0 quando não há). */
+export function sumValues(card: OcgCardLocSum): [number, number] {
+  const packed = card.amount >>> 0;
+  return [packed & 0xffff, packed >>> 16];
+}
+
+/**
+ * Soma exata alcançável com TODAS estas cartas, cada uma contribuindo um dos
+ * seus dois valores? Espelho de `select_sum_check1` do core.
+ */
+function exactReachable(values: [number, number][], acc: number, index = 0): boolean {
+  if (acc === 0 || index === values.length) return false;
+  const [o1, o2] = values[index];
+  if (index === values.length - 1) return acc === o1 || acc === o2;
+  return (
+    (acc > o1 && exactReachable(values, acc - o1, index + 1)) ||
+    (o2 > 0 && acc > o2 && exactReachable(values, acc - o2, index + 1))
   );
-  return request.amount - mandatory;
 }
 
-/** Soma dos valores dos índices escolhidos dentro de `selects`. */
-export function sumOf(selects: OcgCardLocSum[], indices: number[]): number {
-  return indices.reduce((total, index) => total + (selects[index]?.amount ?? 0), 0);
+function chosen(request: SumRequest, indices: number[]): [number, number][] {
+  return [
+    ...request.selectsMust.map(sumValues),
+    ...indices.map((index) => sumValues(request.selects[index])),
+  ];
 }
 
-/**
- * Uma seleção é válida quando atinge o alvo restante. Rituais aceitam soma
- * maior ou igual (tributo excedente é permitido), então é isso que exigimos —
- * a checagem final continua sendo do core.
- */
+/** A seleção passa na checagem do core? */
 export function isValidSum(request: SumRequest, indices: number[]): boolean {
-  const target = remainingTarget(request);
-  if (target <= 0) return true;
-  return sumOf(request.selects, indices) >= target;
-}
-
-/**
- * Acha um conjunto de índices que atinja o alvo, preferindo:
- * 1. soma exata com o menor número de cartas;
- * 2. na falta de combinação exata, a menor soma que passe do alvo.
- *
- * Busca exaustiva sobre subconjuntos, limitada porque `selects` num duelo real
- * é uma lista curta (as cartas elegíveis em campo/mão).
- */
-export function findSumSubset(request: SumRequest): number[] {
-  const target = remainingTarget(request);
-  if (target <= 0) return [];
-
-  const values = request.selects.map((card) => card.amount);
-  const n = values.length;
-  if (n === 0) return [];
-
-  // Acima de 20 cartas o espaço de busca fica grande demais; nesse caso cai
-  // direto para a heurística gulosa.
-  if (n > 20) return greedy(values, target);
-
-  let exact: number[] | null = null;
-  let over: number[] | null = null;
-
-  for (let mask = 1; mask < 1 << n; mask += 1) {
-    let total = 0;
-    const picked: number[] = [];
-    for (let i = 0; i < n; i += 1) {
-      if (mask & (1 << i)) {
-        total += values[i];
-        picked.push(i);
-      }
+  if (request.mode === "exact") {
+    if (indices.length < request.min || indices.length > Math.max(request.max, request.min)) {
+      return false;
     }
-
-    if (total === target) {
-      if (!exact || picked.length < exact.length) exact = picked;
-    } else if (total > target) {
-      const overTotal = over ? sumOf(request.selects, over) : Infinity;
-      if (total < overTotal || (total === overTotal && picked.length < (over?.length ?? 0))) {
-        over = picked;
-      }
-    }
+    return exactReachable(chosen(request, indices), request.amount);
   }
 
-  return exact ?? over ?? greedy(values, target);
+  // Igual ou maior: com os maiores valores chega no alvo, e sem a menor carta
+  // (pelos menores valores) já não chegaria — nenhuma carta sobrando.
+  const values = chosen(request, indices);
+  if (values.length === 0) return false;
+  let sumMin = 0;
+  let sumMax = 0;
+  let smallest = Infinity;
+  for (const [o1, o2] of values) {
+    const low = o2 && o2 < o1 ? o2 : o1;
+    sumMin += low;
+    sumMax += o2 > o1 ? o2 : o1;
+    smallest = Math.min(smallest, low);
+  }
+  return sumMax >= request.amount && sumMin - smallest < request.amount;
 }
 
-/** Pega as maiores primeiro até cobrir o alvo. */
-function greedy(values: number[], target: number): number[] {
-  const order = values
-    .map((value, index) => ({ value, index }))
-    .sort((a, b) => b.value - a.value);
+/**
+ * Texto de progresso ("soma 6/8"). Com carta de dois valores, mostra a faixa
+ * possível ("6–10/8"), porque qual dos dois vale quem decide é a conta.
+ */
+export function sumProgress(request: SumRequest, indices: number[]): string {
+  let low = 0;
+  let high = 0;
+  for (const [o1, o2] of chosen(request, indices)) {
+    low += o2 && o2 < o1 ? o2 : o1;
+    high += o2 > o1 ? o2 : o1;
+  }
+  const range = low === high ? `${low}` : `${low}–${high}`;
+  return `${range}/${request.amount}`;
+}
 
+/**
+ * Acha uma seleção válida para o core, com o menor número de cartas.
+ *
+ * Busca exaustiva — `selects` num duelo real é uma lista curta (as cartas
+ * elegíveis em campo/mão). Acima de 16 candidatos cai numa gulosa, que pode
+ * errar; o core então pede de novo (RETRY) e o respondedor tenta outra vez.
+ */
+export function findSumSubset(request: SumRequest): number[] {
+  const n = request.selects.length;
+  if (isValidSum(request, [])) return [];
+  if (n === 0) return [];
+
+  if (n <= 16) {
+    let best: number[] | null = null;
+    for (let mask = 1; mask < 1 << n; mask += 1) {
+      const picked: number[] = [];
+      for (let i = 0; i < n; i += 1) if (mask & (1 << i)) picked.push(i);
+      if (best && picked.length >= best.length) continue;
+      if (isValidSum(request, picked)) best = picked;
+    }
+    if (best) return best;
+  }
+
+  // Gulosa: os maiores primeiro até cobrir o alvo.
+  const order = request.selects
+    .map((card, index) => ({ index, value: Math.max(...sumValues(card)) }))
+    .sort((a, b) => b.value - a.value);
   const picked: number[] = [];
-  let total = 0;
+  let total = request.selectsMust.reduce((t, card) => t + sumValues(card)[0], 0);
   for (const entry of order) {
-    if (total >= target) break;
+    if (total >= request.amount) break;
     picked.push(entry.index);
     total += entry.value;
   }

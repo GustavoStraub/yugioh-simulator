@@ -19,6 +19,7 @@ import {
   type OcgResponse,
 } from "@n1xx1/ocgcore-wasm";
 
+import { isDeclarable } from "@/lib/duel/announce-filter";
 import type { BoardCard, BoardPlayer, BoardState } from "@/lib/duel/board-state";
 import { botAutoResponse } from "@/lib/duel/bot-responder";
 import { readIntel, roleOf } from "@/lib/duel/bot/card-intel";
@@ -181,9 +182,40 @@ export class BotBrain {
         return this.tribute(prompt, ctx);
       case OcgMessageType.SELECT_POSITION:
         return this.position(prompt, ctx);
+      case OcgMessageType.ANNOUNCE_CARD:
+        return this.announceCard(prompt.opcodes, ctx);
       default:
         return null;
     }
+  }
+
+  /**
+   * Declara um nome que o filtro do core aceita.
+   *
+   * O respondedor de reserva declara sempre o Touro Guerreiro — que passa nos
+   * filtros "não pode ser Extra Deck" do Goat e em nenhum outro: "declare 1
+   * 'Gadget'" virava RETRY em laço. Aqui o banco oficial é varrido com a mesma
+   * conta do core, e vai o primeiro nome que passa. Escolher BEM o nome (o que
+   * está no deck do oponente) é trabalho do bot moderno (Fase 8).
+   */
+  private announceCard(opcodes: readonly bigint[], ctx: BotContext): OcgResponse | null {
+    for (const code of ctx.cardDb.passcodes()) {
+      const data = ctx.cardDb.get(code);
+      if (!data) continue;
+      if (
+        isDeclarable(opcodes, {
+          code,
+          alias: data.alias,
+          type: data.type,
+          race: data.race,
+          attribute: data.attribute,
+          setcodes: data.setcodes,
+        })
+      ) {
+        return { type: OcgResponseType.ANNOUNCE_CARD, card: code };
+      }
+    }
+    return null;
   }
 
   // ── Main Phase ─────────────────────────────────────────────────────────

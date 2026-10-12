@@ -44,7 +44,10 @@ const LER = `
     botoes: [...document.querySelectorAll("button")].filter(util).map((b) => b.innerText.trim()).filter(Boolean),
     cartas: document.querySelectorAll(".tf-slot-active").length,
     monstrosEmCampo: document.querySelectorAll("[data-zone^='0:4:'] img").length,
-    pedindoTributo: /tributo/i.test(mesa.innerText),
+    // Na BARRA de seleção, não na mesa inteira: o histórico também fala de
+    // tributo (a dica "Selecione os monstros para a Invocação-Tributo" fica no
+    // log), e procurar no texto todo achava um prompt que já tinha passado.
+    pedindoTributo: [...document.querySelectorAll(".tf-panel.rounded-full")].some((el) => /tributo/i.test(el.innerText)),
   };
 `;
 
@@ -53,8 +56,14 @@ async function main() {
   try {
     const page = await openPage(port);
     await page.goto(`${BASE}/duel`);
+    // O perfil vem ANTES do deck: sem nome, a portaria (`PlayerProvider`)
+    // segura a aplicação na pergunta "como você quer ser chamado?" e o botão
+    // de iniciar nem aparece.
     await page.evaluate(
-      `localStorage.setItem(${JSON.stringify(DECK_KEY)}, ${JSON.stringify(JSON.stringify(deck()))}); return true;`,
+      `localStorage.setItem("yugioh-goat-profile-v1", ${JSON.stringify(
+        JSON.stringify({ id: "harnessbrowserca", name: "Testador" }),
+      )});
+       localStorage.setItem(${JSON.stringify(DECK_KEY)}, ${JSON.stringify(JSON.stringify(deck()))}); return true;`,
     );
     await page.goto(`${BASE}/duel`);
     for (let i = 0; i < 60; i += 1) {
@@ -62,6 +71,9 @@ async function main() {
       if (!t.includes("Carregando catálogo")) break;
       await new Promise((r) => setTimeout(r, 1000));
     }
+    // Espera o botão existir: o catálogo (TCG inteiro) e a biblioteca de decks
+    // carregam antes, e clicar cedo demais não acha nada.
+    await page.waitForText("Iniciar duelo", { timeout: 60000 }).catch(() => {});
     if (!(await page.clickText("Iniciar duelo"))) throw new Error("não iniciou o duelo");
 
     let viuPromptDeTributo = false;

@@ -526,9 +526,15 @@ export function DuelPile({
   upsideDown = false,
   dataPile,
   badge,
+  actionable = false,
 }: {
   label: string;
   count: number;
+  /**
+   * O prompt atual oferece jogada com alguma carta desta pilha (Invocar do
+   * Extra Deck, efeito de Cemitério) — a pilha brilha como uma carta jogável.
+   */
+  actionable?: boolean;
   /**
    * Selo extra no canto de cima — no Extra Deck, quantas cartas estão viradas
    * para cima (Pêndulos que voltaram para lá, e que são públicos).
@@ -545,7 +551,7 @@ export function DuelPile({
   upsideDown?: boolean;
 }) {
   const texto = useCardText();
-  const openable = Boolean(onOpen) && count > 0;
+  const openable = Boolean(onOpen) && (count > 0 || actionable);
 
   // O cemitério fica com as cartas para cima numa mesa real, então mostramos
   // a do topo em vez de um verso genérico.
@@ -556,9 +562,16 @@ export function DuelPile({
   return (
     <div
       data-pile={dataPile}
+      data-actionable={actionable || undefined}
       role={openable ? "button" : undefined}
       tabIndex={openable ? 0 : undefined}
-      title={openable ? (openTitle ?? `Ver ${label} (${count})`) : label}
+      title={
+        actionable
+          ? `${label}: há jogadas aqui agora`
+          : openable
+            ? (openTitle ?? `Ver ${label} (${count})`)
+            : label
+      }
       onClick={openable ? onOpen : undefined}
       onKeyDown={
         openable
@@ -572,7 +585,9 @@ export function DuelPile({
       }
       className={`relative overflow-hidden rounded-[4px] ${CARD_SHAPE} ${
         topImage ? "tf-slot" : count > 0 ? "tf-card-back" : "tf-slot"
-      } ${openable ? "cursor-pointer hover:brightness-125 hover:ring-1 hover:ring-[color:var(--tf-gold)]" : ""}`}
+      } ${openable ? "cursor-pointer hover:brightness-125 hover:ring-1 hover:ring-[color:var(--tf-gold)]" : ""} ${
+        actionable ? "tf-slot-active tf-slot-activate" : ""
+      }`}
     >
       {topImage ? (
         // eslint-disable-next-line @next/next/no-img-element
