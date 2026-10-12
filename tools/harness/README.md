@@ -43,7 +43,7 @@ Há atalhos no `package.json` para todos eles (`npm run test:cards`,
 | `node tools/harness/test-triggers.mjs` | Cartas reativas: constrói o EVENTO (ataque, invocação, ativação do oponente) em vez de só o tabuleiro. |
 | `node tools/harness/test-remaining.mjs` | As cartas com condição própria e específica — cada uma com o cenário exato lido do seu Lua. |
 | `node tools/harness/test-patches.mjs` | Vigia as emendas de `script-patches.ts`: âncora ainda casa, tolera reindentação, e as cartas que dependem dela seguem funcionando. |
-| `node tools/harness/test-bot.mjs [partidas] [passivo\|guloso]` | O bot joga melhor? Cenários dirigidos (não ataca de peito aberto, compra antes de invocar, responde ao ataque) e depois um placar contra dois adversários de referência. |
+| `node tools/harness/test-bot.mjs [partidas] [passivo\|guloso] [goat\|tcg]` | O bot joga melhor? Cenários dirigidos (não ataca de peito aberto, compra antes de invocar, responde ao ataque; no TCG: não troca monstro bom por Link fraco, faz o Xyz que vale, põe escala de Pêndulo só com faixa útil, não encadeia hand trap na própria jogada) e depois um placar contra dois adversários de referência. `tcg` usa os ~100 decks pré-montados em MR5. `--partidas 59,100` repete partidas específicas; num RETRY_LOOP o relatório mostra a resposta recusada e de quem era. |
 | `node tools/harness/test-cancel.mjs` | Desistir de uma Invocação-Tributo: o core aceita e o campo fica intacto. |
 | `node tools/harness/test-browser-cancel.mjs` | O mesmo, mas pela tela — o botão aparece e devolve o turno. |
 | `node tools/harness/test-draw-landing.mjs` | Mede onde a carta comprada pousa: tem que ser o slot real da mão. |

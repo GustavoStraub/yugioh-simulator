@@ -1558,6 +1558,7 @@ export class DuelSession {
       phase: this.snapshot.phase,
       turnPlayer: this.snapshot.turnPlayer,
       turnCount: this.snapshot.turnCount,
+      chainPlayer: this.snapshot.chain?.player ?? null,
     };
   }
 

@@ -441,8 +441,18 @@ export function autoPilot(message, { play = false, attempt = 0, db = null } = {}
       const allowed = ocgPositionParse(message.positions);
       return { type: OcgResponseType.SELECT_POSITION, position: allowed[0] ?? OcgPosition.FACEUP_ATTACK };
     }
-    case OcgMessageType.SELECT_COUNTER:
-      return { type: OcgResponseType.SELECT_COUNTER, counters: message.cards.map(() => 0) };
+    case OcgMessageType.SELECT_COUNTER: {
+      // Distribui exatamente `count` marcadores, cada carta até o que tem —
+      // a mesma conta do `botAutoResponse`. Zeros em tudo era resposta
+      // inválida (soma 0 ≠ `count`) e virava RETRY em laço.
+      let restante = message.count;
+      const counters = message.cards.map((card) => {
+        const tira = Math.min(restante, card.count);
+        restante -= tira;
+        return tira;
+      });
+      return { type: OcgResponseType.SELECT_COUNTER, counters };
+    }
     case OcgMessageType.SELECT_SUM:
       // As regras do core (soma exata × "igual ou maior", carta de dois
       // valores) — a mesma conta que a tela e o bot usam.

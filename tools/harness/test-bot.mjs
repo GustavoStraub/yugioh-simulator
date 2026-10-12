@@ -26,14 +26,21 @@
  *   que pode, invoca, baixa e ataca sempre. Não avalia nada, mas joga todas as
  *   cartas, e é uma régua bem mais dura que o passivo.
  *
- * Uso: node --import ./tools/harness/ts-loader-register.mjs tools/harness/test-bot.mjs [partidas] [passivo|guloso]
+ * Formato: `goat` (padrão) usa os 10 decks Goat em MODE_GOAT; `tcg` usa os
+ * ~100 decks pré-montados do TCG em Master Rule 2020, com o Extra Deck de cada
+ * um — é onde aparecem Sincro, Xyz, Link e Pêndulo, que o bot precisa saber
+ * avaliar (Fase 8).
+ *
+ * Uso: node --import ./tools/harness/ts-loader-register.mjs tools/harness/test-bot.mjs [partidas] [passivo|guloso] [goat|tcg]
  */
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
 import {
+  OcgDuelMode,
   OcgMessageType,
   OcgPosition,
+  OcgResponseType,
   SelectBattleCMDAction,
   SelectIdleCMDAction,
 } from "@n1xx1/ocgcore-wasm";
@@ -49,9 +56,35 @@ import { REPO } from "./env.mjs";
 
 const PARTIDAS = Number(process.argv[2] ?? 60);
 const RIVAL = process.argv[3] ?? "passivo";
+const FORMATO = process.argv[4] === "tcg" ? "tcg" : "goat";
+/** `--partidas 59,100`: repete só essas (mesma semente, deck e assento). */
+const partidasAt = process.argv.indexOf("--partidas");
+const SO_PARTIDAS =
+  partidasAt >= 0 ? new Set(process.argv[partidasAt + 1].split(",").map(Number)) : null;
+// O guloso recebe o banco oficial (declarar um nome que o filtro do core
+// aceita) e o número da tentativa (num RETRY, trocar de resposta): sem isso
+// ele mesmo travava duelos — e o placar contava contra o bot um defeito do
+// adversário de referência.
+/**
+ * `cerebro`: outro BotBrain, carregado do módulo em `BOT_RIVAL` — é o A/B de
+ * uma mudança no bot. Copie a versão anterior para um diretório dentro de
+ * `src/` (os imports internos relativos) e rode, por exemplo:
+ *
+ *   BOT_RIVAL=@/lib/duel/bot/_antigo/bot-brain node … test-bot.mjs 88 cerebro tcg --extra 3
+ *
+ * O placar passa a ser "bot novo × bot antigo", nos mesmos decks e sementes.
+ */
+const CerebroRival =
+  RIVAL === "cerebro"
+    ? (await import(process.env.BOT_RIVAL ?? "@/lib/duel/bot/bot-brain")).BotBrain
+    : null;
+/** `--extra N`: só decks com pelo menos N cartas no Extra Deck. */
+const extraAt = process.argv.indexOf("--extra");
+const EXTRA_MINIMO = extraAt >= 0 ? Number(process.argv[extraAt + 1]) : 0;
+
 const responderRival =
   RIVAL === "guloso"
-    ? (message) => autoPilot(message, { play: true })
+    ? (message, duel) => autoPilot(message, { play: true, attempt: duel.retries, db: duel.db })
     : (message) => botAutoResponse(message);
 
 /**
@@ -86,7 +119,10 @@ const cardDb = new OfficialCardDb(
 );
 
 const PRESETS = JSON.parse(
-  readFileSync(join(REPO, "src/data/preset-decks.json"), "utf8"),
+  readFileSync(
+    join(REPO, FORMATO === "tcg" ? "src/data/preset-decks-tcg.json" : "src/data/preset-decks.json"),
+    "utf8",
+  ),
 );
 
 /**
@@ -101,6 +137,9 @@ function criarRastreador(duel) {
   let turnPlayer = null;
   let turnCount = 0;
   let phase = null;
+  // Quem ativou o último elo da corrente aberta — a mesma informação que a
+  // sessão passa ao bot (`snapshot.chain`).
+  let chainPlayer = null;
   return () => {
     for (; cursor < duel.messages.length; cursor += 1) {
       const message = duel.messages[cursor];
@@ -109,35 +148,59 @@ function criarRastreador(duel) {
         turnCount += 1;
       } else if (message.type === OcgMessageType.NEW_PHASE) {
         phase = message.phase;
+      } else if (message.type === OcgMessageType.CHAINING) {
+        chainPlayer = message.controller;
+      } else if (message.type === OcgMessageType.CHAIN_END) {
+        chainPlayer = null;
       }
     }
-    return { turnPlayer, turnCount, phase };
+    return { turnPlayer, turnCount, phase, chainPlayer };
   };
 }
 
 /** Roda um duelo; devolve o vencedor e como o duelo terminou. */
-async function duelar({ deck, seed, assentoNovo }) {
+async function duelar({ deck, extra = [], seed, assentoNovo }) {
   const duel = await createDuel({
     // Baralhos embaralhados **em separado**: com a mesma ordem dos dois lados o
     // duelo vira espelho e o placar mede a simetria, não a decisão.
     decks: [embaralhar(deck, seed), embaralhar(deck, seed * 31n + 7n)],
+    place: [0, 1].flatMap((player) => extra.map((code) => ({ player, zone: Zone.EXTRA, code }))),
     seed,
     startingDraw: 5,
+    mode: FORMATO === "tcg" ? OcgDuelMode.MODE_MR5 : OcgDuelMode.MODE_GOAT,
   });
   const rastrear = criarRastreador(duel);
   const brain = new BotBrain();
+  const rival = CerebroRival ? new CerebroRival() : null;
 
+  // A última resposta e quem a deu — num RETRY_LOOP o relatório diz o que o
+  // core recusou e de quem era a culpa (o bot ou o adversário de referência).
+  let ultima = null;
+  /** As últimas decisões — num MAX_STEPS, mostram se é laço ou duelo longo. */
+  const recentes = [];
   const politica = (message) => {
+    const resposta = decidir(message);
+    ultima = { message, resposta, quem: ultimaFonte };
+    recentes.push(
+      `${ultimaFonte}:${message.type}→${JSON.stringify(resposta, (_, v) => (typeof v === "bigint" ? `${v}n` : v))}`,
+    );
+    if (recentes.length > 12) recentes.shift();
+    return resposta;
+  };
+  let ultimaFonte = null;
+  const decidir = (message) => {
     // Mesmo caminho do app: o que não tem escolha real se responde sozinho.
     const automatico = autoResponseFor(message);
+    ultimaFonte = "automática";
     if (automatico) return automatico;
 
     const seat = "player" in message && message.player === 1 ? 1 : 0;
-    if (seat !== assentoNovo) return responderRival(message);
+    ultimaFonte = seat !== assentoNovo ? RIVAL : "bot";
+    if (seat !== assentoNovo && !rival) return responderRival(message, duel);
 
-    const { turnPlayer, turnCount, phase } = rastrear();
+    const { turnPlayer, turnCount, phase, chainPlayer } = rastrear();
     const cache = new Map();
-    return brain.decide({
+    return (seat === assentoNovo ? brain : rival).decide({
       prompt: message,
       me: seat,
       readBoard: (full) => {
@@ -151,11 +214,14 @@ async function duelar({ deck, seed, assentoNovo }) {
       phase,
       turnPlayer,
       turnCount,
+      chainPlayer,
     });
   };
 
   const desfecho = duel.run(politica, { play: false });
   const resultado = {
+    ultima: desfecho === "RETRY_LOOP" ? ultima : null,
+    recentes: desfecho === "MAX_STEPS" ? [...recentes] : [],
     desfecho,
     winner: duel.winner,
     turnos: rastrear().turnCount,
@@ -179,15 +245,22 @@ const MIRROR_FORCE = 44095762;
  * do outro lado seria preciso jogar um turno inteiro do adversário antes de a
  * pergunta aparecer, e o que se quer isolar é a decisão, não o caminho até ela.
  */
-async function cenario({ place, capturar }) {
+/**
+ * @param forcar opcional: `(message) => resposta | null` — joga a preparação
+ *   do cenário pelo bot (ativar a carta que cria a situação), para a decisão
+ *   capturada ser só a que interessa.
+ */
+async function cenario({ place, capturar, mode = OcgDuelMode.MODE_GOAT, deck0 = null, forcar = null }) {
   const deck = Array.from({ length: 40 }, () => BATTLE_OX);
   const duel = await createDuel({
-    decks: [deck, deck],
+    decks: [deck0 ?? deck, deck],
     seed: 9n,
     startingDraw: 0,
     place,
+    mode,
   });
   const brain = new BotBrain();
+  const rastrear = criarRastreador(duel);
   let capturado;
 
   duel.run((message) => {
@@ -195,6 +268,8 @@ async function cenario({ place, capturar }) {
     if (automatico) return automatico;
     const seat = "player" in message && message.player === 1 ? 1 : 0;
     if (seat !== 0) return botAutoResponse(message);
+    const forcada = forcar?.(message);
+    if (forcada) return forcada;
 
     const cache = new Map();
     const resposta = brain.decide({
@@ -211,6 +286,7 @@ async function cenario({ place, capturar }) {
       phase: null,
       turnPlayer: 0,
       turnCount: 1,
+      chainPlayer: rastrear().chainPlayer,
     });
 
     const capturaAtual = capturar(message, resposta);
@@ -318,13 +394,170 @@ console.log("─── Cenários dirigidos ───");
   conferir(r !== null && r !== undefined, "responde ao ataque com a Força do Espelho", String(r));
 }
 
+// ── Cenários do bot moderno (Master Rule 2020) ──
+const LINK_SPIDER = 98978921; // Link 1, 1000 ATK
+const UTOPIA = 84013237; // Xyz Rank 4, 2500 ATK, efeito
+const ODD_EYES = 16178681; // Pêndulo, escala 4
+const TIMEGAZER = 20409757; // Pêndulo, escala 8
+const DARK_MAGICIAN = 46986414; // Nível 7
+const ASH_BLOSSOM = 14558127; // hand trap: nega busca/compra do Deck
+const REINFORCEMENT = 32807846; // Reforço do Exército: busca um Guerreiro
+const CELTIC_GUARDIAN = 91152256; // Guerreiro, Nível 4
+const MR5 = OcgDuelMode.MODE_MR5;
+
+const naMain = (message, resposta) =>
+  message.type === OcgMessageType.SELECT_IDLECMD
+    ? {
+        acao: resposta.action,
+        code:
+          resposta.action === SelectIdleCMDAction.SELECT_SPECIAL_SUMMON
+            ? message.special_summons[resposta.index]?.code
+            : resposta.action === SelectIdleCMDAction.SELECT_ACTIVATE
+              ? message.activates[resposta.index]?.code
+              : resposta.action === SelectIdleCMDAction.SELECT_SUMMON
+                ? message.summons[resposta.index]?.code
+                : null,
+      }
+    : undefined;
+
+{
+  // O bot antigo fazia toda Invocação do Extra Deck que o core oferecesse.
+  const r = await cenario({
+    mode: MR5,
+    place: [monstro(0, BATTLE_OX, 2), { player: 0, zone: Zone.EXTRA, code: LINK_SPIDER }],
+    capturar: naMain,
+  });
+  conferir(
+    r && !(r.acao === SelectIdleCMDAction.SELECT_SPECIAL_SUMMON && r.code === LINK_SPIDER),
+    "não troca Battle Ox (1700) por Link Spider (Link 1, 1000)",
+    JSON.stringify(r),
+  );
+}
+
+{
+  const r = await cenario({
+    mode: MR5,
+    place: [
+      monstro(0, BATTLE_OX, 1),
+      monstro(0, BATTLE_OX, 2),
+      { player: 0, zone: Zone.EXTRA, code: UTOPIA },
+    ],
+    capturar: naMain,
+  });
+  conferir(
+    r && r.acao === SelectIdleCMDAction.SELECT_SPECIAL_SUMMON && r.code === UTOPIA,
+    "faz Utopia (Xyz 2500, efeito) com dois Battle Ox",
+    JSON.stringify(r),
+  );
+}
+
+{
+  // Escalas 4 e 8 abrem os Níveis 5–7: Dark Magician entra pela Invocação-
+  // Pêndulo sem gastar a Normal.
+  const r = await cenario({
+    mode: MR5,
+    place: [
+      { player: 0, zone: Zone.HAND, code: ODD_EYES },
+      { player: 0, zone: Zone.HAND, code: TIMEGAZER },
+      { player: 0, zone: Zone.HAND, code: DARK_MAGICIAN },
+    ],
+    capturar: naMain,
+  });
+  conferir(
+    r && r.acao === SelectIdleCMDAction.SELECT_ACTIVATE && [ODD_EYES, TIMEGAZER].includes(r.code),
+    "põe um Pêndulo na escala quando a faixa abre um monstro da mão",
+    JSON.stringify(r),
+  );
+}
+
+{
+  const r = await cenario({
+    mode: MR5,
+    place: [{ player: 0, zone: Zone.HAND, code: ODD_EYES }, { player: 0, zone: Zone.HAND, code: BATTLE_OX }],
+    capturar: naMain,
+  });
+  conferir(
+    r && !(r.acao === SelectIdleCMDAction.SELECT_ACTIVATE && r.code === ODD_EYES),
+    "não gasta um Pêndulo na escala sem faixa nenhuma para invocar",
+    JSON.stringify(r),
+  );
+}
+
+{
+  // A Ash Blossom pega qualquer busca do Deck — inclusive a do próprio bot.
+  let ativou = false;
+  const r = await cenario({
+    mode: MR5,
+    // Guerreiros de Nível 4 no Deck: sem alvo o Reforço nem é oferecido.
+    deck0: Array.from({ length: 40 }, () => CELTIC_GUARDIAN),
+    place: [
+      { player: 0, zone: Zone.HAND, code: REINFORCEMENT },
+      { player: 0, zone: Zone.HAND, code: ASH_BLOSSOM },
+    ],
+    forcar: (message) => {
+      if (ativou || message.type !== OcgMessageType.SELECT_IDLECMD) return null;
+      const index = message.activates.findIndex((c) => c.code === REINFORCEMENT);
+      if (index < 0) return null;
+      ativou = true;
+      return { type: OcgResponseType.SELECT_IDLECMD, action: SelectIdleCMDAction.SELECT_ACTIVATE, index };
+    },
+    capturar: (message, resposta) =>
+      message.type === OcgMessageType.SELECT_CHAIN &&
+      message.player === 0 &&
+      message.selects.some((c) => c.code === ASH_BLOSSOM)
+        ? resposta.index === null ||
+          message.selects[resposta.index]?.code !== ASH_BLOSSOM
+        : undefined,
+  });
+  conferir(
+    r === true,
+    "não encadeia a própria Ash Blossom na própria busca",
+    r === undefined ? "o core não ofereceu a Ash (cenário não aconteceu)" : String(r),
+  );
+}
+
+{
+  // Battle Phase sem saída: nem Main 2 nem End Phase oferecidas — um efeito
+  // obriga a atacar (visto com o Dark Eradicator Warlock do SD6). O bot pedia
+  // End Phase mesmo assim, e o core respondia RETRY até o duelo cair.
+  const duel = await createDuel({ decks: [[BATTLE_OX], [BATTLE_OX]], place: [monstro(0, BATTLE_OX), monstro(1, SUMMONED_SKULL)] });
+  const prompt = {
+    type: OcgMessageType.SELECT_BATTLECMD,
+    player: 0,
+    chains: [],
+    attacks: [{ code: BATTLE_OX, controller: 0, location: Zone.MZONE, sequence: 0, can_direct: false }],
+    to_m2: false,
+    to_ep: false,
+  };
+  const ctx = {
+    prompt,
+    me: 0,
+    readBoard: (full) => readBoardState(duel.core, duel.handle, 0, !full),
+    cardDb,
+    lifePoints: [8000, 8000],
+    phase: null,
+    turnPlayer: 0,
+    turnCount: 3,
+  };
+  const r = new BotBrain().decide(ctx);
+  const reserva = botAutoResponse(prompt);
+  duel.destroy();
+  conferir(
+    r.action === SelectBattleCMDAction.SELECT_BATTLE && reserva.action === SelectBattleCMDAction.SELECT_BATTLE,
+    "ataca quando o core não oferece nem Main 2 nem End Phase (bot e reserva)",
+    JSON.stringify([r, reserva]),
+  );
+}
+
 console.log("");
 
-const decks = PRESETS.filter((p) => p.main.length >= 40);
+const decks = PRESETS.filter((p) => p.main.length >= 40 && p.extra.length >= EXTRA_MINIMO);
 let vitoriasNovo = 0;
 let vitoriasAntigo = 0;
 let empates = 0;
 const travados = [];
+/** Duelos que bateram o teto de passos com o jogo ainda andando. */
+const longos = [];
 let turnosTotais = 0;
 /** Placar separado por assento — quem começa tem vantagem em Goat. */
 const porAssento = [
@@ -335,7 +568,7 @@ const porAssento = [
 const porDeck = new Map();
 
 console.log(
-  `Cérebro novo x ${RIVAL} — ${PARTIDAS} partidas, mesmo deck dos dois lados\n`,
+  `Cérebro novo x ${RIVAL} — ${PARTIDAS} partidas (${FORMATO}), mesmo deck dos dois lados\n`,
 );
 
 for (let partida = 0; partida < PARTIDAS; partida += 1) {
@@ -346,15 +579,23 @@ for (let partida = 0; partida < PARTIDAS; partida += 1) {
   const assentoNovo = Math.floor(partida / decks.length) % 2;
   const seed = BigInt(1000 + partida * 7);
 
-  const { desfecho, winner, turnos } = await duelar({
+  if (SO_PARTIDAS && !SO_PARTIDAS.has(partida)) continue;
+  const { desfecho, winner, turnos, ultima, recentes } = await duelar({
     deck: preset.main,
+    extra: preset.extra,
     seed,
     assentoNovo,
   });
   turnosTotais += turnos;
 
-  if (desfecho !== "WIN" && desfecho !== "END") {
-    travados.push({ partida, preset: preset.id, desfecho });
+  // O teto de passos do harness (4.000) com o duelo andando de turno em
+  // turno é partida longa — deck de muralha contra deck de muralha (SD7 ×
+  // SD7 chega a 67 turnos) —, não travamento: no app não há teto, e o fim do
+  // deck encerra. Laço de verdade estoura o teto dentro de poucos turnos.
+  const longo = desfecho === "MAX_STEPS" && turnos >= 30;
+  if (longo) longos.push({ partida, preset: preset.id, turnos });
+  else if (desfecho !== "WIN" && desfecho !== "END") {
+    travados.push({ partida, preset: preset.id, desfecho, ultima, recentes, turnos });
   }
 
   const ganhou = winner === assentoNovo;
@@ -402,19 +643,41 @@ if (fracos.length > 0) {
   for (const [id, d] of fracos) console.log(`  ${id}: ${d.vitorias}/${d.jogos}`);
 }
 
+if (longos.length > 0) {
+  console.log(
+    `\n· ${longos.length} duelo(s) longo(s), cortados pelo teto de passos com o jogo andando: ` +
+      longos.map((l) => `${l.preset} (${l.turnos} turnos)`).join(", "),
+  );
+}
 if (travados.length > 0) {
   console.log(`\n✗ ${travados.length} duelo(s) não terminaram:`);
   for (const t of travados.slice(0, 10)) {
-    console.log(`    partida ${t.partida} (${t.preset}): ${t.desfecho}`);
+    console.log(`    partida ${t.partida} (${t.preset}): ${t.desfecho}, ${t.turnos} turnos`);
+    for (const linha of t.recentes ?? []) console.log(`      ${linha.slice(0, 160)}`);
+    if (t.ultima) {
+      const json = (valor) =>
+        JSON.stringify(valor, (_, v) => (typeof v === "bigint" ? `${v}n` : v)).slice(0, 600);
+      console.log(`      recusada (${t.ultima.quem}): ${json(t.ultima.message)}`);
+      console.log(`      resposta: ${json(t.ultima.resposta)}`);
+    }
   }
 } else {
   console.log("\n✓ todos os duelos terminaram");
 }
 
 // Um bot que joga melhor ganha da versão que não pensa. 50% é moeda.
-const passou = taxa >= 65 && travados.length === 0 && falhasCenario.length === 0;
+// Contra outro cérebro (A/B) a régua não é 65%: o placar é a medida, e o
+// teste só reprova por duelo travado ou cenário dirigido quebrado.
+const passou =
+  (RIVAL === "cerebro" || taxa >= 65) && travados.length === 0 && falhasCenario.length === 0;
 if (falhasCenario.length > 0) {
   console.log(`\n✗ ${falhasCenario.length} cenário(s) dirigido(s) falharam`);
 }
-console.log(passou ? "\n✓ o bot novo é mais forte" : "\n✗ FALHOU");
+console.log(
+  passou
+    ? RIVAL === "cerebro"
+      ? `\n✓ A/B concluído: ${taxa.toFixed(1)}% para o bot atual`
+      : "\n✓ o bot novo é mais forte"
+    : "\n✗ FALHOU",
+);
 process.exit(passou ? 0 : 1);

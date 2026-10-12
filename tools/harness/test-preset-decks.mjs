@@ -189,6 +189,9 @@ function criarRastreador(duel) {
   let turnPlayer = null;
   let turnCount = 0;
   let phase = null;
+  // Quem ativou o último elo da corrente aberta — a mesma informação que a
+  // sessão passa ao bot (`snapshot.chain`).
+  let chainPlayer = null;
   return () => {
     for (; cursor < duel.messages.length; cursor += 1) {
       const message = duel.messages[cursor];
@@ -197,9 +200,13 @@ function criarRastreador(duel) {
         turnCount += 1;
       } else if (message.type === OcgMessageType.NEW_PHASE) {
         phase = message.phase;
+      } else if (message.type === OcgMessageType.CHAINING) {
+        chainPlayer = message.controller;
+      } else if (message.type === OcgMessageType.CHAIN_END) {
+        chainPlayer = null;
       }
     }
-    return { turnPlayer, turnCount, phase };
+    return { turnPlayer, turnCount, phase, chainPlayer };
   };
 }
 
@@ -255,7 +262,7 @@ async function partida(a, b, seed) {
     }
     const automatico = autoResponseFor(message);
     if (automatico) return automatico;
-    const { turnPlayer, turnCount, phase } = rastrear();
+    const { turnPlayer, turnCount, phase, chainPlayer } = rastrear();
     const cache = new Map();
     return cerebros[seat].decide({
       prompt: message,
@@ -269,6 +276,7 @@ async function partida(a, b, seed) {
       phase,
       turnPlayer,
       turnCount,
+      chainPlayer,
     });
   }
 

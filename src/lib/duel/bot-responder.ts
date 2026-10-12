@@ -107,9 +107,11 @@ export function botAutoResponse(message: OcgMessage): OcgResponse {
           index: 0,
         };
       }
+      // Só o que foi oferecido: pedir End Phase quando o core só deixa ir à
+      // Main 2 (ou o contrário) é RETRY em laço.
       return {
         type: OcgResponseType.SELECT_BATTLECMD,
-        action: SelectBattleCMDAction.TO_EP,
+        action: message.to_ep || !message.to_m2 ? SelectBattleCMDAction.TO_EP : SelectBattleCMDAction.TO_M2,
         index: null,
       };
 

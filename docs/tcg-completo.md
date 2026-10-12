@@ -885,3 +885,68 @@ juntos.
   3210 do próprio roteiro. `test:browser-online` trocava para "o último deck
   da lista", que passou a ser um deck TCG — a sala, com razão, não abria
   Goat × TCG; agora pega o último dos grupos Goat.
+
+### Fase 8 — feita (o "pronto quando" passou; ganho de força não comprovado)
+
+O que o bot passou a fazer, cada coisa com um cenário dirigido no
+`test:bot` (os quatro primeiros falham no bot anterior):
+
+- **Extra Deck com conta**: invoca Sincro/Xyz/Link só se o resultado valer
+  pelo menos 300 a mais que os materiais mais baratos do campo (Link: tantos
+  quanto o Link Rating; Sincro/Xyz: 2; materiais de Xyz pesam 75%, ficam
+  presos ao monstro). O bot anterior fazia toda Invocação do Extra Deck
+  oferecida — trocava um Battle Ox de 1700 por um Link Spider de 1000.
+- **Pêndulo**: põe a escala só se ela abre, com a outra escala (no campo ou
+  outro Pêndulo da mão), um monstro da mão de Nível entre as duas; a
+  Invocação-Pêndulo oferecida vale 112 (acima da Normal). Antes, Pêndulo na
+  mão era "monstro com efeito" e ia para a escala sem faixa nenhuma — ou era
+  invocado no lugar de abrir a faixa.
+- **Hand trap**: nunca contra o próprio elo (a Ash Blossom negava a busca do
+  próprio bot); vale contra elo do adversário, no turno dele ou na batalha. A
+  sessão passa `chainPlayer` (quem ativou o último elo) ao bot.
+- **Main Phase 1 antes da batalha**: magia não rápida, equipamento e efeito
+  de ignição legais vão antes da Battle Phase quando há ataque que valha
+  (antes ficavam abaixo dos 76 de "atacar" e só saíam na Main 2, depois dos
+  ataques que mudariam).
+- **Bot travava o duelo** numa Battle Phase sem saída (nem Main 2 nem End
+  Phase oferecidas — um efeito obrigando a atacar, visto no SD6): pedia End
+  Phase e o core respondia RETRY até a sessão interromper o duelo. Agora
+  ataca; o respondedor de reserva também passou a pedir só o que foi
+  oferecido. (O defeito era anterior à Fase 8.)
+- Menores: declarar nome prefere as cartas que o adversário já mostrou;
+  materiais por soma (Sincro, Ritual) pela combinação válida mais barata;
+  seleção "até N" para no mínimo quando o que sobra é custo; `card-intel`
+  conhece Link/Xyz/Pêndulo/Regulador (e não lê mais as setas de um Link como
+  DEF).
+- "Uma vez por turno" é do core: ele não oferece de novo o que já foi usado.
+  O teto anti-laço do bot (2 ativações por carta por turno) continua.
+
+**Medição** (`test:bot`, mesmos decks e sementes; o A/B carrega o bot
+anterior com `BOT_RIVAL` e o rival `cerebro`):
+
+| Confronto | Placar | Bot atual |
+|---|---|---:|
+| atual × anterior, 44 decks TCG com ≥ 3 no Extra (264) | 130 × 134 | 49,2% |
+| atual × anterior, os 107 decks TCG (214) | 112 × 101 | 52,6% |
+| atual × anterior, Goat (120) | 61 × 59 | 50,8% |
+| atual × guloso, TCG (214) | 167 × 47 | 78,0% (anterior: 79,4%) |
+| atual × guloso, Goat (120) | 85 × 35 | 70,8% |
+| atual × passivo, Goat (60) | 45 × 15 | 75,0% |
+
+Leitura honesta: **empate com o bot anterior**. As regras novas consertam
+jogadas ruins específicas (os cenários provam), mas não movem o placar além
+do ruído (±4–5 pontos nessas amostras). Uma ablação (cada regra desligada,
+264 partidas cada) também ficou toda entre 46% e 49%: nenhuma regra sozinha
+atrapalha nem ajuda de forma mensurável. O "pronto quando" do plano passou —
+bot × bot roda os 107 decks sem travar (107/107) e vence o guloso em 78% —,
+mas isso já era verdade antes da fase. Força de verdade em deck moderno pede
+o que heurística por carta não dá: planejar combo (a ordem de invocações que
+abre o Extra Deck), saber o que cada efeito busca. Fica como próximo passo,
+fora deste plano.
+
+Também no harness: o guloso de referência travava duelos sozinho (declarava
+nome sem o banco oficial; tirava 0 marcadores quando o core pedia N) — isso
+contava contra o bot no placar; `test:bot -- --partidas 59,100` repete uma
+partida e o relatório mostra a resposta recusada e de quem era; partida que
+bate o teto de passos com o jogo andando (SD7 × SD7, 67 turnos de muralha)
+conta como longa, não como travada.

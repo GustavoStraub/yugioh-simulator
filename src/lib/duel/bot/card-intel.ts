@@ -28,6 +28,18 @@ export interface CardIntel {
   isCounter: boolean;
   /** Quantos monstros esta invocação normal custa: 0, 1 ou 2. */
   tributes: number;
+  /** Monstro de Fusão, Sincro, Xyz ou Link — mora no Extra Deck. */
+  isExtraDeck: boolean;
+  isXyz: boolean;
+  isLink: boolean;
+  isPendulum: boolean;
+  isTuner: boolean;
+  /** Monstro de efeito (sem o bit NORMAL). */
+  isEffect: boolean;
+  /** Link Rating; 0 fora dos Link. */
+  linkRating: number;
+  /** Escala de Pêndulo (a esquerda; as duas são iguais em quase todas). */
+  scale: number;
 }
 
 /** Carta que o banco não conhece — tratada como uma magia normal qualquer. */
@@ -46,7 +58,17 @@ const UNKNOWN: Omit<CardIntel, "code"> = {
   isQuickplay: false,
   isCounter: false,
   tributes: 0,
+  isExtraDeck: false,
+  isXyz: false,
+  isLink: false,
+  isPendulum: false,
+  isTuner: false,
+  isEffect: false,
+  linkRating: 0,
+  scale: 0,
 };
+
+const EXTRA_DECK_TYPES = OcgType.FUSION | OcgType.SYNCHRO | OcgType.XYZ | OcgType.LINK;
 
 /** Tributos exigidos por uma Invocação-Normal, pelas regras de 2005. */
 export function tributesForLevel(level: number): number {
@@ -60,13 +82,18 @@ export function readIntel(code: number, cardDb: OfficialCardDb): CardIntel {
   if (!data) return { code, ...UNKNOWN };
 
   const type = data.type;
+  const isMonster = (type & OcgType.MONSTER) !== 0;
+  const isLink = (type & OcgType.LINK) !== 0;
   return {
     code,
     type,
     atk: data.atk,
-    def: data.def,
-    level: data.level,
-    isMonster: (type & OcgType.MONSTER) !== 0,
+    // Link não tem DEF: no banco oficial essa coluna guarda as SETAS (um
+    // bitmask), e lida como defesa um Link 2 "valia" até 495 de DEF.
+    def: isLink ? 0 : data.def,
+    // E o "nível" de um Link é o Link Rating — que não pede tributo nenhum.
+    level: isLink ? 0 : data.level,
+    isMonster,
     isSpell: (type & OcgType.SPELL) !== 0,
     isTrap: (type & OcgType.TRAP) !== 0,
     isFlip: (type & OcgType.FLIP) !== 0,
@@ -75,7 +102,15 @@ export function readIntel(code: number, cardDb: OfficialCardDb): CardIntel {
     isContinuous: (type & OcgType.CONTINUOUS) !== 0,
     isQuickplay: (type & OcgType.QUICKPLAY) !== 0,
     isCounter: (type & OcgType.COUNTER) !== 0,
-    tributes: tributesForLevel(data.level),
+    tributes: isLink ? 0 : tributesForLevel(data.level),
+    isExtraDeck: isMonster && (type & EXTRA_DECK_TYPES) !== 0,
+    isXyz: (type & OcgType.XYZ) !== 0,
+    isLink,
+    isPendulum: (type & OcgType.PENDULUM) !== 0,
+    isTuner: (type & OcgType.TUNER) !== 0,
+    isEffect: isMonster && (type & OcgType.NORMAL) === 0,
+    linkRating: isLink ? data.level : 0,
+    scale: data.lscale,
   };
 }
 

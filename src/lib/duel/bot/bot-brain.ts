@@ -1,6 +1,7 @@
 import {
   OcgLocation,
   OcgMessageType,
+  OcgPhase,
   OcgPosition,
   OcgResponseType,
   SelectBattleCMDAction,
@@ -14,6 +15,7 @@ import {
   type OcgMessageSelectChain,
   type OcgMessageSelectIdlecmd,
   type OcgMessageSelectPosition,
+  type OcgMessageSelectSum,
   type OcgMessageSelectTribute,
   type OcgMessageSelectUnselectCard,
   type OcgResponse,
@@ -22,7 +24,7 @@ import {
 import { isDeclarable } from "@/lib/duel/announce-filter";
 import type { BoardCard, BoardPlayer, BoardState } from "@/lib/duel/board-state";
 import { botAutoResponse } from "@/lib/duel/bot-responder";
-import { readIntel, roleOf } from "@/lib/duel/bot/card-intel";
+import { readIntel, roleOf, type CardIntel } from "@/lib/duel/bot/card-intel";
 import {
   appraiseAttack,
   knownStats,
@@ -30,6 +32,7 @@ import {
   threatOf,
 } from "@/lib/duel/bot/combat";
 import type { OfficialCardDb } from "@/lib/duel/official-card-data";
+import { isValidSum, sumRequestOf } from "@/lib/duel/sum-selection";
 
 /**
  * Tudo que o bot pode consultar para decidir uma jogada.
@@ -49,6 +52,12 @@ export interface BotContext {
   phase: number | null;
   turnPlayer: number | null;
   turnCount: number;
+  /**
+   * Quem ativou o último elo da corrente em aberto (`null` fora de uma
+   * corrente). É o que separa "responder ao adversário" de "responder a mim
+   * mesmo" — uma hand trap no próprio elo nega a própria jogada.
+   */
+  chainPlayer?: number | null;
 }
 
 /**
@@ -80,6 +89,28 @@ const CHAIN_THRESHOLD = 45;
 
 /** Anel da Destruição — o dano volta para os DOIS jogadores. */
 const RING_OF_DESTRUCTION = 83555666;
+
+/**
+ * Invocação-Pêndulo: vários monstros de uma vez, sem gastar a Invocação-Normal
+ * nem carta nenhuma (as escalas ficam). Acima da Normal e das Especiais de
+ * procedimento — e abaixo das magias de compra, que podem trazer mais
+ * monstros para ela.
+ */
+const PENDULUM_SUMMON_SCORE = 112;
+
+/**
+ * Quanto um monstro do Extra Deck precisa valer A MAIS que os materiais para
+ * o bot fazer a troca. Trocar dois corpos por um é perder carta: só compensa
+ * com folga (um Link 1 de 300 ATK no lugar de um Battle Ox não compensa).
+ */
+const EXTRA_DECK_MIN_GAIN = 300;
+
+/** Valor presumido de um material que não está no campo (vem da mão). */
+const OFF_FIELD_MATERIAL = 800;
+
+/** Fases da Battle Phase — onde hand trap de batalha (Kuriboh, Honest) serve. */
+const BATTLE_PHASES =
+  OcgPhase.BATTLE_START | OcgPhase.BATTLE_STEP | OcgPhase.DAMAGE | OcgPhase.DAMAGE_CAL | OcgPhase.BATTLE;
 
 /** Uma jogada candidata, com a nota que a heurística lhe deu. */
 interface Plan {
@@ -184,6 +215,8 @@ export class BotBrain {
         return this.position(prompt, ctx);
       case OcgMessageType.ANNOUNCE_CARD:
         return this.announceCard(prompt.opcodes, ctx);
+      case OcgMessageType.SELECT_SUM:
+        return this.selectSum(prompt, ctx);
       default:
         return null;
     }
@@ -194,15 +227,18 @@ export class BotBrain {
    *
    * O respondedor de reserva declara sempre o Touro Guerreiro — que passa nos
    * filtros "não pode ser Extra Deck" do Goat e em nenhum outro: "declare 1
-   * 'Gadget'" virava RETRY em laço. Aqui o banco oficial é varrido com a mesma
-   * conta do core, e vai o primeiro nome que passa. Escolher BEM o nome (o que
-   * está no deck do oponente) é trabalho do bot moderno (Fase 8).
+   * 'Gadget'" virava RETRY em laço. Aqui vai a mesma conta do core
+   * (`isDeclarable`), e a ordem de preferência é o que o bot **pode saber**
+   * sem trapacear: primeiro as cartas que o adversário já mostrou (campo,
+   * cemitério, banidas — "declare uma carta; se estiver na mão dele…"),
+   * depois as do próprio bot (efeitos que declaram para buscar ou copiar), e
+   * só então o primeiro nome do banco que passar no filtro.
    */
   private announceCard(opcodes: readonly bigint[], ctx: BotContext): OcgResponse | null {
-    for (const code of ctx.cardDb.passcodes()) {
+    const passa = (code: number) => {
       const data = ctx.cardDb.get(code);
-      if (!data) continue;
-      if (
+      return (
+        data !== null &&
         isDeclarable(opcodes, {
           code,
           alias: data.alias,
@@ -211,9 +247,29 @@ export class BotBrain {
           attribute: data.attribute,
           setcodes: data.setcodes,
         })
-      ) {
-        return { type: OcgResponseType.ANNOUNCE_CARD, card: code };
-      }
+      );
+    };
+
+    let vistos: number[] = [];
+    try {
+      const [mine, foe] = lados(ctx.readBoard(true), ctx.me);
+      const publicas = (lado: BoardPlayer) => [
+        ...ocupadas(lado.monsters),
+        ...ocupadas(lado.spells),
+        ...lado.grave,
+        ...lado.banished,
+      ];
+      vistos = [...publicas(foe), ...publicas(mine), ...mine.hand]
+        .map((card) => card.code)
+        .filter((code): code is number => code !== null && code > 0);
+    } catch {
+      // Sem tabuleiro, segue só com o banco.
+    }
+    for (const code of new Set(vistos)) {
+      if (passa(code)) return { type: OcgResponseType.ANNOUNCE_CARD, card: code };
+    }
+    for (const code of ctx.cardDb.passcodes()) {
+      if (passa(code)) return { type: OcgResponseType.ANNOUNCE_CARD, card: code };
     }
     return null;
   }
@@ -240,7 +296,8 @@ export class BotBrain {
     const plans: Plan[] = [];
 
     message.activates.forEach((card, index) => {
-      const score = this.scoreActivation(card, ctx, mine, foe);
+      // `to_bp` só existe na Main Phase 1: é o "ainda dá para atacar".
+      const score = this.scoreActivation(card, ctx, mine, foe, message.to_bp);
       if (score > 0) {
         plans.push({
           score,
@@ -250,15 +307,14 @@ export class BotBrain {
       }
     });
 
-    // Invocação-Especial quase não tem custo em Goat (Bode Expiatório, Ceifador
-    // de Almas, os Fusion via Metamorfose) — vem antes da normal, que é única
-    // por turno.
     message.special_summons.forEach((card, index) => {
-      const intel = readIntel(card.code, ctx.cardDb);
-      plans.push({
-        score: 104 + Math.min(intel.atk, 3000) / 300,
-        response: idle(SelectIdleCMDAction.SELECT_SPECIAL_SUMMON, index),
-      });
+      const score = this.scoreSpecialSummon(card, ctx, mine);
+      if (score > 0) {
+        plans.push({
+          score,
+          response: idle(SelectIdleCMDAction.SELECT_SPECIAL_SUMMON, index),
+        });
+      }
     });
 
     message.summons.forEach((card, index) => {
@@ -322,6 +378,114 @@ export class BotBrain {
   }
 
   /**
+   * Quanto vale esta Invocação-Especial.
+   *
+   * Três casos bem diferentes chegam pela mesma lista:
+   *
+   * - **procedimento da mão** (Cyber Dragon, Bode Expiatório, os Fusion via
+   *   Metamorfose no Goat): quase sem custo — vem antes da Normal, que é única
+   *   por turno;
+   * - **Invocação-Pêndulo**, oferecida pela carta na escala (zona de magia):
+   *   monstros de graça;
+   * - **Extra Deck** (Sincro, Xyz, Link): custa os materiais, e o bot antigo a
+   *   fazia sempre — trocava um Battle Ox de 1700 por um Link 1 de 300.
+   */
+  private scoreSpecialSummon(
+    card: OcgCardLoc,
+    ctx: BotContext,
+    mine: BoardPlayer,
+  ): number {
+    const intel = readIntel(card.code, ctx.cardDb);
+    if (card.location === OcgLocation.SZONE) return PENDULUM_SUMMON_SCORE;
+    if (card.location === OcgLocation.EXTRA) return this.scoreExtraDeckSummon(intel, ctx, mine);
+    return 104 + Math.min(intel.atk, 3000) / 300;
+  }
+
+  /**
+   * Vale trocar os materiais por este monstro do Extra Deck?
+   *
+   * O core ainda não disse QUAIS materiais vai pedir — isso vem depois, num
+   * SELECT_CARD em que o bot entrega os de menor valor. Aqui a conta usa os
+   * mesmos: os `n` monstros mais baratos do campo, onde `n` é o Link Rating
+   * (Link) ou 2 (Sincro e Xyz, o caso de quase todos). Os materiais de Xyz
+   * pesam menos: ficam presos ao monstro e alimentam o efeito dele.
+   */
+  private scoreExtraDeckSummon(
+    intel: CardIntel,
+    ctx: BotContext,
+    mine: BoardPlayer,
+  ): number {
+    const materiais = intel.isLink ? Math.max(1, intel.linkRating) : 2;
+    const valores = ocupadas(mine.monsters)
+      .map((c) => ownValue(c, ctx.cardDb))
+      .sort((a, b) => a - b);
+    let custo = 0;
+    for (let i = 0; i < materiais; i += 1) custo += valores[i] ?? OFF_FIELD_MATERIAL;
+    if (intel.isXyz) custo *= 0.75;
+
+    // Efeito vale mais que os números — é quase sempre o motivo de existir
+    // do monstro do Extra Deck.
+    const valor = intel.atk + (intel.isEffect ? 600 : 0);
+    const ganho = valor - custo;
+    if (ganho < EXTRA_DECK_MIN_GAIN) return -1;
+    return 100 + Math.min(ganho, 3000) / 300;
+  }
+
+  /**
+   * Quanto vale pôr este Pêndulo da mão numa escala.
+   *
+   * Escala só serve se abrir uma faixa com monstro da mão para invocar: as
+   * duas escalas (a do campo, ou outro Pêndulo da mão) precisam ter algum
+   * monstro de Nível **estritamente** entre elas. Sem isso o bot gastava o
+   * Pêndulo como uma magia sem efeito, em vez de invocá-lo.
+   */
+  private scorePendulumScale(
+    card: OcgCardLoc,
+    intel: CardIntel,
+    ctx: BotContext,
+    mine: BoardPlayer,
+  ): number {
+    const naMao = mine.hand
+      .map((c) => c.code)
+      .filter((code): code is number => code !== null && code > 0);
+    // Tira da mão a própria carta (uma cópia só).
+    const resto = [...naMao];
+    const propria = resto.indexOf(card.code);
+    if (propria >= 0) resto.splice(propria, 1);
+
+    const invocaveis = (a: number, b: number, sem: number | null) => {
+      const [baixo, alto] = a < b ? [a, b] : [b, a];
+      let removida = false;
+      return resto.filter((code) => {
+        if (!removida && code === sem) {
+          removida = true;
+          return false;
+        }
+        const outro = readIntel(code, ctx.cardDb);
+        return (
+          outro.isMonster &&
+          !outro.isExtraDeck &&
+          outro.level > baixo &&
+          outro.level < alto
+        );
+      }).length;
+    };
+
+    const escalaNoCampo = [mine.spells[0], mine.spells[4]]
+      .map((c) => c?.scales?.left ?? null)
+      .find((escala) => escala !== null);
+    if (escalaNoCampo !== undefined && escalaNoCampo !== null) {
+      return invocaveis(intel.scale, escalaNoCampo, null) > 0 ? 118 : -1;
+    }
+    // Primeira escala: vale se outro Pêndulo da mão fechar uma faixa útil.
+    const fecha = resto.some((code) => {
+      const outro = readIntel(code, ctx.cardDb);
+      return outro.isPendulum && invocaveis(intel.scale, outro.scale, code) > 0;
+    });
+    return fecha ? 108 : -1;
+  }
+
+  /**
    * Quanto vale ativar esta carta agora.
    *
    * @returns nota positiva para ativar; `-1` para "não é hora".
@@ -331,11 +495,16 @@ export class BotBrain {
     ctx: BotContext,
     mine: BoardPlayer,
     foe: BoardPlayer,
+    antesDaBatalha = false,
   ): number {
     const usos = this.activations.get(chave(card)) ?? 0;
     if (usos >= SAME_CARD_ACTIVATIONS) return -1;
 
     const intel = readIntel(card.code, ctx.cardDb);
+    // Pêndulo da mão "ativado" é a carta indo para a escala, não um efeito.
+    if (card.location === OcgLocation.HAND && intel.isPendulum && intel.isMonster) {
+      return this.scorePendulumScale(card, intel, ctx, mine);
+    }
     const role = roleOf(card.code);
     const meusMonstros = ocupadas(mine.monsters);
     const monstrosDele = ocupadas(foe.monsters);
@@ -399,12 +568,28 @@ export class BotBrain {
         break;
     }
 
-    if (intel.isEquip) return meusMonstros.length > 0 ? 62 : -1;
-    if (intel.isField) return 54;
-    if (intel.isContinuous) return 50;
     // Armadilha na mão não se ativa na Main; a que já está no campo o core
     // oferece pela corrente, não por aqui.
     if (intel.isTrap) return -1;
+
+    // Main Phase 1 com ataque à vista: o que a carta faz precisa acontecer
+    // ANTES da batalha. Com as notas antigas (46–64, abaixo dos 76 de "vale
+    // atacar") o bot ia para a Battle Phase com a Polimerização, o
+    // equipamento e o efeito de ignição ainda parados, e só os jogava na Main
+    // 2 — depois dos ataques que eles teriam mudado. O core só oferece o que
+    // é legal agora; magia rápida continua guardada (o lugar dela é o turno
+    // do oponente).
+    if (antesDaBatalha && !intel.isQuickplay) {
+      if (intel.isEquip) return meusMonstros.length > 0 ? 80 : -1;
+      if (intel.isMonster) return 79;
+      if (intel.isField) return 79;
+      if (intel.isContinuous) return 77;
+      if (intel.isSpell) return 78;
+    }
+
+    if (intel.isEquip) return meusMonstros.length > 0 ? 62 : -1;
+    if (intel.isField) return 54;
+    if (intel.isContinuous) return 50;
     if (intel.isMonster) return 64;
     if (intel.isSpell) return 46;
     return 40;
@@ -558,10 +743,17 @@ export class BotBrain {
     this.battleSteps += 1;
     const cmd = (action: SelectBattleCMDAction, index: number | null) =>
       ({ type: OcgResponseType.SELECT_BATTLECMD, action, index }) as OcgResponse;
-    const encerrar = () =>
-      message.to_m2
-        ? cmd(SelectBattleCMDAction.TO_M2, null)
-        : cmd(SelectBattleCMDAction.TO_EP, null);
+    const encerrar = () => {
+      if (message.to_m2) return cmd(SelectBattleCMDAction.TO_M2, null);
+      if (message.to_ep) return cmd(SelectBattleCMDAction.TO_EP, null);
+      // Nem Main 2 nem End Phase oferecidas: algum efeito obriga a atacar
+      // (visto com o Dark Eradicator Warlock do SD6). Pedir a End Phase assim
+      // era resposta inválida — RETRY até o duelo ser interrompido. Ataca com
+      // o primeiro que puder; o alvo sai do SELECT_CARD de sempre.
+      if (message.attacks.length > 0) return cmd(SelectBattleCMDAction.SELECT_BATTLE, 0);
+      if (message.chains.length > 0) return cmd(SelectBattleCMDAction.SELECT_CHAIN, 0);
+      return cmd(SelectBattleCMDAction.TO_EP, null);
+    };
 
     if (this.battleSteps > BATTLE_BUDGET) return encerrar();
 
@@ -672,6 +864,21 @@ export class BotBrain {
     // carta — errar para o lado de guardar custa o duelo.
     const turnoDele = ctx.turnPlayer === null || ctx.turnPlayer !== ctx.me;
     const monstrosDele = ocupadas(foe.monsters);
+    const eloMeu = ctx.chainPlayer === ctx.me;
+    const eloDele = ctx.chainPlayer !== undefined && ctx.chainPlayer !== null && ctx.chainPlayer !== ctx.me;
+
+    // Hand trap — efeito de monstro ativado DA MÃO. Nunca contra o próprio
+    // elo: a Ash Blossom pega qualquer "adicionar do Deck", inclusive o do
+    // bot, e ele negava a própria busca. Fora disso, é a resposta ao
+    // adversário: vale contra um elo dele, no turno dele, ou na batalha
+    // (Kuriboh, Honest). No próprio turno sem nada dele em jogo, guarda.
+    if (card.location === OcgLocation.HAND && intel.isMonster) {
+      if (eloMeu) return -1;
+      const naBatalha = ctx.phase !== null && (ctx.phase & BATTLE_PHASES) !== 0;
+      return eloDele || turnoDele || naBatalha ? 72 : -1;
+    }
+    // Contra-armadilha no próprio elo negaria a própria carta.
+    if (intel.isCounter && eloMeu) return -1;
 
     switch (role) {
       case "battleTrap":
@@ -838,7 +1045,59 @@ export class BotBrain {
         melhor = index;
       }
     });
+    // Já dá para encerrar e o que sobra é CUSTO (carta própria: material,
+    // descarte): para no mínimo. Seguir marcando enquanto houvesse candidata
+    // entregava cartas a mais — "envie até 3" virava sempre 3.
+    if (message.can_finish && melhorScore < 0) {
+      return { type: OcgResponseType.SELECT_UNSELECT_CARD, index: null };
+    }
     return { type: OcgResponseType.SELECT_UNSELECT_CARD, index: melhor };
+  }
+
+  /**
+   * SELECT_SUM (materiais de Sincro por Nível, tributo de Ritual): entre as
+   * combinações que o core aceita (`isValidSum`, a mesma conta da tela),
+   * a que custa menos. O respondedor de reserva pegava a primeira válida com
+   * menos cartas — às vezes o melhor monstro do campo.
+   */
+  private selectSum(
+    message: OcgMessageSelectSum,
+    ctx: BotContext,
+  ): OcgResponse | null {
+    const request = sumRequestOf(message);
+    const n = request.selects.length;
+    if (isValidSum(request, [])) return { type: OcgResponseType.SELECT_SUM, indicies: [] };
+    // Acima de 16 a busca exaustiva fica cara; o respondedor de reserva cuida.
+    if (n === 0 || n > 16) return null;
+
+    const board = ctx.readBoard(false);
+    const custo = request.selects.map((card) => {
+      if (card.controller === ctx.me && card.location === OcgLocation.MZONE) {
+        const noCampo = board.players[ctx.me].monsters[card.sequence];
+        if (noCampo) return ownValue(noCampo, ctx.cardDb);
+      }
+      const intel = readIntel(card.code, ctx.cardDb);
+      return Math.max(intel.atk, intel.def);
+    });
+
+    let melhor: number[] | null = null;
+    let melhorCusto = Infinity;
+    for (let mask = 1; mask < 1 << n; mask += 1) {
+      const escolhidas: number[] = [];
+      let total = 0;
+      for (let i = 0; i < n; i += 1) {
+        if (mask & (1 << i)) {
+          escolhidas.push(i);
+          total += custo[i];
+        }
+      }
+      if (total > melhorCusto) continue;
+      if (total === melhorCusto && melhor && escolhidas.length >= melhor.length) continue;
+      if (!isValidSum(request, escolhidas)) continue;
+      melhor = escolhidas;
+      melhorCusto = total;
+    }
+    return melhor ? { type: OcgResponseType.SELECT_SUM, indicies: melhor } : null;
   }
 
   private tribute(
