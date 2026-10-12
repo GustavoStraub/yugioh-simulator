@@ -608,3 +608,23 @@ inteiro.
   `test:hidden` falhava já no `main` — a Boneca Chamariz não tinha alvo porque
   o bot passou a ativar a magia que o teste esperava que ele baixasse; o
   oponente agora baixa Cilindro Mágico.
+
+### Fase 1 — feita
+
+- Binding 0.1.3 → **0.1.4**. Escala direita e setas Link chegam ao core (a
+  leitura de volta do `test:modern-summons` bate com o banco oficial) e a
+  **Invocação-Pêndulo é oferecida** e resolve com os dois monstros da faixa.
+- `card-adapter.ts` (`linkFields`) e o `toOcgData` do harness mandam a coluna
+  `def` dos Link como setas, com DEF 0.
+- Formato no motor: `DuelSessionConfig.format` escolhe `MODE_GOAT` ou
+  `MODE_MR5`, entra no `DuelSnapshot` (a mesa vai precisar dele) e as regras de
+  construção viraram `FORMAT_RULES` por formato. `npm run test:formats` confere
+  a regra observável de fora: Goat compra no 1º turno (6 cartas), TCG não (5).
+- Bateria Goat no core novo: **0 vereditos mudaram** em 3.108 cenários;
+  gatilhos, arquétipos, UI, bot, multiplayer e afins iguais. Pool TCG: 0 erros
+  de Lua, só as 2 falhas conhecidas do piloto. Duelo no navegador (build de
+  produção) com o wasm novo: 250 ações, 0 erros.
+- A emenda do `chain.lua` ficou desnecessária com o core novo (Charm of Shabti
+  resolve com `SKIP_SCRIPT_PATCHES=1`); continua como rede de segurança.
+- O que sobra no `test:modern-summons` é a mesa (Fase 2): zonas 5–6 invisíveis
+  para a tela, plano vazio no SELECT_PLACE do Link e o Link fora da mesa.

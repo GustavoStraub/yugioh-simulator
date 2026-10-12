@@ -64,7 +64,11 @@ const PATCHES: ScriptPatch[] = [
       "(`return_equals_any` e `chain_prop` testam `nil` e seguem adiante). " +
       "Qualquer outra flag continua estourando de verdade: um erro real não " +
       "pode virar silêncio. E quando o core for atualizado, o `pcall` passa a " +
-      "ter sucesso e o valor verdadeiro volta sozinho, sem mexer aqui.",
+      "ter sucesso e o valor verdadeiro volta sozinho, sem mexer aqui.\n\n" +
+      "Com o binding 0.1.4 (core de agosto de 2026) isso já aconteceu: " +
+      "`SKIP_SCRIPT_PATCHES=1` com Charm of Shabti resolve sem erro. A emenda " +
+      "ficou como rede de segurança para um core mais antigo; pode sair quando " +
+      "ninguém mais rodar o 0.1.3.",
     from: anchor(`local function chaininfo_fn(info)
 	return function(ch)
 		return Duel.GetChainInfo(ch or 0,info)

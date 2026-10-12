@@ -142,8 +142,23 @@ function materialChoice(message) {
   if (message.type === OcgMessageType.SELECT_EFFECTYN) {
     return { type: OcgResponseType.SELECT_EFFECTYN, yes: false };
   }
+  // Seleção com teto (a Invocação-Pêndulo pergunta quais monstros descem):
+  // marca tudo o que o core deixa, para invocar todos os da faixa.
+  if (message.type === OcgMessageType.SELECT_CARD) {
+    const count = Math.max(message.min, Math.min(message.max, message.selects.length));
+    return {
+      type: OcgResponseType.SELECT_CARD,
+      indicies: Array.from({ length: count }, (_, index) => index),
+    };
+  }
   if (message.type !== OcgMessageType.SELECT_UNSELECT_CARD) return null;
-  if (message.can_finish) return { type: OcgResponseType.SELECT_UNSELECT_CARD, index: null };
+  // Marca enquanto houver candidato; conclui quando o core deixa e não sobra
+  // nada. A Invocação-Pêndulo deixa concluir já com um monstro — e manda
+  // `max: 1`, que é o passo, não o total —, então parar no primeiro "pode
+  // concluir" deixava o segundo monstro da faixa na mão.
+  if (message.select_cards.length === 0 && message.can_finish) {
+    return { type: OcgResponseType.SELECT_UNSELECT_CARD, index: null };
+  }
   return { type: OcgResponseType.SELECT_UNSELECT_CARD, index: 0 };
 }
 

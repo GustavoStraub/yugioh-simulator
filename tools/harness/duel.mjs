@@ -77,6 +77,18 @@ export const Zone = {
  */
 const LEGACY = process.env.LEGACY_CARD_DATA === "1";
 
+/** TYPE_LINK do core. */
+const TYPE_LINK = 0x4000000;
+
+/**
+ * Num monstro Link a coluna `def` do `cards.cdb` são as SETAS, não DEF — o
+ * mesmo ajuste de `linkFields` em `card-adapter.ts` (que o harness não importa
+ * porque usa o atalho `@/`).
+ */
+function linkFields(type, def) {
+  return type & TYPE_LINK ? { defense: 0, link_marker: def } : { defense: def, link_marker: 0 };
+}
+
 function toOcgData(code, db) {
   const official = db.get(code);
   if (official) {
@@ -97,10 +109,9 @@ function toOcgData(code, db) {
       attribute: official.attribute,
       race: BigInt(official.race),
       attack: official.atk,
-      defense: official.def,
       lscale: official.lscale,
       rscale: official.rscale,
-      link_marker: 0,
+      ...linkFields(official.type, official.def),
     };
   }
   // Ficha neutra: devolver null aqui aborta a carta que criou o código.

@@ -12,6 +12,10 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Fora do git: downloads (CardScripts, cards.cdb), relatórios e scripts
+    // de diagnóstico descartáveis do harness; e a biblioteca de decks.
+    ".cache/**",
+    ".data/**",
   ]),
 ]);
 

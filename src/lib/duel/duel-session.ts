@@ -43,8 +43,8 @@ import {
 } from "@/lib/duel/win-reason";
 import { preloadCoreScripts, preloadDuelScripts } from "@/lib/duel/script-reader";
 import type { CardRegistry } from "@/lib/domain/card-registry";
-import type { CardDefinition } from "@/lib/types";
-import type { DuelDeckPayload } from "@/lib/types";
+import { DEFAULT_FORMAT, FORMAT_RULES } from "@/lib/types";
+import type { CardDefinition, DuelDeckPayload, DuelFormat } from "@/lib/types";
 
 /**
  * Quem responde por um assento.
@@ -82,6 +82,11 @@ export interface DuelSessionConfig {
   seats?: [SeatConfig, SeatConfig];
   /** De onde vêm wasm, scripts e dados. Omitido = navegador. */
   assets?: DuelAssets;
+  /**
+   * Regras do duelo. Omitido = Goat, o formato de todo deck salvo antes do
+   * TCG existir no app.
+   */
+  format?: DuelFormat;
 }
 
 /**
@@ -144,6 +149,14 @@ export interface DuelChainLink {
 
 export interface DuelSnapshot {
   /**
+   * Formato do duelo em andamento.
+   *
+   * A mesa precisa dele para desenhar o que a regra tem: Zonas de Monstro
+   * Extra e escalas de Pêndulo só existem no TCG — no Goat a mesa continua a
+   * de 2005, com cinco zonas por fileira.
+   */
+  format: DuelFormat;
+  /**
    * Tabuleiro na ótica de cada assento — `null` onde ninguém olha (o bot).
    *
    * É por ótica, e não um estado só, porque a máscara de carta virada e de mão
@@ -195,7 +208,17 @@ export interface DuelSnapshot {
   error: string | null;
 }
 
-const GOAT_DUEL_FLAGS = OcgDuelMode.MODE_GOAT;
+/**
+ * Flags do core por formato.
+ *
+ * `MODE_GOAT` liga as regras de 2005 que o core implementa (compra no primeiro
+ * turno, uma Magia de Campo por vez, prioridade de Ignição, Damage Step de
+ * seis passos); `MODE_MR5` é a Master Rule 2020, a vigente.
+ */
+const DUEL_FLAGS: Record<DuelFormat, bigint> = {
+  goat: OcgDuelMode.MODE_GOAT,
+  tcg: OcgDuelMode.MODE_MR5,
+};
 
 /** Um RETRY é recuperável; muitos seguidos significam resposta impossível. */
 const MAX_CONSECUTIVE_RETRIES = 5;
@@ -346,7 +369,9 @@ export class DuelSession {
     this.registry = config.registry;
     this.seats = config.seats ?? DEFAULT_SEATS;
     this.assets = config.assets ?? browserAssets;
-    this.update({ error: null, isProcessing: true, log: [] });
+    const format = config.format ?? DEFAULT_FORMAT;
+    const rules = FORMAT_RULES[format];
+    this.update({ error: null, isProcessing: true, log: [], format });
     this.appendLog("Carregando engine...");
 
     /** Códigos que o catálogo não tinha — quase sempre fichas. */
@@ -419,19 +444,16 @@ export class DuelSession {
       );
 
       const core = this.core;
+      const team = {
+        startingLP: rules.startingLp,
+        startingDrawCount: rules.startingHandSize,
+        drawCountPerTurn: rules.drawPerTurn,
+      };
       const handle = core.createDuel({
-        flags: GOAT_DUEL_FLAGS,
+        flags: DUEL_FLAGS[format],
         seed: randomSeed(),
-        team1: {
-          startingLP: 8000,
-          startingDrawCount: 5,
-          drawCountPerTurn: 1,
-        },
-        team2: {
-          startingLP: 8000,
-          startingDrawCount: 5,
-          drawCountPerTurn: 1,
-        },
+        team1: team,
+        team2: team,
         cardReader: (code) => {
           const card = config.registry.get(code);
           if (card) return cardDefinitionToOcgData(card, this.cardDb);
@@ -1289,6 +1311,7 @@ export class DuelSession {
 
 function createInitialSnapshot(): DuelSnapshot {
   return {
+    format: DEFAULT_FORMAT,
     boards: [null, null],
     lifePoints: [8000, 8000],
     turnPlayer: null,

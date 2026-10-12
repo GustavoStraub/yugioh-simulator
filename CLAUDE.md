@@ -80,9 +80,9 @@ CardScripts is pinned to one commit (`src/lib/duel/cardscripts-pin.ts`) for the 
 
 ## Gotchas
 
-- Duel rules are hard-coded to `OcgDuelMode.MODE_GOAT` (`duel-session.ts` and the harness `duel.mjs`).
 - In the harness, `createDuel({ place })` creates Extra Deck cards **face-down**, as the app does; a face-up Extra Deck under MR4/MR5 confines Synchro/Xyz to the Extra Monster Zone. `createDuel({ mode })` picks the rules (Goat by default).
-- `@n1xx1/ocgcore-wasm` 0.1.3 writes the Pendulum right scale and Link markers at the wrong struct offsets (both reach the core as 0); 0.1.4 fixes it. Irrelevant for Goat, blocking for Pendulum/Link — see `docs/tcg-completo.md`.
+- `@n1xx1/ocgcore-wasm` must stay ≥ 0.1.4: 0.1.3 wrote the Pendulum right scale and Link markers at the wrong struct offsets (both reached the core as 0, so Pendulum Summon was never offered). On our side, a Link monster's `def` column in `cards.cdb` holds its **arrows** — `card-adapter.ts` (`linkFields`) and the harness `toOcgData` send it as `link_marker` with `defense: 0`. `test:modern-summons` reads both back from the core.
+- Duel rules come from the format: `DuelSessionConfig.format` (`"goat"` default → `MODE_GOAT`, `"tcg"` → `MODE_MR5`); per-format deck rules live in `FORMAT_RULES` (`types/duel.ts`). `test:formats` checks the session really runs each ruleset.
 - The binding sometimes throws `Error: eof` while deserializing a message (e.g. `SHUFFLE_SET_CARD`); both loops treat it as recoverable, with a cap — keep that.
 - To stop a server you started, kill it by port or PID — never `pkill -f server.mjs`, which also kills the user's dev server.
 - `.env.github` (git-ignored) may hold a GitHub token used for pushes — never print it.
