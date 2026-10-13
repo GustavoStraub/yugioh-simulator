@@ -16,7 +16,9 @@ export function AppNav() {
   const pathname = usePathname();
 
   return (
-    <nav className="flex items-center gap-2 text-sm">
+    // No celular os quatro itens não cabem lado a lado em `text-sm`: encolhem
+    // e, no limite, rolam — nunca quebram linha nem empurram o PT/EN para fora.
+    <nav className="flex min-w-0 items-center gap-1 overflow-x-auto whitespace-nowrap text-[12px] sm:gap-2 sm:text-sm">
       {NAV_ITEMS.map(({ href, label }) => {
         // O item mais específico ganha: sem isto `/duel/online` acenderia
         // "vs Bot" junto, porque o prefixo bate nos dois.
@@ -35,7 +37,7 @@ export function AppNav() {
           <Link
             key={href}
             href={href}
-            className={`rounded-full px-3 py-1 transition ${
+            className={`shrink-0 rounded-full px-2 py-1 transition sm:px-3 ${
               active
                 ? "bg-amber-600/20 text-amber-300"
                 : "text-zinc-400 hover:bg-zinc-900 hover:text-zinc-200"
@@ -62,7 +64,7 @@ function LanguageToggle() {
 
   return (
     <div
-      className="ml-1 flex overflow-hidden rounded-full border border-zinc-800"
+      className="ml-1 flex shrink-0 overflow-hidden rounded-full border border-zinc-800"
       role="group"
       aria-label="Idioma das cartas"
     >

@@ -507,6 +507,44 @@ body {
   animation: tf-delayed-in 1.1s ease-out both;
 }
 
+/* ----- Toque e telas pequenas ----------------------------------------------
+   Dedo não é mouse: alvos maiores, e o toque longo numa carta é a leitura
+   dela (não o menu do navegador nem a seleção de texto). */
+.tf-touch-card {
+  -webkit-touch-callout: none;
+  user-select: none;
+  touch-action: manipulation;
+}
+
+@media (pointer: coarse) {
+  .tf-menu-item {
+    min-width: 200px;
+    padding-top: 0.85rem;
+    padding-bottom: 0.85rem;
+    font-size: 15px;
+  }
+
+  [data-phase] {
+    min-height: 2.75rem;
+  }
+
+  [data-decision-dialog] button,
+  [data-duel-settings-panel] button,
+  [data-duel-settings-panel] label {
+    min-height: 2.5rem;
+  }
+}
+
+/* Mesa estreita (tablet em pé, celular): a leitura da carta sai do trilho
+   esquerdo (vira folha, no toque longo) e o histórico vira painel; o trilho
+   direito fica só com as fases. Ver `NARROW_TABLE_QUERY`. */
+@media (max-width: 900px) {
+  :root {
+    --tf-rail-left: 0px;
+    --tf-rail-right: 88px;
+  }
+}
+
 /* Moeda girando e dado rolando. */
 @keyframes tf-coin-spin {
   0% { transform: rotateY(0deg) scale(0.6); opacity: 0; }

@@ -329,5 +329,50 @@ console.log("\n3. Informação oculta: Giant Trunade devolve a Armadilha baixada
   );
 }
 
+// ---------------------------------------------------------------------------
+console.log("\n5. O bot começa: quem joga senta no assento 1");
+{
+  // O core sempre dá o primeiro turno ao assento 0. "O bot começa" é o
+  // jogador no assento 1 — o deck dele, o cenário escrito como "player 0 =
+  // você" e as perguntas, todos no 1. Assentos padrão (sem `seats`): o bot
+  // de verdade joga o turno dele.
+  const session = createDuelSession();
+  let snap = null;
+  session.subscribe((s) => {
+    snap = s;
+  });
+  void session.start({
+    playerName: "Ana",
+    playerDeck: { main: Array(40).fill(C.horseman), extra: [], side: [] },
+    opponentName: "Bot",
+    opponentDeck: { main: Array(40).fill(C.celtic), extra: [], side: [] },
+    registry,
+    assets: nodeAssets,
+    format: "tcg",
+    pace: 0,
+    humanSeat: 1,
+    openingNote: "🪙 Moeda: o oponente começa",
+    scenario: [{ player: 0, location: OcgLocation.HAND, code: C.potOfGreed }],
+  });
+  const limite = Date.now() + 60_000;
+  while (Date.now() < limite && !(snap?.pendingPrompt && snap.promptPlayer === 1 && !snap.isProcessing)) {
+    await sleep(5);
+    if (snap?.error) throw new Error(snap.error);
+  }
+  const textos = snap.log.map((linha) => linha.text);
+  conferir(textos.some((t) => t === "🪙 Moeda: o oponente começa"), "a linha da moeda entra no histórico");
+  conferir(textos.some((t) => t === "Turno 1 — O oponente"), "o turno 1 é do bot", textos.filter((t) => t.startsWith("Turno")).join(" | "));
+  conferir(snap.promptPlayer === 1, "a pergunta chega ao assento 1 (quem joga)");
+  const minhaMao = snap.boards[1]?.players[1].hand.map((carta) => carta.code) ?? [];
+  conferir(
+    minhaMao.includes(C.potOfGreed) && minhaMao.every((code) => code === C.potOfGreed || code === C.horseman),
+    "a mão do assento 1 é a do deck de quem joga, com a carta do cenário",
+    JSON.stringify(minhaMao),
+  );
+  conferir(snap.boards[0] === null, "o assento do bot não tem tabuleiro lido (ninguém olha)");
+  session.surrender(1);
+  conferir(snap.winner === 0, "render-se no assento 1 dá a vitória ao bot (assento 0)");
+}
+
 console.log(falhas.length === 0 ? "\nOK — histórico e saídas do campo" : `\nFALHOU (${falhas.length}): ${falhas.join("; ")}`);
 process.exit(falhas.length === 0 ? 0 : 1);

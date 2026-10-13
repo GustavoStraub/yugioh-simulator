@@ -13,6 +13,7 @@ import { SPEED_SCALE } from "@/lib/duel/duel-prefs";
 import {
   DUEL_SETUP_STORAGE_KEY,
   loadDuelSetup,
+  resolveFirstTurn,
   type StoredDuelSetup,
 } from "@/lib/duel/duel-storage";
 import type { DuelSessionConfig } from "@/lib/duel/duel-session";
@@ -26,7 +27,20 @@ function DuelLoading() {
   );
 }
 
-function DuelPlayInner({ onRematch }: { onRematch: () => void }) {
+/** Quem começa nesta partida, quando a revanche sorteou de novo. */
+interface Partida {
+  n: number;
+  humanSeat?: 0 | 1;
+  openingNote?: string;
+}
+
+function DuelPlayInner({
+  partida,
+  onRematch,
+}: {
+  partida: Partida;
+  onRematch: (next: Omit<Partida, "n">) => void;
+}) {
   const router = useRouter();
   const { registry, isLoading, error } = useCardRegistry();
 
@@ -58,10 +72,14 @@ function DuelPlayInner({ onRematch }: { onRematch: () => void }) {
             registry,
             format: formatOf(setup.format),
             scenario: setup.scenario,
+            humanSeat: partida.humanSeat ?? setup.humanSeat ?? 0,
+            openingNote: partida.n > 0 ? partida.openingNote : setup.openingNote,
           }
         : null,
-    [setup, registry],
+    [setup, registry, partida],
   );
+  /** O assento de quem joga — 1 quando o bot começa. */
+  const me: 0 | 1 = config?.humanSeat === 1 ? 1 : 0;
 
   const { snapshot, respond, surrender, subscribeEvents, setChainPreference, setPace, hurry } =
     useDuelEngine(mounted ? config : null);
@@ -102,8 +120,8 @@ function DuelPlayInner({ onRematch }: { onRematch: () => void }) {
   return (
     <DuelBoard
       snapshot={snapshot}
-      // Duelo local: você é sempre o assento 0, o bot é o 1.
-      me={0}
+      // Duelo local: você é o assento 0, ou o 1 quando o bot começa.
+      me={me}
       playerName={setup.playerName}
       opponentName={setup.opponentName}
       onRespond={(response) => void respond(response)}
@@ -114,7 +132,17 @@ function DuelPlayInner({ onRematch }: { onRematch: () => void }) {
       onForceAsk={forceAsk}
       onHurry={hurry}
       pacing="local"
-      ending={{ backHref: "/duel", backLabel: "Voltar ao lobby", onRematch }}
+      ending={{
+        backHref: "/duel",
+        backLabel: "Voltar ao lobby",
+        // Revanche: com "moeda" a moeda cai de novo; senão, a mesma ordem.
+        onRematch: () =>
+          onRematch(
+            setup.firstTurn === "coin"
+              ? resolveFirstTurn("coin")
+              : { humanSeat: me, openingNote: undefined },
+          ),
+      }}
     />
   );
 }
@@ -126,10 +154,14 @@ export function DuelPlayApp() {
    * sessionStorage). Mais simples e mais seguro do que "zerar" uma sessão
    * do engine que já terminou.
    */
-  const [partida, setPartida] = useState(0);
+  const [partida, setPartida] = useState<Partida>({ n: 0 });
   return (
     <CardRegistryProvider>
-      <DuelPlayInner key={partida} onRematch={() => setPartida((n) => n + 1)} />
+      <DuelPlayInner
+        key={partida.n}
+        partida={partida}
+        onRematch={(next) => setPartida((atual) => ({ n: atual.n + 1, ...next }))}
+      />
     </CardRegistryProvider>
   );
 }

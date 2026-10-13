@@ -16,6 +16,36 @@ export interface StoredDuelSetup {
    * os testes de navegador, que montam o duelo direto no `sessionStorage`.
    */
   scenario?: ScenarioCard[];
+  /**
+   * Quem começa, como foi escolhido no lobby. `coin` é sorteado de novo a
+   * cada partida (a revanche joga a moeda outra vez).
+   */
+  firstTurn?: FirstTurnChoice;
+  /** O assento de quem joga nesta partida (1 = o bot começa). Ausente = 0. */
+  humanSeat?: 0 | 1;
+  /** A linha da moeda, quando houve sorteio. */
+  openingNote?: string;
+}
+
+export type FirstTurnChoice = "me" | "bot" | "coin";
+
+/**
+ * Resolve quem começa: o assento de quem joga e, na moeda, a frase do
+ * resultado. Chamada num clique (lobby, revanche) — nunca durante o render.
+ */
+export function resolveFirstTurn(choice: FirstTurnChoice | undefined): {
+  humanSeat: 0 | 1;
+  openingNote?: string;
+} {
+  if (choice === "bot") return { humanSeat: 1 };
+  if (choice === "coin") {
+    const comeco = Math.random() < 0.5;
+    return {
+      humanSeat: comeco ? 0 : 1,
+      openingNote: comeco ? "🪙 Moeda: você começa" : "🪙 Moeda: o oponente começa",
+    };
+  }
+  return { humanSeat: 0 };
 }
 
 export function saveDuelSetup(setup: StoredDuelSetup): void {

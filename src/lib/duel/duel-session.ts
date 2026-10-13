@@ -143,6 +143,18 @@ export interface DuelSessionConfig {
    * meio do duelo por `setPace`.
    */
   pace?: number;
+  /**
+   * Em que assento senta quem joga (`playerDeck`) — padrão 0.
+   *
+   * O core SEMPRE dá o primeiro turno ao assento 0, então "o bot começa" é o
+   * jogador sentar no 1: o `playerDeck` vai para o assento 1, o do oponente
+   * para o 0, e os assentos padrão se invertem. O `scenario` continua
+   * escrito do ponto de vista de quem joga (`player: 0` = você) e é traduzido.
+   * Ignorado quando `seats` vem explícito (o online já monta os dois).
+   */
+  humanSeat?: 0 | 1;
+  /** Uma linha logo depois de "Duelo iniciado" — o resultado da moeda. */
+  openingNote?: string;
 }
 
 /**
@@ -556,7 +568,9 @@ export class DuelSession {
     if (this.started) return;
     this.started = true;
     this.registry = config.registry;
-    this.seats = config.seats ?? DEFAULT_SEATS;
+    const humanSeat: 0 | 1 = config.humanSeat === 1 ? 1 : 0;
+    this.seats =
+      config.seats ?? (humanSeat === 0 ? DEFAULT_SEATS : [DEFAULT_SEATS[1], DEFAULT_SEATS[0]]);
     // O que o assento trouxe vale; senão fica o que a tela já pediu antes do
     // `start` (a preferência pode chegar antes de o duelo carregar).
     this.chainModes = [
@@ -691,14 +705,16 @@ export class DuelSession {
         }
       }
 
-      this.loadDeck(0, config.playerDeck);
-      this.loadDeck(1, config.opponentDeck);
+      this.loadDeck(humanSeat, config.playerDeck);
+      this.loadDeck((1 - humanSeat) as 0 | 1, config.opponentDeck);
       for (const card of scenario) {
+        // `player: 0` é quem joga — no assento que ele ocupar.
+        const assento = (card.player === 0 ? humanSeat : 1 - humanSeat) as 0 | 1;
         core.duelNewCard(handle, {
-          team: card.player,
+          team: assento,
           duelist: 0,
           code: card.code,
-          controller: card.player,
+          controller: assento,
           location: card.location as OcgLocation,
           sequence: card.sequence ?? 0,
           position: (card.position ??
@@ -713,6 +729,7 @@ export class DuelSession {
       this.appendLog(
         `Duelo iniciado — ${config.playerName} vs ${config.opponentName}`,
       );
+      if (config.openingNote) this.appendLog(config.openingNote);
 
       await this.core.startDuel(handle);
       await this.runLoop();
