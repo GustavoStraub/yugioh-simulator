@@ -192,7 +192,9 @@ async function main() {
       "destaque do elo 2: o oponente ativou a Ash Blossom, da mão",
       ativou2,
     );
-    conferir(/Efeito negado .*\bNegado\b/i.test(negou1), "o elo 1 volta em destaque com EFEITO NEGADO e o carimbo", negou1);
+    // O carimbo segue as faixas do MD, em inglês estilizado ("NEGATED"); o
+    // rótulo de cima continua em português.
+    conferir(/Efeito negado .*\bNEGATED\b/i.test(negou1), "o elo 1 volta em destaque com EFEITO NEGADO e o carimbo", negou1);
 
     // O que a carta faz, sem depender do "deseja responder?": o destaque
     // traz o texto, e a leitura da esquerda vai para cada carta ativada.

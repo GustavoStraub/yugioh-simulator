@@ -104,8 +104,8 @@ const BEAT: Partial<Record<OcgMessageType, number>> = {
  * Deck é só um deslize.
  */
 export const LEAVE_MS = {
-  battle: 520,
-  destroy: 520,
+  battle: 640,
+  destroy: 640,
   tribute: 360,
   material: 300,
   grave: 360,

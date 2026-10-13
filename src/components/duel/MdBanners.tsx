@@ -42,3 +42,31 @@ export function PhaseBanner({ banner }: { banner: DuelBanner | null }) {
     </div>
   );
 }
+
+/**
+ * "Final Blow!": as duas faixas verde-limão que descem pelas laterais da tela
+ * do Master Duel quando o ataque declarado tira todos os LP de quem o recebe.
+ * Só decoração — quem decide o fim é o core; se um efeito salvar, o duelo
+ * segue (como no MD, que também anuncia pelo que está na mesa).
+ */
+export function FinalBlow({ token, duration }: { token: number | null; duration: number }) {
+  if (token === null) return null;
+  const frase = Array.from({ length: 8 }, () => "Final Blow !").join("  ");
+  return (
+    <div
+      key={token}
+      aria-hidden
+      data-final-blow
+      className="md-final-blow"
+      style={{ ["--md-final-ms" as string]: `${duration}ms` }}
+    >
+      <div className="md-final-blow-flash" />
+      <div className="md-final-blow-side md-final-blow-left">
+        <span>{frase}</span>
+      </div>
+      <div className="md-final-blow-side md-final-blow-right">
+        <span>{frase}</span>
+      </div>
+    </div>
+  );
+}

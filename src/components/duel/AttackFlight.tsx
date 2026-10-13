@@ -9,6 +9,13 @@ import type { AttackFlight as AttackFlightData } from "@/hooks/useDuelFeedback";
 interface Flight {
   token: number;
   image: string | null;
+  /** Quem ataca é quem olha a mesa — azul; senão, vermelho. */
+  mine: boolean;
+  /** Centro do atacante e do alvo, em coordenadas do campo — a seta e o impacto. */
+  from: { x: number; y: number };
+  to: { x: number; y: number };
+  /** Ataque direto: a seta vai até a borda do lado atingido. */
+  direct: boolean;
   /**
    * Rotação que a carta já tinha na zona (180° do lado do oponente, 90° em
    * defesa). O fantasma precisa nascer com ela; sem isso o monstro do
@@ -77,8 +84,10 @@ export function AttackFlightLayer({
     const originEl = zone(flight.from);
     if (!originEl) return;
 
+    // A carta de pé (o que se vê), e não a zona deitada embaixo dela.
+    const plano = (el: HTMLElement) => el.querySelector<HTMLElement>(".md-card-plane") ?? el;
     const fieldBox = field.getBoundingClientRect();
-    const originBox = originEl.getBoundingClientRect();
+    const originBox = plano(originEl).getBoundingClientRect();
 
     const originCenter = {
       x: originBox.left - fieldBox.left + originBox.width / 2,
@@ -89,7 +98,7 @@ export function AttackFlightLayer({
     let targetCenter: { x: number; y: number };
 
     if (targetEl) {
-      const box = targetEl.getBoundingClientRect();
+      const box = plano(targetEl).getBoundingClientRect();
       targetCenter = {
         x: box.left - fieldBox.left + box.width / 2,
         y: box.top - fieldBox.top + box.height / 2,
@@ -129,6 +138,10 @@ export function AttackFlightLayer({
     setActive({
       token: flight.token,
       image: originEl.querySelector("img")?.getAttribute("src") ?? null,
+      mine: flight.mine,
+      from: originCenter,
+      to: targetCenter,
+      direct: !targetEl,
       spin: apenasRotacao,
       box: {
         x: originBox.left - fieldBox.left,
@@ -212,25 +225,64 @@ export function AttackFlightLayer({
 
   if (!active) return null;
 
+  const total = WIND_UP_MS + LUNGE_MS + HOLD_MS + RETURN_MS;
+  const duracao = Math.max(1, Math.round(total * active.scale));
+  // A seta do MD: um feixe do atacante até o alvo, que acende na declaração e
+  // some quando a carta bate; o impacto estoura no alvo no fim da investida.
+  const dx = active.to.x - active.from.x;
+  const dy = active.to.y - active.from.y;
+  const comprimento = Math.hypot(dx, dy);
+  const angulo = (Math.atan2(dy, dx) * 180) / Math.PI;
+  const impactoEm = Math.round((WIND_UP_MS + LUNGE_MS) * active.scale);
+
   return (
-    <div
-      ref={ghostRef}
-      key={active.token}
-      className="pointer-events-none absolute z-40 overflow-hidden rounded shadow-2xl shadow-black/80 ring-2 ring-red-400"
-      style={{
-        left: active.box.x,
-        top: active.box.y,
-        width: active.box.w,
-        height: active.box.h,
-      }}
-    >
-      {active.image ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img src={active.image} alt="" className="h-full w-full object-cover" />
-      ) : (
-        <div className="tf-card-back h-full w-full" />
-      )}
-      <span className="absolute inset-0 bg-red-500/20" />
-    </div>
+    <>
+      <div
+        key={`beam-${active.token}`}
+        aria-hidden
+        className={`md-attack-beam ${active.mine ? "md-attack-beam-me" : "md-attack-beam-foe"}`}
+        style={{
+          left: active.from.x,
+          top: active.from.y,
+          width: comprimento,
+          transform: `rotate(${angulo}deg)`,
+          ["--md-beam-ms" as string]: `${duracao}ms`,
+        }}
+      >
+        <span className="md-attack-beam-core" />
+        <span className="md-attack-beam-head" />
+      </div>
+      <div
+        key={`impact-${active.token}`}
+        aria-hidden
+        className={`md-impact ${active.direct ? "md-impact-direct" : ""}`}
+        style={{
+          left: active.to.x,
+          top: active.to.y,
+          animationDelay: `${impactoEm}ms`,
+          ["--md-impact-ms" as string]: `${Math.round(520 * active.scale)}ms`,
+        }}
+      />
+      <div
+        ref={ghostRef}
+        key={active.token}
+        className={`md-attack-ghost pointer-events-none absolute z-40 overflow-hidden rounded ${
+          active.mine ? "md-attack-ghost-me" : "md-attack-ghost-foe"
+        }`}
+        style={{
+          left: active.box.x,
+          top: active.box.y,
+          width: active.box.w,
+          height: active.box.h,
+        }}
+      >
+        {active.image ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={active.image} alt="" className="h-full w-full object-cover" />
+        ) : (
+          <div className="tf-card-back h-full w-full" />
+        )}
+      </div>
+    </>
   );
 }

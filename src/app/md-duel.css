@@ -3259,3 +3259,911 @@ button.md-tile:hover .md-tile-card {
     animation: none !important;
   }
 }
+
+/* ---------------------------------------------------------------------------
+   Fim de duelo: "VICTORY" / "LOSE" / "DRAW" sobre a mesa desfocada.
+--------------------------------------------------------------------------- */
+.md-result {
+  position: absolute;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.md-result-veil {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at center, rgba(4, 10, 24, 0.55) 0%, rgba(1, 3, 8, 0.86) 100%);
+  -webkit-backdrop-filter: blur(6px) saturate(0.8);
+  backdrop-filter: blur(6px) saturate(0.8);
+  animation: md-fade-in 500ms ease-out both;
+}
+
+@keyframes md-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.md-result-content {
+  position: relative;
+  display: flex;
+  width: 100%;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 0 16px;
+}
+
+.md-result-word {
+  position: relative;
+  font-family: var(--font-md-display), var(--font-geist-sans), sans-serif;
+  font-size: clamp(64px, 17vh, 220px);
+  font-weight: 900;
+  font-style: italic;
+  line-height: 1;
+  letter-spacing: 0.02em;
+  color: transparent;
+  background: linear-gradient(180deg, #ffffff 0%, #f2f5f9 40%, #b8c3d1 52%, #ffffff 64%, #d6dde7 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  filter:
+    drop-shadow(0 3px 0 rgba(0, 0, 0, 0.6))
+    drop-shadow(0 0 26px rgba(120, 200, 255, 0.45));
+  animation: md-result-word 900ms cubic-bezier(0.2, 0.9, 0.2, 1.1) both;
+}
+
+/* O traço de luz que atravessa a palavra. */
+.md-result-word::after {
+  content: "";
+  position: absolute;
+  left: -10%;
+  right: -10%;
+  top: 52%;
+  height: 3px;
+  background: linear-gradient(90deg, transparent, #ffffff 30%, #bfe8ff 50%, #ffffff 70%, transparent);
+  box-shadow: 0 0 14px rgba(150, 220, 255, 0.9);
+  transform-origin: left center;
+  animation: md-result-streak 900ms 300ms ease-out both;
+}
+
+.md-result-lose .md-result-word {
+  background: linear-gradient(180deg, #e6e9ef 0%, #a9b2bf 45%, #5f6a7a 55%, #c3cad4 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  filter:
+    drop-shadow(0 3px 0 rgba(0, 0, 0, 0.7))
+    drop-shadow(0 0 22px rgba(255, 70, 90, 0.45));
+}
+
+.md-result-lose .md-result-word::after {
+  background: linear-gradient(90deg, transparent, #ff9aa8 30%, #ffffff 50%, #ff9aa8 70%, transparent);
+  box-shadow: 0 0 14px rgba(255, 80, 100, 0.9);
+}
+
+@keyframes md-result-word {
+  0% { opacity: 0; transform: scale(1.6) skewX(-8deg); filter: blur(12px); }
+  60% { opacity: 1; transform: scale(0.97) skewX(0deg); filter: blur(0); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+@keyframes md-result-streak {
+  0% { transform: scaleX(0); opacity: 0; }
+  40% { opacity: 1; }
+  100% { transform: scaleX(1); opacity: 0.85; }
+}
+
+.md-result-reason {
+  min-width: min(640px, 92vw);
+  padding: 6px 18px;
+  text-align: center;
+  font-size: 14px;
+  font-weight: 600;
+  color: #e8f1fb;
+  background: linear-gradient(90deg, transparent, rgba(0, 0, 0, 0.6) 20%, rgba(0, 0, 0, 0.6) 80%, transparent);
+  animation: md-fade-in 400ms 500ms ease-out both;
+}
+
+.md-result-players {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  margin-top: 6px;
+  animation: md-fade-in 400ms 650ms ease-out both;
+}
+
+.md-result-player {
+  position: relative;
+  display: flex;
+  width: min(330px, 40vw);
+  align-items: center;
+  gap: 12px;
+  padding: 8px 14px 8px 8px;
+  background: linear-gradient(90deg, rgba(20, 60, 130, 0.85), rgba(8, 20, 44, 0.85));
+  box-shadow: inset 0 2px 0 rgba(120, 200, 255, 0.85), 0 8px 20px rgba(0, 0, 0, 0.5);
+}
+
+.md-result-player-foe {
+  flex-direction: row-reverse;
+  padding: 8px 8px 8px 14px;
+  text-align: right;
+  background: linear-gradient(270deg, rgba(140, 20, 40, 0.85), rgba(40, 8, 16, 0.85));
+  box-shadow: inset 0 2px 0 rgba(255, 130, 150, 0.85), 0 8px 20px rgba(0, 0, 0, 0.5);
+}
+
+.md-result-avatar {
+  display: flex;
+  height: 46px;
+  width: 46px;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  font-family: var(--font-md-display), var(--font-geist-sans), sans-serif;
+  font-size: 22px;
+  font-weight: 900;
+  font-style: italic;
+  color: #ffffff;
+  background: radial-gradient(circle at 50% 60%, #2f7fd8, #0b2a5a 72%);
+  box-shadow: 0 0 0 2px #dff2ff;
+}
+
+.md-result-player-foe .md-result-avatar {
+  background: radial-gradient(circle at 50% 60%, #d23a55, #4d0b1c 72%);
+  box-shadow: 0 0 0 2px #ffe0e6;
+}
+
+.md-result-name {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 14px;
+  font-weight: 800;
+  color: #ffffff;
+}
+
+.md-result-lp {
+  display: block;
+  font-size: 12px;
+  color: #bcd0e6;
+}
+
+.md-result-lp b {
+  font-family: var(--font-md-digits), var(--font-geist-mono), monospace;
+  font-size: 16px;
+  color: #ffffff;
+}
+
+/* A coroa do vencedor, como a do MD. */
+.md-result-crown {
+  position: absolute;
+  top: -26px;
+  left: 18px;
+  height: 26px;
+  width: 36px;
+  background: linear-gradient(180deg, #fff6c4, #f0b81a 60%, #a8740a);
+  clip-path: polygon(0 100%, 6% 22%, 30% 58%, 50% 0, 70% 58%, 94% 22%, 100% 100%);
+  filter: drop-shadow(0 0 8px rgba(255, 210, 60, 0.9));
+  animation: md-star-pop 420ms 800ms cubic-bezier(0.2, 1.4, 0.4, 1) both;
+}
+
+.md-result-player-foe .md-result-crown {
+  left: auto;
+  right: 18px;
+}
+
+.md-result-vs {
+  font-family: var(--font-md-display), var(--font-geist-sans), sans-serif;
+  font-size: 22px;
+  font-weight: 900;
+  font-style: italic;
+  color: rgba(220, 235, 255, 0.85);
+  text-shadow: 0 0 10px rgba(0, 0, 0, 0.8);
+}
+
+.md-result-turns {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--md-text-dim);
+}
+
+.md-result-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+  animation: md-fade-in 400ms 800ms ease-out both;
+}
+
+@media (max-width: 640px) {
+  .md-result-players {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .md-result-player {
+    width: min(330px, 90vw);
+  }
+
+  .md-result-vs {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .md-result-veil,
+  .md-result-word,
+  .md-result-word::after,
+  .md-result-reason,
+  .md-result-players,
+  .md-result-crown,
+  .md-result-actions {
+    animation: none !important;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   Combate: a seta do ataque, o impacto e o fantasma do atacante.
+--------------------------------------------------------------------------- */
+.md-attack-beam {
+  --md-beam: #6fd0ff;
+  --md-beam-glow: rgba(60, 170, 255, 0.85);
+  position: absolute;
+  z-index: 39;
+  height: 0;
+  transform-origin: 0 0;
+  pointer-events: none;
+}
+
+.md-attack-beam-foe {
+  --md-beam: #ff7a8a;
+  --md-beam-glow: rgba(255, 60, 90, 0.85);
+}
+
+/* O feixe: segmentos que correm do atacante para o alvo. */
+.md-attack-beam-core {
+  position: absolute;
+  left: 0;
+  top: -9px;
+  height: 18px;
+  width: 100%;
+  border-radius: 999px;
+  background:
+    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.95) 0 18px, transparent 18px 30px),
+    linear-gradient(90deg, transparent, var(--md-beam) 20%, var(--md-beam));
+  background-size: 30px 100%, 100% 100%;
+  -webkit-mask: linear-gradient(90deg, transparent, black 18%, black 100%);
+  mask: linear-gradient(90deg, transparent, black 18%, black 100%);
+  box-shadow: 0 0 18px 4px var(--md-beam-glow);
+  transform-origin: 0 50%;
+  animation:
+    md-beam-grow var(--md-beam-ms, 850ms) cubic-bezier(0.2, 0.8, 0.2, 1) both,
+    md-beam-flow 360ms linear infinite;
+}
+
+.md-attack-beam-head {
+  position: absolute;
+  right: -10px;
+  top: -18px;
+  height: 36px;
+  width: 30px;
+  background: linear-gradient(90deg, #ffffff, var(--md-beam));
+  clip-path: polygon(0 0, 100% 50%, 0 100%, 22% 50%);
+  filter: drop-shadow(0 0 10px var(--md-beam-glow));
+  animation: md-beam-head var(--md-beam-ms, 850ms) cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+@keyframes md-beam-grow {
+  0% { transform: scaleX(0); opacity: 0; }
+  12% { opacity: 1; }
+  30% { transform: scaleX(1); opacity: 1; }
+  52% { opacity: 1; }
+  70%, 100% { transform: scaleX(1); opacity: 0; }
+}
+
+@keyframes md-beam-head {
+  0%, 22% { opacity: 0; }
+  30% { opacity: 1; }
+  52% { opacity: 1; }
+  70%, 100% { opacity: 0; }
+}
+
+@keyframes md-beam-flow {
+  from { background-position: 0 0, 0 0; }
+  to { background-position: 30px 0, 0 0; }
+}
+
+/* O impacto: anel de luz e faíscas estourando no alvo. */
+.md-impact {
+  position: absolute;
+  z-index: 41;
+  height: 220px;
+  width: 220px;
+  margin: -110px 0 0 -110px;
+  border-radius: 999px;
+  pointer-events: none;
+  opacity: 0;
+  background:
+    radial-gradient(circle, rgba(255, 255, 255, 0.95) 0 10%, rgba(255, 230, 150, 0.7) 18%, rgba(255, 140, 60, 0.0) 42%),
+    conic-gradient(from 0deg, transparent 0 8deg, rgba(255, 240, 200, 0.85) 8deg 11deg, transparent 11deg 40deg, rgba(255, 240, 200, 0.7) 40deg 42deg, transparent 42deg 75deg, rgba(255, 240, 200, 0.85) 75deg 78deg, transparent 78deg 120deg, rgba(255, 240, 200, 0.7) 120deg 122deg, transparent 122deg 170deg, rgba(255, 240, 200, 0.85) 170deg 173deg, transparent 173deg 220deg, rgba(255, 240, 200, 0.7) 220deg 222deg, transparent 222deg 280deg, rgba(255, 240, 200, 0.85) 280deg 283deg, transparent 283deg 330deg, rgba(255, 240, 200, 0.7) 330deg 332deg, transparent 332deg);
+  -webkit-mask: radial-gradient(circle, black 0 30%, transparent 70%);
+  mask: radial-gradient(circle, black 0 30%, transparent 70%);
+  animation: md-impact var(--md-impact-ms, 520ms) ease-out both;
+}
+
+.md-impact-direct {
+  height: 340px;
+  width: 340px;
+  margin: -170px 0 0 -170px;
+}
+
+@keyframes md-impact {
+  0% { opacity: 0; transform: scale(0.2) rotate(0deg); }
+  15% { opacity: 1; }
+  100% { opacity: 0; transform: scale(1.5) rotate(25deg); }
+}
+
+.md-attack-ghost {
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.75);
+}
+
+.md-attack-ghost-me {
+  box-shadow:
+    0 0 0 2px #bfe8ff,
+    0 0 26px 6px rgba(60, 170, 255, 0.7),
+    0 18px 40px rgba(0, 0, 0, 0.75);
+}
+
+.md-attack-ghost-foe {
+  box-shadow:
+    0 0 0 2px #ffc2cb,
+    0 0 26px 6px rgba(255, 60, 90, 0.7),
+    0 18px 40px rgba(0, 0, 0, 0.75);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .md-attack-beam-core,
+  .md-attack-beam-head,
+  .md-impact {
+    animation: none !important;
+    opacity: 0;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   "Final Blow!" — as faixas verde-limão nas laterais.
+--------------------------------------------------------------------------- */
+.md-final-blow {
+  position: absolute;
+  inset: 0;
+  z-index: 48;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.md-final-blow-flash {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at center, rgba(220, 255, 120, 0) 40%, rgba(200, 255, 80, 0.28) 100%);
+  animation: md-final-flash var(--md-final-ms, 1900ms) ease-out both;
+}
+
+@keyframes md-final-flash {
+  0% { opacity: 0; }
+  12% { opacity: 1; }
+  70% { opacity: 0.6; }
+  100% { opacity: 0; }
+}
+
+.md-final-blow-side {
+  position: absolute;
+  top: -10%;
+  bottom: -10%;
+  display: flex;
+  width: clamp(56px, 6vw, 110px);
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background: linear-gradient(90deg, #a8e622, #e8ff7a 50%, #a8e622);
+  box-shadow:
+    0 0 0 3px rgba(40, 70, 0, 0.6),
+    0 0 40px rgba(200, 255, 80, 0.75);
+}
+
+.md-final-blow-left {
+  left: 1.5%;
+  animation: md-final-left var(--md-final-ms, 1900ms) cubic-bezier(0.2, 0.9, 0.2, 1) both;
+}
+
+.md-final-blow-right {
+  right: 1.5%;
+  animation: md-final-right var(--md-final-ms, 1900ms) cubic-bezier(0.2, 0.9, 0.2, 1) both;
+}
+
+.md-final-blow-side span {
+  writing-mode: vertical-rl;
+  white-space: nowrap;
+  font-family: var(--font-md-display), var(--font-geist-sans), sans-serif;
+  font-size: clamp(28px, 3.6vw, 64px);
+  font-weight: 900;
+  font-style: italic;
+  letter-spacing: 0.04em;
+  color: #2d4a00;
+  animation: md-final-scroll 1200ms linear infinite;
+}
+
+.md-final-blow-right span {
+  transform: rotate(180deg);
+  animation-direction: reverse;
+}
+
+@keyframes md-final-left {
+  0% { transform: translateY(-110%); }
+  16% { transform: translateY(0); }
+  82% { transform: translateY(0); opacity: 1; }
+  100% { transform: translateY(0); opacity: 0; }
+}
+
+@keyframes md-final-right {
+  0% { transform: translateY(110%); }
+  16% { transform: translateY(0); }
+  82% { transform: translateY(0); opacity: 1; }
+  100% { transform: translateY(0); opacity: 0; }
+}
+
+@keyframes md-final-scroll {
+  from { translate: 0 0; }
+  to { translate: 0 -12%; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .md-final-blow-flash,
+  .md-final-blow-left,
+  .md-final-blow-right,
+  .md-final-blow-side span {
+    animation: none !important;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   Destruição: a carta se estilhaça.
+--------------------------------------------------------------------------- */
+.md-shatter {
+  position: absolute;
+  inset: 0;
+  display: block;
+}
+
+.md-shard {
+  position: absolute;
+  inset: 0;
+  display: block;
+  border-radius: 4px;
+  background-size: cover;
+  background-position: center;
+  filter: drop-shadow(0 0 4px rgba(255, 255, 255, 0.6));
+  animation: md-shard var(--md-shatter-ms, 520ms) cubic-bezier(0.2, 0.7, 0.3, 1) both;
+}
+
+@keyframes md-shard {
+  0% { transform: translate(0, 0) rotate(0deg) scale(1); opacity: 1; filter: brightness(1.6); }
+  18% { transform: translate(calc(var(--md-dx) * 0.1), calc(var(--md-dy) * 0.1)) rotate(calc(var(--md-rot) * 0.15)) scale(1.02); opacity: 1; filter: brightness(2); }
+  100% { transform: translate(var(--md-dx), var(--md-dy)) rotate(var(--md-rot)) scale(0.7); opacity: 0; filter: brightness(1); }
+}
+
+.md-shatter-flash {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  height: 160%;
+  width: 160%;
+  transform: translate(-50%, -50%);
+  border-radius: 999px;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.95) 0%, rgba(255, 210, 140, 0.55) 25%, rgba(255, 100, 60, 0) 60%);
+  animation: md-shatter-flash var(--md-shatter-ms, 520ms) ease-out both;
+}
+
+@keyframes md-shatter-flash {
+  0% { opacity: 0; transform: translate(-50%, -50%) scale(0.3); }
+  20% { opacity: 1; }
+  100% { opacity: 0; transform: translate(-50%, -50%) scale(1.3); }
+}
+
+/* ---------------------------------------------------------------------------
+   A corrente: o destaque da ativação (o card grande com o número) e a pilha
+   de elos.
+--------------------------------------------------------------------------- */
+.md-spot {
+  --md-spot-c: #5cc8ff;
+  --md-spot-glow: rgba(60, 170, 255, 0.8);
+}
+
+.md-spot-foe {
+  --md-spot-c: #ff6b80;
+  --md-spot-glow: rgba(255, 60, 90, 0.8);
+}
+
+.md-spot-stage {
+  position: absolute;
+  left: 50%;
+  top: 46%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  transform: translate(-50%, -50%);
+}
+
+.md-spot-label {
+  border-radius: 999px;
+  padding: 4px 14px;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: #ffffff;
+  background: linear-gradient(90deg, color-mix(in srgb, var(--md-spot-c) 70%, #000), color-mix(in srgb, var(--md-spot-c) 40%, #000));
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--md-spot-c) 80%, #fff), 0 0 16px var(--md-spot-glow);
+  animation: md-spot-in var(--md-spot-ms, 1000ms) ease-out both;
+}
+
+.md-spot-label-negated {
+  background: linear-gradient(90deg, #a3122a, #5c0614);
+  box-shadow: 0 0 0 1px #ffb3bd, 0 0 16px rgba(255, 50, 80, 0.8);
+}
+
+.md-spot-card-wrap {
+  position: relative;
+  perspective: 1200px;
+}
+
+.md-spot-card {
+  height: min(44vh, 360px);
+  width: auto;
+  border-radius: 10px;
+  box-shadow:
+    0 0 0 3px color-mix(in srgb, var(--md-spot-c) 85%, #fff),
+    0 0 50px 12px var(--md-spot-glow),
+    0 24px 50px rgba(0, 0, 0, 0.7);
+  transform: rotateY(-12deg) rotateX(5deg);
+  animation: md-spot-card var(--md-spot-ms, 1000ms) cubic-bezier(0.2, 0.9, 0.2, 1) both;
+}
+
+@keyframes md-spot-card {
+  0% { opacity: 0; transform: translateY(26%) scale(0.55) rotateY(-50deg) rotateX(20deg); filter: brightness(2.4); }
+  18% { opacity: 1; transform: translateY(0) scale(1.04) rotateY(-10deg) rotateX(4deg); filter: brightness(1.4); }
+  30% { transform: scale(1) rotateY(-12deg) rotateX(5deg); filter: brightness(1); }
+  84% { opacity: 1; transform: scale(1) rotateY(-12deg) rotateX(5deg); }
+  100% { opacity: 0; transform: scale(0.94) rotateY(-16deg) rotateX(5deg) translateY(-6%); }
+}
+
+@keyframes md-spot-in {
+  0% { opacity: 0; transform: translateY(8px); }
+  16% { opacity: 1; transform: translateY(0); }
+  84% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+/* O número do elo: digital, vazado, enorme — o do MD. */
+.md-spot-number {
+  position: absolute;
+  right: -0.42em;
+  bottom: -0.22em;
+  font-family: var(--font-md-digits), var(--font-geist-mono), monospace;
+  font-size: min(20vh, 170px);
+  font-weight: 800;
+  line-height: 1;
+  color: rgba(255, 255, 255, 0.12);
+  -webkit-text-stroke: 4px color-mix(in srgb, var(--md-spot-c) 80%, #fff);
+  text-shadow:
+    0 0 14px var(--md-spot-glow),
+    0 0 40px var(--md-spot-glow);
+  animation: md-spot-number var(--md-spot-ms, 1000ms) cubic-bezier(0.2, 1.3, 0.3, 1) both;
+}
+
+@keyframes md-spot-number {
+  0%, 10% { opacity: 0; transform: scale(2.2); }
+  28% { opacity: 1; transform: scale(1); }
+  84% { opacity: 1; transform: scale(1); }
+  100% { opacity: 0; transform: scale(1.1); }
+}
+
+/* A corrente pendurando o elo novo no anterior. */
+.md-spot-chain {
+  position: absolute;
+  left: 18%;
+  bottom: 70%;
+  height: 60vh;
+  width: 26px;
+  transform: rotate(-24deg);
+  transform-origin: bottom center;
+  background:
+    radial-gradient(ellipse 9px 15px at 50% 50%, transparent 0 55%, #c9d2de 60% 80%, transparent 85%) 0 0 / 26px 30px repeat-y;
+  filter: drop-shadow(0 0 6px rgba(0, 0, 0, 0.8)) drop-shadow(0 0 4px var(--md-spot-glow));
+  -webkit-mask: linear-gradient(0deg, black 60%, transparent 100%);
+  mask: linear-gradient(0deg, black 60%, transparent 100%);
+  animation: md-spot-in var(--md-spot-ms, 1000ms) ease-out both;
+}
+
+.md-spot-name {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  max-width: 70vw;
+  border-radius: 8px;
+  padding: 4px 14px;
+  font-size: clamp(14px, 1.3vw, 20px);
+  font-weight: 800;
+  color: #ffffff;
+  text-shadow: 0 1px 3px #000;
+  background: rgba(2, 6, 14, 0.75);
+  animation: md-spot-in var(--md-spot-ms, 1000ms) ease-out both;
+}
+
+.md-spot-link {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--md-spot-c);
+}
+
+/* Negado: o "proibido" do MD sobre a carta, e o carimbo. */
+.md-spot-forbid {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  height: 62%;
+  aspect-ratio: 1;
+  transform: translate(-50%, -50%);
+  border-radius: 999px;
+  background:
+    linear-gradient(45deg, transparent 44%, #ff3d55 44% 56%, transparent 56%),
+    radial-gradient(circle, transparent 0 56%, #ff3d55 57% 70%, transparent 71%);
+  filter: drop-shadow(0 0 10px rgba(255, 40, 70, 0.9));
+  animation: md-forbid 420ms 120ms cubic-bezier(0.2, 1.4, 0.4, 1) both;
+}
+
+@keyframes md-forbid {
+  0% { opacity: 0; transform: translate(-50%, -50%) scale(2); }
+  100% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+}
+
+.md-spot-stamp {
+  position: absolute;
+  left: -16%;
+  right: -16%;
+  top: 50%;
+  border: 4px solid #ff3d55;
+  padding: 6px 0;
+  text-align: center;
+  font-family: var(--font-md-display), var(--font-geist-sans), sans-serif;
+  font-size: clamp(22px, 3.4vh, 38px);
+  font-weight: 900;
+  font-style: italic;
+  letter-spacing: 0.12em;
+  color: #ff6b80;
+  background: rgba(10, 0, 4, 0.75);
+}
+
+/* O texto do efeito ativado, no canto de cima à direita. */
+.md-spot-effect {
+  position: absolute;
+  right: 12px;
+  top: 10px;
+  width: min(380px, 42%);
+  border-radius: 8px;
+  padding: 10px 12px;
+  background: linear-gradient(180deg, rgba(8, 18, 38, 0.94), rgba(3, 8, 18, 0.94));
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--md-spot-c) 60%, transparent), 0 10px 30px rgba(0, 0, 0, 0.6);
+  animation: md-spot-in var(--md-spot-ms, 1000ms) ease-out both;
+}
+
+.md-spot-effect-name {
+  font-size: 13px;
+  font-weight: 800;
+  color: #ffffff;
+}
+
+.md-spot-effect-what {
+  margin-top: 3px;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.35;
+  color: var(--md-spot-c);
+}
+
+.md-spot-effect-text {
+  margin-top: 4px;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  font-size: 11.5px;
+  line-height: 1.4;
+  color: #cfdcec;
+}
+
+/* A pilha de elos (à esquerda, em cima da leitura). */
+.md-chain-stack {
+  flex-shrink: 0;
+  border-radius: 10px;
+  padding: 6px 8px 8px;
+  background: linear-gradient(180deg, rgba(6, 14, 30, 0.9), rgba(2, 6, 14, 0.9));
+  box-shadow: 0 0 0 1px rgba(150, 205, 255, 0.35), 0 10px 26px rgba(0, 0, 0, 0.55);
+  transition: opacity 500ms ease-out;
+}
+
+.md-chain-stack-done {
+  opacity: 0.6;
+}
+
+.md-chain-stack-title {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 4px;
+  font-family: var(--font-md-display), var(--font-geist-sans), sans-serif;
+  font-size: 14px;
+  font-weight: 900;
+  font-style: italic;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #ffffff;
+}
+
+.md-chain-stack-count {
+  font-family: var(--font-geist-sans), sans-serif;
+  font-size: 10px;
+  font-style: normal;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: var(--md-text-dim);
+}
+
+.md-chain-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.md-chain-row {
+  --md-row-c: #5cc8ff;
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-radius: 6px;
+  padding: 4px 6px;
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.md-chain-row-foe {
+  --md-row-c: #ff6b80;
+}
+
+.md-chain-row-resolving {
+  background: color-mix(in srgb, var(--md-row-c) 22%, transparent);
+  box-shadow: 0 0 0 1px var(--md-row-c), 0 0 16px color-mix(in srgb, var(--md-row-c) 60%, transparent);
+}
+
+.md-chain-row-negated,
+.md-chain-row-disabled {
+  background: rgba(120, 10, 30, 0.35);
+}
+
+/* Os elos de metal ligando um elo ao outro. */
+.md-chain-links {
+  position: absolute;
+  left: 22px;
+  top: -14px;
+  height: 18px;
+  width: 12px;
+  background: radial-gradient(ellipse 4px 7px at 50% 50%, transparent 0 50%, #b9c4d2 56% 80%, transparent 86%) 0 0 / 12px 9px repeat-y;
+  filter: drop-shadow(0 0 2px rgba(0, 0, 0, 0.9));
+}
+
+.md-chain-digit {
+  width: 30px;
+  flex-shrink: 0;
+  text-align: center;
+  font-family: var(--font-md-digits), var(--font-geist-mono), monospace;
+  font-size: 30px;
+  font-weight: 800;
+  line-height: 1;
+  color: transparent;
+  -webkit-text-stroke: 2px var(--md-row-c);
+  text-shadow: 0 0 10px color-mix(in srgb, var(--md-row-c) 70%, transparent);
+}
+
+.md-chain-thumb {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.md-chain-thumb img {
+  height: 42px;
+  width: auto;
+  border-radius: 3px;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.7);
+}
+
+.md-chain-forbid {
+  position: absolute;
+  inset: 4px 0;
+  border-radius: 999px;
+  background:
+    linear-gradient(45deg, transparent 42%, #ff3d55 42% 58%, transparent 58%),
+    radial-gradient(circle, transparent 0 52%, #ff3d55 54% 70%, transparent 72%);
+}
+
+.md-chain-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.md-chain-meta {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 10.5px;
+  color: #93acc8;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .md-spot-label,
+  .md-spot-card,
+  .md-spot-number,
+  .md-spot-chain,
+  .md-spot-name,
+  .md-spot-effect,
+  .md-spot-forbid {
+    animation: none !important;
+  }
+}
+
+/* Os números de dano e de cura, junto da placa de LP. */
+.md-flash-number {
+  font-family: var(--font-md-digits), var(--font-geist-mono), monospace;
+  font-size: clamp(34px, 5.4vh, 72px);
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: 0.02em;
+  text-shadow:
+    0 3px 0 rgba(0, 0, 0, 0.9),
+    0 0 2px #000,
+    0 0 18px rgba(0, 0, 0, 0.7);
+}
+
+.md-flash-damage {
+  color: #ff3b52;
+  -webkit-text-stroke: 1.5px #2a0006;
+}
+
+.md-flash-recover {
+  color: #5cff9a;
+  -webkit-text-stroke: 1.5px #00240f;
+}
+
+.md-flash-center {
+  font-family: var(--font-md-display), var(--font-geist-sans), sans-serif;
+  font-size: clamp(26px, 5vh, 60px);
+  font-weight: 900;
+  font-style: italic;
+  color: #ffffff;
+  text-shadow: 0 2px 0 #000, 0 0 18px rgba(80, 180, 255, 0.6);
+}
+
+.md-spot-label {
+  position: relative;
+  z-index: 2;
+}

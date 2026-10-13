@@ -75,7 +75,7 @@ import { SortCardModal } from "@/components/duel/SortCardModal";
 import { AnnounceCardModal } from "@/components/duel/AnnounceCardModal";
 import { DecisionSheet, DecisionShell, PeekButton } from "@/components/duel/DecisionShell";
 import { CardStrip, CardTile, GridTab } from "@/components/duel/MdCardList";
-import { PhaseBanner } from "@/components/duel/MdBanners";
+import { FinalBlow, PhaseBanner } from "@/components/duel/MdBanners";
 import { SummonCutIn } from "@/components/duel/SummonCutIn";
 import { GlossaryText } from "@/components/duel/GlossaryText";
 import { LeaveFlightLayer } from "@/components/duel/LeaveFlight";
@@ -947,6 +947,44 @@ export function DuelBoard({
     return lista;
   }, [you.monsters, foe.monsters, registry]);
 
+  /**
+   * O ataque que acabou de ser declarado tira todos os LP de quem o recebe?
+   * É o "Final Blow!" do Master Duel. Conta com a mesa de agora: ataque direto
+   * com ATK ≥ LP, ou contra monstro em posição de ataque com a diferença ≥ LP.
+   * Contra defesa não há dano (perfurar é exceção rara) e não há anúncio.
+   */
+  const [golpeFinal, setGolpeFinal] = useState<number | null>(null);
+  const [ataqueVisto, setAtaqueVisto] = useState<number | null>(null);
+  if (flight && flight.token !== ataqueVisto) {
+    setAtaqueVisto(flight.token);
+    const lado = (controller: number) => (controller === me ? you : foe);
+    const atacante = lado(flight.from.controller).monsters[flight.from.sequence];
+    const defensor = (flight.mine ? foeSeat : me) as 0 | 1;
+    const lp = snapshot.lifePoints[defensor];
+    const atk = atacante?.attack ?? null;
+    let letal = false;
+    if (atk !== null && lp > 0) {
+      if (!flight.to) {
+        letal = atk >= lp;
+      } else {
+        const alvo = lado(flight.to.controller).monsters[flight.to.sequence];
+        letal =
+          Boolean(alvo) &&
+          !alvo!.faceDown &&
+          !alvo!.defense &&
+          alvo!.attack !== null &&
+          atk - alvo!.attack >= lp;
+      }
+    }
+    if (letal) setGolpeFinal(flight.token);
+  }
+  useEffect(() => {
+    if (golpeFinal === null) return;
+    playSfx("finalBlow");
+    const timer = setTimeout(() => setGolpeFinal(null), Math.round(1900 * animationScale));
+    return () => clearTimeout(timer);
+  }, [golpeFinal, animationScale]);
+
   /** Toque longo numa carta: na mesa estreita, a leitura sobe numa folha. */
   const abrirLeitura = useCallback(
     (card: BoardCard) => {
@@ -1357,6 +1395,7 @@ export function DuelBoard({
           PHASE") e o corte de invocação — por cima do HUD, por baixo das
           decisões. */}
       <PhaseBanner banner={banner} />
+      <FinalBlow token={golpeFinal} duration={Math.round(1900 * animationScale)} />
       <SummonCutIn
         cutIn={pacing === "room" || prefs.cutIns ? cutIn : null}
         registry={registry}
@@ -2080,6 +2119,7 @@ export function DuelBoard({
             turns={snapshot.turnCount}
             lifePoints={snapshot.lifePoints}
             onPeek={() => setResultadoEspiado(true)}
+            spectating={spectating}
           />
         ))}
 
@@ -2718,7 +2758,11 @@ function TossOverlay({
   );
 }
 
-/** Avisos grandes no centro do campo — turno, dano, ataque direto. */
+/**
+ * Os números que saltam na mesa: o dano grande e vermelho (e a cura verde) do
+ * Master Duel, junto da placa de LP de quem foi atingido; e os avisos do
+ * centro, quando houver.
+ */
 function FlashLayer({
   flashes,
   anchor,
@@ -2731,57 +2775,34 @@ function FlashLayer({
 }) {
   const visible = flashes.filter((flash) => flash.anchor === anchor);
   if (visible.length === 0) return null;
-
-  // No centro o aviso é grande; junto ao LP ele fica logo abaixo da barra,
-  // menor, para dizer com clareza de quem é o dano.
   const centered = anchor === "center";
 
   return (
     <div
-      className={`pointer-events-none absolute z-40 flex justify-center ${
-        // Fica no centro mesmo — é onde o olho está. Para não esconder o
-        // indicador de fase, que passa exatamente ali, quem sobe de camada é
-        // a trilha de fases (z-50), e não o aviso que sai de cena em 1 s.
+      className={`pointer-events-none absolute z-40 flex ${
         centered
-          ? "inset-0 items-center"
+          ? "inset-0 items-center justify-center"
           : up
-            ? "inset-x-0 bottom-full items-end pb-1"
-            : "inset-x-0 top-full items-start pt-1"
+            ? "bottom-full left-0 right-0 items-end justify-center pb-2"
+            : "left-0 right-0 top-full items-start justify-center pt-1"
       }`}
     >
-      <div className="flex w-full flex-col items-center gap-1">
-        {visible.map((flash) =>
-          flash.band ? (
-            <div
+      <div className="flex flex-col items-center gap-1">
+        {visible.map((flash) => {
+          const cura = flash.text.startsWith("+");
+          return (
+            <span
               key={flash.id}
-              data-turn-band={flash.band}
+              data-flash={cura ? "recover" : centered ? "center" : "damage"}
               style={{ ["--tf-flash-duration" as string]: `${flash.duration}ms` }}
-              className={`md-turn-band md-turn-band-${flash.band} tf-flash-text w-full select-none py-3 text-center`}
+              className={`tf-flash-text select-none whitespace-nowrap ${
+                centered ? "md-flash-center" : cura ? "md-flash-number md-flash-recover" : "md-flash-number md-flash-damage"
+              }`}
             >
-              <span className="tf-hud-text font-black italic tracking-[0.18em] text-white text-2xl sm:text-5xl">
-                {flash.text}
-              </span>
-            </div>
-          ) : (
-          <span
-            key={flash.id}
-            style={{ ["--tf-flash-duration" as string]: `${flash.duration}ms` }}
-            className={`tf-flash-text tf-hud-text select-none whitespace-nowrap font-mono font-black tracking-wider ${
-              // Em tela estreita o aviso grande ("TURNO DO OPONENTE") passava
-              // da largura da mesa.
-              centered ? "text-2xl sm:text-5xl" : "text-xl sm:text-3xl"
-            } ${
-              flash.tone === "good"
-                ? "text-emerald-300"
-                : flash.tone === "bad"
-                  ? "text-red-400"
-                  : "text-[color:var(--tf-gold-bright)]"
-            }`}
-          >
-            {flash.text}
-          </span>
-          ),
-        )}
+              {flash.text}
+            </span>
+          );
+        })}
       </div>
     </div>
   );
@@ -3721,6 +3742,7 @@ function ResultOverlay({
   turns,
   lifePoints,
   onPeek,
+  spectating = false,
 }: {
   winner: number;
   /** Por que o duelo acabou, quando se sabe — ver `DuelSnapshot.winReason`. */
@@ -3735,6 +3757,8 @@ function ResultOverlay({
   lifePoints: [number, number];
   /** Encolhe o resultado para ver a mesa final. */
   onPeek: () => void;
+  /** Quem só assiste não ganhou nem perdeu: "FINISHED", como o MD. */
+  spectating?: boolean;
 }) {
   // `winner` é o assento absoluto que o core declarou; 2 é empate.
   const text =
@@ -3744,52 +3768,70 @@ function ResultOverlay({
         ? `${playerName} venceu!`
         : `${opponentName} venceu!`;
   const foe = (1 - me) as 0 | 1;
+  /** A palavra grande do MD — em inglês estilizado, como no jogo. */
+  const palavra =
+    winner === 2 ? "DRAW" : spectating ? "FINISHED" : winner === me ? "VICTORY" : "LOSE";
+  const tom = winner === 2 || spectating ? "draw" : winner === me ? "win" : "lose";
+
+  const placa = (lado: "me" | "foe") => {
+    const seat = lado === "me" ? me : foe;
+    const nome = lado === "me" ? playerName : opponentName;
+    const venceu = winner === seat;
+    return (
+      <div className={`md-result-player md-result-player-${lado} ${venceu ? "md-result-player-won" : ""}`}>
+        {venceu && <span aria-hidden className="md-result-crown" />}
+        <span aria-hidden className="md-result-avatar">
+          {nome.trim().charAt(0).toUpperCase() || "?"}
+        </span>
+        <span className="min-w-0">
+          <span className="md-result-name">{nome}</span>
+          <span className="md-result-lp">
+            LP <b>{lifePoints[seat]}</b>
+          </span>
+        </span>
+      </div>
+    );
+  };
 
   return (
-    <div className="tf-modal-scrim absolute inset-0 z-50 flex items-center justify-center">
-      <div
-        role="dialog"
-        aria-modal="true"
-        aria-label={text}
-        data-result
-        className="tf-panel rounded-lg px-10 py-6 text-center"
-      >
-        <p className="text-2xl font-bold text-[color:var(--tf-gold-bright)]">{text}</p>
-        {/* O motivo embaixo do nome: nos finais que não passam por dano (deck
-            vazio, rendição, Exodia) a tela não dizia nada sobre o que
-            aconteceu, e a barra de LP não conta essa história. */}
-        {reason && (
-          <p className="mt-1 text-[13px] text-[color:var(--tf-gold-dim)]">{reason}</p>
-        )}
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-label={text}
+      data-result
+      data-result-word={palavra}
+      className={`md-result md-result-${tom}`}
+    >
+      <div aria-hidden className="md-result-veil" />
+      <div className="md-result-content">
+        <p aria-hidden className="md-result-word" data-text={palavra}>
+          {palavra}
+        </p>
+        {/* O motivo embaixo da palavra: nos finais que não passam por dano
+            (deck vazio, rendição, Exodia) a tela não dizia nada sobre o que
+            aconteceu. */}
+        <p className="md-result-reason">
+          <span className="sr-only">{text} </span>
+          {reason ?? text}
+        </p>
 
-        {/* O resumo que o Tag Force mostrava ao fim: quanto durou e como cada
-            um terminou. */}
-        <dl className="mx-auto mt-3 grid max-w-[18rem] grid-cols-3 gap-2 text-[12px]">
-          <div className="rounded border border-[color:var(--tf-slot-border)] px-2 py-1">
-            <dt className="text-[10px] uppercase tracking-wider text-[color:var(--tf-gold-dim)]">Turnos</dt>
-            <dd className="font-mono text-base font-bold text-zinc-100">{turns}</dd>
-          </div>
-          <div className="rounded border border-[color:var(--tf-slot-border)] px-2 py-1">
-            <dt className="truncate text-[10px] uppercase tracking-wider text-[color:var(--tf-gold-dim)]">Seus LP</dt>
-            <dd className="font-mono text-base font-bold text-zinc-100">{lifePoints[me]}</dd>
-          </div>
-          <div className="rounded border border-[color:var(--tf-slot-border)] px-2 py-1">
-            <dt className="truncate text-[10px] uppercase tracking-wider text-[color:var(--tf-gold-dim)]">Oponente</dt>
-            <dd className="font-mono text-base font-bold text-zinc-100">{lifePoints[foe]}</dd>
-          </div>
-        </dl>
+        <div className="md-result-players">
+          {placa("me")}
+          <span aria-hidden className="md-result-vs">VS</span>
+          {placa("foe")}
+        </div>
+        {/* O resumo que o Tag Force mostrava ao fim: quanto durou. */}
+        <p className="md-result-turns">
+          {turns} turno{turns === 1 ? "" : "s"}
+        </p>
 
-        <div className="mt-4 flex flex-col items-center gap-2">
+        <div className="md-result-actions">
           {ending.onBackToRoom && (
             <>
-              <button
-                type="button"
-                onClick={ending.onBackToRoom}
-                className="rounded bg-[color:var(--tf-gold)] px-4 py-2 text-sm font-bold text-black hover:brightness-110"
-              >
+              <button type="button" onClick={ending.onBackToRoom} className="md-pill md-pill-ok min-w-[240px] px-6 py-2.5 text-[14px]">
                 Voltar à sala
               </button>
-              <p className="max-w-[19rem] text-[12px] leading-snug text-[color:var(--tf-gold-dim)]">
+              <p className="max-w-[22rem] text-center text-[12px] leading-snug text-[color:var(--md-text-dim)]">
                 Na sala dá para trocar de deck e ficar pronto de novo — a
                 próxima partida começa quando os dois estiverem prontos.
               </p>
@@ -3797,14 +3839,13 @@ function ResultOverlay({
           )}
 
           {/* Revanche contra o bot: os mesmos decks, um clique. Trocar de deck
-              é o "voltar ao lobby" logo abaixo — o caminho do Tag Force, que
-              depois de uma derrota oferecia trocar de deck para a revanche. */}
+              é o "voltar ao lobby" logo abaixo. */}
           {ending.onRematch && (
             <button
               type="button"
               data-rematch
               onClick={ending.onRematch}
-              className="rounded bg-[color:var(--tf-gold)] px-4 py-2 text-sm font-bold text-black hover:brightness-110"
+              className="md-pill md-pill-ok min-w-[240px] px-6 py-2.5 text-[14px]"
             >
               {ending.rematchLabel ?? "Revanche"}
             </button>
@@ -3812,10 +3853,8 @@ function ResultOverlay({
 
           <a
             href={ending.backHref}
-            className={`rounded px-4 py-2 text-sm font-bold ${
-              ending.onBackToRoom || ending.onRematch
-                ? "text-[color:var(--tf-gold-dim)] hover:text-[color:var(--tf-gold-bright)]"
-                : "bg-[color:var(--tf-gold)] text-black hover:brightness-110"
+            className={`md-pill min-w-[240px] px-6 py-2.5 text-center text-[14px] ${
+              ending.onBackToRoom || ending.onRematch ? "md-pill-ghost" : "md-pill-ok"
             }`}
           >
             {ending.onRematch && !ending.rematchLabel ? "Trocar de deck" : ending.backLabel}
@@ -3825,7 +3864,7 @@ function ResultOverlay({
             type="button"
             data-table-control
             onClick={onPeek}
-            className="text-[12px] text-[color:var(--tf-gold-dim)] hover:text-[color:var(--tf-gold-bright)]"
+            className="mt-1 text-[12px] text-[color:var(--md-text-dim)] hover:text-white"
           >
             👁 Ver a mesa final <span className="opacity-60">(Esc)</span>
           </button>
@@ -3850,16 +3889,14 @@ function ResultPeekBar({
 }) {
   const texto = winner === 2 ? "Empate" : winner === me ? "Vitória" : "Derrota";
   return (
-    <div className="pointer-events-none absolute inset-x-0 top-12 z-50 flex justify-center">
-      <div className="tf-panel pointer-events-auto flex items-center gap-3 rounded-full px-4 py-2 shadow-xl shadow-black/60">
-        <span className="text-[13px] font-bold text-[color:var(--tf-gold-bright)]">
-          Duelo encerrado — {texto}
-        </span>
+    <div className="pointer-events-none absolute inset-x-0 top-[12%] z-50 flex justify-center">
+      <div className="md-banner pointer-events-auto">
+        <span className="md-banner-text">Duelo encerrado — {texto}</span>
         <button
           type="button"
           data-table-control
           onClick={onBack}
-          className="rounded-full bg-[color:var(--tf-gold)] px-4 py-1.5 text-[13px] font-bold text-black transition hover:brightness-110"
+          className="md-pill md-pill-ok px-5 py-1.5 text-[13px]"
         >
           Voltar ao resultado
         </button>
@@ -4017,8 +4054,10 @@ function ActivationBanner({ activation }: { activation: ActivationHeader }) {
       className={`md-detail-activation ${negado ? "md-detail-activation-off" : activation.mine ? "md-detail-activation-me" : "md-detail-activation-foe"}`}
     >
       <p className="md-detail-activation-head">
-        <span className="md-detail-activation-link">{activation.link}</span>
-        {activation.who} ativou{origem ? ` ${origem}` : ""}
+        <span aria-hidden className="md-detail-activation-link">
+          {activation.link}
+        </span>
+        Elo {activation.link} — {activation.who} ativou{origem ? ` ${origem}` : ""}
         {negado && (
           <span className="md-detail-activation-negated">
             {activation.state === "negated" ? "Ativação negada" : "Efeito negado"}

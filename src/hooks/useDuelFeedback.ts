@@ -427,9 +427,6 @@ export function useDuelFeedback(
             mine: event.player === me,
             scale: veloc,
           });
-          if (event.direct) {
-            pushFlash("ATAQUE DIRETO", event.player === me ? "good" : "bad", dur(850));
-          }
           break;
         default:
           break;
