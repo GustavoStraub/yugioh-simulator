@@ -1505,6 +1505,10 @@ export function DuelBoard({
               `getBoundingClientRect`, que já devolve a posição projetada. */}
           <div data-board-camera className="md-camera flex min-h-0 flex-1 flex-col">
             <div data-board3d className="md-board flex min-h-0 flex-col justify-center">
+              {/* A Magia de Campo muda a mesa, como no MD: a arte dela tinge a
+                  metade de quem a controla. */}
+              <FieldSpellArt card={foe.field} registry={registry} side="foe" />
+              <FieldSpellArt card={you.field} registry={registry} side="me" />
               <FieldCracks lp={snapshot.lifePoints[foeSeat]} side="foe" />
               <FieldCracks lp={snapshot.lifePoints[me]} side="me" />
               {/* Oponente — espelhado (a zona 1 dele fica à direita de quem
@@ -2296,6 +2300,34 @@ function GraveColumn({
   );
 }
 
+/**
+ * A arte da Magia de Campo ativa tingindo a metade da mesa de quem a controla
+ * — o ambiente do MD mudando com o campo. Some quando a carta sai (ou está
+ * baixada). A troca entre duas artes faz um esmaecer.
+ */
+function FieldSpellArt({
+  card,
+  registry,
+  side,
+}: {
+  card: BoardCard | null;
+  registry: CardRegistry | null;
+  side: "me" | "foe";
+}) {
+  if (!card || card.code === null || card.faceDown) return null;
+  const definition = registry?.get(card.code);
+  const arte = definition?.images[0]?.image_url_cropped ?? `/card-images/cropped/${card.code}.jpg`;
+  return (
+    <div
+      key={card.code}
+      aria-hidden
+      data-field-art={side}
+      className={`md-field-art md-field-art-${side}`}
+      style={{ backgroundImage: `url("${arte}")` }}
+    />
+  );
+}
+
 /** Zona de campo — canto externo da fileira de magias, como na mesa oficial. */
 function FieldSpellSlot({
   player,
@@ -2633,22 +2665,22 @@ function OpponentHand({
   onLongPress?: (card: BoardCard) => void;
 }) {
   const revelada = cards.some((card) => card.code !== null);
-  // Como a mão do Master Duel: versos encavalados no alto da tela, cortados
-  // pela borda de cima (a carta tem 1,5× a faixa e sobe um terço). Passa de
-  // seis e as cartas se sobrepõem mais, em vez de empurrar a contagem para
-  // fora.
-  const passo = passoDaMao(cards.length, "3cqh", 1.5);
+  // Como a mão do Master Duel: versos encavalados no alto da tela, com a
+  // borda de cima cortada pela tela (a carta tem 1,25× a faixa; o pé dela
+  // encosta no pé da faixa). Do tamanho de carta de verdade — pedido do
+  // Gustavo: miúda, ela sumia perto do resto. Passa de seis e as cartas se
+  // sobrepõem mais, em vez de empurrar a contagem para fora.
+  const passo = passoDaMao(cards.length, "3cqh", 1.25);
 
   return (
     <div
       data-hand={seat}
+      // A altura mora no CSS (`.md-hand-foe`): do tamanho de uma carta de
+      // verdade, e não de um ícone — 48 px ficavam miúdos perto da mão de
+      // baixo e do campo. A revelada (Olho Mágico da Verdade) desce mais,
+      // para a arte se ler.
       className={`md-hand md-hand-foe z-10 flex shrink-0 items-start justify-center gap-0 px-3 ${
-        // Do tamanho de uma carta de verdade, e não de um ícone: 48 px
-        // ficavam miúdos perto da mão de baixo e do campo. A revelada (Olho
-        // Mágico da Verdade) desce mais, para a arte se ler.
-        revelada
-          ? "h-[clamp(70px,11vh,120px)] [@media(max-height:500px)]:h-[52px]"
-          : "h-[clamp(44px,7vh,80px)] [@media(max-height:500px)]:h-[30px]"
+        revelada ? "md-hand-foe-revealed" : ""
       }`}
       style={{ ["--md-hand-step" as string]: passo, ["--tf-card-max-h" as string]: "none" }}
     >
@@ -2697,34 +2729,30 @@ function RevealOverlay({
 }) {
   const texto = useCardText();
   return (
-    <div className="pointer-events-none absolute inset-x-0 top-[18%] z-40 flex justify-center">
-      <div className="tf-panel tf-anim-card-in flex flex-col items-center gap-2 rounded-lg px-5 py-3 shadow-2xl shadow-black/80">
-        <span className="text-[12px] font-bold uppercase tracking-[0.15em] text-[color:var(--tf-gold)]">
-          {reveal.title}
-        </span>
-        <div className="flex gap-2">
-          {reveal.codes.map((code, index) => {
-            const definition = registry?.get(code);
-            const image = definition?.images[0]?.image_url_small;
-            return (
-              <div key={`${code}-${index}`} className="flex flex-col items-center gap-1">
-                {image ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={image}
-                    alt={(definition ? texto.name(definition) : "Carta")}
-                    className="h-32 w-auto rounded border border-[color:var(--tf-gold)] shadow-lg"
-                  />
-                ) : (
-                  <div className="tf-card-back h-32 w-[88px] rounded" />
-                )}
-                <span className="max-w-[100px] truncate text-[10px] text-zinc-200">
-                  {definition ? texto.name(definition) : code}
-                </span>
-              </div>
-            );
-          })}
-        </div>
+    // As cartas mostradas grandes no meio da mesa, com o brilho do MD — o
+    // que um efeito "revelando" põe à vista.
+    <div data-reveal className="md-reveal pointer-events-none absolute inset-x-0 top-[12%] z-40 flex flex-col items-center gap-3">
+      <span className="md-reveal-title">{reveal.title}</span>
+      <div className="flex items-start justify-center gap-4">
+        {reveal.codes.map((code, index) => {
+          const definition = registry?.get(code);
+          const image = definition?.images[0]?.image_url ?? definition?.images[0]?.image_url_small;
+          return (
+            <div
+              key={`${code}-${index}`}
+              className="md-reveal-card flex flex-col items-center gap-1.5"
+              style={{ animationDelay: `${index * 90}ms` }}
+            >
+              {image ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={image} alt={definition ? texto.name(definition) : "Carta"} className="md-reveal-img" />
+              ) : (
+                <div className="tf-card-back md-reveal-img" />
+              )}
+              <span className="md-reveal-name">{definition ? texto.name(definition) : code}</span>
+            </div>
+          );
+        })}
       </div>
     </div>
   );
@@ -2736,20 +2764,26 @@ function TossOverlay({
 }: {
   toss: { kind: "coin" | "dice"; results: (boolean | number)[]; duration: number };
 }) {
+  // O giro acompanha a velocidade escolhida (a sessão espera o mesmo).
+  const giro = Math.round((toss.duration * 1200) / 1900);
   return (
-    <div className="pointer-events-none absolute inset-0 z-40 flex items-center justify-center gap-4">
+    <div data-toss={toss.kind} className="md-toss pointer-events-none absolute inset-0 z-40 flex items-center justify-center gap-8">
       {toss.results.map((result, index) => (
-        <div
-          key={index}
-          // O giro acompanha a velocidade escolhida (a sessão espera o mesmo).
-          style={{
-            animationDelay: `${index * 120}ms`,
-            animationDuration: `${Math.round((toss.duration * 1200) / 1900)}ms`,
-          }}
-          // Classes estáticas: o Tailwind não enxerga nomes montados em runtime.
-          className={`${toss.kind === "coin" ? "tf-coin rounded-full" : "tf-dice rounded-xl"} flex h-24 w-24 items-center justify-center border-4 border-[color:var(--tf-gold)] bg-gradient-to-br from-[color:var(--tf-gold-bright)] to-[color:var(--tf-gold-dim)] font-black text-black shadow-2xl shadow-black/70`}
-        >
-          <span className={toss.kind === "coin" ? "text-base" : "text-4xl"}>
+        <div key={index} className="flex flex-col items-center gap-3">
+          <div
+            style={{ animationDelay: `${index * 120}ms`, animationDuration: `${giro}ms` }}
+            // Classes estáticas: o Tailwind não enxerga nomes montados em runtime.
+            className={toss.kind === "coin" ? "tf-coin md-coin" : "tf-dice md-die"}
+          >
+            {toss.kind === "coin" ? (
+              <span aria-hidden className="md-coin-face">
+                {result ? "★" : "✦"}
+              </span>
+            ) : (
+              <span className="md-die-face">{String(result)}</span>
+            )}
+          </div>
+          <span className="md-toss-result" style={{ animationDelay: `${giro + index * 120}ms` }}>
             {toss.kind === "coin" ? (result ? "CARA" : "COROA") : String(result)}
           </span>
         </div>
@@ -3726,7 +3760,7 @@ function WaitingBanner({ text, place }: { text: string; place: "rail" | "field" 
   // Mesa estreita: logo abaixo da mão do oponente (a altura dela, ver
   // `OpponentHand`), nunca por cima.
   return (
-    <div className="pointer-events-none absolute inset-x-0 top-[calc(clamp(56px,9vh,84px)+10px)] z-30 flex justify-center px-2 [@media(max-height:500px)]:top-[40px]">
+    <div className="md-waiting-narrow pointer-events-none absolute inset-x-0 z-30 flex justify-center px-2">
       {aviso}
     </div>
   );

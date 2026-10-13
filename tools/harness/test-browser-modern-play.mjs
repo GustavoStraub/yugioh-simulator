@@ -254,7 +254,9 @@ async function main() {
     const xyz = await resolver(async () => /Utopia/.test((await ler()).campo["0:4:2"] ?? ""));
     conferir(xyz, "o Utopia está na zona 3");
     const materiaisXyz = await page.evaluate(`return document.querySelector('[data-zone="0:4:2"] button[title*="material"]')?.innerText ?? "";`);
-    conferir(/◈2/.test(materiaisXyz), "e mostra 2 materiais", materiaisXyz);
+    // O selo do MD no pé da carta: o ícone do material vem por CSS, o texto é
+    // só a contagem (antes era "◈2").
+    conferir(/^(◈)?2$/.test(materiaisXyz.trim()), "e mostra 2 materiais", materiaisXyz);
     await fotografar("xyz");
 
     // ---- 3. Link ---------------------------------------------------------

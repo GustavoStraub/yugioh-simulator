@@ -217,10 +217,13 @@ export function DuelCardSlot({
       : null;
   const materials = !showBack ? (card?.overlays.length ?? 0) : 0;
 
-  // A carta fica "de pé" no campo (menos achatada pela câmera, como no MD);
-  // deitada só o monstro em defesa, que o MD também mostra rente à mesa.
+  // O MONSTRO fica "de pé" no campo (menos achatado pela câmera, como no
+  // MD); Magias e Armadilhas ficam deitadas na mesa — nas capturas do jogo a
+  // fileira de trás aparece mais achatada que a de monstros, mesmo estando
+  // mais perto da câmera. Em defesa o monstro também deita.
   const deitada = rotated;
-  const dePe = Boolean(card) && !inHand && !deitada && zoneKind !== undefined;
+  const dePe =
+    Boolean(card) && !inHand && !deitada && (zoneKind === "monster" || zoneKind === "emz");
 
   // Anima quando a zona passa de vazia para ocupada — é a carta "chegando".
   // Comparar durante o render evita um frame com a carta já parada no lugar.
@@ -253,12 +256,20 @@ export function DuelCardSlot({
           }`}
         />
       )}
+      {/* A carta chegando na zona: o anel de luz que se abre no tapete e a
+          coluna de luz subindo — a invocação do MD. */}
+      {entering && zoneKind && (
+        <span aria-hidden className={`md-arrive md-arrive-${zoneKind === "monster" || zoneKind === "emz" ? "monster" : "spell"}`}>
+          <span className="md-arrive-ring" />
+          <span className="md-arrive-pillar" />
+        </span>
+      )}
 
       <div
         title={linkedBy.length ? `Apontada por: ${linkedBy.join(", ")}` : undefined}
         className={`tf-slot tf-touch-card md-card-plane h-full w-full ${card ? "md-card-on" : "md-card-empty"} ${
           dePe ? "md-standing" : ""
-        } ${entering ? "md-anim-land" : ""} ${linkedBy.length ? "tf-slot-linked" : ""} ${
+        } ${deitada && card ? "md-card-def" : ""} ${entering ? "md-anim-land" : ""} ${linkedBy.length ? "tf-slot-linked" : ""} ${
           disabledZone ? "tf-zone-disabled" : ""
         } ${
           // Uma classe só: a de intenção. Aplicar `tf-slot-active` junto fazia

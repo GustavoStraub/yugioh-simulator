@@ -1,11 +1,12 @@
 /**
- * Verifica que o monstro do oponente NÃO se endireita ao atacar.
+ * Verifica que o monstro NÃO gira sozinho ao atacar.
  *
- * A carta do oponente fica girada 180° na mesa, como numa mesa física. O
- * fantasma da investida é um elemento novo, e se ele nascer sem esse giro a
- * carta parece girar sozinha no instante em que o ataque começa — que foi a
- * reclamação. Como `transform` é uma propriedade só, a rotação precisa
- * reaparecer em TODOS os quadros da animação.
+ * O fantasma da investida é um elemento novo, e se ele nascer com um giro
+ * diferente do da carta na mesa ela parece girar no instante em que o ataque
+ * começa — que foi a reclamação, quando as cartas do oponente ficavam de
+ * cabeça para baixo. Na mesa do Master Duel elas ficam de pé (só a defesa
+ * deita), mas a regra continua: como `transform` é uma propriedade só, a
+ * rotação (se houver) precisa ser a MESMA em todos os quadros da animação.
  *
  * O teste intercepta a animação do fantasma de ataque e confere quadro a
  * quadro. Olhar uma foto não resolveria: o giro indevido dura um quadro.
@@ -32,8 +33,9 @@ function deck() {
 }
 
 /**
- * O fantasma do ataque é o único elemento com o anel vermelho. Guardamos os
- * quadros e a rotação que a carta de origem tinha, para comparar depois.
+ * O fantasma do ataque é o elemento `.md-attack-ghost` (era o do anel
+ * vermelho, `ring-red-400`, antes da mesa do MD). Guardamos os quadros e a
+ * rotação que a carta de origem tinha, para comparar depois.
  */
 const GRAMPO = `
   if (window.__grampoAtaque) return true;
@@ -42,7 +44,8 @@ const GRAMPO = `
   const original = Element.prototype.animate;
   Element.prototype.animate = function (quadros, opcoes) {
     try {
-      if (this instanceof HTMLElement && this.className.includes("ring-red-400") && Array.isArray(quadros)) {
+      const fantasma = this instanceof HTMLElement && /md-attack-ghost|ring-red-400/.test(this.className);
+      if (fantasma && Array.isArray(quadros)) {
         window.__ataques.push(quadros.map((q) => q.transform ?? ""));
       }
     } catch {}
@@ -121,10 +124,10 @@ async function main() {
         // como botões, e o teste os escolhia em vez da jogada do menu.
         const depois = await page.evaluate(`return [...document.querySelectorAll("button")].filter(b=>!b.disabled&&b.offsetParent&&!b.closest("[data-table-control]")).map(b=>b.innerText.trim()).filter(Boolean)`);
         const acao = escolher(depois);
-        if (acao) await page.clickText(acao);
+        if (acao) await page.clickAction(acao);
       } else {
         const acao = escolher(estado.botoes);
-        if (acao) await page.clickText(acao);
+        if (acao) await page.clickAction(acao);
       }
       await new Promise((r) => setTimeout(r, 200));
     }
@@ -156,7 +159,7 @@ async function main() {
     );
     if (comGiro === 0) {
       process.stdout.write(
-        "⚠ nenhum ataque partiu de carta girada — o caso do oponente ficou sem medição.\n",
+        "· nenhum ataque partiu de carta girada (na mesa do MD as do oponente ficam de pé).\n",
       );
     }
     if (falhas > 0) process.exitCode = 1;
