@@ -138,9 +138,14 @@ export class Page {
 
   /** Clica no primeiro elemento cujo texto casa. Devolve se achou. */
   clickText(text, selector = "button, a, [role=button]") {
+    // Controles da mesa (`data-table-control`) só se nada mais casar, pelo
+    // mesmo motivo do `clickAction`: o glossário sublinha "Invocar por
+    // Invocação-Especial" e "Baixar" no texto das cartas, e o termo vinha
+    // antes do botão do menu na página — o clique ia para a leitura.
     return this.evaluate(`
-      const alvo = [...document.querySelectorAll(${JSON.stringify(selector)})]
-        .find((el) => el.innerText.trim().includes(${JSON.stringify(text)}));
+      const casam = [...document.querySelectorAll(${JSON.stringify(selector)})]
+        .filter((el) => el.innerText.trim().includes(${JSON.stringify(text)}));
+      const alvo = casam.find((el) => !el.closest("[data-table-control]")) ?? casam[0];
       if (!alvo) return false;
       alvo.click();
       return true;

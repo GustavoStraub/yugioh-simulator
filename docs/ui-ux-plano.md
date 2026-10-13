@@ -670,6 +670,30 @@ cliente traduz para si.
 - **Bot × bot dizia "SEU TURNO"** a quem só assiste: o aviso agora diz "VEZ DE
   …" com o nome.
 
+### Pedidos do teste manual
+
+- **Nível em número na leitura:** "Nv. 3 ★★★" (o mesmo "Nv." do
+  construtor), como o Rank e o Link já faziam — e "Link 1" antes das setas.
+  Nível mudado por efeito ganha a cor do ATK/DEF alterado.
+- **O que a carta ativada faz, mesmo sem corrente.** O texto do elo só
+  aparecia no diálogo "deseja responder?", que no modo Automático quase nunca
+  abre; o destaque mostrava a carta por um segundo e nada mais. Agora o
+  destaque traz o efeito ativado e três linhas do texto, e a **leitura da
+  esquerda segue cada ativação** ("⛓ Elo 2 — Oponente ativou da mão", o
+  efeito, o texto inteiro com o glossário) e fica nela até o jogador passar o
+  mouse em outra carta. O efeito vem do core (`strings.conf`), que só existe
+  em inglês — "Negate that effect" —; o texto da carta, logo abaixo, segue o
+  PT/EN.
+- Os ajudantes dos testes (`clickText`, `clickAction`) preferem botões de
+  jogo: o glossário sublinha "Invocar por Invocação-Especial" e "Baixar" no
+  texto das cartas, e o termo na leitura ganhava do "Invocar" do menu (o
+  `test:board-modern` deixou de invocar o Breaker por isso). O `test:attack`,
+  o `test:draw` e o `shots` também passaram a ignorar os controles da mesa
+  (o `test:attack` rodou 200 s clicando no glossário sem ver ataque).
+- O `test:browser-decks` saía com código 0 quando a biblioteca nem aparecia
+  (um `return` antecipado pulava o relatório) — com o servidor fora do ar,
+  contava como verde. Agora reprova.
+
 ### O que ficou de fora
 
 - Espectador no online (assistir a sala de outros) e replays.

@@ -321,14 +321,17 @@ async function main() {
       }
     }
   }
-
-  console.log("");
-  if (falhas.length > 0) {
-    console.log(`${falhas.length} falha(s):`);
-    for (const falha of falhas) console.log(`  - ${falha}`);
-    process.exit(1);
-  }
-  console.log("Tudo certo.");
 }
 
 await main();
+
+// O relatório fica FORA do `main`: lá dentro, um `return` antecipado (a
+// biblioteca nem apareceu — o servidor caiu, por exemplo) pulava esta parte, e
+// o teste terminava com ✗ na tela e código de saída 0, contado como verde.
+console.log("");
+if (falhas.length > 0) {
+  console.log(`${falhas.length} falha(s):`);
+  for (const falha of falhas) console.log(`  - ${falha}`);
+  process.exit(1);
+}
+console.log("Tudo certo.");
