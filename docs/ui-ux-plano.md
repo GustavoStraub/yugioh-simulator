@@ -426,10 +426,151 @@ Relógio de partida, espectadores, replays, ranking, música, tutoriais
 roteirizados, layout para celular — registrados nas Fases 9–12 ou aqui, não
 esquecidos.
 
-## 11. Implementação
+## 11. Implementação — primeira entrega (Fases 1–8)
 
-_(preenchido durante a implementação: o que mudou em relação ao plano, os
-números medidos e a verificação executada.)_
+Branch `ui-ux-partida`, a partir da `main`. Fases 9–12 continuam como estão
+acima, para depois.
+
+### Fase 1 — nenhum popup prende a mesa
+
+- `DecisionShell` (`components/duel/DecisionShell.tsx`) é o casco de **todo**
+  diálogo de decisão: perguntas (sim/não, efeito, corrente, posição), seletor
+  de cartas, declarar nome, contadores e ordenar. Com `hidden` ele continua
+  montado — o nome digitado, os contadores distribuídos, a ordem montada e as
+  cartas marcadas sobrevivem à espiada. Ganhou também papel de diálogo,
+  `aria-modal`, rótulo e foco ao abrir.
+- "👁 Ver a mesa (Esc)" no rodapé de cada um; a barra "Voltar à decisão"
+  vale para todos. **Esc** fecha primeiro o que é consulta (menu, pilha,
+  reveladas, outras jogadas, deck) e depois alterna a decisão.
+- O resultado do duelo também se esconde ("Ver a mesa final").
+- Alvo único: clicar de novo na carta marcada confirma (na mesa e no
+  seletor); **Enter** confirma uma seleção pronta — mas não quando o foco está
+  numa carta ou botão, que é de quem o Enter é (confirmar junto mandaria a
+  seleção de antes do clique).
+- No seletor, as cartas do oponente vêm primeiro e, quando a lista mistura
+  os dois lados, cada carta diz de quem é (a lição do cursor do TF1).
+
+### Fase 2 — perguntar "deseja responder?" só quando importa
+
+- Regra em `lib/duel/chain-mode.ts`, aplicada na sessão antes de a pergunta
+  chegar à tela (só para assento humano). Online a preferência vai pelo socket
+  (mensagem `prefs`, validada pela sala, guardada no jogador e reaplicada a
+  cada partida; quem cai com o Ctrl apertado é solto).
+- **Medição em partidas inteiras** (`test:chain-mode`, §6 do teste: decks
+  pré-montados, os dois lados no piloto automático, a mesma partida contada
+  nos três modos):
+
+  | Formato | Partidas | Janelas com resposta legal (= Sempre) | Automático | Corte | Ativações do oponente com resposta possível | Perguntadas no Automático |
+  |---|---|---|---|---|---|---|
+  | Goat | 8 (248 turnos) | 390 | 50 | −87% | 23 | 23 |
+  | TCG | 8 (266 turnos) | 370 | 82 | −78% | 22 | 22 |
+
+  Nos cenários: Scapegoat baixado, 30 perguntas em 4 turnos no Sempre, 4 no
+  Automático (ataques e End Phase do oponente); a Ash continua oferecida na
+  busca do oponente; encadear no próprio Reforço deixa de ser perguntado.
+- **Mudou em relação ao plano:** o botão de modo na mesa alterna os três
+  modos persistentes e fica sempre à vista ("⛓ Auto/Sempre/Nunca", vermelho
+  no Nunca, "Parando" com o Ctrl). Não há o "Sempre até o fim do turno" do
+  MD: o Ctrl segurado cobre o caso de parar numa janela específica.
+
+### Fase 3 — jogadas com nome
+
+- O rótulo continua sendo o verbo ("Ativar") e o efeito vai embaixo, em
+  `CardAction.detail` — no menu da carta, na pilha e na resposta da corrente.
+  Mudar o rótulo em si quebraria quem acha a ação pelo verbo (os testes de
+  navegador e o olho). Strings do sistema que só dizem "Activate" não viram
+  detalhe; "Activate it as a Pendulum Spell" vira "Como Escala de Pêndulo".
+
+### Fase 4 — ver o que aconteceu
+
+- `narrateFieldExit` na sessão: cada saída do campo vira linha com motivo e o
+  evento `leave`. O motivo vem de uma consulta `REASON` à carta **no
+  destino**, conferindo que é a mesma carta (o binding lê o `MOVE` sem o
+  `reason`). Pêndulo destruído indo ao Extra Deck conta como destruição.
+- `LeaveFlightLayer` desenha o fantasma pela **zona** e pelo código, não pelo
+  elemento antigo: no online o tabuleiro novo chega antes do evento. Sons
+  novos: estilhaço (destruição) e sumiço (banimento), um por instante num
+  Raigeki.
+- Histórico: linhas tipadas (`turn`, `phase`, `hint`, `system`), cartas
+  citadas (`codes`) e quem agiu (`actor`). A tela tira as linhas de carga e
+  as dicas de seleção, faz do turno um separador e pinta cada linha com a cor
+  do lado; passar o mouse mostra a carta. Ataque com nomes; compra por
+  efeito registrada (a da Draw Phase e a mão inicial, não).
+- **Achado no caminho:** este binding não marca matéria Xyz com o bit
+  `OVERLAY` na localização — manda a zona do monstro Xyz e um
+  `overlay_sequence`. Na Invocação-Xyz a matéria é anexada ao Xyz ainda no
+  Extra Deck, e a primeira versão do histórico dizia "Battle Ox foi para o
+  Extra Deck". Corrigido (e coberto em `test:duel-log`). O mesmo detalhe
+  escondia um defeito antigo: desanexar uma matéria apagava as marcas do
+  próprio monstro Xyz (contadores, avisos), porque a matéria "saía" da zona
+  dele. Também corrigido.
+- **Ficou de fora (D17):** o histórico continua em PT mesmo com as cartas em
+  EN — o texto é montado na sessão (no online, no servidor). As linhas já
+  levam `codes`, que é o que falta para a tela renomear; fica para depois.
+
+### Fase 5 — ritmo
+
+- Velocidade Normal / Rápida / Muito rápida (1 / 0,6 / 0,3) no duelo local:
+  a mesma escala vai para as pausas da sessão (`setPace`) e para as
+  animações (destaque, voo do ataque, compra, saída, moeda/dado). Online o
+  ritmo é da sala, e a engrenagem diz isso.
+- Clicar no destaque de uma ativação pula a animação e a pausa (`hurry`).
+- O desconto do turno próprio passou a valer só para humano local contra o
+  bot (`ownTurnDiscount`) — antes o assento 0 de um duelo online via tudo
+  acelerado e o 1 tudo lento.
+- Movimento reduzido: voos e fantasmas não rodam; moeda e dado param no CSS.
+
+### Fase 6 — mesa limpa
+
+- Leitura fixa: o painel fica na última carta lida, com os valores atuais
+  quando ela continua na mesma zona (senão, a carta impressa); antes da
+  primeira, mostra o elo da corrente ou a carta da pergunta.
+- Zonas vazias sem "Mon1"/"M/A5 · P" — só "P" nas de Pêndulo.
+- **Bug das banidas:** o teto de largura das cartas passou a contar as
+  pilhas penduradas fora da fileira (`(100cqw − 64px) / 8,3`). O
+  `test:viewports` não pegava porque Cemitério e banidas não tinham
+  `data-pile`; agora todas as pilhas têm, e uma sonda com a fórmula antiga
+  aplicada na página acusa `banished-0` e `banished-1` sobre os trilhos.
+- Mão: a carta cresce 45% e sobe ao passar o mouse (sem crescer com o menu
+  aberto, para o menu não crescer junto).
+- Selo "Sua vez"/"Vez do oponente" na barra de LP de quem joga; "Fulano está
+  jogando…" quando a mesa anda sozinha (entra com atraso no CSS, sem piscar).
+- Deck com ≤ 5 cartas em vermelho; Regulador com selo "★N R" amarelo.
+
+### Fases 7 e 8 — engrenagem e fim de duelo
+
+- Engrenagem (`DuelSettings.tsx`): respostas, velocidade, lista de atalhos;
+  preferências no navegador (`duel-prefs.ts`, `useDuelPrefs`). Esc fecha.
+- Fim de duelo: turnos e LP finais, **Revanche** (contra o bot: a mesa é
+  remontada com os mesmos decks), "Trocar de deck" e "Ver a mesa final".
+
+### Verificação executada
+
+Na branch final, com a app em produção (`npm run build` + `server.mjs`):
+
+| Camada | Teste | Resultado |
+|---|---|---|
+| Tipos e lint | `tsc --noEmit`, `eslint src tools/harness` | limpos |
+| Regra e sessão | `test:chain-mode` (novo) | regra caso a caso, sessão real nos três modos, medição da tabela acima |
+| | `test:duel-log` (novo) | ataque com nomes, batalha × efeito, compra, matéria Xyz, marcas do Xyz, carta baixada sem nome |
+| | `test:prompt-rules` | inclui os rótulos de efeito (Soldado do Lustro Negro, Pêndulo, Ash) |
+| | `test:ui` (10 duelos), `test:ui-rare`, `test:presets` (110 partidas bot × bot em MR5) | 0 prompt sem resposta; 110 vitórias, 0 RETRY |
+| | `test:hidden`, `test:marks`, `test:endgame`, `test:formats`, `test:multiplayer` (com a preferência pela rede), `test:modern-summons`, `test:sort-card`, `test:cancel`, `test:patches`, `test:deck-library` | verdes |
+| Navegador | `test:browser-peek` (novo) | esconder cada popup, Cemitério com decisão pendente, estado preservado, engrenagem, revanche |
+| | `test:browser-chain`, `-cancel`, `-announce`, `test:modern-play`, `test:board-modern`, `test:draw`, `test:attack` | verdes |
+| | `test:browser` Goat e `PRESET=tcg-ys17`, `test:browser-online` Goat e `FORMATO=tcg` | duelos até o fim, sem exceção nem erro de console |
+| | `test:viewports` | 6 telas + movimento reduzido, nada sob os trilhos (e acusa o bug antigo) |
+
+Os testes de navegador também ganharam correções próprias no caminho: o de
+declarar nome procurava um nome que o catálogo já não usa e cobria 1 dos 6
+prompts (agora escolhe pelo passcode); vários laços clicavam botões de
+consulta ("👁", "Ver a mesa") em vez de jogar — esses controles agora têm
+`data-table-control`, que os laços ignoram.
+
+**O que não foi verificado por ninguém além de mim:** a sensação — se as
+durações da velocidade "Muito rápida" ainda deixam ler o destaque, se o
+fantasma de saída pesa demais num Raigeki, se o zoom da mão incomoda. Isso
+pede uma partida jogada por gente.
 
 ## Fontes
 
