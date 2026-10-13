@@ -1438,6 +1438,7 @@ export class DuelSession {
             player: link.player,
             code: link.code,
             from: link.from,
+            description: link.description,
           });
           break;
         }

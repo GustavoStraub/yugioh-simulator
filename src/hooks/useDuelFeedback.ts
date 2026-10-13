@@ -231,6 +231,7 @@ export function useDuelFeedback(
             mine: event.player === me,
             link: event.link,
             from: event.kind === "chainLink" ? event.from : 0,
+            description: event.kind === "chainLink" ? (event.description ?? null) : null,
             kind: negated ? "negated" : "activate",
             what: event.kind === "chainNegated" ? event.what : undefined,
             duration,

@@ -64,7 +64,7 @@ import {
 } from "@/components/duel/DuelCardSlot";
 import { SoundControl } from "@/components/duel/SoundControl";
 import { AttackFlightLayer } from "@/components/duel/AttackFlight";
-import { ChainSpotlight } from "@/components/duel/ChainSpotlight";
+import { ChainSpotlight, ORIGEM } from "@/components/duel/ChainSpotlight";
 import { ChainStack } from "@/components/duel/ChainStack";
 import type { ChainBadge } from "@/components/duel/DuelCardSlot";
 import { DrawFlightLayer } from "@/components/duel/DrawFlight";
@@ -185,6 +185,22 @@ const EMPTY_PLAYER: BoardPlayer = {
  */
 type PreviewCard = Pick<BoardCard, "code"> & Partial<Omit<BoardCard, "code">>;
 
+/** O elo que pôs a carta na leitura (ver `ativacaoLida`). */
+interface ActivationRead {
+  code: number;
+  link: number;
+  mine: boolean;
+  /** De onde foi ativada (`OcgLocation`). */
+  from: number;
+  description: string | null;
+}
+
+/** O cabeçalho de ativação da leitura: o elo, quem, e em que pé está. */
+interface ActivationHeader extends ActivationRead {
+  who: string;
+  state: DuelChainLink["state"] | null;
+}
+
 /** Sequência da zona de campo dentro da SZONE (as 5 primeiras são magia/armadilha). */
 const FIELD_ZONE_SEQUENCE = 5;
 
@@ -263,11 +279,52 @@ export function DuelBoard({
    * campo pensando na jogada. Quem quer outra carta passa o mouse nela.
    */
   const [preview, setPreview] = useState<PreviewCard | null>(null);
+  /**
+   * A ativação que pôs a carta em leitura, quando foi ela (e não o mouse).
+   *
+   * A leitura segue a ativação, como no Master Duel: cada elo novo vai para o
+   * painel da esquerda com quem ativou e o efeito, e fica lá até o jogador
+   * passar o mouse em outra carta. Antes o texto do que foi ativado só
+   * aparecia no diálogo "deseja responder?" — que no modo Automático quase
+   * nunca abre —, e o destaque do centro some em um segundo: um Raigeki do
+   * oponente passava mostrando a carta e nada do que ela fazia.
+   */
+  const [ativacaoLida, setAtivacaoLida] = useState<ActivationRead | null>(null);
   const showPreview = useCallback((card: PreviewCard | null) => {
     // Zona vazia e carta virada do oponente não têm o que ler — não apagam a
     // leitura que está no painel.
-    if (card?.code) setPreview(card);
+    if (card?.code) {
+      setPreview(card);
+      setAtivacaoLida(null);
+    }
   }, []);
+  // Um destaque de ativação novo (token novo) leva a carta para a leitura.
+  // Estado derivado durante o render — o padrão do React para "reagir a uma
+  // prop nova" sem efeito e sem render a mais.
+  const [destaqueLido, setDestaqueLido] = useState<number | null>(null);
+  if (spotlight && spotlight.kind === "activate" && spotlight.token !== destaqueLido) {
+    setDestaqueLido(spotlight.token);
+    const elo = snapshot.chainLinks.find(
+      (l) => l.link === spotlight.link && l.code === spotlight.code,
+    );
+    setPreview(
+      elo
+        ? {
+            code: elo.code,
+            controller: elo.zone.controller as 0 | 1,
+            location: elo.zone.location as OcgLocation,
+            sequence: elo.zone.sequence,
+          }
+        : { code: spotlight.code },
+    );
+    setAtivacaoLida({
+      code: spotlight.code,
+      link: spotlight.link,
+      mine: spotlight.mine,
+      from: spotlight.from,
+      description: spotlight.description ?? elo?.description ?? null,
+    });
+  }
   const [menuFor, setMenuFor] = useState<string | null>(null);
   const [picked, setPicked] = useState<number[]>([]);
   /** Painel do próprio deck, de onde se desiste. */
@@ -429,6 +486,31 @@ export function DuelBoard({
       : snapshot.promptCard
         ? { code: snapshot.promptCard }
         : null);
+
+  /**
+   * Quem ativou. "Você"/"Oponente" como no resto da mesa — o nome do deck do
+   * bot ("Baralho Inicial: Kaiba") não cabe no selo; quem só assiste bot × bot
+   * não é "Você", e lá vão os nomes.
+   */
+  const nomesDaAtivacao = spectating
+    ? { mine: playerName, foe: opponentName }
+    : { mine: "Você", foe: "Oponente" };
+  /**
+   * O cabeçalho "⛓ Elo N — fulano ativou" na leitura, enquanto ela mostra a
+   * carta que a ativação trouxe. O estado do elo (negado?) vem da corrente
+   * viva; depois do fim dela fica o que se sabia.
+   */
+  const ativacaoEmLeitura: ActivationHeader | null =
+    ativacaoLida && cartaEmLeitura?.code === ativacaoLida.code
+      ? {
+          ...ativacaoLida,
+          who: ativacaoLida.mine ? nomesDaAtivacao.mine : nomesDaAtivacao.foe,
+          state:
+            snapshot.chainLinks.find(
+              (l) => l.link === ativacaoLida.link && l.code === ativacaoLida.code,
+            )?.state ?? null,
+        }
+      : null;
 
   /**
    * Mesa de Master Rule 2020: Zonas de Monstro Extra, Pêndulo nas pontas da
@@ -1024,7 +1106,12 @@ export function DuelBoard({
         {!estreita && (
           <aside className="flex w-[var(--tf-rail-left)] shrink-0 flex-col overflow-hidden p-2">
             <ChainStack links={snapshot.chainLinks ?? []} me={me} registry={registry} />
-            <CardPreview card={cartaEmLeitura} registry={registry} marksOf={marksOf} />
+            <CardPreview
+              card={cartaEmLeitura}
+              registry={registry}
+              marksOf={marksOf}
+              activation={ativacaoEmLeitura}
+            />
           </aside>
         )}
 
@@ -1150,6 +1237,7 @@ export function DuelBoard({
           <ChainSpotlight
             spotlight={spotlight}
             registry={registry}
+            names={nomesDaAtivacao}
             onSkip={() => {
               dismissSpotlight();
               onHurry?.();
@@ -1499,7 +1587,12 @@ export function DuelBoard({
               >
                 ✕ Fechar
               </button>
-              <CardPreview card={cartaEmLeitura} registry={registry} marksOf={marksOf} />
+              <CardPreview
+                card={cartaEmLeitura}
+                registry={registry}
+                marksOf={marksOf}
+                activation={ativacaoEmLeitura}
+              />
             </div>
           </div>
         )}
@@ -3635,14 +3728,54 @@ function DuelLog({
 }
 
 /** Leitura da carta em foco — o painel grande do canto esquerdo do Tag Force. */
+/**
+ * "⛓ Elo 2 — Oponente ativou (da mão)" no topo da leitura, com o efeito que o
+ * core diz ter sido ativado. O texto completo da carta vem logo abaixo, como
+ * em qualquer leitura — este cabeçalho só diz por que ela está ali e qual
+ * efeito foi (a carta pode ter mais de um).
+ */
+function ActivationBanner({ activation }: { activation: ActivationHeader }) {
+  const origem = ORIGEM[activation.from];
+  const negado = activation.state === "negated" || activation.state === "disabled";
+  return (
+    <div
+      data-preview-activation={activation.link}
+      className={`shrink-0 rounded border px-2 py-1.5 ${
+        negado
+          ? "border-red-500/60 bg-red-950/40"
+          : activation.mine
+            ? "border-[color:var(--tf-gold)]/50 bg-black/40"
+            : "border-red-500/40 bg-black/40"
+      }`}
+    >
+      <p className="text-[11px] font-bold uppercase tracking-wider text-[color:var(--tf-gold)]">
+        ⛓ Elo {activation.link} — {activation.who} ativou{origem ? ` ${origem}` : ""}
+        {negado && (
+          <span className="ml-1.5 rounded bg-red-700 px-1 py-px text-[10px] text-white">
+            {activation.state === "negated" ? "Ativação negada" : "Efeito negado"}
+          </span>
+        )}
+      </p>
+      {activation.description && (
+        <p className="mt-0.5 text-[12px] font-semibold leading-snug text-sky-300">
+          {activation.description}
+        </p>
+      )}
+    </div>
+  );
+}
+
 function CardPreview({
   card,
   registry,
   marksOf,
+  activation = null,
 }: {
   card: PreviewCard | null;
   registry: CardRegistry | null;
   marksOf: (card: BoardCard | null | undefined) => CardMark[];
+  /** Quando a carta está aqui porque acabou de ser ativada (ver `ativacaoLida`). */
+  activation?: ActivationHeader | null;
 }) {
   const texto = useCardText();
   const definition = card?.code ? registry?.get(card.code) : undefined;
@@ -3677,6 +3810,8 @@ function CardPreview({
   const markers = card?.link?.markers ?? definition.linkMarkers ?? 0;
   const rank = card?.rank || (isXyz ? (definition.level ?? 0) : 0);
   const level = card?.level || (!isXyz && !isLink ? (definition.level ?? 0) : 0);
+  /** O Nível impresso — para mostrar quando um efeito o mudou. */
+  const levelBase = !isXyz && !isLink ? (definition.level ?? 0) : 0;
   const leftScale = card?.scales?.left ?? definition.scale;
   const rightScale = card?.scales?.right ?? definition.scale;
   const materials = card?.overlays ?? [];
@@ -3688,6 +3823,7 @@ function CardPreview({
 
   return (
     <div className="tf-panel flex min-h-0 flex-1 flex-col gap-2 overflow-hidden rounded-md p-2.5">
+      {activation && <ActivationBanner activation={activation} />}
       {image && (
         // eslint-disable-next-line @next/next/no-img-element
         <img
@@ -3729,17 +3865,40 @@ function CardPreview({
         </p>
         {isMonster && (
           <p className="flex flex-wrap items-center gap-x-2 text-[12px] text-amber-300">
+            {/* O número vem antes dos símbolos, nos três: contar oito estrelas
+                (ou seis setas) para saber se dá Xyz ou Link é trabalho que a
+                tela pode fazer. É o mesmo "Nv." do construtor. */}
             {isLink ? (
-              <span className="flex items-center gap-1.5 text-sky-300">
+              <span data-preview-link={rating} className="flex items-center gap-1.5 text-sky-300">
+                <span className="font-semibold">Link {rating}</span>
                 <LinkArrowsGlyph markers={markers} />
-                Link {rating}
               </span>
             ) : rank ? (
-              <span title={`Rank ${rank}`} className="text-zinc-100">
-                Rank {rank} {"☆".repeat(Math.min(rank, 13))}
+              <span data-preview-rank={rank} title={`Rank ${rank}`} className="flex items-center gap-1.5 text-zinc-100">
+                <span className="font-semibold">Rank {rank}</span>
+                <span>{"☆".repeat(Math.min(rank, 13))}</span>
               </span>
             ) : level ? (
-              <span title={`Nível ${level}`}>{"★".repeat(Math.min(level, 12))}</span>
+              <span
+                data-preview-level={level}
+                title={levelBase && levelBase !== level ? `Nível ${level} (original ${levelBase})` : `Nível ${level}`}
+                className="flex items-center gap-1.5"
+              >
+                {/* Nível mudado por efeito (Ruído Mental, Fusão do Nível…): a
+                    mesma cor do ATK/DEF alterado — azul subiu, vermelho desceu. */}
+                <span
+                  className={`font-semibold ${
+                    levelBase && level > levelBase
+                      ? "text-sky-400"
+                      : levelBase && level < levelBase
+                        ? "text-red-400"
+                        : ""
+                  }`}
+                >
+                  Nv. {level}
+                </span>
+                <span>{"★".repeat(Math.min(level, 12))}</span>
+              </span>
             ) : null}
             <span>{attributeLabel(definition.attribute) ?? ""}</span>
           </p>

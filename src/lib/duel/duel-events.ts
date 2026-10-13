@@ -81,9 +81,19 @@ export type DuelEvent =
    * Corrente: um elo entrou (`from` = de onde a carta foi ativada, como
    * `OcgLocation`) ou foi negado — a ATIVAÇÃO (Solemn) ou o EFEITO (Ash
    * Blossom). O "resolvendo" não é evento: vai no `chainLinks` do snapshot.
-   * Públicos: ativar revela a carta.
+   * Públicos: ativar revela a carta. `description` é o efeito ativado, como
+   * o core o descreve (o mesmo de `DuelChainLink.description`) — vai no
+   * evento para o destaque dizer O QUE a carta faz mesmo quando a corrente
+   * resolve sem ninguém ser perguntado.
    */
-  | { kind: "chainLink"; link: number; player: number; code: number; from: number }
+  | {
+      kind: "chainLink";
+      link: number;
+      player: number;
+      code: number;
+      from: number;
+      description?: string | null;
+    }
   | {
       kind: "chainNegated";
       link: number;

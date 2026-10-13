@@ -14,13 +14,15 @@ export interface ChainSpotlightState {
   link: number;
   /** De onde a carta foi ativada (`OcgLocation`). */
   from: number;
+  /** O efeito ativado, como o core o descreve (ver `DuelChainLink`). */
+  description?: string | null;
   kind: "activate" | "negated";
   /** Só no `negated`: a ativação inteira ou só o efeito. */
   what?: "activation" | "effect";
   duration: number;
 }
 
-const ORIGEM: Partial<Record<number, string>> = {
+export const ORIGEM: Partial<Record<number, string>> = {
   [OcgLocation.HAND]: "da mão",
   [OcgLocation.GRAVE]: "do Cemitério",
   [OcgLocation.REMOVED]: "das banidas",
@@ -46,9 +48,12 @@ export function ChainSpotlight({
   spotlight,
   registry,
   onSkip,
+  names = { mine: "Você", foe: "Oponente" },
 }: {
   spotlight: ChainSpotlightState | null;
   registry: CardRegistry | null;
+  /** Quem ativou, pelo nome — quem só assiste bot × bot não é "Você". */
+  names?: { mine: string; foe: string };
   /**
    * Clique na carta: pula o destaque (e a pausa da sessão, no duelo local) —
    * o ○ do Tag Force. Quem já leu o elo não precisa esperar o resto.
@@ -63,7 +68,12 @@ export function ChainSpotlight({
   const imagem = def?.images[0]?.image_url ?? `/card-images/full/${spotlight.code}.jpg`;
   const origem = ORIGEM[spotlight.from];
   const negada = spotlight.kind === "negated";
-  const quem = spotlight.mine ? "Você" : "Oponente";
+  const quem = spotlight.mine ? names.mine : names.foe;
+  // O que a carta faz. Antes o destaque mostrava só a carta, e o texto dela
+  // só aparecia no diálogo "deseja responder?" — que, no modo Automático,
+  // quase nunca abre: o Raigeki do oponente passava sem dizer nada.
+  const efeito = negada ? null : (spotlight.description ?? null);
+  const textoDaCarta = negada || !def ? null : texto.desc(def);
 
   return (
     <div
@@ -126,12 +136,25 @@ export function ChainSpotlight({
           )}
         </div>
 
-        <div className="max-w-[320px] rounded-md bg-black/80 px-3 py-1.5 text-center shadow-lg shadow-black/60">
+        <div className="max-w-[360px] rounded-md bg-black/80 px-3 py-1.5 text-center shadow-lg shadow-black/60">
           <p className="text-[15px] font-bold leading-tight text-[color:var(--tf-gold-bright)]">{nome}</p>
           <p className="mt-0.5 text-[11px] font-semibold uppercase tracking-wider text-zinc-300">
             Elo {spotlight.link}
             {!negada && origem ? ` · ${origem}` : ""}
           </p>
+          {efeito && (
+            <p data-spotlight-effect className="mt-1 text-[12px] font-semibold leading-snug text-sky-300">
+              {efeito}
+            </p>
+          )}
+          {/* O texto inteiro não cabe nem dá tempo de ler aqui: três linhas
+              para reconhecer a carta, e a leitura da esquerda fica com ela
+              (ver `DuelBoard`, "a leitura segue a ativação"). */}
+          {textoDaCarta && (
+            <p data-spotlight-text className="mt-1 line-clamp-3 text-left text-[11px] leading-snug text-zinc-300">
+              {textoDaCarta}
+            </p>
+          )}
         </div>
       </div>
     </div>
