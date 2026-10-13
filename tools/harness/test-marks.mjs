@@ -15,7 +15,7 @@
  *
  * Uso: npm run test:marks
  */
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
 import {
@@ -34,7 +34,9 @@ import { CardRegistry } from "@/lib/domain/card-registry";
 import { projectSnapshot } from "@/server/duel/room";
 import { nodeAssets } from "@/server/duel/node-assets";
 
-import { REPO } from "./env.mjs";
+import { EngineStringsDb } from "@/lib/duel/engine-strings";
+
+import { REPO, SCRIPTS_DIR } from "./env.mjs";
 
 const C = {
   ox: 5053103,
@@ -344,6 +346,52 @@ console.log("\nMarcas de turno, de jogador e de zona");
       JSON.stringify(espadas?.hints),
     );
   }
+}
+
+// ---------------------------------------------------------------------------
+// Todo contador que algum script usa tem nome na tela?
+// ---------------------------------------------------------------------------
+// Varre os scripts atrás dos tipos de contador (número direto ou constante
+// COUNTER_*) e confere que cada um vira um nome — e não o "Marcador" genérico
+// de quando o `strings.conf` não o conhece (caso do E.C. Counter dos
+// Enneacraft, que o upstream não nomeia).
+console.log("\nCobertura: todo tipo de contador dos scripts tem nome");
+{
+  const strings = new EngineStringsDb(
+    JSON.parse(readFileSync(join(REPO, "src/data/engine-strings.json"), "utf8")),
+  );
+  const constantes = Object.fromEntries(
+    [...readFileSync(join(SCRIPTS_DIR, "card_counter_constants.lua"), "utf8").matchAll(
+      /^\s*(COUNTER_[A-Z0-9_]+)\s*=\s*(0x[0-9a-fA-F]+|\d+)/gm,
+    )].map((m) => [m[1], Number(m[2])]),
+  );
+  const uso =
+    /(?:AddCounter|RemoveCounter|GetCounter|IsCanAddCounter|IsCanRemoveCounter|EnableCounterPermit|SetCounterLimit|counter_list|counter_place_list)\s*\(?\s*(?:[^,()]*,\s*)?\{?\s*(0x[0-9a-fA-F]+|COUNTER_[A-Z0-9_]+)/g;
+  const tipos = new Map();
+  for (const arquivo of readdirSync(join(SCRIPTS_DIR, "official"))) {
+    const texto = readFileSync(join(SCRIPTS_DIR, "official", arquivo), "utf8");
+    for (const m of texto.matchAll(uso)) {
+      const tipo = m[1].startsWith("0x") ? Number(m[1]) : constantes[m[1]];
+      if (tipo) tipos.set(tipo, arquivo);
+    }
+  }
+  const semNome = [...tipos].filter(([tipo]) => strings.counterName(tipo) === "Marcador");
+  conferir(
+    tipos.size > 50 && semNome.length === 0,
+    `os ${tipos.size} tipos de contador usados nos scripts têm nome`,
+    semNome.map(([tipo, arquivo]) => `0x${tipo.toString(16)} (${arquivo})`).join(", "),
+  );
+  conferir(strings.counterName(0x217) === "Marcador E.C.", "o E.C. Counter dos Enneacraft aparece pelo nome", strings.counterName(0x217));
+
+  // Aviso cuja string o banco do ProjectIgnis deixa vazia (Burst Stream of
+  // Destruction, str2): em vez de sumir, diz de qual carta vem.
+  const burst = 17655904 * 0x100000 + 1;
+  const texto = strings.hintText(burst, (code) => (code === 17655904 ? "Burst Stream of Destruction" : String(code)));
+  conferir(
+    texto === "Efeito de Burst Stream of Destruction",
+    "aviso com string vazia no upstream aparece como \"Efeito de <carta>\"",
+    String(texto),
+  );
 }
 
 if (falhas.length) {

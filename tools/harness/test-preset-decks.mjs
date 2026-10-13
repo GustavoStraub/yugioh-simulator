@@ -38,7 +38,7 @@
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { OcgDuelMode, OcgMessageType } from "@n1xx1/ocgcore-wasm";
+import { OcgCardHintType, OcgDuelMode, OcgMessageType, OcgPlayerHintType } from "@n1xx1/ocgcore-wasm";
 
 import { PRESET_KIND_ORDER } from "@/lib/domain/preset-decks";
 import { autoResponseFor } from "@/lib/duel/auto-response";
@@ -46,6 +46,7 @@ import { readBoardState } from "@/lib/duel/board-state";
 import { BotBrain } from "@/lib/duel/bot/bot-brain";
 import { findPromptMessage } from "@/lib/duel/bot-responder";
 import { buildPromptPlan } from "@/lib/duel/duel-actions";
+import { EngineStringsDb } from "@/lib/duel/engine-strings";
 import { OfficialCardDb } from "@/lib/duel/official-card-data";
 
 import { createDuel, Zone } from "./duel.mjs";
@@ -70,6 +71,32 @@ const lerJson = (path) => JSON.parse(readFileSync(join(REPO, path), "utf8"));
 const GOAT = lerJson("src/data/preset-decks.json");
 const TCG = lerJson("src/data/preset-decks-tcg.json");
 const cardDb = new OfficialCardDb(lerJson("src/data/card-db.json"));
+const engineStrings = new EngineStringsDb(lerJson("src/data/engine-strings.json"));
+
+/**
+ * Avisos de efeito (o "ⓘ" da carta, o aviso do jogador) que o engine mandou e
+ * a tela não soube escrever — a sessão os descarta em silêncio, então só uma
+ * contagem aqui os denuncia. Chave: o valor da string; valor: quantas vezes.
+ */
+const avisosSemTexto = new Map();
+let avisosVistos = 0;
+function conferirAviso(message) {
+  const desc =
+    message.type === OcgMessageType.CARD_HINT &&
+    (message.card_hint === OcgCardHintType.DESC_ADD || message.card_hint === OcgCardHintType.DESC_REMOVE)
+      ? message.description
+      : message.type === OcgMessageType.PLAYER_HINT &&
+          (message.player_hint === OcgPlayerHintType.DESC_ADD || message.player_hint === OcgPlayerHintType.DESC_REMOVE)
+        ? message.description
+        : null;
+  if (desc === null) return;
+  avisosVistos += 1;
+  // Aviso que nem a reserva ("Efeito de <carta>") consegue escrever.
+  if (!engineStrings.hintText(Number(desc), (code) => `#${code}`)) {
+    const chave = String(desc);
+    avisosSemTexto.set(chave, (avisosSemTexto.get(chave) ?? 0) + 1);
+  }
+}
 
 /**
  * Mensagens que o binding não conseguiu ler, por tipo. Com o conserto do
@@ -229,6 +256,7 @@ function criarRastreador(duel) {
   return () => {
     for (; cursor < duel.messages.length; cursor += 1) {
       const message = duel.messages[cursor];
+      conferirAviso(message);
       if (message.type === OcgMessageType.NEW_TURN) {
         turnPlayer = message.player;
         turnCount += 1;
@@ -398,6 +426,13 @@ if (!SKIP_DUELS) {
   console.log(`  RETRY recuperados: ${resumo.retries} | eof do binding recuperados: ${resumo.eof} | longas (teto de passos, jogo andando): ${resumo.longas}`);
   const nomesIlegiveis = Object.entries(ilegiveis).map(([tipo, n]) => `${MESSAGE_NAMES[tipo] ?? tipo} ×${n}`);
   console.log(`  mensagens que o binding não leu (descartadas uma a uma): ${nomesIlegiveis.join(", ") || "nenhuma"}`);
+  // Os avisos só são lidos pelo rastreador, que roda a cada decisão do bot —
+  // a passada final pega o que veio depois da última.
+  const semTexto = [...avisosSemTexto].map(([desc, n]) => {
+    const valor = Number(desc);
+    return `${desc} (carta ${Math.floor(valor / 0x100000)}, str${(valor % 0x100000) + 1}) ×${n}`;
+  });
+  console.log(`  avisos de efeito: ${avisosVistos} vistos | sem texto na tela: ${semTexto.length ? semTexto.join(", ") : "nenhum"}`);
   console.log(
     `  prompts vistos${MASSA ? "" : " no assento 0"} (${tiposVistos.size}): ${[...tiposVistos]
       .map((t) => MESSAGE_NAMES[t] ?? t)
@@ -407,7 +442,7 @@ if (!SKIP_DUELS) {
   if (JSON_OUT) {
     writeFileSync(
       JSON_OUT,
-      JSON.stringify({ ...resumo, ilegiveis, desfechos, tipos: [...tiposVistos].map((t) => MESSAGE_NAMES[t] ?? t), falhasConferidas: falhas }, null, 1),
+      JSON.stringify({ ...resumo, ilegiveis, avisosVistos, avisosSemTexto: Object.fromEntries(avisosSemTexto), desfechos, tipos: [...tiposVistos].map((t) => MESSAGE_NAMES[t] ?? t), falhasConferidas: falhas }, null, 1),
     );
   }
 }

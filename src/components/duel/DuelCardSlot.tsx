@@ -92,14 +92,18 @@ interface DuelCardSlotProps {
   disabledZone?: boolean;
 }
 
-/** Cor do selo por tipo de marca. */
+/**
+ * Cor do selo por tipo de marca — fundo SÓLIDO e claro: o selo fica por cima
+ * da arte, e o fundo escuro translúcido de antes sumia sobre carta escura (o
+ * Marcador de Magia do Breaker era um borrão no canto).
+ */
 const MARK_TONE: Record<CardMark["tone"], string> = {
-  counter: "bg-amber-950/95 text-amber-200 ring-amber-400/60",
-  turn: "bg-sky-950/95 text-sky-200 ring-sky-400/60",
-  declared: "bg-fuchsia-950/95 text-fuchsia-200 ring-fuchsia-400/60",
-  notice: "bg-zinc-900/95 text-zinc-100 ring-zinc-300/50",
-  link: "bg-emerald-950/95 text-emerald-200 ring-emerald-400/60",
-  negated: "bg-red-950/95 text-red-200 ring-red-400/70",
+  counter: "bg-amber-400 text-black ring-amber-950/70",
+  turn: "bg-sky-400 text-black ring-sky-950/70",
+  declared: "bg-fuchsia-400 text-black ring-fuchsia-950/70",
+  notice: "bg-zinc-100 text-black ring-zinc-900/70",
+  link: "bg-emerald-400 text-black ring-emerald-950/70",
+  negated: "bg-red-500 text-white ring-red-950/70",
 };
 
 /**
@@ -313,7 +317,7 @@ export function DuelCardSlot({
               <span
                 key={index}
                 title={mark.text}
-                className={`pointer-events-auto rounded px-1 font-mono text-[10px] font-bold leading-tight ring-1 ${MARK_TONE[mark.tone]}`}
+                className={`pointer-events-auto rounded px-1.5 py-px font-mono text-[12px] font-extrabold leading-tight shadow-md shadow-black/60 ring-1 ${MARK_TONE[mark.tone]}`}
               >
                 {mark.chip}
               </span>
@@ -321,7 +325,7 @@ export function DuelCardSlot({
             {marks.length > 4 && (
               <span
                 title={marks.slice(4).map((mark) => mark.text).join("\n")}
-                className="pointer-events-auto rounded bg-black/85 px-1 text-[10px] font-bold text-zinc-200"
+                className="pointer-events-auto rounded bg-zinc-100 px-1.5 py-px text-[12px] font-extrabold text-black shadow-md shadow-black/60"
               >
                 +{marks.length - 4}
               </span>

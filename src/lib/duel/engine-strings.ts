@@ -219,6 +219,16 @@ const SYSTEM_STRING_OVERRIDES_PT: Record<number, string> = {
 };
 
 /** Nomes de contador com tradução publicada; o resto vira "Contador X". */
+/**
+ * Contadores que os scripts usam e o `strings.conf` do ProjectIgnis não
+ * nomeia — sem isto a carta mostrava só "Marcador". Achados varrendo os
+ * scripts (o `test:marks` refaz a varredura e reprova um tipo novo sem nome).
+ */
+const COUNTER_FALLBACK: Record<string, string> = {
+  // Enneacraft (2025): "place 1 E.C. Counter on this card".
+  [String(0x217)]: "E.C. Counter",
+};
+
 const COUNTER_NAMES_PT: Record<string, string> = {
   "Spell Counter": "Marcador de Magia",
   "Bushido Counter": "Marcador Bushido",
@@ -265,7 +275,11 @@ export class EngineStringsDb {
    */
   counterName(type: number): string {
     const english =
-      this.counters[String(type)] ?? this.counters[String(type & ~0x1000)] ?? null;
+      this.counters[String(type)] ??
+      this.counters[String(type & ~0x1000)] ??
+      COUNTER_FALLBACK[String(type)] ??
+      COUNTER_FALLBACK[String(type & ~0x1000)] ??
+      null;
     if (!english) return "Marcador";
     if (COUNTER_NAMES_PT[english]) return COUNTER_NAMES_PT[english];
     const match = /^(.+?) Counter$/.exec(english);
@@ -288,6 +302,23 @@ export class EngineStringsDb {
     const index = value % CARD_STRING_BASE;
     const strings = this.cards[passcode];
     return strings?.[index] ?? null;
+  }
+
+  /**
+   * Texto de um aviso de efeito (o "ⓘ" da carta, o aviso do jogador).
+   *
+   * Igual a `describeOption`, com uma reserva: o banco do ProjectIgnis deixa
+   * vazias algumas strings que os scripts usam como aviso (Burst Stream of
+   * Destruction, Noble Knights of the Round Table, Cardcar D… — medido na
+   * bateria em massa). A sessão descartava esses avisos em silêncio, e o
+   * jogador não sabia que havia algo agindo na carta. Agora diz pelo menos de
+   * onde vem: "Efeito de <carta>".
+   */
+  hintText(value: number, cardName: (code: number) => string): string | null {
+    const text = this.describeOption(value);
+    if (text) return text;
+    if (!Number.isFinite(value) || value < CARD_STRING_BASE) return null;
+    return `Efeito de ${cardName(Math.floor(value / CARD_STRING_BASE))}`;
   }
 
   get systemStringCount(): number {

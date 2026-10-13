@@ -1195,7 +1195,9 @@ export class DuelSession {
           break;
         case OcgMessageType.PLAYER_HINT: {
           if (message.player !== 0 && message.player !== 1) break;
-          const text = this.engineStrings.describeOption(Number(message.description));
+          const text = this.engineStrings.hintText(Number(message.description), (code) =>
+            this.cardName(code),
+          );
           if (!text) break;
           const counts = this.playerHintCounts[message.player];
           const now = counts.get(text) ?? 0;
@@ -1299,7 +1301,7 @@ export class DuelSession {
         break;
       case OcgCardHintType.DESC_ADD:
       case OcgCardHintType.DESC_REMOVE: {
-        const text = this.engineStrings.describeOption(raw);
+        const text = this.engineStrings.hintText(raw, (code) => this.cardName(code));
         if (!text) break;
         const now = entry.descs.get(text) ?? 0;
         if (message.card_hint === OcgCardHintType.DESC_ADD) entry.descs.set(text, now + 1);
