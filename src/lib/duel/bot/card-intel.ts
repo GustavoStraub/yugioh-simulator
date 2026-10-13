@@ -204,8 +204,58 @@ export const CARD_ROLES: Readonly<Record<number, CardRole>> = {
   77754944: "battleTrap", // Ruína Generalizada
   12607053: "battleTrap", // Waboku
   36361633: "battleTrap", // Rugido Ameaçador
+  // Contra-armadilha, mas o que ela nega é um ataque: o lugar dela é o das
+  // outras de combate, não a conta de `scoreCounter` (que não vê ataques).
+  14315573: "battleTrap", // Negativação de Ataque
 };
 
 export function roleOf(code: number): CardRole | null {
   return CARD_ROLES[code] ?? null;
+}
+
+/**
+ * O que uma contra-armadilha cobra para negar.
+ *
+ * O bitfield diz que a carta é uma contra; o preço está só no texto, e é ele
+ * que decide se vale gastá-la: metade dos PV no Julgamento Solene, um
+ * descarte no Bloqueador de Magia, uma compra de presente para o adversário no
+ * Suborno Obscuro. Contra que não está aqui paga o preço genérico de uma carta.
+ */
+export type CounterCost =
+  | { kind: "free" }
+  | { kind: "lp"; amount: number | "half" }
+  | { kind: "discard" }
+  | { kind: "tribute" }
+  | { kind: "opponentDraws" };
+
+export const COUNTER_COSTS: Readonly<Record<number, CounterCost>> = {
+  41420027: { kind: "lp", amount: "half" }, // Julgamento Solene
+  84749824: { kind: "lp", amount: 2000 }, // Aviso Solene
+  40605147: { kind: "lp", amount: 1500 }, // Golpe Solene
+  3819470: { kind: "lp", amount: 1000 }, // Sete Ferramentas do Bandido
+  77414722: { kind: "discard" }, // Bloqueador de Magia
+  49010598: { kind: "discard" }, // Cólera Divina
+  55256016: { kind: "discard" }, // Julgamento de Anúbis
+  98069388: { kind: "tribute" }, // Corneta Celestial
+  77538567: { kind: "opponentDraws" }, // Suborno Obscuro
+  1637760: { kind: "opponentDraws" }, // Grande Corneta Celestial
+  19252988: { kind: "free" }, // Bloqueador de Armadilhas
+  70344351: { kind: "free" }, // Campo Riryoku
+  59344077: { kind: "free" }, // Drenagem Mágica
+};
+
+/**
+ * Armadilhas de combate que só seguram o ataque deste turno — não destroem
+ * nada. Para quem as ativa são iguais às outras (`battleTrap`); para quem
+ * pensa em negá-las, não: negar a Força do Espelho salva o campo, negar o
+ * Waboku só deixa passar um ataque.
+ */
+export const FOG_TRAPS: ReadonlySet<number> = new Set([
+  12607053, // Waboku
+  36361633, // Rugido Ameaçador
+  14315573, // Negativação de Ataque
+]);
+
+export function counterCostOf(code: number): CounterCost | null {
+  return COUNTER_COSTS[code] ?? null;
 }

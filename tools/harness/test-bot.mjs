@@ -32,6 +32,7 @@
  * avaliar (Fase 8).
  *
  * Uso: node --import ./tools/harness/ts-loader-register.mjs tools/harness/test-bot.mjs [partidas] [passivo|guloso] [goat|tcg]
+ *   [--extra N] [--contra] [--partidas 59,100]
  */
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -41,6 +42,7 @@ import {
   OcgMessageType,
   OcgPosition,
   OcgResponseType,
+  OcgType,
   SelectBattleCMDAction,
   SelectIdleCMDAction,
 } from "@n1xx1/ocgcore-wasm";
@@ -49,7 +51,10 @@ import { autoResponseFor } from "@/lib/duel/auto-response.ts";
 import { botAutoResponse } from "@/lib/duel/bot-responder.ts";
 import { BotBrain } from "@/lib/duel/bot/bot-brain.ts";
 import { readBoardState } from "@/lib/duel/board-state.ts";
+import { createDuelSession } from "@/lib/duel/duel-session.ts";
+import { CardRegistry } from "@/lib/domain/card-registry.ts";
 import { OfficialCardDb } from "@/lib/duel/official-card-data.ts";
+import { nodeAssets } from "@/server/duel/node-assets.ts";
 
 import { autoPilot, createDuel, STOP, Zone } from "./duel.mjs";
 import { REPO } from "./env.mjs";
@@ -81,6 +86,12 @@ const CerebroRival =
 /** `--extra N`: só decks com pelo menos N cartas no Extra Deck. */
 const extraAt = process.argv.indexOf("--extra");
 const EXTRA_MINIMO = extraAt >= 0 ? Number(process.argv[extraAt + 1]) : 0;
+/**
+ * `--contra`: só decks com contra-armadilha no Main. Uma mudança nelas não
+ * mexe em nada nos outros decks — misturá-los no placar só dilui o efeito no
+ * ruído.
+ */
+const SO_CONTRA = process.argv.includes("--contra");
 
 const responderRival =
   RIVAL === "guloso"
@@ -137,24 +148,45 @@ function criarRastreador(duel) {
   let turnPlayer = null;
   let turnCount = 0;
   let phase = null;
-  // Quem ativou o último elo da corrente aberta — a mesma informação que a
-  // sessão passa ao bot (`snapshot.chain`).
+  // Quem ativou o último elo da corrente aberta, e que carta — a mesma
+  // informação que a sessão passa ao bot (`snapshot.chain`).
   let chainPlayer = null;
+  let chainCode = null;
+  // Monstro sendo Invocado (como `DuelSession.summoning`): vai até o SUMMONED
+  // ou até o CHAIN_END de uma Invocação negada, que não recebe SUMMONED.
+  let summoning = null;
   return () => {
     for (; cursor < duel.messages.length; cursor += 1) {
       const message = duel.messages[cursor];
       if (message.type === OcgMessageType.NEW_TURN) {
         turnPlayer = message.player;
         turnCount += 1;
+        summoning = null;
       } else if (message.type === OcgMessageType.NEW_PHASE) {
         phase = message.phase;
+        summoning = null;
       } else if (message.type === OcgMessageType.CHAINING) {
         chainPlayer = message.controller;
+        chainCode = message.code;
       } else if (message.type === OcgMessageType.CHAIN_END) {
         chainPlayer = null;
+        chainCode = null;
+        summoning = null;
+      } else if (
+        message.type === OcgMessageType.SUMMONING ||
+        message.type === OcgMessageType.SPSUMMONING ||
+        message.type === OcgMessageType.FLIPSUMMONING
+      ) {
+        summoning = { code: message.code, player: message.controller };
+      } else if (
+        message.type === OcgMessageType.SUMMONED ||
+        message.type === OcgMessageType.SPSUMMONED ||
+        message.type === OcgMessageType.FLIPSUMMONED
+      ) {
+        summoning = null;
       }
     }
-    return { turnPlayer, turnCount, phase, chainPlayer };
+    return { turnPlayer, turnCount, phase, chainPlayer, chainCode, summoning };
   };
 }
 
@@ -198,7 +230,7 @@ async function duelar({ deck, extra = [], seed, assentoNovo }) {
     ultimaFonte = seat !== assentoNovo ? RIVAL : "bot";
     if (seat !== assentoNovo && !rival) return responderRival(message, duel);
 
-    const { turnPlayer, turnCount, phase, chainPlayer } = rastrear();
+    const { turnPlayer, turnCount, phase, chainPlayer, chainCode, summoning } = rastrear();
     const cache = new Map();
     return (seat === assentoNovo ? brain : rival).decide({
       prompt: message,
@@ -215,6 +247,8 @@ async function duelar({ deck, extra = [], seed, assentoNovo }) {
       turnPlayer,
       turnCount,
       chainPlayer,
+      chainCode,
+      summoning,
     });
   };
 
@@ -226,9 +260,27 @@ async function duelar({ deck, extra = [], seed, assentoNovo }) {
     winner: duel.winner,
     turnos: rastrear().turnCount,
     lp: [...duel.lifePoints],
+    contras: contrasAtivadas(duel, assentoNovo),
   };
   duel.destroy();
   return resultado;
+}
+
+const ehContra = (code) => {
+  const data = cardDb.get(code);
+  return data !== null && (data.type & OcgType.TRAP) !== 0 && (data.type & OcgType.COUNTER) !== 0;
+};
+
+/**
+ * Contra-armadilhas ativadas no duelo, `[bot, rival]` — o placar diz quem
+ * ganhou; isto diz se a carta chegou a ser usada.
+ */
+function contrasAtivadas(duel, assentoNovo) {
+  const total = [0, 0];
+  for (const m of duel.of(OcgMessageType.CHAINING)) {
+    if (ehContra(m.code)) total[m.controller === assentoNovo ? 0 : 1] += 1;
+  }
+  return total;
 }
 
 /** Passcodes usados nos cenários — conferidos contra o pool Goat. */
@@ -249,8 +301,18 @@ const MIRROR_FORCE = 44095762;
  * @param forcar opcional: `(message) => resposta | null` — joga a preparação
  *   do cenário pelo bot (ativar a carta que cria a situação), para a decisão
  *   capturada ser só a que interessa.
+ * @param rival opcional: o mesmo, para o adversário (assento 1) — é ele quem
+ *   ativa o Roubar ou faz a Invocação-Xyz a que o bot vai responder. O que
+ *   ele não decide cai no respondedor passivo.
  */
-async function cenario({ place, capturar, mode = OcgDuelMode.MODE_GOAT, deck0 = null, forcar = null }) {
+async function cenario({
+  place,
+  capturar,
+  mode = OcgDuelMode.MODE_GOAT,
+  deck0 = null,
+  forcar = null,
+  rival = null,
+}) {
   const deck = Array.from({ length: 40 }, () => BATTLE_OX);
   const duel = await createDuel({
     decks: [deck0 ?? deck, deck],
@@ -267,10 +329,12 @@ async function cenario({ place, capturar, mode = OcgDuelMode.MODE_GOAT, deck0 = 
     const automatico = autoResponseFor(message);
     if (automatico) return automatico;
     const seat = "player" in message && message.player === 1 ? 1 : 0;
-    if (seat !== 0) return botAutoResponse(message);
+    if (seat !== 0) return rival?.(message) ?? botAutoResponse(message);
     const forcada = forcar?.(message);
     if (forcada) return forcada;
 
+    // O mesmo contexto que a sessão monta — turno, fase, corrente e Invocação
+    // lidos das mensagens, não presumidos.
     const cache = new Map();
     const resposta = brain.decide({
       prompt: message,
@@ -283,10 +347,7 @@ async function cenario({ place, capturar, mode = OcgDuelMode.MODE_GOAT, deck0 = 
       },
       cardDb,
       lifePoints: duel.lifePoints,
-      phase: null,
-      turnPlayer: 0,
-      turnCount: 1,
-      chainPlayer: rastrear().chainPlayer,
+      ...rastrear(),
     });
 
     const capturaAtual = capturar(message, resposta);
@@ -549,9 +610,217 @@ const naMain = (message, resposta) =>
   );
 }
 
+// ── Contra-armadilhas ──
+// A nota fixa antiga (30, abaixo do limiar de 45) guardava toda contra-
+// armadilha para sempre. Agora ela vale o que nega menos o que cobra; os
+// cenários conferem os dois lados da conta e as duas armadilhas da sessão:
+// a própria Invocação, e a janela de Invocação que nunca recebe SUMMONED.
+const SOLEMN_JUDGMENT = 41420027; // Julgamento Solene: metade dos PV
+const SOLEMN_WARNING = 84749824; // Aviso Solene: 2000 PV
+const MAGIC_JAMMER = 77414722; // Bloqueador de Magia: descartar 1
+const SEVEN_TOOLS = 3819470; // Sete Ferramentas do Bandido: 1000 PV
+const SNATCH_STEAL = 45986603; // Roubar
+// Deck do bot sem monstro invocável: sem tributo à mão, nada que ele compre
+// abre uma janela de Invocação própria antes da do adversário.
+const SO_BLUE_EYES = Array.from({ length: 40 }, () => BLUE_EYES);
+
+const baixada = (player, code, sequence = 0) =>
+  ({ player, zone: Zone.SZONE, code, sequence, position: OcgPosition.FACEDOWN });
+const naMao = (player, code) => ({ player, zone: Zone.HAND, code });
+
+/** O bot (assento 0) encadeou `code` no primeiro SELECT_CHAIN que a ofereceu? */
+const encadeia = (code) => (message, resposta) =>
+  message.type === OcgMessageType.SELECT_CHAIN &&
+  message.player === 0 &&
+  message.selects.some((c) => c.code === code)
+    ? resposta.index !== null && message.selects[resposta.index]?.code === code
+    : undefined;
+
+/** Roteiro do adversário: ativa `code` na primeira chance — Main ou corrente. */
+const ativa = (code) => {
+  let feito = false;
+  return (message) => {
+    if (feito) return null;
+    if (message.type === OcgMessageType.SELECT_IDLECMD) {
+      const index = message.activates.findIndex((c) => c.code === code);
+      if (index < 0) return null;
+      feito = true;
+      return { type: OcgResponseType.SELECT_IDLECMD, action: SelectIdleCMDAction.SELECT_ACTIVATE, index };
+    }
+    if (message.type === OcgMessageType.SELECT_CHAIN) {
+      const index = message.selects.findIndex((c) => c.code === code);
+      if (index < 0) return null;
+      feito = true;
+      return { type: OcgResponseType.SELECT_CHAIN, index };
+    }
+    return null;
+  };
+};
+
+{
+  const r = await cenario({
+    deck0: SO_BLUE_EYES,
+    place: [baixada(0, SOLEMN_JUDGMENT), monstro(1, BATTLE_OX), naMao(1, SUMMONED_SKULL)],
+    capturar: encadeia(SOLEMN_JUDGMENT),
+  });
+  conferir(
+    r === true,
+    "nega com o Julgamento Solene a Invocação-Tributo de Summoned Skull",
+    r === undefined ? "o core não ofereceu o Julgamento" : String(r),
+  );
+}
+
+{
+  // Metade dos PV por um Battle Ox de 1700 sem efeito é pagar caro por pouco.
+  const r = await cenario({
+    deck0: SO_BLUE_EYES,
+    place: [baixada(0, SOLEMN_JUDGMENT), naMao(1, BATTLE_OX)],
+    capturar: encadeia(SOLEMN_JUDGMENT),
+  });
+  conferir(
+    r === false,
+    "guarda o Julgamento Solene quando o adversário Invoca um Battle Ox",
+    r === undefined ? "o core não ofereceu o Julgamento" : String(r),
+  );
+}
+
+{
+  // O core oferece a contra aos dois jogadores na janela de Invocação.
+  const r = await cenario({
+    deck0: SO_BLUE_EYES,
+    place: [baixada(0, SOLEMN_JUDGMENT), monstro(0, BATTLE_OX), naMao(0, SUMMONED_SKULL)],
+    capturar: encadeia(SOLEMN_JUDGMENT),
+  });
+  conferir(
+    r === false,
+    "não nega a própria Invocação com o Julgamento Solene",
+    r === undefined ? "o core não ofereceu o Julgamento (cenário não aconteceu)" : String(r),
+  );
+}
+
+{
+  const r = await cenario({
+    deck0: SO_BLUE_EYES,
+    place: [
+      baixada(0, MAGIC_JAMMER),
+      monstro(0, SUMMONED_SKULL),
+      // O descarte que o Bloqueador cobra.
+      naMao(0, BLUE_EYES),
+      naMao(1, SNATCH_STEAL),
+    ],
+    rival: ativa(SNATCH_STEAL),
+    capturar: encadeia(MAGIC_JAMMER),
+  });
+  conferir(
+    r === true,
+    "nega com o Bloqueador de Magia o Roubar no Summoned Skull",
+    r === undefined ? "o core não ofereceu o Bloqueador" : String(r),
+  );
+}
+
+{
+  const r = await cenario({
+    deck0: SO_BLUE_EYES,
+    place: [
+      baixada(0, SEVEN_TOOLS),
+      monstro(0, SUMMONED_SKULL),
+      baixada(1, MIRROR_FORCE),
+      monstro(1, BATTLE_OX),
+    ],
+    rival: ativa(MIRROR_FORCE),
+    capturar: encadeia(SEVEN_TOOLS),
+  });
+  conferir(
+    r === true,
+    "nega com as Sete Ferramentas a Força do Espelho do adversário",
+    r === undefined ? "o core não ofereceu as Sete Ferramentas" : String(r),
+  );
+}
+
+{
+  // Invocação do Extra Deck abre a mesma janela: o Aviso Solene leva o
+  // Utopia e os dois materiais que já foram gastos nele.
+  let fez = false;
+  const r = await cenario({
+    mode: MR5,
+    deck0: SO_BLUE_EYES,
+    place: [
+      baixada(0, SOLEMN_WARNING),
+      monstro(1, BATTLE_OX, 1),
+      monstro(1, BATTLE_OX, 2),
+      { player: 1, zone: Zone.EXTRA, code: UTOPIA },
+    ],
+    rival: (message) => {
+      if (fez || message.type !== OcgMessageType.SELECT_IDLECMD) return null;
+      const index = message.special_summons.findIndex((c) => c.code === UTOPIA);
+      if (index < 0) return null;
+      fez = true;
+      return { type: OcgResponseType.SELECT_IDLECMD, action: SelectIdleCMDAction.SELECT_SPECIAL_SUMMON, index };
+    },
+    capturar: encadeia(SOLEMN_WARNING),
+  });
+  conferir(
+    r === true,
+    "nega com o Aviso Solene a Invocação-Xyz de Utopia",
+    r === undefined ? "o core não ofereceu o Aviso" : String(r),
+  );
+}
+
+{
+  // O primeiro cenário de novo, agora pela DuelSession — o caminho do app.
+  // Acima, quem acompanha a Invocação em andamento é o rastreador do harness;
+  // no navegador é a sessão (`summoning`), e é ela que precisa entregá-la ao
+  // bot. Bot × bot: o B Invoca o Summoned Skull, o A responde.
+  const catalog = JSON.parse(readFileSync(join(REPO, ".cache/catalog/catalog.json"), "utf8"));
+  const session = createDuelSession();
+  let snap = null;
+  let negou = false;
+  session.subscribe((s) => {
+    snap = s;
+  });
+  session.subscribeEvents((e) => {
+    if (e.kind === "activate" && e.code === SOLEMN_JUDGMENT && e.player === 0) negou = true;
+  });
+  void session.start({
+    playerName: "A",
+    playerDeck: { main: SO_BLUE_EYES, extra: [], side: [] },
+    opponentName: "B",
+    opponentDeck: { main: SO_BLUE_EYES, extra: [], side: [] },
+    registry: CardRegistry.fromCatalog(catalog),
+    assets: nodeAssets,
+    pace: 0,
+    seats: [
+      { kind: "bot", name: "Bot A" },
+      { kind: "bot", name: "Bot B" },
+    ],
+    watchSeat: 0,
+    scenario: [
+      { player: 0, location: Zone.SZONE, code: SOLEMN_JUDGMENT, position: OcgPosition.FACEDOWN },
+      { player: 1, location: Zone.MZONE, code: BATTLE_OX },
+      { player: 1, location: Zone.HAND, code: SUMMONED_SKULL },
+    ],
+  });
+  const limite = Date.now() + 60_000;
+  while (!negou && Date.now() < limite && (snap?.turnCount ?? 0) < 4 && !snap?.error) {
+    await new Promise((r) => setTimeout(r, 20));
+  }
+  const invocou = snap?.log.some((l) => l.codes?.includes(SUMMONED_SKULL)) ?? false;
+  session.surrender(1);
+  conferir(
+    negou,
+    "pela DuelSession: nega com o Julgamento Solene a Invocação de Summoned Skull",
+    snap?.error ?? (invocou ? "o Skull entrou e o bot não respondeu" : `o Skull não foi Invocado (turno ${snap?.turnCount})`),
+  );
+}
+
 console.log("");
 
-const decks = PRESETS.filter((p) => p.main.length >= 40 && p.extra.length >= EXTRA_MINIMO);
+const decks = PRESETS.filter(
+  (p) =>
+    p.main.length >= 40 && p.extra.length >= EXTRA_MINIMO && (!SO_CONTRA || p.main.some(ehContra)),
+);
+let contrasNovo = 0;
+let contrasRival = 0;
 let vitoriasNovo = 0;
 let vitoriasAntigo = 0;
 let empates = 0;
@@ -580,13 +849,15 @@ for (let partida = 0; partida < PARTIDAS; partida += 1) {
   const seed = BigInt(1000 + partida * 7);
 
   if (SO_PARTIDAS && !SO_PARTIDAS.has(partida)) continue;
-  const { desfecho, winner, turnos, ultima, recentes } = await duelar({
+  const { desfecho, winner, turnos, ultima, recentes, contras } = await duelar({
     deck: preset.main,
     extra: preset.extra,
     seed,
     assentoNovo,
   });
   turnosTotais += turnos;
+  contrasNovo += contras[0];
+  contrasRival += contras[1];
 
   // O teto de passos do harness (4.000) com o duelo andando de turno em
   // turno é partida longa — deck de muralha contra deck de muralha (SD7 ×
@@ -626,6 +897,7 @@ console.log(`  ${RIVAL.padEnd(18)}: ${vitoriasAntigo}`);
 console.log(`  sem decisão:        ${empates}`);
 console.log(`  aproveitamento:     ${taxa.toFixed(1)}%`);
 console.log(`  turnos por duelo:   ${(turnosTotais / PARTIDAS).toFixed(1)}`);
+console.log(`  contra-armadilhas:  bot ${contrasNovo} · ${RIVAL} ${contrasRival}`);
 
 console.log("\n─── Por assento ───");
 porAssento.forEach((a, seat) => {
