@@ -159,6 +159,17 @@ export interface SelectionMode {
    * igual aos que faltavam escolher, e clicar nele de novo o tirava.
    */
   alreadyChosen?: number[];
+  /**
+   * Cada clique já É a resposta (SELECT_UNSELECT_CARD). O core pergunta uma
+   * carta por vez — "marque mais uma, desmarque uma, ou conclua" — e refaz a
+   * lista a cada passo (com Covil das Trevas, por exemplo, escolher 1 monstro
+   * do oponente tira os outros dele da lista). Pedir "Confirmar" a cada carta
+   * fazia uma seleção livre de "quantos quiser" parecer um laço de prompts
+   * repetidos, e com "Confirmar" e "Concluir" lado a lado era fácil concluir
+   * sem a carta que acabara de marcar. Assim, clicar marca/desmarca na hora e
+   * só "Concluir" encerra.
+   */
+  immediate?: boolean;
 }
 
 /**
@@ -676,9 +687,11 @@ export function buildPromptPlan(
 
     case OcgMessageType.SELECT_UNSELECT_CARD: {
       const plan = emptyPlan(
-        message.unselect_cards.length > 0
-          ? `Selecione a próxima carta (${message.unselect_cards.length} já escolhida(s); clique numa marcada para desfazer).`
-          : "Selecione uma carta.",
+        message.can_finish
+          ? "Clique para marcar ou desmarcar; \"Concluir\" quando terminar."
+          : message.unselect_cards.length > 0
+            ? "Marque mais uma carta (clique numa marcada para desfazer)."
+            : "Selecione uma carta.",
       );
       const keys = [
         ...message.select_cards.map(keyOf),
@@ -695,6 +708,7 @@ export function buildPromptPlan(
         alreadyChosen: message.unselect_cards.map(
           (_, index) => message.select_cards.length + index,
         ),
+        immediate: true,
         build: (indices) => ({
           type: OcgResponseType.SELECT_UNSELECT_CARD,
           index: indices[0] ?? 0,

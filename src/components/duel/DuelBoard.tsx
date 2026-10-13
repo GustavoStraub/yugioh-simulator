@@ -669,7 +669,11 @@ export function DuelBoard({
       selectionIndex >= 0 && (selection?.alreadyChosen?.includes(selectionIndex) ?? false);
     const isPicked =
       isLocked ||
-      (selectionIndex >= 0 && picked.includes(selectionIndex) !== alreadyChosen) ||
+      // Seleção imediata: a marca é só o que o core já tem escolhido.
+      (selectionIndex >= 0 &&
+        (selection?.immediate
+          ? alreadyChosen
+          : picked.includes(selectionIndex) !== alreadyChosen)) ||
       (placeSelectionIndex >= 0 && picked.includes(placeSelectionIndex));
 
     const clickable =
@@ -701,6 +705,11 @@ export function DuelBoard({
               return;
             }
             if (selectionIndex >= 0) {
+              // SELECT_UNSELECT_CARD: o clique marca/desmarca no core na hora.
+              if (selection?.immediate) {
+                respond(selection.build([selectionIndex]));
+                return;
+              }
               // Escolha de exatamente 1 carta: clicar de novo na marcada
               // confirma — o clique duplo do Master Duel. "Confirmar"
               // continua lá para quem prefere.
@@ -929,7 +938,14 @@ export function DuelBoard({
     // ANTES do clique.
     const clicavel = alvo?.tagName === "BUTTON" || alvo?.getAttribute("role") === "button";
     if (event.key === "Enter" && !digitando && !clicavel && !event.defaultPrevented && !busy) {
-      if (selection && selectionReady && (!needsPicker || !modalEspiado)) {
+      if (selection?.immediate && (!needsPicker || !modalEspiado)) {
+        // Enter = "Concluir", quando o core já aceita encerrar.
+        const concluir = plan?.global[0];
+        if (concluir) {
+          event.preventDefault();
+          respond(concluir.response);
+        }
+      } else if (selection && selectionReady && (!needsPicker || !modalEspiado)) {
         event.preventDefault();
         respond(selection.build(picked));
       } else if (placeSelection && placeReady) {
@@ -1362,6 +1378,7 @@ export function DuelBoard({
               instruction={selectionInstruction}
               selection={selection}
               picked={picked}
+              chosen={selection.immediate ? (selection.alreadyChosen?.length ?? 0) : undefined}
               onConfirm={() => respond(selection.build(picked))}
               extras={plan?.global ?? []}
               onRespond={respond}
@@ -2138,15 +2155,24 @@ function CardPickerModal({
     picked.length <= selection.max &&
     (selection.isValid?.(picked) ?? true);
   /** Escolha de exatamente uma carta: clicar de novo na marcada confirma. */
-  const umaSo = selection.min === 1 && selection.max === 1 && !selection.alreadyChosen?.length;
+  const umaSo =
+    selection.min === 1 &&
+    selection.max === 1 &&
+    !selection.alreadyChosen?.length &&
+    !selection.immediate;
+  /** SELECT_UNSELECT_CARD: cada clique já responde; só "Concluir" encerra. */
+  const imediata = selection.immediate === true;
+  const marcadas = selection.alreadyChosen?.length ?? 0;
 
-  const progress = selection.progress
-    ? `soma ${selection.progress(picked)}`
-    : `${picked.length}/${
-        selection.min === selection.max
-          ? selection.min
-          : `${selection.min}-${selection.max}`
-      }`;
+  const progress = imediata
+    ? `${marcadas} marcada${marcadas === 1 ? "" : "s"}`
+    : selection.progress
+      ? `soma ${selection.progress(picked)}`
+      : `${picked.length}/${
+          selection.min === selection.max
+            ? selection.min
+            : `${selection.min}-${selection.max}`
+        }`;
 
   /**
    * A ordem de exibição: as cartas do OPONENTE primeiro.
@@ -2231,7 +2257,7 @@ function CardPickerModal({
               const image = definition?.images[0]?.image_url_small;
               const jaEscolhida = selection.alreadyChosen?.includes(index) ?? false;
               // Clicar numa já escolhida desfaz: a marca inverte.
-              const isPicked = picked.includes(index) !== jaEscolhida;
+              const isPicked = imediata ? jaEscolhida : picked.includes(index) !== jaEscolhida;
               const doOponente = candidate.controller !== me;
               return (
                 <button
@@ -2241,6 +2267,10 @@ function CardPickerModal({
                   data-picker-owner={doOponente ? "foe" : "me"}
                   onClick={() => {
                     playSfx("click");
+                    if (imediata) {
+                      onRespond(selection.build([index]));
+                      return;
+                    }
                     if (umaSo && canConfirm && picked.length === 1 && picked[0] === index) {
                       onConfirm();
                       return;
@@ -2309,17 +2339,19 @@ function CardPickerModal({
                 {action.label}
               </button>
             ))}
-            <button
-              type="button"
-              disabled={!canConfirm}
-              onClick={() => {
-                playSfx("click");
-                onConfirm();
-              }}
-              className="rounded bg-[color:var(--tf-gold)] px-5 py-2 text-[13px] font-bold text-black transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-40"
-            >
-              Confirmar
-            </button>
+            {!imediata && (
+              <button
+                type="button"
+                disabled={!canConfirm}
+                onClick={() => {
+                  playSfx("click");
+                  onConfirm();
+                }}
+                className="rounded bg-[color:var(--tf-gold)] px-5 py-2 text-[13px] font-bold text-black transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                Confirmar
+              </button>
+            )}
           </div>
         </footer>
     </DecisionShell>
@@ -3151,6 +3183,7 @@ function SelectionBar({
   instruction,
   selection,
   picked,
+  chosen,
   onConfirm,
   extras,
   onRespond,
@@ -3163,6 +3196,12 @@ function SelectionBar({
     progress?: (indices: number[]) => string;
   };
   picked: number[];
+  /**
+   * Seleção imediata (SELECT_UNSELECT_CARD): quantas o core já tem marcadas.
+   * Não há "Confirmar" — cada clique já respondeu, e quem encerra é o
+   * "Concluir" que vem em `extras`.
+   */
+  chosen?: number;
   onConfirm: () => void;
   extras: GlobalAction[];
   onRespond: (response: OcgResponse) => void;
@@ -3172,13 +3211,16 @@ function SelectionBar({
     picked.length <= selection.max &&
     (selection.isValid?.(picked) ?? true);
 
-  const progress = selection.progress
-    ? `soma ${selection.progress(picked)}`
-    : `${picked.length}/${
-        selection.min === selection.max
-          ? selection.min
-          : `${selection.min}-${selection.max}`
-      }`;
+  const progress =
+    chosen !== undefined
+      ? `${chosen} marcada${chosen === 1 ? "" : "s"}`
+      : selection.progress
+        ? `soma ${selection.progress(picked)}`
+        : `${picked.length}/${
+            selection.min === selection.max
+              ? selection.min
+              : `${selection.min}-${selection.max}`
+          }`;
 
   return (
     <div className="pointer-events-none absolute inset-x-0 bottom-[19%] z-40 flex justify-center">
@@ -3187,20 +3229,26 @@ function SelectionBar({
         <span className="font-mono text-[13px] text-[color:var(--tf-gold-dim)]">
           {progress}
         </span>
-        <button
-          type="button"
-          disabled={!canConfirm}
-          onClick={onConfirm}
-          className="rounded-full bg-[color:var(--tf-gold)] px-4 py-1.5 text-[13px] font-bold text-black transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-40"
-        >
-          Confirmar
-        </button>
+        {chosen === undefined && (
+          <button
+            type="button"
+            disabled={!canConfirm}
+            onClick={onConfirm}
+            className="rounded-full bg-[color:var(--tf-gold)] px-4 py-1.5 text-[13px] font-bold text-black transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            Confirmar
+          </button>
+        )}
         {extras.map((action, index) => (
           <button
             key={index}
             type="button"
             onClick={() => onRespond(action.response)}
-            className="rounded-full border border-[color:var(--tf-slot-border)] px-4 py-1.5 text-[13px] text-[color:var(--tf-gold-bright)] hover:bg-black/50"
+            className={
+              chosen !== undefined
+                ? "rounded-full bg-[color:var(--tf-gold)] px-4 py-1.5 text-[13px] font-bold text-black transition hover:brightness-110"
+                : "rounded-full border border-[color:var(--tf-slot-border)] px-4 py-1.5 text-[13px] text-[color:var(--tf-gold-bright)] hover:bg-black/50"
+            }
           >
             {action.label}
           </button>

@@ -192,7 +192,10 @@ async function main() {
     return pronto();
   }
 
-  /** Seleção de materiais, uma carta por vez (SELECT_UNSELECT_CARD), na mesa. */
+  /**
+   * Seleção de materiais, uma carta por vez (SELECT_UNSELECT_CARD), na mesa.
+   * O clique já é a resposta — não há "Confirmar" entre uma carta e outra.
+   */
   async function materiais(nomes) {
     for (const nome of nomes) {
       for (let i = 0; i < 20; i += 1) {
@@ -200,7 +203,6 @@ async function main() {
         if (await marcar(nome)) break;
       }
       await sleep(250);
-      await botao("Confirmar");
     }
   }
 
