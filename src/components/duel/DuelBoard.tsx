@@ -2785,6 +2785,7 @@ function PendingDecisionBar({
         )}
         <button
           type="button"
+          data-table-control
           onClick={() => {
             playSfx("click");
             onBack();
@@ -3088,6 +3089,7 @@ function ResultOverlay({
 
           <button
             type="button"
+            data-table-control
             onClick={onPeek}
             className="text-[12px] text-[color:var(--tf-gold-dim)] hover:text-[color:var(--tf-gold-bright)]"
           >
@@ -3121,6 +3123,7 @@ function ResultPeekBar({
         </span>
         <button
           type="button"
+          data-table-control
           onClick={onBack}
           className="rounded-full bg-[color:var(--tf-gold)] px-4 py-1.5 text-[13px] font-bold text-black transition hover:brightness-110"
         >
@@ -3239,6 +3242,7 @@ function DuelLog({
         {reveals.length > 0 && (
           <button
             type="button"
+            data-table-control
             onClick={onOpenReveals}
             title="Ver as cartas que foram reveladas"
             className="rounded border border-[color:var(--tf-slot-border)] px-1.5 py-0.5 text-[10px] font-semibold text-[color:var(--tf-gold-bright)] hover:bg-black/50"

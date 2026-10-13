@@ -156,6 +156,8 @@ async function main() {
 
     const prazo = Date.now() + 1000 * 60 * 5;
     let acoes = 0;
+    /** O que foi clicado, em ordem — para um laço aparecer no relatório. */
+    const historico = [];
 
     while (acoes < 400 && Date.now() < prazo) {
       const estado = await page.evaluate(LER);
@@ -246,9 +248,11 @@ async function main() {
         await new Promise((r) => setTimeout(r, 150));
         const depois = await page.evaluate(LER);
         const acao = escolher(depois.botoes);
+        historico.push(`carta>${acao ?? "-"}`);
         if (acao) await page.clickAction(acao);
       } else {
         const acao = escolher(estado.botoes);
+        historico.push(acao ?? "-");
         if (acao) await page.clickAction(acao);
       }
       acoes += 1;
@@ -256,6 +260,7 @@ async function main() {
     }
 
     process.stdout.write(`\nações: ${acoes}\n`);
+    process.stdout.write(`últimas: ${historico.slice(-25).map((a) => a.split("\n")[0].slice(0, 28)).join(" > ")}\n`);
     process.stdout.write(`prompts renderizados: ${vistos.size}/${ASSINATURAS.length}\n`);
     const faltaram = ASSINATURAS.filter((a) => !vistos.has(a.nome)).map((a) => a.nome);
     if (faltaram.length) process.stdout.write(`não apareceram: ${faltaram.join(", ")}\n`);

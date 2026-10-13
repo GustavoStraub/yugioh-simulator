@@ -78,9 +78,13 @@ export function DecisionShell({
  */
 export function PeekButton({ onPeek }: { onPeek: () => void }) {
   return (
+    // `data-table-control`: ver a mesa não é jogada — os testes que clicam
+    // "qualquer botão útil" o ignoram (alternando com "Voltar à decisão" eles
+    // ficavam presos num laço sem jogar nada).
     <button
       type="button"
       data-peek
+      data-table-control
       onClick={() => {
         playSfx("click");
         onPeek();
