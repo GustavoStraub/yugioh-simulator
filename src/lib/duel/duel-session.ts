@@ -1052,7 +1052,10 @@ export class DuelSession {
         // tabuleiro (dezenas de chamadas ao WASM) para escolher a única opção
         // legal. Prompt com escolha real devolve `null` e segue para quem tem
         // que decidir — a UI, ou o cérebro do bot logo abaixo.
-        const automatic = autoResponseFor(prompt);
+        const automatic = autoResponseFor(prompt, {
+          resolvingCode:
+            this.snapshot.chainLinks.findLast((link) => link.state === "resolving")?.code ?? null,
+        });
         if (automatic) {
           this.core.duelSetResponse(this.handle, automatic);
           this.selectHint = null;

@@ -21,7 +21,31 @@ import { decodeFieldMask } from "@/lib/duel/field-places";
  * @returns a resposta automática, ou `null` quando existe uma decisão real
  *   a ser tomada pelo jogador.
  */
-export function autoResponseFor(message: OcgMessage): OcgResponse | null {
+/**
+ * Cartas cujo "declare um número" é só "quantas do topo você quer olhar para
+ * reordenar": Avanço de Carta, Silvano Árvore-Eremita e Grande Olho. Olhar o
+ * máximo nunca é pior — a ordenação logo depois deixa recolocar tudo como
+ * estava —, então a pergunta "1, 2, 3, 4, 5?" solta, sem dizer do que se
+ * trata, só atrapalhava: a resposta é o máximo e o jogador vai direto para a
+ * ordenação. (O Grande Olho nem usa o número: o script ordena 5 de qualquer
+ * jeito.) Orea, o Árbitro Silvano NÃO entra: lá o número decide quantas cartas
+ * são escavadas, e isso é escolha de verdade.
+ */
+const LOOK_AND_SORT_CARDS = new Set([
+  52112003, // Card Advance
+  25824484, // Sylvan Hermitree
+  16768387, // Big Eye
+]);
+
+export interface AutoResponseContext {
+  /** Código da carta cujo elo da corrente está resolvendo agora, se algum. */
+  resolvingCode?: number | null;
+}
+
+export function autoResponseFor(
+  message: OcgMessage,
+  context: AutoResponseContext = {},
+): OcgResponse | null {
   switch (message.type) {
     case OcgMessageType.SELECT_CHAIN: {
       if (message.selects.length === 0) {
@@ -86,10 +110,20 @@ export function autoResponseFor(message: OcgMessage): OcgResponse | null {
     case OcgMessageType.SORT_CHAIN:
       return { type: OcgResponseType.SORT_CARD, order: null };
 
-    case OcgMessageType.ANNOUNCE_NUMBER:
-      return message.options.length === 1
-        ? { type: OcgResponseType.ANNOUNCE_NUMBER, value: 0 }
-        : null;
+    case OcgMessageType.ANNOUNCE_NUMBER: {
+      if (message.options.length === 1) {
+        return { type: OcgResponseType.ANNOUNCE_NUMBER, value: 0 };
+      }
+      if (context.resolvingCode != null && LOOK_AND_SORT_CARDS.has(context.resolvingCode)) {
+        // O core espera o ÍNDICE da opção, não o valor.
+        let maior = 0;
+        message.options.forEach((value, index) => {
+          if (BigInt(value) > BigInt(message.options[maior])) maior = index;
+        });
+        return { type: OcgResponseType.ANNOUNCE_NUMBER, value: maior };
+      }
+      return null;
+    }
 
     case OcgMessageType.SELECT_COUNTER: {
       // Só não há escolha quando é preciso tirar TODOS os marcadores que

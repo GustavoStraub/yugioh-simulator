@@ -17,12 +17,25 @@
  * responde pelo MESMO caminho da tela (`buildPromptPlan(...).sorting.build`)
  * e confere o Deck depois.
  *
+ * E, pela `DuelSession` de verdade: o "quantas cartas olhar? 1…5" do Avanço de
+ * Carta não chega mais ao jogador (`autoResponseFor` responde o máximo — olhar
+ * mais nunca é pior, a ordenação deixa tudo como estava). O jogador vai direto
+ * para a ordenação das 5.
+ *
  * Uso: npm run test:sort-card
  */
 import { OcgLocation, OcgMessageType, OcgResponseType, SelectIdleCMDAction } from "@n1xx1/ocgcore-wasm";
 
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+
 import { botAutoResponse } from "@/lib/duel/bot-responder";
 import { buildPromptPlan } from "@/lib/duel/duel-actions";
+import { createDuelSession } from "@/lib/duel/duel-session";
+import { CardRegistry } from "@/lib/domain/card-registry";
+import { nodeAssets } from "@/server/duel/node-assets";
+
+import { REPO } from "./env.mjs";
 
 import { createDuel, STOP, Zone } from "./duel.mjs";
 
@@ -125,6 +138,70 @@ console.log("\nOutras ordens");
     "a resposta do bot (identidade, 5 cartas) é aceita",
     `${bot.desfecho}`,
   );
+}
+
+console.log("\nNa sessão: o Avanço de Carta vai direto para a ordenação");
+{
+  const registry = CardRegistry.fromCatalog(
+    JSON.parse(readFileSync(join(REPO, ".cache/catalog/catalog.json"), "utf8")),
+  );
+  const session = createDuelSession();
+  let snap = null;
+  session.subscribe((s) => {
+    snap = s;
+  });
+  void session.start({
+    playerName: "Ana",
+    playerDeck: { main: Array(40).fill(BATTLE_OX), extra: [], side: [] },
+    opponentName: "Bruno",
+    opponentDeck: { main: Array(40).fill(BATTLE_OX), extra: [], side: [] },
+    registry,
+    assets: nodeAssets,
+    format: "tcg",
+    pace: 0,
+    scenario: [{ player: 0, location: OcgLocation.HAND, code: CARD_ADVANCE }],
+    seats: [
+      { kind: "local", name: "Ana" },
+      { kind: "local", name: "Bruno" },
+    ],
+  });
+  let ativou = false;
+  const vistos = [];
+  let ordenacao = null;
+  const limite = Date.now() + 60_000;
+  while (Date.now() < limite && !ordenacao) {
+    await new Promise((resolve) => setTimeout(resolve, 5));
+    if (snap?.error) throw new Error(`sessão falhou: ${snap.error}`);
+    const prompt = snap?.pendingPrompt;
+    if (!prompt || snap.isProcessing) continue;
+    if (snap.promptPlayer === 1) {
+      await session.respond(botAutoResponse(prompt), snap.promptId);
+      continue;
+    }
+    if (ativou) vistos.push(prompt.type);
+    if (prompt.type === OcgMessageType.SORT_CARD) {
+      ordenacao = prompt;
+      break;
+    }
+    if (prompt.type === OcgMessageType.SELECT_IDLECMD && !ativou) {
+      const index = prompt.activates.findIndex((a) => a.code === CARD_ADVANCE);
+      if (index < 0) break;
+      ativou = true;
+      await session.respond(
+        { type: OcgResponseType.SELECT_IDLECMD, action: SelectIdleCMDAction.SELECT_ACTIVATE, index },
+        snap.promptId,
+      );
+      continue;
+    }
+    await session.respond(botAutoResponse(prompt), snap.promptId);
+  }
+  conferir(ativou, "o Avanço de Carta foi ativado");
+  conferir(
+    !vistos.includes(OcgMessageType.ANNOUNCE_NUMBER),
+    "o jogador não vê a pergunta \"declare um número\"",
+    JSON.stringify(vistos),
+  );
+  conferir(ordenacao?.cards.length === 5, "a ordenação já vem com as 5 do topo", `${ordenacao?.cards.length}`);
 }
 
 if (falhas.length) {
