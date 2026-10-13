@@ -18,7 +18,7 @@ import {
 import { autoResponseFor } from "@/lib/duel/auto-response";
 import { browserAssets } from "@/lib/duel/browser-assets";
 import type { DuelAssets } from "@/lib/duel/duel-assets";
-import type { DuelEvent, DuelEventListener } from "@/lib/duel/duel-events";
+import type { DuelEvent, DuelEventListener, DuelZoneRef } from "@/lib/duel/duel-events";
 import {
   readBoardState,
   type BoardState,
@@ -162,6 +162,19 @@ export interface DuelReveal {
 /** Quantas revelações o histórico guarda. */
 const MAX_REVEALS = 14;
 
+/**
+ * "de onde" uma ativação veio, para o histórico — só as origens que não são o
+ * campo, que é o caso que o jogador já enxerga. É o que transforma "o oponente
+ * ativou Ash Blossom" em "…Ash Blossom (da mão)".
+ */
+const ORIGIN_LABEL: Partial<Record<number, string>> = {
+  [OcgLocation.HAND]: "da mão",
+  [OcgLocation.GRAVE]: "do Cemitério",
+  [OcgLocation.REMOVED]: "das banidas",
+  [OcgLocation.DECK]: "do Deck",
+  [OcgLocation.EXTRA]: "do Extra Deck",
+};
+
 
 /**
  * O elo de corrente que está em jogo agora.
@@ -182,6 +195,23 @@ export interface DuelChainLink {
   playerName: string;
   /** Texto do efeito ativado, quando o engine diz qual foi. */
   description: string | null;
+  /** Número do elo (1 = o primeiro a entrar, o último a resolver). */
+  link: number;
+  /**
+   * De onde a carta foi ativada (`OcgLocation`): mão, campo, Cemitério… É o
+   * que diz "foi uma hand trap" — a Ash Blossom sai da mão e, sem isto, só se
+   * via a carta já no Cemitério.
+   */
+  from: number;
+  /** Onde a carta está agora — para o número do elo aparecer no slot dela. */
+  zone: DuelZoneRef;
+  /**
+   * `pending` na corrente; `resolving` enquanto resolve; `resolved` depois;
+   * `negated` quando a ATIVAÇÃO foi negada; `disabled` quando o EFEITO foi
+   * negado (a Ash nega o efeito do elo anterior — ele ainda "resolve", sem
+   * fazer nada, e precisa continuar marcado como negado).
+   */
+  state: "pending" | "resolving" | "resolved" | "negated" | "disabled";
 }
 
 export interface DuelSnapshot {
@@ -209,6 +239,11 @@ export interface DuelSnapshot {
   phase: number | null;
   /** Efeito em cima da corrente agora, ou `null` fora de uma corrente. */
   chain: DuelChainLink | null;
+  /**
+   * A corrente inteira, do elo 1 ao último — vazia fora de uma corrente.
+   * Pública: tudo o que entra numa corrente é revelado ao ativar.
+   */
+  chainLinks: DuelChainLink[];
   log: DuelLogEntry[];
   /** Revelações já ocorridas, da mais antiga para a mais recente. */
   reveals: DuelReveal[];
@@ -300,6 +335,9 @@ const PLAY_EVENTS = new Set<OcgMessageType>([
   OcgMessageType.FLIPSUMMONING,
   OcgMessageType.SET,
   OcgMessageType.CHAINING,
+  OcgMessageType.CHAIN_SOLVING,
+  OcgMessageType.CHAIN_NEGATED,
+  OcgMessageType.CHAIN_DISABLED,
   OcgMessageType.ATTACK,
   OcgMessageType.BATTLE,
   OcgMessageType.POS_CHANGE,
@@ -935,7 +973,7 @@ export class DuelSession {
           // jogador usa para tudo o que é "no seu 3º turno" (Espada da Luz,
           // Reckless Greed, Mensagem do Espírito) e não existia na tela.
           const turnCount = this.snapshot.turnCount + 1;
-          this.update({ turnPlayer: message.player, turnCount, chain: null });
+          this.update({ turnPlayer: message.player, turnCount, chain: null, chainLinks: [] });
           this.appendLog(`Turno ${turnCount} — ${this.seatName(message.player)}`);
           this.emit({ kind: "turn", player: message.player });
           break;
@@ -1030,21 +1068,55 @@ export class DuelSession {
           break;
         }
 
+        // Um elo começa a resolver: a tela acende ele na pilha e no slot.
+        case OcgMessageType.CHAIN_SOLVING: {
+          this.revealedTo = [new Set(), new Set()];
+          this.updateChainLink(message.chain_size, (current) =>
+            // Já negado (a ativação ou o efeito) continua negado ao "resolver".
+            current.state === "pending" ? "resolving" : current.state,
+          );
+          break;
+        }
+
         // Fim de uma resolução: o que foi revelado nela não vale mais como
         // "posso ver esta posição" — ver `revealedTo`.
-        case OcgMessageType.CHAIN_SOLVING:
         case OcgMessageType.CHAIN_SOLVED:
+          this.revealedTo = [new Set(), new Set()];
+          this.updateChainLink(message.chain_size, (current) =>
+            current.state === "resolving" ? "resolved" : current.state,
+          );
+          break;
         case OcgMessageType.SHUFFLE_HAND:
         case OcgMessageType.SHUFFLE_DECK:
           this.revealedTo = [new Set(), new Set()];
           break;
+
+        // Ativação negada (Solemn Judgment, Magic Jammer) ou efeito negado
+        // (Ash Blossom, Effect Veiler): o momento que o jogador mais precisa
+        // ver — antes, a carta só ia para o Cemitério e "nada acontecia".
+        case OcgMessageType.CHAIN_NEGATED:
+        case OcgMessageType.CHAIN_DISABLED: {
+          const what = message.type === OcgMessageType.CHAIN_NEGATED ? "activation" : "effect";
+          const link = this.updateChainLink(message.chain_size, () =>
+            what === "activation" ? "negated" : "disabled",
+          );
+          if (link) {
+            this.appendLog(
+              what === "activation"
+                ? `✖ Elo ${link.link} — ativação de ${this.cardName(link.code)} negada`
+                : `✖ Elo ${link.link} — efeito de ${this.cardName(link.code)} negado`,
+            );
+            this.emit({ kind: "chainNegated", link: link.link, player: link.player, code: link.code, what });
+          }
+          break;
+        }
 
         // A corrente acabou: além do conhecimento da resolução, sai também o
         // efeito anunciado no modal — ele já passou, e continuar mostrando faz
         // o jogador responder a uma pergunta que não existe mais.
         case OcgMessageType.CHAIN_END:
           this.revealedTo = [new Set(), new Set()];
-          this.update({ chain: null });
+          this.update({ chain: null, chainLinks: [] });
           break;
 
         // Carta trocando de zona. Só as saídas da MÃO são narradas, e só para
@@ -1082,29 +1154,49 @@ export class DuelSession {
             count: message.drawn.length,
           });
           break;
-        case OcgMessageType.CHAINING:
+        case OcgMessageType.CHAINING: {
+          const origem = ORIGIN_LABEL[message.triggering_location];
           this.appendLog(
-            `⛓ ${this.seatName(message.controller)} ativou ${this.cardName(message.code)}`,
+            `⛓ Elo ${message.chain_size} — ${this.seatName(message.controller)} ativou ` +
+              `${this.cardName(message.code)}${origem ? ` (${origem})` : ""}`,
           );
-          this.update({
-            chain: {
-              code: message.code,
-              player: message.controller,
-              playerName: this.seatName(message.controller),
-              // `description` é o id da string do efeito ativado — resolvido
-              // aqui, e não na tela, porque no duelo online é o servidor que
-              // tem o banco de strings carregado.
-              description: this.engineStrings.describeOption(
-                Number(message.description),
-              ),
+          const link: DuelChainLink = {
+            code: message.code,
+            player: message.controller,
+            playerName: this.seatName(message.controller),
+            // `description` é o id da string do efeito ativado — resolvido
+            // aqui, e não na tela, porque no duelo online é o servidor que
+            // tem o banco de strings carregado.
+            description: this.engineStrings.describeOption(Number(message.description)),
+            link: message.chain_size,
+            from: message.triggering_location,
+            zone: {
+              controller: message.controller,
+              location: message.location,
+              sequence: message.sequence,
             },
+            state: "pending",
+          };
+          this.update({
+            chain: link,
+            // O número do elo é a posição: um elo novo nunca repete um que
+            // ainda está na corrente.
+            chainLinks: [...this.snapshot.chainLinks.filter((l) => l.link < link.link), link],
           });
           this.emit({
             kind: "activate",
             player: message.controller,
             code: message.code,
           });
+          this.emit({
+            kind: "chainLink",
+            link: link.link,
+            player: link.player,
+            code: link.code,
+            from: link.from,
+          });
           break;
+        }
         case OcgMessageType.ATTACK:
           this.appendLog(
             message.target
@@ -1257,6 +1349,27 @@ export class DuelSession {
       (location === OcgLocation.MZONE || location === OcgLocation.SZONE) &&
       (location & OcgLocation.OVERLAY) === 0
     );
+  }
+
+  /**
+   * Muda o estado de um elo da corrente; devolve o elo atualizado (ou
+   * `undefined` se não há elo com esse número — uma mensagem fora de ordem não
+   * pode derrubar a sessão).
+   */
+  private updateChainLink(
+    linkNumber: number,
+    next: (current: DuelChainLink) => DuelChainLink["state"],
+  ): DuelChainLink | undefined {
+    let updated: DuelChainLink | undefined;
+    const chainLinks = this.snapshot.chainLinks.map((link) => {
+      if (link.link !== linkNumber) return link;
+      updated = { ...link, state: next(link) };
+      return updated;
+    });
+    if (!updated) return undefined;
+    const top = chainLinks.at(-1) ?? null;
+    this.update({ chainLinks, chain: top });
+    return updated;
   }
 
   /**
@@ -1612,6 +1725,7 @@ function createInitialSnapshot(): DuelSnapshot {
     turnCount: 0,
     phase: null,
     chain: null,
+    chainLinks: [],
     log: [],
     reveals: [],
     winner: null,

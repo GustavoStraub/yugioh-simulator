@@ -60,6 +60,9 @@ import {
 } from "@/components/duel/DuelCardSlot";
 import { SoundControl } from "@/components/duel/SoundControl";
 import { AttackFlightLayer } from "@/components/duel/AttackFlight";
+import { ChainSpotlight } from "@/components/duel/ChainSpotlight";
+import { ChainStack } from "@/components/duel/ChainStack";
+import type { ChainBadge } from "@/components/duel/DuelCardSlot";
 import { DrawFlightLayer } from "@/components/duel/DrawFlight";
 import { SortCardModal } from "@/components/duel/SortCardModal";
 import { AnnounceCardModal } from "@/components/duel/AnnounceCardModal";
@@ -182,7 +185,7 @@ export function DuelBoard({
   /** O outro assento — usado o tempo todo, e `1 - me` espalhado confunde. */
   const foeSeat = (1 - me) as 0 | 1;
   const texto = useCardText();
-  const { flashes, shake, toss, flight, reveal, draw } = useDuelFeedback(
+  const { flashes, shake, toss, flight, reveal, draw, spotlight } = useDuelFeedback(
     subscribeEvents,
     me,
   );
@@ -511,6 +514,27 @@ export function DuelBoard({
       },
     });
 
+  /**
+   * Número do elo em cada carta do campo que está na corrente — como os
+   * números de corrente do Master Duel: dá para ver de relance quem ativou o
+   * quê e em que ordem vai resolver. Quem saiu da mão (hand trap) aparece na
+   * pilha da corrente e no destaque, não tem slot.
+   */
+  const chainAt = useMemo(() => {
+    const map = new Map<string, ChainBadge>();
+    for (const link of snapshot.chainLinks ?? []) {
+      const { controller, location, sequence } = link.zone;
+      if (location !== OcgLocation.MZONE && location !== OcgLocation.SZONE) continue;
+      map.set(cardKey(controller, location, sequence), {
+        link: link.link,
+        mine: link.player === me,
+        state: link.state,
+      });
+    }
+    return map;
+  }, [snapshot.chainLinks, me]);
+  const chainBadgeOf = useCallback((key: string) => chainAt.get(key), [chainAt]);
+
   const shared = {
     registry,
     onHover: setPreview,
@@ -520,6 +544,7 @@ export function DuelBoard({
     openMaterials,
     marksOf,
     isDisabledZone,
+    chainBadgeOf,
   };
 
   /**
@@ -568,6 +593,7 @@ export function DuelBoard({
         onOpenMaterials={card?.overlays.length ? openMaterials(card) : undefined}
         marks={slotChips(marksOf(card))}
         disabledZone={isDisabledZone(zone.player as 0 | 1, zone.location, zone.sequence)}
+        chainBadge={chainBadgeOf(key)}
         {...props}
       />
     );
@@ -684,6 +710,7 @@ export function DuelBoard({
           disputar altura com ela.
         */}
         <aside className="flex w-[var(--tf-rail-left)] shrink-0 flex-col overflow-hidden p-2">
+          <ChainStack links={snapshot.chainLinks ?? []} me={me} registry={registry} />
           <CardPreview card={preview} registry={registry} marksOf={marksOf} />
         </aside>
 
@@ -714,6 +741,7 @@ export function DuelBoard({
           <FlashLayer flashes={flashes} anchor="center" />
           {waitingForFoe && <WaitingBanner name={opponentName} />}
           <AttackFlightLayer flight={flight} fieldRef={fieldRef} />
+          <ChainSpotlight spotlight={spotlight} registry={registry} />
           <DrawFlightLayer draw={draw} fieldRef={fieldRef} />
           {toss && <TossOverlay toss={toss} />}
           {reveal && <RevealOverlay reveal={reveal} registry={registry} />}
@@ -1143,6 +1171,8 @@ interface SharedSlotProps {
   /** Marcas de uma carta, já resolvidas para quem olha. */
   marksOf: (card: BoardCard | null | undefined) => CardMark[];
   isDisabledZone: (owner: 0 | 1, location: number, sequence: number) => boolean;
+  /** Número do elo da corrente da carta nesta zona, se ela estiver numa. */
+  chainBadgeOf: (key: string) => ChainBadge | undefined;
 }
 
 /** Selo de "N viradas para cima" do Extra Deck, quando houver alguma. */
@@ -1167,6 +1197,7 @@ function FieldRow({
   openMaterials,
   marksOf,
   isDisabledZone,
+  chainBadgeOf,
 }: SharedSlotProps & {
   cards: (BoardCard | null)[];
   owner: 0 | 1;
@@ -1218,6 +1249,7 @@ function FieldRow({
             onOpenMaterials={card?.overlays.length ? openMaterials(card) : undefined}
             marks={slotChips(marksOf(card))}
             disabledZone={isDisabledZone(owner, location, sequence)}
+            chainBadge={chainBadgeOf(key)}
             {...slotProps(card, { player: owner, location, sequence })}
           />
         );
@@ -1277,7 +1309,8 @@ function FieldSpellSlot({
   onHover,
   slotProps,
   marksOf,
-}: Pick<SharedSlotProps, "registry" | "onHover" | "slotProps" | "marksOf"> & {
+  chainBadgeOf,
+}: Pick<SharedSlotProps, "registry" | "onHover" | "slotProps" | "marksOf" | "chainBadgeOf"> & {
   player: BoardPlayer;
   owner: 0 | 1;
 }) {
@@ -1289,6 +1322,8 @@ function FieldSpellSlot({
       upsideDown={owner === 1}
       onHover={onHover}
       marks={slotChips(marksOf(player.field))}
+      // Uma Magia de Campo ativada também é um elo — o número dela aparece aqui.
+      chainBadge={chainBadgeOf(cardKey(owner, OcgLocation.SZONE, FIELD_ZONE_SEQUENCE))}
       {...slotProps(player.field, {
         player: owner,
         location: OcgLocation.SZONE,

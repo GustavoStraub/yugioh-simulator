@@ -1096,3 +1096,61 @@ Depois dos dois consertos: `test:presets` em massa com os **110** decks (5
 rodadas, 550 duelos) — **550 terminados**, 0 RETRY, 0 `eof`, 0 plano vazio;
 pela tela, 8 duelos completos (os três Arc-V novos, Yusei, Synchron Extreme,
 Starter Kaiba), mesa moderna, declaração e online Goat e TCG passando.
+
+### A corrente na tela (depois da Fase 9)
+
+**O problema** (relato do Gustavo): "quando tomo uma Ash, apenas vai pro
+cemitério e simplesmente acontece, o chain é difícil de entender". A sessão
+registrava a corrente numa linha de histórico por elo; na mesa, a Ash ia da
+mão para o Cemitério e a busca do Reforço do Exército simplesmente não
+acontecia, sem nada dizendo por quê. O "negado" só existia no texto.
+
+**O que o engine conta** (medido no core, caso Reforço × Ash):
+`CHAINING` (elo 1) → `CHAINING` (elo 2, `triggering_location` = mão) →
+`CHAIN_SOLVING 2` → **`CHAIN_DISABLED 1`** (chega *durante* a resolução do
+elo que nega, antes de o elo 1 resolver) → `CHAIN_SOLVED 2` →
+`CHAIN_SOLVING 1` → `CHAIN_SOLVED 1` → `CHAIN_END`. `CHAIN_NEGATED` é o
+mesmo para a ativação inteira (Solemn, Magic Jammer).
+
+**Como ficou** (no estilo do Master Duel):
+
+- **Destaque no centro** (`ChainSpotlight`): cada ativação aparece grande
+  por ~1 s, com "Você ativou" / "Oponente ativou" (dourado / vermelho), o
+  número do elo e de onde veio ("da mão", "do Cemitério"…), a mesa
+  escurecida atrás. Quando um elo é negado, a mesma carta volta em cinza com
+  o carimbo **NEGADO** e "Efeito negado" / "Ativação negada". Não captura o
+  mouse — a pergunta "responder?" continua clicável por baixo.
+- **Pilha da corrente** (`ChainStack`, no trilho esquerdo, acima da
+  leitura da carta): todos os elos, o último em cima, cada um com quem
+  ativou, de onde e o estado — na corrente, resolvendo…, resolvido ✓,
+  efeito negado, ativação negada (riscado). Fica 1,6 s depois do fim, para o
+  desfecho ser lido.
+- **Número do elo no slot**: carta do campo (monstro, Magia/Armadilha,
+  Zona Extra, Magia de Campo) que está na corrente ganha o número no canto,
+  pulsando enquanto resolve e cinza se foi negada.
+- **Histórico**: "⛓ Elo 2 — O oponente ativou Ash Blossom (da mão)" e
+  "✖ Elo 1 — efeito de Reforço do Exército negado".
+- **Ritmo**: a ativação passou de 480 para 950 ms e a negação ganhou 900 ms
+  — o tempo de o destaque ser visto antes da próxima coisa acontecer.
+
+Por baixo: `snapshot.chainLinks` (um `DuelChainLink` por elo, com
+`state`), limpo no `CHAIN_END` e no `NEW_TURN`, e os eventos `chainLink` e
+`chainNegated` (o "resolvendo" vai no próprio snapshot). Online, a projeção por assento leva os elos
+como estão (uma ativação é pública), e os eventos vão para os dois lados.
+
+**Teste**: `npm run test:browser-chain` (com o app no ar) monta a mesa —
+Reforço na minha mão, Ash na do bot —, ativa pela tela e confere o
+destaque dos dois elos, a pilha (elo 2 resolvendo, elo 1 com efeito
+negado), o carimbo e o histórico; as fotos ficam em
+`.cache/shots/corrente-*.png`.
+
+**Efeito colateral do ritmo novo**: o `test:modern-play` clicava a zona do
+Glow-Up Bulb 600 ms depois de "Ativar" — a ativação agora fica ~1 s em
+destaque antes de o efeito resolver e perguntar a zona, e o clique caía no
+vazio. O teste passou a esperar a zona acender como escolhível
+(`tf-slot-place`). Bateria depois disso: `marks`, `formats`, `multiplayer`,
+`hidden`, `endgame`, `ui`, `ui-rare`, `prompt-rules`, `sort-card`; pela tela,
+duelo Goat e TCG completos, mesa moderna, jogadas modernas, declaração,
+cancelar, ataque, compra, telas menores, online Goat e TCG e a corrente —
+todos passando. (`test:connection` pede o servidor de produção na porta
+3210 e não rodou.)

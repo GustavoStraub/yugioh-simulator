@@ -117,9 +117,22 @@ async function main() {
 
   /** Clica no primeiro botão visível cujo texto contém `texto`. */
   const botao = (texto) => page.clickText(texto);
-  /** Clica numa zona da mesa. */
-  const zona = (key) =>
-    page.evaluate(`const el = document.querySelector('[data-zone="${key}"] [role="button"]'); if (!el) return false; el.click(); return true;`);
+  /**
+   * Clica numa zona da mesa — esperando ela virar escolhível (`tf-slot-place`)
+   * quando a pergunta é "onde colocar". Um tempo fixo não serve: a ativação
+   * fica em destaque no centro (~1 s, `ChainSpotlight`) antes de o efeito
+   * resolver e perguntar a zona, e o clique adiantado caía no vazio. Se a
+   * zona nunca acende (o clique é para abrir o menu da carta, não para
+   * escolher lugar), clica do mesmo jeito depois de esperar.
+   */
+  const zona = async (key) => {
+    for (let i = 0; i < 25; i += 1) {
+      const pronta = await page.evaluate(`return Boolean(document.querySelector('[data-zone="${key}"] .tf-slot-place'));`);
+      if (pronta) break;
+      await sleep(200);
+    }
+    return page.evaluate(`const el = document.querySelector('[data-zone="${key}"] [role="button"]'); if (!el) return false; el.click(); return true;`);
+  };
   /** Clica numa carta da mão pelo nome (alt da imagem). */
   const naMao = (regex) =>
     page.evaluate(`

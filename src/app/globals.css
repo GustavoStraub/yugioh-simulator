@@ -415,6 +415,64 @@ body {
   box-shadow: 0 0 12px rgba(217, 180, 81, 0.5);
 }
 
+/* Destaque de uma ativação (ChainSpotlight): entra crescendo, fica, sai. A
+   duração vem inline — ativação e negação têm tempos diferentes. */
+@keyframes tf-spotlight {
+  0% { opacity: 0; transform: scale(0.82); }
+  14% { opacity: 1; transform: scale(1); }
+  82% { opacity: 1; transform: scale(1); }
+  100% { opacity: 0; transform: scale(1.03); }
+}
+
+.tf-spotlight {
+  animation-name: tf-spotlight;
+  animation-timing-function: ease-out;
+  animation-fill-mode: both;
+}
+
+/* O fundo do destaque acompanha a carta: entra, fica e sai junto. */
+@keyframes tf-spotlight-backdrop {
+  0% { opacity: 0; }
+  14% { opacity: 1; }
+  82% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+.tf-spotlight-backdrop {
+  background: radial-gradient(ellipse at center, rgba(0, 0, 0, 0.55) 0%, rgba(0, 0, 0, 0.25) 55%, rgba(0, 0, 0, 0.05) 100%);
+  animation-name: tf-spotlight-backdrop;
+  animation-timing-function: ease-out;
+  animation-fill-mode: both;
+}
+
+.tf-spotlight-glow-mine {
+  box-shadow: 0 0 0 3px var(--tf-gold), 0 0 38px 8px rgba(217, 180, 81, 0.55);
+}
+
+.tf-spotlight-glow-foe {
+  box-shadow: 0 0 0 3px #dc2626, 0 0 38px 8px rgba(220, 38, 38, 0.5);
+}
+
+@keyframes tf-negated-stamp {
+  0% { opacity: 0; transform: translateY(-50%) rotate(-12deg) scale(1.6); }
+  30% { opacity: 1; transform: translateY(-50%) rotate(-12deg) scale(1); }
+  100% { opacity: 1; transform: translateY(-50%) rotate(-12deg) scale(1); }
+}
+
+.tf-negated-stamp {
+  animation: tf-negated-stamp 0.45s ease-out both;
+}
+
+/* Elo resolvendo, no slot da carta: pulsa enquanto é a vez dele. */
+@keyframes tf-chain-resolving {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(245, 221, 143, 0.9); }
+  50% { box-shadow: 0 0 0 6px rgba(245, 221, 143, 0); }
+}
+
+.tf-chain-resolving {
+  animation: tf-chain-resolving 0.8s ease-in-out infinite;
+}
+
 /* Acessibilidade: quem configurou "menos movimento" no sistema recebe o
    estado final imediatamente, sem animação nem tremor. */
 @media (prefers-reduced-motion: reduce) {
@@ -427,7 +485,11 @@ body {
   .tf-hit-flash,
   .tf-flash-text,
   .tf-lp-bump,
-  .tf-slot-active {
+  .tf-slot-active,
+  .tf-spotlight,
+  .tf-spotlight-backdrop,
+  .tf-negated-stamp,
+  .tf-chain-resolving {
     animation: none !important;
   }
 }

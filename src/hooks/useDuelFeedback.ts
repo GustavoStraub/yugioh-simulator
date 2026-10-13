@@ -3,11 +3,17 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { playSfx, type SfxName } from "@/lib/audio/sfx";
+import type { ChainSpotlightState } from "@/components/duel/ChainSpotlight";
 import type {
   DuelEvent,
   DuelEventListener,
   DuelZoneRef,
 } from "@/lib/duel/duel-events";
+
+/** Quanto o destaque de uma ativação fica no centro. */
+const SPOTLIGHT_ACTIVATE_MS = 1000;
+/** E o de uma negação — o desfecho, um pouco mais. */
+const SPOTLIGHT_NEGATED_MS = 1200;
 
 /** Efeito visual momentâneo disparado por um evento do duelo. */
 export interface DuelFlash {
@@ -93,7 +99,10 @@ export function useDuelFeedback(
     kind: "coin" | "dice";
     results: (boolean | number)[];
   } | null>(null);
+  /** A carta em destaque no centro (ativação ou negação de um elo). */
+  const [spotlight, setSpotlight] = useState<ChainSpotlightState | null>(null);
   const nextId = useRef(0);
+  const spotlightTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const pushFlash = useCallback(
     (
@@ -131,6 +140,29 @@ export function useDuelFeedback(
 
       // Visual.
       switch (event.kind) {
+        case "chainLink":
+        case "chainNegated": {
+          const negated = event.kind === "chainNegated";
+          const duration = negated ? SPOTLIGHT_NEGATED_MS : SPOTLIGHT_ACTIVATE_MS;
+          const token = nextId.current++;
+          setSpotlight({
+            token,
+            code: event.code,
+            mine: event.player === me,
+            link: event.link,
+            from: event.kind === "chainLink" ? event.from : 0,
+            kind: negated ? "negated" : "activate",
+            what: event.kind === "chainNegated" ? event.what : undefined,
+            duration,
+          });
+          // Um elo novo substitui o destaque anterior; o timer só apaga o
+          // destaque que ele mesmo criou.
+          if (spotlightTimer.current) clearTimeout(spotlightTimer.current);
+          spotlightTimer.current = setTimeout(() => {
+            setSpotlight((current) => (current?.token === token ? null : current));
+          }, duration);
+          break;
+        }
         case "draw":
           setDraw({
             token: nextId.current++,
@@ -193,5 +225,5 @@ export function useDuelFeedback(
     });
   }, [subscribe, pushFlash, me]);
 
-  return { flashes, shake, toss, flight, reveal, draw };
+  return { flashes, shake, toss, flight, reveal, draw, spotlight };
 }

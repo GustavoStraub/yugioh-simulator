@@ -69,6 +69,10 @@ Engine message → `findPromptMessage` (`bot-responder.ts`) → `autoResponseFor
 
 Two sources, merged into each viewer's `BoardCard`: **queries** on every board read (`COUNTERS`, `EQUIP_CARD`, `TARGET_CARD`, `STATUS` → `negated`) and **messages** tracked by the session (`CARD_HINT` per field zone — moves with the card on `MOVE`, dropped when it leaves the field; `PLAYER_HINT` → `snapshot.playerHints`; `FIELD_DISABLED` → `snapshot.disabledZones`, player-0 perspective). A card hidden from the viewer carries no marks. `card-marks.ts` turns them into slot chips and reading-panel sentences; `test:marks` covers them in both viewpoints and in `projectSnapshot`.
 
+### Chain display
+
+The session keeps `snapshot.chainLinks` (one `DuelChainLink` per link: code, player, origin `from`, zone, `state` pending → resolving → resolved | negated | disabled) from `CHAINING`/`CHAIN_SOLVING`/`CHAIN_SOLVED`/`CHAIN_NEGATED`/`CHAIN_DISABLED`, cleared on `CHAIN_END` and `NEW_TURN`. `CHAIN_DISABLED n` (effect negated, e.g. Ash Blossom) arrives *during the negating link's resolution*, before link n resolves. It also emits `chainLink`/`chainNegated` events (the resolving state travels in the snapshot); `useDuelFeedback` turns them into the centre `ChainSpotlight` (activation, then the "NEGADO" stamp), `ChainStack` (left rail) lists the links, and field slots get a chain-number badge (`chainBadge`). Their beats are in `pacing.ts` (CHAINING 950 ms, NEGATED/DISABLED 900 ms). `test:browser-chain` plays the Reinforcement × Ash case on screen.
+
 ### Hidden information
 
 Board reads are per viewer (`readBoardState(core, handle, viewer)` in `board-state.ts`); prompt candidates are masked (`maskHiddenCards`, `prompt-mask.ts`); online, `projectSnapshot` (`src/server/duel/room.ts`) strips everything a seat may not see before sending. Design rationale: `docs/multiplayer.md`.

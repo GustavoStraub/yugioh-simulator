@@ -90,6 +90,16 @@ interface DuelCardSlotProps {
   marks?: CardMark[];
   /** Zona inutilizada por um efeito (`FIELD_DISABLED`): hachurada. */
   disabledZone?: boolean;
+  /** A carta é um elo da corrente em aberto: o número aparece no canto. */
+  chainBadge?: ChainBadge;
+}
+
+/** Elo da corrente de uma carta do campo (ver `chainAt` no `DuelBoard`). */
+export interface ChainBadge {
+  link: number;
+  /** Quem ativou é quem olha a mesa? */
+  mine: boolean;
+  state: "pending" | "resolving" | "resolved" | "negated" | "disabled";
 }
 
 /**
@@ -136,6 +146,7 @@ export function DuelCardSlot({
   onOpenMaterials,
   marks = [],
   disabledZone = false,
+  chainBadge,
 }: DuelCardSlotProps) {
   const texto = useCardText();
   const definition = card?.code ? registry?.get(card.code) : undefined;
@@ -303,6 +314,25 @@ export function DuelCardSlot({
             >
               {scaleSide === "left" ? `◂${scale}` : `${scale}▸`}
             </span>
+          </span>
+        )}
+
+        {/* Número do elo da corrente — fora do giro, como as marcas: tem que
+            se ler na carta do oponente (de cabeça para baixo) e na deitada. */}
+        {chainBadge && (
+          <span
+            data-chain-badge={chainBadge.link}
+            data-chain-badge-state={chainBadge.state}
+            title={`Elo ${chainBadge.link} da corrente`}
+            className={`pointer-events-none absolute -left-1.5 -top-1.5 z-20 flex h-6 w-6 items-center justify-center rounded-full border-2 border-black/70 text-[12px] font-black shadow-md shadow-black/60 ${
+              chainBadge.state === "negated" || chainBadge.state === "disabled"
+                ? "bg-zinc-700 text-red-300 line-through"
+                : chainBadge.mine
+                  ? "bg-[color:var(--tf-gold)] text-black"
+                  : "bg-red-600 text-white"
+            } ${chainBadge.state === "resolving" ? "tf-chain-resolving" : ""}`}
+          >
+            {chainBadge.link}
           </span>
         )}
 
