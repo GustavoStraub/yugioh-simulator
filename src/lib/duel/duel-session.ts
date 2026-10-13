@@ -535,6 +535,15 @@ export class DuelSession {
    * dois estão decidindo ao mesmo tempo.
    */
   private readonly brains = new Map<0 | 1, BotBrain>();
+  /**
+   * Monstro sendo Invocado agora, para o bot (`BotContext.summoning`).
+   *
+   * Vale do SUMMONING/SPSUMMONING/FLIPSUMMONING até o SUMMONED
+   * correspondente — e até o CHAIN_END, porque uma Invocação negada (o
+   * Julgamento Solene resolveu) nunca recebe SUMMONED: o monstro só vai para o
+   * cemitério e a corrente acaba.
+   */
+  private summoning: { code: number; player: number } | null = null;
   /** Modo de resposta de cada assento — ver `chain-mode.ts`. */
   private chainModes: [ChainResponseMode, ChainResponseMode] = ["auto", "auto"];
   /**
@@ -1159,6 +1168,7 @@ export class DuelSession {
           // jogador usa para tudo o que é "no seu 3º turno" (Espada da Luz,
           // Reckless Greed, Mensagem do Espírito) e não existia na tela.
           const turnCount = this.snapshot.turnCount + 1;
+          this.summoning = null;
           this.update({ turnPlayer: message.player, turnCount, chain: null, chainLinks: [] });
           this.appendLog(`Turno ${turnCount} — ${this.seatName(message.player)}`, null, {
             kind: "turn",
@@ -1168,6 +1178,7 @@ export class DuelSession {
           break;
         }
         case OcgMessageType.NEW_PHASE:
+          this.summoning = null;
           this.update({ phase: message.phase });
           this.appendLog(`— ${phaseLabel(message.phase)} —`, null, { kind: "phase" });
           this.emit({ kind: "phase", phase: message.phase });
@@ -1176,6 +1187,7 @@ export class DuelSession {
         // Narração das jogadas: sem isso o turno do bot é uma caixa-preta,
         // o campo muda sozinho e não dá para saber o que aconteceu.
         case OcgMessageType.SUMMONING:
+          this.summoning = { code: message.code, player: message.controller };
           this.appendLog(
             `${this.seatName(message.controller)} Invocou ${this.cardName(message.code)}`,
             null,
@@ -1189,6 +1201,7 @@ export class DuelSession {
           });
           break;
         case OcgMessageType.SPSUMMONING:
+          this.summoning = { code: message.code, player: message.controller };
           this.appendLog(
             `${this.seatName(message.controller)} fez Invocação-Especial de ${this.cardName(message.code)}`,
             null,
@@ -1202,6 +1215,7 @@ export class DuelSession {
           });
           break;
         case OcgMessageType.FLIPSUMMONING:
+          this.summoning = { code: message.code, player: message.controller };
           this.appendLog(
             `${this.seatName(message.controller)} virou ${this.cardName(message.code)} para cima`,
             null,
@@ -1212,6 +1226,11 @@ export class DuelSession {
             player: message.controller,
             code: message.code,
           });
+          break;
+        case OcgMessageType.SUMMONED:
+        case OcgMessageType.SPSUMMONED:
+        case OcgMessageType.FLIPSUMMONED:
+          this.summoning = null;
           break;
         case OcgMessageType.SET:
           // Onde foi baixada é público (a carta está ali na mesa); o que é,
@@ -1321,6 +1340,7 @@ export class DuelSession {
         // o jogador responder a uma pergunta que não existe mais.
         case OcgMessageType.CHAIN_END:
           this.revealedTo = [new Set(), new Set()];
+          this.summoning = null;
           this.update({ chain: null, chainLinks: [] });
           break;
 
@@ -2120,6 +2140,8 @@ export class DuelSession {
       turnPlayer: this.snapshot.turnPlayer,
       turnCount: this.snapshot.turnCount,
       chainPlayer: this.snapshot.chain?.player ?? null,
+      chainCode: this.snapshot.chain?.code ?? null,
+      summoning: this.summoning,
     };
   }
 

@@ -253,6 +253,9 @@ function criarRastreador(duel) {
   let chainPlayer = null;
   /** Carta do último elo — diz de QUEM é o prompt que travou. */
   let chainCode = null;
+  // Monstro sendo Invocado (como `DuelSession.summoning`): vai até o SUMMONED
+  // ou até o CHAIN_END de uma Invocação negada, que não recebe SUMMONED.
+  let summoning = null;
   return () => {
     for (; cursor < duel.messages.length; cursor += 1) {
       const message = duel.messages[cursor];
@@ -260,16 +263,31 @@ function criarRastreador(duel) {
       if (message.type === OcgMessageType.NEW_TURN) {
         turnPlayer = message.player;
         turnCount += 1;
+        summoning = null;
       } else if (message.type === OcgMessageType.NEW_PHASE) {
         phase = message.phase;
+        summoning = null;
       } else if (message.type === OcgMessageType.CHAINING) {
         chainPlayer = message.controller;
         chainCode = message.code;
       } else if (message.type === OcgMessageType.CHAIN_END) {
         chainPlayer = null;
+        summoning = null;
+      } else if (
+        message.type === OcgMessageType.SUMMONING ||
+        message.type === OcgMessageType.SPSUMMONING ||
+        message.type === OcgMessageType.FLIPSUMMONING
+      ) {
+        summoning = { code: message.code, player: message.controller };
+      } else if (
+        message.type === OcgMessageType.SUMMONED ||
+        message.type === OcgMessageType.SPSUMMONED ||
+        message.type === OcgMessageType.FLIPSUMMONED
+      ) {
+        summoning = null;
       }
     }
-    return { turnPlayer, turnCount, phase, chainPlayer, chainCode };
+    return { turnPlayer, turnCount, phase, chainPlayer, chainCode, summoning };
   };
 }
 
@@ -325,7 +343,7 @@ async function partida(a, b, seed) {
     }
     const automatico = autoResponseFor(message);
     if (automatico) return automatico;
-    const { turnPlayer, turnCount, phase, chainPlayer } = rastrear();
+    const { turnPlayer, turnCount, phase, chainPlayer, chainCode, summoning } = rastrear();
     const cache = new Map();
     return cerebros[seat].decide({
       prompt: message,
@@ -340,6 +358,10 @@ async function partida(a, b, seed) {
       turnPlayer,
       turnCount,
       chainPlayer,
+      // Fora de corrente o rastreador guarda o último elo (para o relatório
+      // de um travamento); o bot só deve vê-lo com a corrente aberta.
+      chainCode: chainPlayer === null ? null : chainCode,
+      summoning,
     });
   }
 

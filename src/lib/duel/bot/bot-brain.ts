@@ -24,7 +24,13 @@ import {
 import { isDeclarable } from "@/lib/duel/announce-filter";
 import type { BoardCard, BoardPlayer, BoardState } from "@/lib/duel/board-state";
 import { botAutoResponse } from "@/lib/duel/bot-responder";
-import { readIntel, roleOf, type CardIntel } from "@/lib/duel/bot/card-intel";
+import {
+  counterCostOf,
+  FOG_TRAPS,
+  readIntel,
+  roleOf,
+  type CardIntel,
+} from "@/lib/duel/bot/card-intel";
 import {
   appraiseAttack,
   knownStats,
@@ -58,6 +64,19 @@ export interface BotContext {
    * mesmo" — uma hand trap no próprio elo nega a própria jogada.
    */
   chainPlayer?: number | null;
+  /**
+   * Carta do último elo da corrente em aberto (`null` fora de uma corrente).
+   * É o que uma contra-armadilha negaria: sem saber O QUE está em jogo, a
+   * única decisão segura era guardá-la para sempre.
+   */
+  chainCode?: number | null;
+  /**
+   * Monstro sendo Invocado agora — entre o SUMMONING (ou SPSUMMONING,
+   * FLIPSUMMONING) e o fim da janela "quando um monstro seria Invocado", a
+   * única em que o Julgamento Solene e a Corneta Celestial negam uma
+   * Invocação. Fora dela, `null`.
+   */
+  summoning?: { code: number; player: number } | null;
 }
 
 /**
@@ -688,6 +707,9 @@ export class BotBrain {
     if (zonasLivres - this.setsNoTurno <= 1 && !decideCombate) return -1;
 
     if (decideCombate) return 64;
+    // Contra-armadilha baixada agora sai na hora certa (`scoreCounter`): vale
+    // a zona antes de uma armadilha qualquer.
+    if (intel.isCounter) return 52;
     if (role === "backrowSpot") return 48;
     return intel.isTrap ? 40 : 34;
   }
@@ -919,15 +941,159 @@ export class BotBrain {
         break;
     }
 
-    // Contra-armadilha custa caro (Julgamento Solene leva metade dos LP). Sem
-    // saber o que está sendo negado, guardar é a decisão de menor arrependimento.
-    if (intel.isCounter) return 30;
+    if (intel.isCounter) return this.scoreCounter(card, ctx, mine);
     // Efeito de monstro que o core ofereceu na corrente costuma ser um gatilho
     // de graça — o custo, se houver, já foi cobrado pelo script.
     if (intel.isMonster) return 62;
     if (intel.isTrap) return turnoDele ? 55 : 25;
     if (intel.isQuickplay) return turnoDele ? 52 : 34;
     return turnoDele ? 48 : 30;
+  }
+
+  /**
+   * Quanto vale gastar esta contra-armadilha agora: o que ela nega menos o
+   * que ela cobra.
+   *
+   * Antes a nota era fixa (30, abaixo do limiar de 45) — sem saber o que
+   * estava sendo negado, guardar parecia o menor arrependimento. Na prática
+   * era guardar para sempre: o Julgamento Solene ocupava uma zona o duelo
+   * inteiro e via passar o Jinzo, o Roubar e a Força do Espelho.
+   *
+   * O alvo de uma contra-armadilha é sempre uma de duas coisas, e o core só a
+   * oferece quando o script dela aceita aquela:
+   *
+   * - **o último elo da corrente** (Bloqueador de Magia, Sete Ferramentas, o
+   *   Julgamento contra uma magia/armadilha) — vale o que a carta do elo faz;
+   * - **a Invocação em andamento**, com a corrente vazia (Julgamento Solene,
+   *   Aviso Solene, Corneta Celestial) — vale o monstro que está entrando.
+   *
+   * A conta fica na mesma régua do limiar (45): o Julgamento (−20) nega a
+   * Invocação-Tributo de um Summoned Skull (77) mas deixa passar um Battle Ox
+   * (42); o Bloqueador de Magia (−25) nega o Roubar (95) e deixa o Pote da
+   * Ganância (60) — trocar a contra e o descarte por uma compra de dois é
+   * dar duas cartas por uma.
+   */
+  private scoreCounter(card: OcgCardLoc, ctx: BotContext, mine: BoardPlayer): number {
+    const custo = this.counterCost(card.code, ctx, mine);
+    const eloDele =
+      ctx.chainPlayer !== undefined && ctx.chainPlayer !== null && ctx.chainPlayer !== ctx.me;
+    // Com corrente aberta, o que se nega é o elo — mesmo que haja uma
+    // Invocação por trás dele.
+    if (eloDele) {
+      if (ctx.chainCode === undefined || ctx.chainCode === null) return -1;
+      return this.activationThreat(ctx.chainCode, ctx, mine) - custo;
+    }
+    const invocacao = ctx.summoning ?? null;
+    // Corrente vazia e Invocação do próprio bot: o core oferece a contra aos
+    // dois jogadores, e aceitar negaria o próprio monstro.
+    if (invocacao === null || invocacao.player === ctx.me) return -1;
+    return this.summonThreat(invocacao.code, ctx) - custo;
+  }
+
+  /**
+   * O quanto dói deixar resolver esta carta do adversário.
+   *
+   * Pelo papel quando a carta é conhecida (`CARD_ROLES`); sem papel, só o tipo
+   * — baixo de propósito, para uma contra que cobra alguma coisa nunca sair
+   * contra uma carta que o bot não sabe o que faz.
+   */
+  private activationThreat(code: number, ctx: BotContext, mine: BoardPlayer): number {
+    switch (roleOf(code)) {
+      // Leva um monstro meu para o lado dele: perco um, ele ganha um.
+      case "steal":
+        return 95;
+      // Tempestade Pesada e Espanador levam a própria contra-armadilha junto:
+      // ou ela é usada agora, ou vai para o cemitério sem fazer nada.
+      case "backrowNuke":
+        return 95;
+      case "massRemoval": {
+        // Só dói se houver o que perder do meu lado.
+        const meu = ocupadas(mine.monsters).reduce((t, c) => t + ownValue(c, ctx.cardDb), 0);
+        return meu >= 1000 ? 95 : -1;
+      }
+      // Remoção pontual do adversário aponta para um monstro meu — qual, o
+      // bot não sabe (a Fissura leva o de menor ATK, o Nobre um virado): vale
+      // pelo melhor que está em jogo. Negar a Fissura num Sangan com o
+      // Bloqueador de Magia é dar duas cartas para salvar uma que não pesa.
+      case "spotRemoval": {
+        const melhor = Math.max(0, ...ocupadas(mine.monsters).map((c) => ownValue(c, ctx.cardDb)));
+        return 55 + Math.min(melhor, 3000) / 100;
+      }
+      // Armadilha de combate dele responde a um ataque meu: a Força do
+      // Espelho e a Armadura levam monstros; o Waboku só segura o ataque.
+      case "battleTrap":
+        return FOG_TRAPS.has(code) ? 50 : 85;
+      case "revive":
+      case "stall":
+        return 80;
+      // Quase sempre aponta para uma carta baixada minha — talvez a própria.
+      case "backrowSpot":
+        return 70;
+      case "handRip":
+        return 65;
+      case "draw":
+        return 60;
+      default:
+        break;
+    }
+    const intel = readIntel(code, ctx.cardDb);
+    // Contra-armadilha dele negando uma carta minha: negar a dela salva a minha.
+    if (intel.isCounter) return 75;
+    if (intel.isMonster || intel.isEquip) return 55;
+    return 50;
+  }
+
+  /**
+   * O quanto dói deixar este monstro entrar — a mesma régua de
+   * `activationThreat`.
+   *
+   * ATK pesa mais (3000 → 75), e há dois bônus: efeito, e monstro "caro"
+   * (Nível 5+ ou do Extra Deck), cuja Invocação já consumiu tributos ou
+   * materiais — negá-la leva o monstro e o que se pagou por ele.
+   */
+  private summonThreat(code: number, ctx: BotContext): number {
+    const intel = readIntel(code, ctx.cardDb);
+    let ameaca = Math.min(intel.atk, 3000) / 40;
+    if (intel.isEffect) ameaca += 15;
+    if (intel.level >= 5 || intel.isExtraDeck) ameaca += 15;
+    return ameaca;
+  }
+
+  /**
+   * O que a contra-armadilha cobra, na régua das notas.
+   *
+   * PV pesam pela fração dos que o bot tem: o Julgamento Solene custa sempre
+   * metade (−20), as Sete Ferramentas custam pouco com 8000 (−9). Passando
+   * da metade a conta acelera — mil de 1050 PV (−61) deixa o bot a um
+   * efeito de dano de perder, e foi assim que ele gastou 1000 PV num Waboku.
+   * Se não dá para pagar, o core nem oferece a carta.
+   *
+   * Uma carta pesa mais que mil PV (−25 contra −9): é a moeda do formato.
+   */
+  private counterCost(code: number, ctx: BotContext, mine: BoardPlayer): number {
+    const custo = counterCostOf(code);
+    // Desconhecida: um preço médio, entre o de graça e o de uma carta.
+    if (custo === null) return 15;
+    switch (custo.kind) {
+      case "free":
+        return 0;
+      case "lp": {
+        const lp = Math.max(1, ctx.lifePoints[ctx.me]);
+        const valor = custo.amount === "half" ? lp / 2 : custo.amount;
+        const fracao = Math.min(1, valor / lp);
+        return 5 + 30 * fracao + 60 * Math.max(0, fracao - 0.5);
+      }
+      case "discard":
+        return 25;
+      case "opponentDraws":
+        return 12;
+      case "tribute": {
+        // Vai o monstro mais barato — é o que o próprio bot entrega no
+        // SELECT_TRIBUTE/SELECT_CARD que vem depois.
+        const valores = ocupadas(mine.monsters).map((c) => ownValue(c, ctx.cardDb));
+        return 10 + (valores.length > 0 ? Math.min(...valores) : 0) / 100;
+      }
+    }
   }
 
   // ── Seleções de carta ──────────────────────────────────────────────────
