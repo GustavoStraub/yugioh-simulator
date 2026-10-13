@@ -1303,7 +1303,16 @@ export class DuelSession {
           } else {
             this.narrateFieldExit(message);
           }
-          this.moveCardHints(message.from, message.to);
+          // Matéria Xyz não é carta do campo, mesmo que a zona dita seja a do
+          // Xyz: desanexar uma não pode levar as marcas do monstro de cima
+          // (antes levava — o Xyz perdia contadores e avisos ao desanexar), e
+          // virar matéria não passa as marcas da carta para ele.
+          if (message.from.overlay_sequence === undefined) {
+            this.moveCardHints(
+              message.from,
+              message.to.overlay_sequence !== undefined ? { ...message.to, location: 0 } : message.to,
+            );
+          }
           break;
         }
         case OcgMessageType.TOSS_COIN:
@@ -1756,14 +1765,21 @@ export class DuelSession {
    */
   private narrateFieldExit(message: {
     card: number;
-    from: { controller: 0 | 1; location: number; sequence: number; position: number };
-    to: { controller: 0 | 1; location: number; sequence: number; position: number };
+    from: LocPos;
+    to: LocPos;
   }): void {
     const { from, to } = message;
     const campo = OcgLocation.MZONE | OcgLocation.SZONE;
     if ((from.location & campo) === 0) return;
+    // Matéria Xyz, neste binding, NÃO vem com o bit OVERLAY na localização:
+    // vem a zona do monstro Xyz e um `overlay_sequence`. E na Invocação-Xyz a
+    // matéria é anexada ao Xyz ainda no Extra Deck — lido pela localização,
+    // isso parecia "foi para o Extra Deck".
+    const deMateria = from.overlay_sequence !== undefined;
+    const paraMateria = to.overlay_sequence !== undefined;
+    if (deMateria && paraMateria) return;
     // Troca de zona dentro do campo (controle, mover de coluna) não é saída.
-    if ((to.location & campo) !== 0 && (to.location & OcgLocation.OVERLAY) === 0) return;
+    if (!paraMateria && (to.location & campo) !== 0) return;
 
     const faceUpBefore = (from.position & OcgPosition.FACEDOWN) === 0;
     const publicDestination =
@@ -1774,7 +1790,7 @@ export class DuelSession {
     const nome = code !== null ? this.cardName(code) : "Uma carta baixada";
 
     // Matéria Xyz desanexada: sai de baixo do monstro, não de uma zona.
-    if ((from.location & OcgLocation.OVERLAY) !== 0) {
+    if (deMateria) {
       if ((to.location & OcgLocation.GRAVE) !== 0) {
         this.appendLog(`◈ ${nome} foi desanexada (matéria Xyz)`, null, {
           codes: code !== null ? [code] : undefined,
@@ -1784,9 +1800,14 @@ export class DuelSession {
       return;
     }
 
-    const consulta = to.location ? this.queryAt(to.controller, to.location, to.sequence) : null;
-    const reason = consulta?.code === message.card ? (consulta.reason ?? 0) : 0;
-    const why = leaveReasonOf(to.location, reason);
+    const consulta =
+      to.location && !paraMateria ? this.queryAt(to.controller, to.location, to.sequence) : null;
+    const reason = paraMateria
+      ? REASON.MATERIAL | REASON.XYZ
+      : consulta?.code === message.card
+        ? (consulta.reason ?? 0)
+        : 0;
+    const why = leaveReasonOf(paraMateria ? 0 : to.location, reason);
     const materia =
       reason & REASON.SYNCHRO
         ? " de Sincro"
@@ -2068,6 +2089,16 @@ export class DuelSession {
       listener(this.snapshot);
     }
   }
+}
+
+/** Origem/destino de um `MOVE`, como o binding entrega. */
+interface LocPos {
+  controller: 0 | 1;
+  location: number;
+  sequence: number;
+  position: number;
+  /** Presente quando a carta é (ou era) matéria Xyz — ver `narrateFieldExit`. */
+  overlay_sequence?: number;
 }
 
 /** O assento como `0 | 1`, ou `undefined` para o 2 do empate e afins. */

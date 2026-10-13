@@ -35,6 +35,9 @@ const PROTAGONISTAS = [
   "Poison of the Old Man", // SELECT_OPTION (texto real da opção)
 ];
 
+/** Battle Ox — o nome declarado pela Proibição. */
+const BATTLE_OX = 5053103;
+
 const ENCHIMENTO = [
   "Battle Ox", "Mystical Elf", "Feral Imp", "Silver Fang",
   "Mammoth Graveyard", "Sangan",
@@ -195,8 +198,12 @@ async function main() {
         // de resultados só mostra a arte. O modal cobre só a coluna do campo,
         // então o trilho continua visível enquanto se procura.
         const leitura = await page.evaluate(`
-          const alvo = [...document.querySelectorAll("button")]
-            .find((b) => b.innerText.includes("Battle Ox") || b.innerText.includes("Boi de Batalha"));
+          // Pelo passcode, não pelo nome: o nome em português vem do
+          // catálogo e muda ("Boi de Batalha" virou "Touro Guerreiro") — com o
+          // nome errado nada era escolhido, o "Declarar" ficava desabilitado
+          // e o teste repetia a declaração até o limite de ações.
+          const alvo = document.querySelector('[data-announce-result="${BATTLE_OX}"]')
+            ?? document.querySelector("[data-announce-result]");
           if (!alvo) return "sem alvo";
           alvo.dispatchEvent(new MouseEvent("mouseover", { bubbles: true }));
           alvo.dispatchEvent(new MouseEvent("mouseenter", { bubbles: true }));
@@ -213,8 +220,12 @@ async function main() {
           `  hover no resultado (${leitura}) → painel de leitura: ${JSON.stringify(painel)}\n`,
         );
         await page.evaluate(`
-          const alvo = [...document.querySelectorAll("button")]
-            .find((b) => b.innerText.includes("Battle Ox") || b.innerText.includes("Boi de Batalha"));
+          // Pelo passcode, não pelo nome: o nome em português vem do
+          // catálogo e muda ("Boi de Batalha" virou "Touro Guerreiro") — com o
+          // nome errado nada era escolhido, o "Declarar" ficava desabilitado
+          // e o teste repetia a declaração até o limite de ações.
+          const alvo = document.querySelector('[data-announce-result="${BATTLE_OX}"]')
+            ?? document.querySelector("[data-announce-result]");
           if (alvo) alvo.click();
           return true;
         `);

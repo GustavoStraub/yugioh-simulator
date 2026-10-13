@@ -24,6 +24,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
 import {
+  OcgCardHintType,
   OcgLocation,
   OcgMessageType,
   OcgPosition,
@@ -47,6 +48,8 @@ const C = {
   potOfGreed: 55144522,
   trunade: 42703248,
   trapHole: 4206964,
+  ox: 5053103, // Battle Ox, Nível 4 — matéria do Utopia
+  utopia: 84013237,
 };
 
 const catalog = JSON.parse(readFileSync(join(REPO, ".cache/catalog/catalog.json"), "utf8"));
@@ -209,6 +212,84 @@ console.log("\n2. Efeito: Pote da Ganância e Raigeki no meu turno");
     linhas(snap).some((linha) => linha.text === `⚰ ${nomeDe(C.raigeki)} foi enviada ao Cemitério`),
     "a Magia que resolveu vai ao Cemitério com nome",
   );
+}
+
+// ---------------------------------------------------------------------------
+console.log("\n2b. Invocação-Xyz: as matérias não 'vão para o Extra Deck'");
+{
+  // O binding não marca a matéria com o bit OVERLAY: manda a zona do Xyz e um
+  // `overlay_sequence` — e na Invocação-Xyz o Xyz ainda está no Extra Deck.
+  // Lido pela localização, o histórico dizia "Battle Ox foi para o Extra Deck".
+  const { snap, eventos } = await rodar({
+    scenario: [
+      { player: 0, location: OcgLocation.MZONE, sequence: 0, code: C.ox },
+      { player: 0, location: OcgLocation.MZONE, sequence: 1, code: C.ox },
+      { player: 0, location: OcgLocation.EXTRA, code: C.utopia },
+    ],
+    roteiro: {
+      0: (() => {
+        let feito = false;
+        return (prompt) => {
+          if (feito) return null;
+          const i = prompt.special_summons.findIndex((c) => c.code === C.utopia);
+          if (i < 0) return null;
+          feito = true;
+          return idle(SelectIdleCMDAction.SELECT_SPECIAL_SUMMON, i);
+        };
+      })(),
+    },
+    turnos: 1,
+  });
+  const materias = linhas(snap).filter((linha) => linha.text === `${nomeDe(C.ox)} foi usada como matéria Xyz`);
+  conferir(materias.length === 2, "as duas matérias narradas como matéria Xyz", linhas(snap).map((l) => l.text).join(" | "));
+  conferir(
+    !linhas(snap).some((linha) => linha.text.includes("Extra Deck")),
+    "nenhuma linha diz que a matéria foi para o Extra Deck",
+  );
+  const saidas = eventos.filter((evento) => evento.kind === "leave" && evento.code === C.ox);
+  conferir(
+    saidas.length === 2 && saidas.every((evento) => evento.why === "material"),
+    "as duas saídas do campo são de matéria",
+    JSON.stringify(saidas),
+  );
+  conferir(
+    (snap.boards[0]?.players[0].monsters ?? []).some((card) => card?.code === C.utopia && card.overlays.length === 2),
+    "o Utopia está em campo com 2 matérias",
+  );
+}
+
+// ---------------------------------------------------------------------------
+console.log("\n2c. Desanexar matéria não apaga as marcas do monstro Xyz");
+{
+  // Direto nas mensagens, sem engine: uma marca de turnos no monstro da zona 0
+  // e uma matéria saindo de baixo dele. Antes, a matéria "saía" da zona 0 e
+  // levava a marca do Xyz junto.
+  const marca = {
+    type: OcgMessageType.CARD_HINT,
+    controller: 0,
+    location: OcgLocation.MZONE,
+    sequence: 0,
+    card_hint: OcgCardHintType.TURN,
+    description: 3n,
+  };
+  const saida = (overlay) => ({
+    type: OcgMessageType.MOVE,
+    card: C.ox,
+    from: {
+      controller: 0, location: OcgLocation.MZONE, sequence: 0, position: 1,
+      ...(overlay ? { overlay_sequence: 0 } : {}),
+    },
+    to: { controller: 0, location: OcgLocation.GRAVE, sequence: 0, position: 1 },
+  });
+  const comMarca = (session) => (session["hintsByZone"]().get(`0:${OcgLocation.MZONE}:0`) ?? []).some((h) => h.kind === "turn");
+
+  const desanexou = createDuelSession();
+  desanexou["consumeMessages"]([marca, saida(true)]);
+  conferir(comMarca(desanexou), "a marca do Xyz fica depois de desanexar uma matéria");
+
+  const saiu = createDuelSession();
+  saiu["consumeMessages"]([marca, saida(false)]);
+  conferir(!comMarca(saiu), "e sai quando é o próprio monstro que deixa a zona (controle)");
 }
 
 // ---------------------------------------------------------------------------

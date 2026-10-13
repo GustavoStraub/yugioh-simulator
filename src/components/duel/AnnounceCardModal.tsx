@@ -128,6 +128,7 @@ export function AnnounceCardModal({
                   <button
                     key={card.passcode}
                     type="button"
+                    data-announce-result={card.passcode}
                     onClick={() => {
                       playSfx("click");
                       setSelected(card);
