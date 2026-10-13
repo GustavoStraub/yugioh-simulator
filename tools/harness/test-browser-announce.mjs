@@ -35,6 +35,9 @@ const PROTAGONISTAS = [
   "Poison of the Old Man", // SELECT_OPTION (texto real da opção)
 ];
 
+/** Battle Ox — o nome declarado pela Proibição. */
+const BATTLE_OX = 5053103;
+
 const ENCHIMENTO = [
   "Battle Ox", "Mystical Elf", "Feral Imp", "Silver Fang",
   "Mammoth Graveyard", "Sangan",
@@ -97,7 +100,7 @@ const LER = `
   const mesa = document.querySelector(".tf-playmat") ?? document.body;
   const texto = mesa.innerText;
   const util = (b) => !b.disabled && b.offsetParent !== null &&
-    !b.innerText.includes("\\u{1F50A}") && !b.innerText.includes("\\u{1F507}") &&
+    !b.closest("[data-table-control]") && !b.innerText.includes("\\u{1F50A}") && !b.innerText.includes("\\u{1F507}") &&
     !b.closest('[aria-label="Idioma das cartas"]');
   return {
     texto,
@@ -153,6 +156,8 @@ async function main() {
 
     const prazo = Date.now() + 1000 * 60 * 5;
     let acoes = 0;
+    /** O que foi clicado, em ordem — para um laço aparecer no relatório. */
+    const historico = [];
 
     while (acoes < 400 && Date.now() < prazo) {
       const estado = await page.evaluate(LER);
@@ -195,8 +200,12 @@ async function main() {
         // de resultados só mostra a arte. O modal cobre só a coluna do campo,
         // então o trilho continua visível enquanto se procura.
         const leitura = await page.evaluate(`
-          const alvo = [...document.querySelectorAll("button")]
-            .find((b) => b.innerText.includes("Battle Ox") || b.innerText.includes("Boi de Batalha"));
+          // Pelo passcode, não pelo nome: o nome em português vem do
+          // catálogo e muda ("Boi de Batalha" virou "Touro Guerreiro") — com o
+          // nome errado nada era escolhido, o "Declarar" ficava desabilitado
+          // e o teste repetia a declaração até o limite de ações.
+          const alvo = document.querySelector('[data-announce-result="${BATTLE_OX}"]')
+            ?? document.querySelector("[data-announce-result]");
           if (!alvo) return "sem alvo";
           alvo.dispatchEvent(new MouseEvent("mouseover", { bubbles: true }));
           alvo.dispatchEvent(new MouseEvent("mouseenter", { bubbles: true }));
@@ -213,8 +222,12 @@ async function main() {
           `  hover no resultado (${leitura}) → painel de leitura: ${JSON.stringify(painel)}\n`,
         );
         await page.evaluate(`
-          const alvo = [...document.querySelectorAll("button")]
-            .find((b) => b.innerText.includes("Battle Ox") || b.innerText.includes("Boi de Batalha"));
+          // Pelo passcode, não pelo nome: o nome em português vem do
+          // catálogo e muda ("Boi de Batalha" virou "Touro Guerreiro") — com o
+          // nome errado nada era escolhido, o "Declarar" ficava desabilitado
+          // e o teste repetia a declaração até o limite de ações.
+          const alvo = document.querySelector('[data-announce-result="${BATTLE_OX}"]')
+            ?? document.querySelector("[data-announce-result]");
           if (alvo) alvo.click();
           return true;
         `);
@@ -235,9 +248,11 @@ async function main() {
         await new Promise((r) => setTimeout(r, 150));
         const depois = await page.evaluate(LER);
         const acao = escolher(depois.botoes);
+        historico.push(`carta>${acao ?? "-"}`);
         if (acao) await page.clickAction(acao);
       } else {
         const acao = escolher(estado.botoes);
+        historico.push(acao ?? "-");
         if (acao) await page.clickAction(acao);
       }
       acoes += 1;
@@ -245,6 +260,7 @@ async function main() {
     }
 
     process.stdout.write(`\nações: ${acoes}\n`);
+    process.stdout.write(`últimas: ${historico.slice(-25).map((a) => a.split("\n")[0].slice(0, 28)).join(" > ")}\n`);
     process.stdout.write(`prompts renderizados: ${vistos.size}/${ASSINATURAS.length}\n`);
     const faltaram = ASSINATURAS.filter((a) => !vistos.has(a.nome)).map((a) => a.nome);
     if (faltaram.length) process.stdout.write(`não apareceram: ${faltaram.join(", ")}\n`);

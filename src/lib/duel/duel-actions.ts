@@ -29,6 +29,16 @@ import type { CardDefinition } from "@/lib/types";
 /** Uma ação que o jogador pode tomar clicando numa carta específica. */
 export interface CardAction {
   label: string;
+  /**
+   * O que a ação faz, quando o core diz: a descrição do EFEITO a ativar
+   * ("Special Summon this card", "Como Escala de Pêndulo").
+   *
+   * Sem isto toda jogada de efeito era só "Ativar" — e uma carta com dois
+   * efeitos mostrava dois botões "Ativar" idênticos. O rótulo continua sendo o
+   * verbo (é por ele que os testes e o olho acham a ação); o detalhe vai
+   * embaixo.
+   */
+  detail?: string;
   /** Passcode da carta — deixa a UI mostrar de qual carta é a ação. */
   code: number;
   /** Onde a carta está (mão, campo, cemitério...), para desambiguar cópias. */
@@ -237,6 +247,40 @@ function keyOf(card: OcgCardLoc): string {
 }
 
 /** Registra uma ação já anotada com a carta de origem. */
+/** Descrições do sistema que só dizem "ativar" — não acrescentam nada. */
+const GENERIC_EFFECT_TEXT = new Set(["activate", "ativar"]);
+
+/**
+ * Descrições do sistema que aparecem em jogada de carta, em português — o
+ * resto das strings do sistema vem do `strings.conf`, em inglês.
+ */
+const SYSTEM_EFFECT_PT: Record<number, string> = {
+  1160: "Como Escala de Pêndulo",
+  1161: "Resolver o efeito",
+  1162: "Reiniciar o efeito",
+};
+
+/**
+ * O que um efeito ativável faz, pelo `description` que o core manda com ele.
+ *
+ * É a string que o script registrou com `SetDescription`: quase sempre uma
+ * string da própria carta (`aux.Stringid(id, n)` → o texto curto do efeito,
+ * em inglês como o ProjectIgnis escreve), às vezes uma do sistema. `0` é
+ * efeito sem descrição — e aí não há o que dizer além de "Ativar".
+ */
+export function effectDetail(
+  description: bigint | number | undefined,
+  engineStrings?: EngineStringsDb,
+): string | undefined {
+  if (description === undefined || !engineStrings) return undefined;
+  const raw = Number(description);
+  if (!Number.isFinite(raw) || raw <= 0) return undefined;
+  if (SYSTEM_EFFECT_PT[raw]) return SYSTEM_EFFECT_PT[raw];
+  const text = engineStrings.describeOption(raw)?.trim();
+  if (!text || GENERIC_EFFECT_TEXT.has(text.toLowerCase())) return undefined;
+  return text;
+}
+
 function push(
   map: Map<string, CardAction[]>,
   card: OcgCardLoc,
@@ -344,6 +388,7 @@ export function buildPromptPlan(
       message.activates.forEach((card, index) => {
         push(plan.byCard, card, {
           label: "Ativar",
+          detail: effectDetail(card.description, engineStrings),
           response: {
             type: OcgResponseType.SELECT_IDLECMD,
             action: SelectIdleCMDAction.SELECT_ACTIVATE,
@@ -395,6 +440,7 @@ export function buildPromptPlan(
       message.chains.forEach((card, index) => {
         push(plan.byCard, card, {
           label: "Ativar",
+          detail: effectDetail(card.description, engineStrings),
           response: {
             type: OcgResponseType.SELECT_BATTLECMD,
             action: SelectBattleCMDAction.SELECT_CHAIN,
@@ -589,6 +635,7 @@ export function buildPromptPlan(
       message.selects.forEach((card, index) => {
         push(plan.byCard, card, {
           label: "Ativar em resposta",
+          detail: effectDetail(card.description, engineStrings),
           response: { type: OcgResponseType.SELECT_CHAIN, index },
         });
       });

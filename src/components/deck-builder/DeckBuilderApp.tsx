@@ -1,9 +1,15 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 
 import { PresetDeckPicker } from "@/components/deck-builder/PresetDeckPicker";
+import { GlossaryText } from "@/components/duel/GlossaryText";
+import {
+  DeckStatsDialog,
+  ImportExportDialog,
+  TestHandDialog,
+} from "@/components/deck-builder/DeckTools";
 import { useCardRegistry } from "@/context/CardRegistryProvider";
 import { usePlayer } from "@/context/PlayerProvider";
 import { useCardText } from "@/hooks/useCardText";
@@ -50,6 +56,23 @@ import { VirtualCardGrid } from "@/components/deck-builder/VirtualCardGrid";
 import { FORMAT_RULES, formatOf } from "@/lib/types";
 import type { CardDefinition, DeckList, DeckZone, DuelFormat } from "@/lib/types";
 
+/**
+ * Arrastar e soltar entre o catálogo e o deck. O dado viaja num tipo próprio
+ * para que arrastar texto ou um arquivo para a tela não seja confundido com
+ * uma carta.
+ */
+const DRAG_TYPE = "application/x-yugioh-card";
+type DragPayload = { passcode: number; origem: "catalogo" | "deck"; zone?: DeckZone };
+
+function lerArrasto(event: React.DragEvent): DragPayload | null {
+  try {
+    const bruto = event.dataTransfer.getData(DRAG_TYPE);
+    return bruto ? (JSON.parse(bruto) as DragPayload) : null;
+  } catch {
+    return null;
+  }
+}
+
 const ZONE_TABS: { value: DeckZone; label: string }[] = [
   { value: "main", label: "Principal" },
   { value: "extra", label: "Extra" },
@@ -70,6 +93,9 @@ export function DeckBuilderApp() {
     renameDeck,
     changeFormat,
     loadPreset,
+    undo,
+    canUndo,
+    importDeck,
   } = useDeck();
   const formato = formatOf(deck.format);
   // O catálogo traz o TCG inteiro; o construtor mostra o pool do formato do
@@ -83,6 +109,22 @@ export function DeckBuilderApp() {
   const [zone, setZone] = useState<DeckZone>("main");
   const [filters, setFilters] = useState<CardFilters>(EMPTY_FILTERS);
   const [feedback, setFeedback] = useState<string | null>(null);
+  /** Ferramenta aberta: mão de teste, estatísticas, importar/exportar. */
+  const [ferramenta, setFerramenta] = useState<"mao" | "stats" | "io" | null>(null);
+
+  // Ctrl+Z (⌘Z no Mac) desfaz a última edição de carta — menos quando o foco
+  // está num campo de texto, onde o desfazer é o do próprio campo.
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if (!(event.ctrlKey || event.metaKey) || event.key.toLowerCase() !== "z" || event.shiftKey) return;
+      const alvo = event.target as HTMLElement | null;
+      if (alvo && ["INPUT", "TEXTAREA", "SELECT"].includes(alvo.tagName)) return;
+      event.preventDefault();
+      undo();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [undo]);
 
   const activeFeedback = feedback ?? lastActionError ?? library.saveError;
 
@@ -182,6 +224,9 @@ export function DeckBuilderApp() {
             registry={registry}
             onRename={renameDeck}
             onClear={tryClearDeck}
+            onUndo={undo}
+            canUndo={canUndo}
+            onTool={setFerramenta}
             onLoadPreset={loadPreset}
             onChangeFormat={(format) => {
               changeFormat(format);
@@ -207,9 +252,29 @@ export function DeckBuilderApp() {
               setFeedback(null);
               clearLastActionError();
             }}
+            onDropFromCatalog={(passcode) => {
+              const card = registry?.get(passcode);
+              if (card) handleAdd(card);
+            }}
           />
 
-          <div className="tf-panel flex min-h-0 flex-1 flex-col overflow-hidden rounded-md">
+          {/* O catálogo também recebe: soltar aqui uma carta arrastada do deck
+              a tira dele — o "arrastar para fora" do Master Duel. */}
+          <div
+            data-catalog-drop
+            onDragOver={(event) => {
+              if (event.dataTransfer.types.includes(DRAG_TYPE)) event.preventDefault();
+            }}
+            onDrop={(event) => {
+              const arrasto = lerArrasto(event);
+              if (arrasto?.origem !== "deck") return;
+              event.preventDefault();
+              tryRemoveCard(arrasto.passcode, arrasto.zone ?? zone);
+              setFeedback(null);
+              clearLastActionError();
+            }}
+            className="tf-panel flex min-h-0 flex-1 flex-col overflow-hidden rounded-md"
+          >
             <FilterBar
               filters={filters}
               onPatch={patch}
@@ -240,6 +305,21 @@ export function DeckBuilderApp() {
           </div>
         </section>
       </div>
+
+      {ferramenta === "mao" && (
+        <TestHandDialog deck={deck} registry={registry} onClose={() => setFerramenta(null)} onHover={setPreview} />
+      )}
+      {ferramenta === "stats" && (
+        <DeckStatsDialog deck={deck} registry={registry} onClose={() => setFerramenta(null)} />
+      )}
+      {ferramenta === "io" && (
+        <ImportExportDialog
+          deck={deck}
+          registry={registry}
+          onImport={importDeck}
+          onClose={() => setFerramenta(null)}
+        />
+      )}
     </div>
   );
 }
@@ -609,6 +689,9 @@ function DeckHeader({
   registry,
   onRename,
   onClear,
+  onUndo,
+  canUndo,
+  onTool,
   onLoadPreset,
   onChangeFormat,
 }: {
@@ -616,9 +699,14 @@ function DeckHeader({
   registry: ReturnType<typeof useCardRegistry>["registry"];
   onRename: (name: string) => void;
   onClear: () => void;
+  onUndo: () => void;
+  canUndo: boolean;
+  onTool: (tool: "mao" | "stats" | "io") => void;
   onLoadPreset: Parameters<typeof PresetDeckPicker>[0]["onSelect"];
   onChangeFormat: (format: DuelFormat) => void;
 }) {
+  /** "Limpar" pede confirmação no próprio botão, como o "Apagar". */
+  const [confirmandoLimpar, setConfirmandoLimpar] = useState(false);
   const formato = formatOf(deck.format);
   const limites = deckLimits(formato);
   const foraDoPool = cardsOutsidePool(deck, registry);
@@ -705,12 +793,67 @@ function DeckHeader({
               : avisos[0] ?? `Mín. ${limites.main.min} cartas`}
           </span>
         )}
+        {/* Limpar apagava o deck inteiro num clique, sem volta. Agora pede
+            confirmação — e mesmo confirmado, o "Desfazer" traz de volta. */}
         <button
           type="button"
-          onClick={onClear}
-          className="rounded border border-[color:var(--tf-slot-border)] px-2 py-1.5 text-[11px] text-zinc-300 transition hover:bg-black/60"
+          data-clear-deck
+          onClick={() => {
+            if (!confirmandoLimpar) {
+              setConfirmandoLimpar(true);
+              setTimeout(() => setConfirmandoLimpar(false), 3000);
+              return;
+            }
+            setConfirmandoLimpar(false);
+            onClear();
+          }}
+          className={`rounded border px-2 py-1.5 text-[11px] transition hover:bg-black/60 ${
+            confirmandoLimpar
+              ? "border-red-700 bg-red-950/60 text-red-200"
+              : "border-[color:var(--tf-slot-border)] text-zinc-300"
+          }`}
         >
-          Limpar
+          {confirmandoLimpar ? "Limpar tudo?" : "Limpar"}
+        </button>
+      </div>
+
+      <div className="grid grid-cols-4 gap-1">
+        <button
+          type="button"
+          data-undo
+          disabled={!canUndo}
+          onClick={onUndo}
+          title="Desfazer a última edição de carta (Ctrl+Z)"
+          className="rounded border border-[color:var(--tf-slot-border)] px-1 py-1 text-[10px] text-zinc-300 transition hover:bg-black/60 disabled:opacity-35"
+        >
+          ↶ Desfazer
+        </button>
+        <button
+          type="button"
+          data-tool="mao"
+          onClick={() => onTool("mao")}
+          title="Embaralhar e comprar 5, como na partida"
+          className="rounded border border-[color:var(--tf-slot-border)] px-1 py-1 text-[10px] text-zinc-300 transition hover:bg-black/60"
+        >
+          Mão de teste
+        </button>
+        <button
+          type="button"
+          data-tool="stats"
+          onClick={() => onTool("stats")}
+          title="Monstros, magias, armadilhas e a curva de nível"
+          className="rounded border border-[color:var(--tf-slot-border)] px-1 py-1 text-[10px] text-zinc-300 transition hover:bg-black/60"
+        >
+          Estatísticas
+        </button>
+        <button
+          type="button"
+          data-tool="io"
+          onClick={() => onTool("io")}
+          title="Importar ou exportar .ydk e ydke://"
+          className="rounded border border-[color:var(--tf-slot-border)] px-1 py-1 text-[10px] text-zinc-300 transition hover:bg-black/60"
+        >
+          .ydk / ydke
         </button>
       </div>
 
@@ -805,9 +948,10 @@ function BigCardPreview({
         </p>
       </div>
 
-      <p className="min-h-0 flex-1 overflow-y-auto pr-1 text-[13px] leading-relaxed text-zinc-200">
-        {texto.desc(card)}
-      </p>
+      <GlossaryText
+        text={texto.desc(card)}
+        className="min-h-0 flex-1 overflow-y-auto whitespace-pre-line pr-1 text-[13px] leading-relaxed text-zinc-200"
+      />
     </div>
   );
 }
@@ -820,10 +964,13 @@ function DeckGrid({
   foraDoPool,
   onHover,
   onRemove,
+  onDropFromCatalog,
 }: {
   deck: DeckList;
   zone: DeckZone;
   onZoneChange: (zone: DeckZone) => void;
+  /** Uma carta do catálogo solta sobre o deck — adiciona. */
+  onDropFromCatalog: (passcode: number) => void;
   registry: ReturnType<typeof useCardRegistry>["registry"];
   /** Cartas que não são do pool do formato do deck — marcadas em vermelho. */
   foraDoPool: Set<number>;
@@ -842,8 +989,28 @@ function DeckGrid({
     }));
   });
 
+  const [alvoDoArrasto, setAlvoDoArrasto] = useState(false);
+
   return (
-    <div className="tf-panel flex h-[38%] min-h-0 shrink-0 flex-col overflow-hidden rounded-md">
+    <div
+      data-deck-drop
+      onDragOver={(event) => {
+        if (!event.dataTransfer.types.includes(DRAG_TYPE)) return;
+        event.preventDefault();
+        setAlvoDoArrasto(true);
+      }}
+      onDragLeave={() => setAlvoDoArrasto(false)}
+      onDrop={(event) => {
+        setAlvoDoArrasto(false);
+        const arrasto = lerArrasto(event);
+        if (arrasto?.origem !== "catalogo") return;
+        event.preventDefault();
+        onDropFromCatalog(arrasto.passcode);
+      }}
+      className={`tf-panel flex h-[38%] min-h-0 shrink-0 flex-col overflow-hidden rounded-md ${
+        alvoDoArrasto ? "ring-2 ring-[color:var(--tf-gold)]" : ""
+      }`}
+    >
       <div className="flex shrink-0 items-center gap-1 border-b border-[color:var(--tf-slot-border)] px-3 py-2">
         {ZONE_TABS.map((tab) => (
           <button
@@ -860,14 +1027,14 @@ function DeckGrid({
           </button>
         ))}
         <span className="ml-auto text-[11px] italic text-zinc-500">
-          clique para remover
+          clique ou arraste ao catálogo para remover
         </span>
       </div>
 
       <div className="min-h-0 flex-1 overflow-y-auto p-2">
         {entries.length === 0 ? (
           <p className="py-8 text-center text-[13px] text-zinc-600">
-            Nenhuma carta aqui. Clique no catálogo abaixo para adicionar.
+            Nenhuma carta aqui. Clique numa carta do catálogo abaixo — ou arraste-a para cá.
           </p>
         ) : (
           <div className="grid grid-cols-[repeat(auto-fill,minmax(84px,1fr))] gap-1">
@@ -875,6 +1042,14 @@ function DeckGrid({
               <button
                 key={entry.key}
                 type="button"
+                draggable
+                onDragStart={(event) => {
+                  event.dataTransfer.setData(
+                    DRAG_TYPE,
+                    JSON.stringify({ passcode: entry.passcode, origem: "deck", zone } satisfies DragPayload),
+                  );
+                  event.dataTransfer.effectAllowed = "move";
+                }}
                 onMouseEnter={() => onHover(entry.card ?? null)}
                 onClick={() => onRemove(entry.passcode)}
                 title={
@@ -931,6 +1106,14 @@ function CatalogCard({
   return (
     <button
       type="button"
+      draggable={!full}
+      onDragStart={(event) => {
+        event.dataTransfer.setData(
+          DRAG_TYPE,
+          JSON.stringify({ passcode: card.passcode, origem: "catalogo" } satisfies DragPayload),
+        );
+        event.dataTransfer.effectAllowed = "copy";
+      }}
       onMouseEnter={() => onHover(card)}
       onClick={onAdd}
       disabled={full}

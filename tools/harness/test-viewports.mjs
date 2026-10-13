@@ -24,6 +24,10 @@ const TELAS = [
   { nome: "1440x900", w: 1440, h: 900 },
   { nome: "1280x720", w: 1280, h: 720 },
   { nome: "1024x640", w: 1024, h: 640 },
+  // Mesa estreita (Fase 11): sem trilhos laterais, leitura em folha.
+  { nome: "768x1024", w: 768, h: 1024 },
+  { nome: "844x390", w: 844, h: 390 },
+  { nome: "390x844", w: 390, h: 844 },
 ];
 
 /**
@@ -63,6 +67,35 @@ const MEDIR = `
     // Com movimento reduzido a animação some; o contorno tem que ficar.
     realceVisivel: Boolean(sombra && sombra !== "none"),
     mesaVisivel: Boolean(mesa && mesa.getBoundingClientRect().height > 200),
+    // A navegação do site inteira dentro da janela — no celular ela quebrava
+    // linha e empurrava o PT/EN para fora.
+    navegacaoCabe: (() => {
+      const idioma = document.querySelector('[aria-label="Idioma das cartas"]');
+      if (!idioma) return true;
+      const r = idioma.getBoundingClientRect();
+      // E todo item da navegação à vista: a parte que rola escondia
+      // "Puzzles"/"Online" no celular sem nada indicar que havia mais.
+      const itens = [...document.querySelectorAll("header nav a")].every((a) => {
+        const caixa = a.parentElement.getBoundingClientRect();
+        const ra = a.getBoundingClientRect();
+        return ra.left >= caixa.left - 1 && ra.right <= caixa.right + 1 && ra.right <= window.innerWidth + 1;
+      });
+      return r.right <= window.innerWidth + 1 && r.height < 40 && itens;
+    })(),
+    // Algo da barra de LP vazando para fora dela — no celular o selo "Sua
+    // vez" passava por cima da barra do oponente.
+    barraDeLpVaza: [...document.querySelectorAll("[data-lp-bar]")].some((barra) => {
+      const b = barra.getBoundingClientRect();
+      return [...barra.children].some((filho) => {
+        const r = filho.getBoundingClientRect();
+        return r.width > 0 && (r.left < b.left - 1 || r.right > b.right + 1);
+      });
+    }),
+    // Peça da mesa saindo pela borda da janela (as banidas penduradas).
+    foraDaJanela: [...document.querySelectorAll(".tf-playmat [data-zone], .tf-playmat [data-pile]")]
+      .map((el) => ({ el, r: el.getBoundingClientRect() }))
+      .filter(({ r }) => r.width > 0 && (r.left < -1 || r.right > window.innerWidth + 1))
+      .map(({ el }) => el.dataset.zone ?? el.dataset.pile),
     // Peça da mesa (zona, pilha) por baixo de um dos trilhos — leitura da
     // carta à esquerda, fases + histórico à direita. Rolagem não acusa isso:
     // a mesa estoura PARA DENTRO dos trilhos, e a trilha de fases (z-50)
@@ -123,15 +156,71 @@ async function main() {
 
         // A mesa ocupa a janela inteira: rolagem horizontal quer dizer layout
         // estourado, e não "tela pequena". E nenhuma peça por baixo dos trilhos.
+        // No celular a carta do campo é pequena por natureza (a mesa tem 7
+        // colunas); o piso de altura lá é o de uma carta ainda tocável.
+        const pisoDaCarta = tela.w < 600 || tela.h < 500 ? 30 : 40;
         const ok =
-          !m.rolagemHorizontal && m.mesaVisivel && m.alturaDaCarta > 40 && m.sobreposicoes.length === 0;
+          !m.rolagemHorizontal &&
+          m.mesaVisivel &&
+          m.alturaDaCarta > pisoDaCarta &&
+          m.sobreposicoes.length === 0 &&
+          m.foraDaJanela.length === 0 &&
+          !m.barraDeLpVaza &&
+          m.navegacaoCabe;
         if (!ok) falhas += 1;
         process.stdout.write(
           `${ok ? "OK   " : "FALHA"} ${formato.padEnd(4)} ${tela.nome.padEnd(10)} carta=${m.larguraDaCarta}x${m.alturaDaCarta} ` +
           `rolagem-h=${m.rolagemHorizontal} mesa-visível=${m.mesaVisivel} ` +
-          `sob-os-trilhos=${m.sobreposicoes.length ? m.sobreposicoes.join(",") : "nenhuma"}\n`,
+          `sob-os-trilhos=${m.sobreposicoes.length ? m.sobreposicoes.join(",") : "nenhuma"} ` +
+          `fora-da-janela=${m.foraDaJanela.length ? m.foraDaJanela.join(",") : "nenhuma"} nav-cabe=${m.navegacaoCabe} lp-vaza=${m.barraDeLpVaza}\n`,
         );
       }
+    }
+
+    // --- toque: toque longo numa carta abre a leitura (mesa estreita) ---
+    {
+      const page = await openPage(port);
+      await page.setViewport(390, 844);
+      await abrirDuelo(page);
+      await page.send("Emulation.setTouchEmulationEnabled", { enabled: true, maxTouchPoints: 1 });
+      const alvo = await page.evaluate(`
+        const el = document.querySelector('[data-hand] [data-zone] .tf-touch-card');
+        if (!el) return null;
+        const r = el.getBoundingClientRect();
+        return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
+      `);
+      let abriu = false;
+      if (alvo) {
+        await page.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [alvo] });
+        await new Promise((r) => setTimeout(r, 700));
+        await page.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
+        await new Promise((r) => setTimeout(r, 300));
+        abriu = await page.evaluate(`return Boolean(document.querySelector("[data-card-sheet] img"));`);
+      }
+      const temBotoes = await page.evaluate(
+        `return Boolean(document.querySelector("[data-open-log]") && document.querySelector("[data-open-card]"));`,
+      );
+      const shot = await page.screenshot();
+      writeFileSync(join(OUT, "toque-leitura.png"), Buffer.from(shot.data, "base64"));
+      const okToque = abriu && temBotoes;
+      if (!okToque) falhas += 1;
+      process.stdout.write(
+        `${okToque ? "OK   " : "FALHA"} toque 390x844     toque-longo-abre-a-leitura=${abriu} botões-histórico/carta=${temBotoes}\n`,
+      );
+    }
+
+    // --- cabeçalho fora da mesa (o grande, com o subtítulo) no celular ---
+    {
+      const page = await openPage(port);
+      await page.setViewport(390, 844);
+      await page.goto(`${BASE}/duel/puzzles`);
+      await new Promise((r) => setTimeout(r, 1500));
+      const m = await page.evaluate(MEDIR);
+      const ok = m.navegacaoCabe && !m.rolagemHorizontal;
+      if (!ok) falhas += 1;
+      process.stdout.write(
+        `${ok ? "OK   " : "FALHA"} cabeçalho 390x844 (fora da mesa) nav-cabe=${m.navegacaoCabe} rolagem-h=${m.rolagemHorizontal}\n`,
+      );
     }
 
     // --- movimento reduzido ---

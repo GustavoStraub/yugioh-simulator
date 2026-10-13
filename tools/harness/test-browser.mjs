@@ -37,6 +37,9 @@ const MAX_ACOES = 250;
  * `tf-slot-active` é a classe que o `DuelCardSlot` põe numa carta acionável, e
  * `data-zone` identifica a zona — é assim que o teste "vê" o tabuleiro.
  */
+/** Cliques iguais seguidos que contam como laço (ver o laço principal). */
+const LACO = 25;
+
 const LER_ESTADO = `
   // O painel de log guarda para sempre linhas como "Carregando engine...", e
   // procurar por elas no texto da página inteira faz o teste achar que o duelo
@@ -48,7 +51,7 @@ const LER_ESTADO = `
     b.offsetParent !== null &&
     // O controle de som está sempre habilitado e não é uma jogada; sem
     // excluí-lo o teste clica nele o duelo inteiro e não exercita nada.
-    !b.innerText.includes("\u{1F50A}") &&
+    !b.closest("[data-table-control]") && !b.innerText.includes("\u{1F50A}") &&
     !b.innerText.includes("\u{1F507}") &&
     // Nem o seletor de idioma das cartas (PT/EN, na navegação): também está
     // sempre habilitado, e o teste o clicava em vez de esperar — um duelo
@@ -256,6 +259,26 @@ async function main() {
       }
 
       acoes += 1;
+      // O mesmo clique 25 vezes seguidas é um laço, não um duelo: o botão não
+      // faz o que o teste acha que faz. Antes isso só aparecia no "últimas"
+      // do fim, para alguém ler — e o teste passava com 240 cliques no
+      // "Cemitério" do glossário em vez da carta do seletor.
+      const ultimas = historico.slice(-LACO);
+      if (ultimas.length === LACO && ultimas.every((h) => h === ultimas[0])) {
+        const botoesNaTela = await page.evaluate(`
+          return [...document.querySelectorAll("button")]
+            .filter((b) => b.offsetParent !== null && !b.closest("header, nav"))
+            .map((b) => (b.closest("[data-table-control]") ? "[mesa]" : "") + b.innerText.trim().replace(/\\s+/g, " "))
+            .filter(Boolean)
+            .slice(0, 30);
+        `);
+        process.stdout.write(
+          `LAÇO após ${acoes} ações: "${ultimas[0]}" ${LACO}× seguidas sem a mesa mudar.\n` +
+          `botões: ${JSON.stringify(botoesNaTela)}\n`,
+        );
+        process.exitCode = 1;
+        break;
+      }
       // Saiu da mesa (navegou para outra página): o laço não está mais
       // testando duelo nenhum — e pode estar mexendo em dado de verdade.
       if (!(await page.evaluate(`return Boolean(document.querySelector(".tf-playmat"))`))) {

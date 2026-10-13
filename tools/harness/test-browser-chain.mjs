@@ -69,6 +69,19 @@ const LER = `
       .filter((b) => !b.disabled && b.offsetParent !== null && !b.closest("header, nav"))
       .map((b) => b.innerText.trim()),
     log: [...document.querySelectorAll("aside")].at(-1)?.innerText ?? "",
+    // A leitura da esquerda segue a ativação: o cabeçalho do elo e o nome da
+    // carta que ele trouxe.
+    leitura: (() => {
+      const cabecalho = document.querySelector("[data-preview-activation]");
+      if (!cabecalho) return null;
+      return {
+        elo: Number(cabecalho.dataset.previewActivation),
+        texto: cabecalho.innerText.replace(/\s+/g, " "),
+        nome: cabecalho.parentElement?.querySelector("h4")?.innerText ?? "",
+      };
+    })(),
+    efeitoNoDestaque: document.querySelector("[data-spotlight-effect]")?.innerText ?? null,
+    textoNoDestaque: document.querySelector("[data-spotlight-text]")?.innerText ?? null,
   };
 `;
 
@@ -114,11 +127,27 @@ async function main() {
     await page.evaluate(`document.querySelector('[data-zone="0:8:0"] [role="button"]')?.click(); return true;`);
 
     // Acompanha a tela: destaques, pilha e respostas ("Não responder").
-    const vistos = { destaques: new Map(), pilhaMax: 0, estados: new Map(), fotos: new Set() };
+    const vistos = {
+      destaques: new Map(),
+      pilhaMax: 0,
+      estados: new Map(),
+      fotos: new Set(),
+      leituras: new Map(),
+      textosNoDestaque: new Map(),
+    };
     const fim = Date.now() + 20_000;
     let estado = null;
     while (Date.now() < fim) {
       estado = await page.evaluate(LER);
+      if (estado.leitura && !vistos.leituras.has(estado.leitura.elo)) {
+        vistos.leituras.set(estado.leitura.elo, estado.leitura);
+      }
+      if (estado.destaque?.tipo === "activate" && estado.textoNoDestaque) {
+        vistos.textosNoDestaque.set(estado.destaque.elo, {
+          efeito: estado.efeitoNoDestaque,
+          texto: estado.textoNoDestaque,
+        });
+      }
       if (estado.destaque) {
         const chave = `${estado.destaque.tipo}:${estado.destaque.elo}`;
         if (!vistos.destaques.has(chave)) {
@@ -162,6 +191,31 @@ async function main() {
       ativou2,
     );
     conferir(/Efeito negado .*\bNegado\b/i.test(negou1), "o elo 1 volta em destaque com EFEITO NEGADO e o carimbo", negou1);
+
+    // O que a carta faz, sem depender do "deseja responder?": o destaque
+    // traz o texto, e a leitura da esquerda vai para cada carta ativada.
+    const destaque1 = vistos.textosNoDestaque.get(1);
+    const destaque2 = vistos.textosNoDestaque.get(2);
+    console.log(`  · efeito no destaque: elo 1 = ${destaque1?.efeito ?? "—"} | elo 2 = ${destaque2?.efeito ?? "—"}`);
+    conferir(Boolean(destaque1?.texto && destaque2?.texto), "o destaque de cada elo mostra o texto da carta", JSON.stringify([destaque1, destaque2]));
+    const leitura1 = vistos.leituras.get(1);
+    const leitura2 = vistos.leituras.get(2);
+    conferir(
+      /Elo 1 — Você ativou/i.test(leitura1?.texto ?? "") && /Refor|Reinforcement/i.test(leitura1?.nome ?? ""),
+      "a leitura da esquerda foi para o Reforço com \"Elo 1 — Você ativou\"",
+      JSON.stringify(leitura1),
+    );
+    conferir(
+      /Elo 2 — Oponente ativou da mão/i.test(leitura2?.texto ?? "") && ASH.test(leitura2?.nome ?? ""),
+      "e depois para a Ash, \"Elo 2 — Oponente ativou da mão\"",
+      JSON.stringify(leitura2),
+    );
+    const leituraFinal = estado?.leitura;
+    conferir(
+      leituraFinal?.elo === 2 && ASH.test(leituraFinal?.nome ?? ""),
+      "terminada a corrente, a Ash continua na leitura (dá tempo de ler)",
+      JSON.stringify(leituraFinal),
+    );
     conferir(vistos.pilhaMax === 2, "a pilha da corrente mostrou os dois elos", String(vistos.pilhaMax));
     conferir(vistos.estados.get(2)?.has("resolving") ?? false, "o elo 2 apareceu resolvendo", [...(vistos.estados.get(2) ?? [])].join(","));
     conferir(vistos.estados.get(1)?.has("disabled") ?? false, "o elo 1 ficou marcado como efeito negado", [...(vistos.estados.get(1) ?? [])].join(","));

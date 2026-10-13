@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 
 import { OcgLocation } from "@n1xx1/ocgcore-wasm";
 
@@ -92,7 +92,16 @@ interface DuelCardSlotProps {
   disabledZone?: boolean;
   /** A carta é um elo da corrente em aberto: o número aparece no canto. */
   chainBadge?: ChainBadge;
+  /**
+   * Toque longo (dedo/caneta): abre a leitura da carta. Tela de toque não tem
+   * "passar o mouse"; sem isto, na mesa estreita (onde a leitura não cabe ao
+   * lado) não havia como ler uma carta.
+   */
+  onLongPress?: (card: BoardCard) => void;
 }
+
+/** Quanto o dedo precisa ficar parado para ser "toque longo". */
+const LONG_PRESS_MS = 450;
 
 /** Elo da corrente de uma carta do campo (ver `chainAt` no `DuelBoard`). */
 export interface ChainBadge {
@@ -147,7 +156,15 @@ export function DuelCardSlot({
   marks = [],
   disabledZone = false,
   chainBadge,
+  onLongPress,
 }: DuelCardSlotProps) {
+  const pressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  /** O toque longo já abriu a leitura — o clique que vem junto não age. */
+  const longPressed = useRef(false);
+  const cancelarToque = () => {
+    if (pressTimer.current) clearTimeout(pressTimer.current);
+    pressTimer.current = null;
+  };
   const texto = useCardText();
   const definition = card?.code ? registry?.get(card.code) : undefined;
   const image = definition?.images[0]?.image_url_small;
@@ -169,7 +186,12 @@ export function DuelCardSlot({
   // Estrelas de nível na mão; em campo, só quando a mesa pede (`showLevel`).
   const level = inHand && !showBack ? (definition?.level ?? 0) : 0;
   const isXyzInHand = definition?.frameType?.includes("xyz") ?? false;
-  const fieldBadge = showLevel && !showBack && !inHand && card ? levelBadge(card) : null;
+  const isTuner =
+    definition?.type?.includes("Tuner") ||
+    definition?.humanReadableCardType?.includes("Tuner") ||
+    false;
+  const fieldBadge =
+    showLevel && !showBack && !inHand && card ? levelBadge(card, isTuner) : null;
   const scale =
     scaleSide && !showBack && card?.scales
       ? scaleSide === "left"
@@ -198,12 +220,21 @@ export function DuelCardSlot({
     <div
       data-zone={zoneKey}
       className={`relative ${CARD_SHAPE} ${
-        inHand ? "transition-transform duration-150 hover:z-20 hover:-translate-y-1.5" : ""
+        // Na mão a carta cresce e sobe ao passar o mouse — a carta "levantada"
+        // do Tag Force. Miniaturas de 100px não deixam ler a arte; crescer por
+        // cima do campo (sem empurrar as vizinhas) deixa.
+        // Com o menu aberto ela fica só levantada: crescida, o menu (filho
+        // dela) cresceria junto.
+        inHand
+          ? menu && menu.length > 0
+            ? "z-20 -translate-y-2"
+            : "origin-bottom transition-transform duration-150 hover:z-20 hover:-translate-y-2 hover:scale-[1.45]"
+          : ""
       }`}
     >
       <div
         title={linkedBy.length ? `Apontada por: ${linkedBy.join(", ")}` : undefined}
-        className={`tf-slot h-full w-full rounded-[4px] ${entering ? "tf-anim-card-in" : ""} ${
+        className={`tf-slot tf-touch-card h-full w-full rounded-[4px] ${entering ? "tf-anim-card-in" : ""} ${
           linkedBy.length ? "tf-slot-linked" : ""
         } ${disabledZone ? "tf-zone-disabled" : ""} ${
           // Uma classe só: a de intenção. Aplicar `tf-slot-active` junto fazia
@@ -217,6 +248,31 @@ export function DuelCardSlot({
         }`}
         onMouseEnter={() => onHover?.(card)}
         onMouseLeave={() => onHover?.(null)}
+        onPointerDown={(event) => {
+          if (event.pointerType === "mouse" || !card) return;
+          // No toque, tocar é "passar o mouse": a carta vai para a leitura.
+          onHover?.(card);
+          longPressed.current = false;
+          if (!onLongPress) return;
+          cancelarToque();
+          pressTimer.current = setTimeout(() => {
+            longPressed.current = true;
+            onLongPress(card);
+          }, LONG_PRESS_MS);
+        }}
+        onPointerUp={cancelarToque}
+        onPointerCancel={cancelarToque}
+        onPointerLeave={cancelarToque}
+        onContextMenu={(event) => {
+          // O toque longo abre a leitura, não o menu do navegador.
+          if (onLongPress) event.preventDefault();
+        }}
+        onClickCapture={(event) => {
+          if (!longPressed.current) return;
+          longPressed.current = false;
+          event.stopPropagation();
+          event.preventDefault();
+        }}
         onClick={onClick}
         role={interactive ? "button" : undefined}
         tabIndex={interactive ? 0 : undefined}
@@ -416,6 +472,11 @@ export function DuelCardSlot({
  */
 function levelBadge(
   card: BoardCard,
+  /**
+   * Regulador: o selo fica amarelo, como no Tag Force 4 — é o que decide a
+   * Invocação-Sincro, e achar o Regulador da mesa não pode exigir abrir carta.
+   */
+  isTuner = false,
 ): { text: string; title: string; className: string } | null {
   if (card.location !== OcgLocation.MZONE) return null;
   if (card.link) {
@@ -433,11 +494,17 @@ function levelBadge(
     };
   }
   if (card.level) {
-    return {
-      text: `★${card.level}`,
-      title: `Nível ${card.level}`,
-      className: "bg-black/85 text-amber-300",
-    };
+    return isTuner
+      ? {
+          text: `★${card.level} R`,
+          title: `Nível ${card.level} — Regulador`,
+          className: "bg-amber-300 text-black",
+        }
+      : {
+          text: `★${card.level}`,
+          title: `Nível ${card.level}`,
+          className: "bg-black/85 text-amber-300",
+        };
   }
   return null;
 }
@@ -543,9 +610,16 @@ function CardActionMenu({
             key={index}
             type="button"
             onClick={() => onChoose(action)}
-            className="block w-full px-4 py-2.5 text-left text-[13px] font-semibold text-[color:var(--tf-gold-bright)] transition-colors duration-100 hover:bg-[color:var(--tf-gold)] hover:text-black"
+            className="tf-menu-item group block w-full max-w-[280px] px-4 py-2.5 text-left text-[13px] font-semibold text-[color:var(--tf-gold-bright)] transition-colors duration-100 hover:bg-[color:var(--tf-gold)] hover:text-black"
           >
             {action.label}
+            {/* Qual efeito — duas jogadas "Ativar" na mesma carta deixam de
+                ser iguais (ver `CardAction.detail`). */}
+            {action.detail && (
+              <span className="block text-[11px] font-medium leading-snug text-sky-200 group-hover:text-black/75">
+                {action.detail}
+              </span>
+            )}
           </button>
         ))}
       </div>
@@ -568,9 +642,16 @@ export function DuelPile({
   dataPile,
   badge,
   actionable = false,
+  warnLow = false,
 }: {
   label: string;
   count: number;
+  /**
+   * Pilha que acaba o duelo quando zera (o Deck): o contador fica vermelho
+   * com 5 ou menos — é quando o número vira informação (o Master Duel nem o
+   * mostra antes de 10).
+   */
+  warnLow?: boolean;
   /**
    * O prompt atual oferece jogada com alguma carta desta pilha (Invocar do
    * Extra Deck, efeito de Cemitério) — a pilha brilha como uma carta jogável.
@@ -645,7 +726,15 @@ export function DuelPile({
         </span>
       )}
       {count > 0 && (
-        <span className="absolute bottom-0.5 right-0.5 rounded bg-black/85 px-1.5 text-[11px] font-bold text-[color:var(--tf-gold-bright)]">
+        <span
+          data-pile-count={count}
+          title={warnLow && count <= 5 ? `Só ${count} carta(s) no Deck` : undefined}
+          className={`absolute bottom-0.5 right-0.5 rounded px-1.5 text-[11px] font-bold ${
+            warnLow && count <= 5
+              ? "bg-red-600 text-white ring-1 ring-red-300"
+              : "bg-black/85 text-[color:var(--tf-gold-bright)]"
+          }`}
+        >
           {count}
         </span>
       )}

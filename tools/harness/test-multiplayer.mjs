@@ -220,6 +220,24 @@ const terceiro = room.join({
 });
 conferir(!terceiro.ok, "terceiro jogador é recusado (sala cheia)");
 
+// Preferência de resposta (ver `chain-mode.ts`): chega pela rede, então um
+// modo desconhecido não pode virar estado da sala. Ana joga a partida em
+// "Nunca": nenhuma pergunta de corrente opcional pode chegar a ela.
+room.setPrefs(a.token, "never", false);
+room.setPrefs(b.token, "nada-disso", true);
+{
+  const jogadores = room["players"];
+  conferir(
+    jogadores.find((p) => p.token === a.token)?.chainMode === "never",
+    "a preferência de resposta fica guardada no jogador",
+  );
+  conferir(
+    jogadores.find((p) => p.token === b.token)?.chainMode === "auto",
+    "modo desconhecido vindo da rede é ignorado",
+  );
+}
+room.setPrefs(b.token, "auto", false);
+
 room.setReady(a.token, true);
 room.setReady(b.token, true);
 
@@ -300,6 +318,8 @@ let respondidos = 0;
 let vazamentoDeMao = false;
 let vazamentoDeDeck = false;
 let promptDoOutro = false;
+/** Perguntas de corrente opcionais que chegaram à Ana, que joga em "Nunca". */
+let correnteOpcionalDaAna = 0;
 
 while (respondidos < MAX_PROMPTS) {
   let esperando;
@@ -337,6 +357,9 @@ while (respondidos < MAX_PROMPTS) {
   const prompt = esperando.snapshot.pendingPrompt;
   const promptId = esperando.snapshot.promptId;
   promptsVistos.add(nomeDoPrompt(prompt.type));
+  if (esperando === a && prompt.type === OcgMessageType.SELECT_CHAIN && !prompt.forced) {
+    correnteOpcionalDaAna += 1;
+  }
 
   const respondivel = planoRespondivel(prompt, esperando.me);
   if (!respondivel.ok) {
@@ -381,6 +404,10 @@ conferir(
 conferir(!vazamentoDeMao, "a mão do oponente nunca chega com o código da carta");
 conferir(!vazamentoDeDeck, "o Extra Deck do oponente nunca chega listado");
 conferir(!promptDoOutro, "ninguém recebe o prompt do outro assento");
+conferir(
+  correnteOpcionalDaAna === 0,
+  `no modo "Nunca", nenhuma pergunta de corrente opcional chega (${correnteOpcionalDaAna})`,
+);
 conferir(
   a.falhasDeCodec.length === 0 && b.falhasDeCodec.length === 0,
   "toda mensagem sobreviveu ao codec (BigInt incluso)",

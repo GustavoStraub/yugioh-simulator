@@ -10,6 +10,7 @@ import { announceCardMatches } from "@/lib/duel/duel-actions";
 import type { OfficialCardDb } from "@/lib/duel/official-card-data";
 import type { CardDefinition } from "@/lib/types";
 import { useCardText } from "@/hooks/useCardText";
+import { DecisionShell, PeekButton } from "@/components/duel/DecisionShell";
 
 /**
  * Teto de resultados renderizados por busca. O catálogo do pool Goat passa de
@@ -37,6 +38,8 @@ export function AnnounceCardModal({
   officialDb,
   onRespond,
   onHover,
+  hidden = false,
+  onPeek,
 }: {
   instruction: string;
   opcodes: readonly OcgOpCode[];
@@ -50,6 +53,9 @@ export function AnnounceCardModal({
    * de resultados só mostra arte e nome.
    */
   onHover?: (card: { code: number } | null) => void;
+  /** Escondido para ver a mesa — a busca digitada continua aqui. */
+  hidden?: boolean;
+  onPeek?: () => void;
 }) {
   const texto = useCardText();
   const [query, setQuery] = useState("");
@@ -78,8 +84,11 @@ export function AnnounceCardModal({
   }, [legal, query]);
 
   return (
-    <div className="tf-modal-scrim tf-modal-area z-50 flex items-center justify-center p-6">
-      <div className="tf-modal tf-anim-modal-in flex max-h-full w-[min(680px,95%)] flex-col overflow-hidden">
+    <DecisionShell
+      label={instruction}
+      hidden={hidden}
+      className="flex max-h-full w-[min(680px,95%)] flex-col overflow-hidden"
+    >
         <header className="tf-modal-head shrink-0 px-5 py-2.5">
           <p className="text-center text-base font-semibold text-[color:var(--tf-gold-bright)]">
             {instruction}
@@ -119,6 +128,7 @@ export function AnnounceCardModal({
                   <button
                     key={card.passcode}
                     type="button"
+                    data-announce-result={card.passcode}
                     onClick={() => {
                       playSfx("click");
                       setSelected(card);
@@ -171,6 +181,7 @@ export function AnnounceCardModal({
           <span className="min-w-0 flex-1 truncate text-[13px] text-[color:var(--tf-gold-dim)]">
             {selected ? selected.name : "Nenhuma carta selecionada"}
           </span>
+          {onPeek && <PeekButton onPeek={onPeek} />}
           <button
             type="button"
             disabled={!selected}
@@ -183,7 +194,6 @@ export function AnnounceCardModal({
             Declarar
           </button>
         </footer>
-      </div>
-    </div>
+    </DecisionShell>
   );
 }

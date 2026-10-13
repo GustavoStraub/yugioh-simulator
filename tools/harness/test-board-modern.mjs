@@ -170,6 +170,25 @@ async function main() {
     conferir(mesa.nivelElf.includes("★4"), "o Mystical Elf mostra Nível 4", mesa.nivelElf);
     conferir(!mesa.rolagemHorizontal, "sem rolagem horizontal");
 
+    // A leitura da carta diz o número antes dos símbolos — Nível, Rank e Link.
+    const lerLeitura = async (zona, attr) => {
+      await page.evaluate(`
+        document.querySelector('[data-zone="${zona}"] .tf-slot')
+          ?.dispatchEvent(new MouseEvent("mouseover", { bubbles: true }));
+        return true;
+      `);
+      await new Promise((r) => setTimeout(r, 300));
+      return page.evaluate(
+        `return document.querySelector("[${attr}]")?.innerText.replace(/\\s+/g, " ").trim() ?? "";`,
+      );
+    };
+    const leituraElf = await lerLeitura("0:4:0", "data-preview-level");
+    conferir(/^Nv\. 4 ★★★★$/.test(leituraElf), "a leitura do Mystical Elf diz \"Nv. 4\" antes das estrelas", leituraElf);
+    const leituraUtopia = await lerLeitura("0:4:2", "data-preview-rank");
+    conferir(/^Rank 4 ☆☆☆☆$/.test(leituraUtopia), "a do Utopia diz \"Rank 4\" antes das estrelas", leituraUtopia);
+    const leituraSpider = await lerLeitura("0:4:5", "data-preview-link");
+    conferir(/^Link 1/.test(leituraSpider), "a do Link Spider diz \"Link 1\" antes das setas", leituraSpider);
+
     // Marcas: o Breaker invocado ganha o Marcador de Magia, e ele aparece no
     // slot (selo) e na leitura da carta (frase).
     console.log("\nMarcas na carta");
@@ -181,7 +200,7 @@ async function main() {
       return true;
     `);
     await new Promise((r) => setTimeout(r, 300));
-    await page.clickText("Invocar");
+    await page.clickAction("Invocar");
     await new Promise((r) => setTimeout(r, 600));
     await page.evaluate(`document.querySelector('[data-zone="0:4:1"] [role="button"]')?.click(); return true;`);
     let selo = null;
@@ -215,7 +234,7 @@ async function main() {
       return true;
     `);
     await new Promise((r) => setTimeout(r, 300));
-    await page.clickText("Ativar");
+    await page.clickAction("Ativar");
     await new Promise((r) => setTimeout(r, 600));
     // Com várias zonas livres, o engine pergunta onde a Magia vai.
     await page.evaluate(`document.querySelector('[data-zone="0:8:1"] [role="button"]')?.click(); return true;`);

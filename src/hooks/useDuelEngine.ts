@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import type { DuelEventListener } from "@/lib/duel/duel-events";
 import {
@@ -10,6 +10,15 @@ import {
 } from "@/lib/duel/duel-session";
 
 export function useDuelEngine(config: DuelSessionConfig | null) {
+  /**
+   * O assento de quem joga — 1 quando o bot começa (ver
+   * `DuelSessionConfig.humanSeat`). Num ref: as ações abaixo são estáveis e
+   * precisam ler o assento do duelo que está de pé.
+   */
+  const humanSeatRef = useRef<0 | 1>(0);
+  useEffect(() => {
+    humanSeatRef.current = config?.humanSeat === 1 ? 1 : 0;
+  }, [config]);
   // A sessão vive em state (criada uma única vez) e não num ref: assim ela
   // pode ser lida durante o render para semear o snapshot inicial.
   const [session] = useState(createDuelSession);
@@ -31,8 +40,20 @@ export function useDuelEngine(config: DuelSessionConfig | null) {
       /** Assinatura estável dos eventos transitórios (animação e som). */
       subscribeEvents: (listener: DuelEventListener) =>
         session.subscribeEvents(listener),
-      /** Desistir — no duelo local quem desiste é sempre o assento 0. */
-      surrender: () => session.surrender(0),
+      /**
+       * Desistir — quem desiste é o assento de quem joga. `motivo`/`razao`
+       * trocam a linha do histórico e a frase do resultado (o puzzle usa para
+       * "o turno acabou sem vencer").
+       */
+      surrender: (motivo?: string, razao?: string) =>
+        session.surrender(humanSeatRef.current, motivo, razao),
+      /** Modo de resposta e "Ctrl segurado" de quem joga. */
+      setChainPreference: (preference: Parameters<typeof session.setChainPreference>[1]) =>
+        session.setChainPreference(humanSeatRef.current, preference),
+      /** Ritmo das pausas entre jogadas (1 = normal). */
+      setPace: (scale: number) => session.setPace(scale),
+      /** Encerra a pausa em curso — o clique que pula a animação. */
+      hurry: () => session.hurry(),
     }),
     [session],
   );

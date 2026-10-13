@@ -21,7 +21,7 @@ export function SoundControl() {
   const icon = settings.muted || settings.volume === 0 ? "🔇" : "🔊";
 
   return (
-    <div className="relative">
+    <div className="relative" data-table-control>
       <button
         type="button"
         onClick={() => setOpen((value) => !value)}
@@ -34,8 +34,8 @@ export function SoundControl() {
 
       {open && (
         <>
-          <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
-          <div className="tf-panel absolute right-0 top-full z-50 mt-1 w-56 rounded-md p-3">
+          <div className="fixed inset-0 z-[60]" onClick={() => setOpen(false)} />
+          <div className="tf-panel absolute right-0 top-full z-[70] mt-1 w-56 rounded-md p-3">
             <div className="mb-2 flex items-center justify-between">
               <span className="text-[11px] font-bold uppercase tracking-wider text-[color:var(--tf-gold)]">
                 Efeitos sonoros

@@ -13,7 +13,19 @@ import { isDeckDuelReady } from "@/lib/domain/deck-rules";
 import { kindGroupLabel, presetToDuelPayload } from "@/lib/domain/preset-decks";
 import { formatOf, type DuelDeckPayload } from "@/lib/types";
 import { PRESET_DECKS } from "@/lib/data/preset-decks-catalog";
-import { saveDuelSetup } from "@/lib/duel/duel-storage";
+import {
+  resolveFirstTurn,
+  saveDuelSetup,
+  type FirstTurnChoice,
+} from "@/lib/duel/duel-storage";
+import { DeckPreview } from "@/components/duel/DeckPreview";
+
+/** As três escolhas de quem começa, na ordem em que aparecem. */
+const PRIMEIRO_TURNO: { valor: FirstTurnChoice; rotulo: string; dica: string }[] = [
+  { valor: "me", rotulo: "Eu", dica: "Você começa." },
+  { valor: "bot", rotulo: "O bot", dica: "O bot começa — você joga em segundo." },
+  { valor: "coin", rotulo: "🪙 Moeda", dica: "Sorteado a cada partida (a revanche joga a moeda de novo)." },
+];
 
 /** Um deck que o bot pode usar: um pronto, ou um da biblioteca do jogador. */
 interface OpcaoDoBot {
@@ -27,7 +39,13 @@ interface OpcaoDoBot {
 
 export function DuelLobby() {
   const router = useRouter();
-  const { isLoading, error } = useCardRegistry();
+  const { isLoading, error, registry } = useCardRegistry();
+  /**
+   * Quem começa. O core sempre dá o primeiro turno ao assento 0; antes o
+   * jogador era sempre o 0 e sempre começava — e no Goat jogar primeiro ou
+   * segundo muda o jogo (quem começa compra no primeiro turno).
+   */
+  const [primeiro, setPrimeiro] = useState<FirstTurnChoice>("me");
   const { profile } = usePlayer();
   const [opponentId, setOpponentId] = useState<string | null>(null);
   // A biblioteca inteira do jogador, não só o deck aberto no construtor —
@@ -72,6 +90,21 @@ export function DuelLobby() {
   const opponent =
     opcoes.find((opcao) => opcao.id === opponentId) ?? opcoes[1] ?? opcoes[0] ?? null;
 
+  /** Bot × bot: o seu deck (pilotado pelo bot) contra o deck escolhido. */
+  function handleSpectate() {
+    if (!duelReady || !opponent) return;
+    saveDuelSetup({
+      playerName: profile?.name || meuDeck.deckName,
+      playerDeck: meuDeck.deck,
+      opponentId: opponent.id,
+      opponentName: opponent.nome,
+      opponentDeck: opponent.deck,
+      format: formato,
+      spectate: true,
+    });
+    router.push("/duel/play");
+  }
+
   function handleStart() {
     if (!duelReady || !opponent) return;
 
@@ -83,6 +116,9 @@ export function DuelLobby() {
       opponentName: opponent.nome,
       opponentDeck: opponent.deck,
       format: formato,
+      firstTurn: primeiro,
+      // A moeda cai aqui, no clique — e de novo a cada revanche.
+      ...resolveFirstTurn(primeiro),
     });
 
     router.push("/duel/play");
@@ -164,6 +200,34 @@ export function DuelLobby() {
             })}
           </select>
         )}
+
+        {opponent && <DeckPreview deck={opponent.deck} registry={registry} />}
+      </section>
+
+      <section className="rounded-2xl border border-amber-900/40 bg-zinc-950/80 p-6">
+        <h2 className="text-lg font-semibold text-amber-300">Quem começa</h2>
+        <div role="radiogroup" aria-label="Quem começa" className="mt-3 flex gap-2">
+          {PRIMEIRO_TURNO.map((opcao) => (
+            <button
+              key={opcao.valor}
+              type="button"
+              role="radio"
+              aria-checked={primeiro === opcao.valor}
+              data-first-turn={opcao.valor}
+              onClick={() => setPrimeiro(opcao.valor)}
+              className={`flex-1 rounded-lg border px-3 py-2 text-sm font-semibold transition ${
+                primeiro === opcao.valor
+                  ? "border-amber-500 bg-amber-600 text-black"
+                  : "border-zinc-700 bg-zinc-900 text-zinc-200 hover:border-amber-700"
+              }`}
+            >
+              {opcao.rotulo}
+            </button>
+          ))}
+        </div>
+        <p className="mt-2 text-xs text-zinc-500">
+          {PRIMEIRO_TURNO.find((opcao) => opcao.valor === primeiro)?.dica}
+        </p>
       </section>
 
       <button
@@ -174,6 +238,22 @@ export function DuelLobby() {
       >
         Iniciar duelo vs bot
       </button>
+
+      <div className="flex flex-wrap items-center justify-center gap-3 text-sm">
+        <button
+          type="button"
+          data-spectate
+          disabled={!duelReady || !opponent}
+          onClick={handleSpectate}
+          title="O bot joga com o seu deck contra o deck escolhido — para ver como as cartas se usam"
+          className="rounded-lg border border-zinc-700 px-4 py-2 text-zinc-200 transition hover:border-amber-700 disabled:opacity-40"
+        >
+          👁 Assistir bot × bot
+        </button>
+        <Link href="/duel/puzzles" className="text-amber-400 underline-offset-2 hover:underline">
+          🧩 Duelos-problema
+        </Link>
+      </div>
 
       <p className="text-center text-xs text-zinc-600">
         Engine ocgcore-wasm · {formato === "tcg" ? "TCG (Master Rule 2020)" : "Goat Format"} · bot joga automaticamente

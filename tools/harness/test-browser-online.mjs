@@ -52,7 +52,7 @@ const LER_ESTADO = `
   if (!mesa) return { naMesa: false, texto: document.body.innerText.slice(0, 300) };
   const util = (b) =>
     !b.disabled && b.offsetParent !== null &&
-    !b.innerText.includes("\\u{1F50A}") && !b.innerText.includes("\\u{1F507}") &&
+    !b.closest("[data-table-control]") && !b.innerText.includes("\\u{1F50A}") && !b.innerText.includes("\\u{1F507}") &&
     !b.closest('[aria-label="Idioma das cartas"]');
   const texto = mesa.innerText;
   return {

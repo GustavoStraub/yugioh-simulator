@@ -358,8 +358,10 @@ async function main() {
     }
     conferir(modal, "o modal de declarar nome abriu");
     await sleep(600);
+    // Só os resultados da busca (`data-announce-result`): o rodapé do modal
+    // também tem botão com dica (o "Ver a mesa").
     const ofertas = await page.evaluate(`
-      return [...document.querySelectorAll(".tf-modal button[title]")].map((b) => b.getAttribute("title"));
+      return [...document.querySelectorAll("[data-announce-result]")].map((b) => b.getAttribute("title"));
     `);
     conferir(
       ofertas.length > 0 && ofertas.every((nome) => /Gadget/i.test(nome)),
@@ -367,7 +369,7 @@ async function main() {
       JSON.stringify(ofertas.slice(0, 8)),
     );
     await fotografar("declarar");
-    await page.evaluate(`document.querySelector(".tf-modal button[title]")?.click(); return true;`);
+    await page.evaluate(`document.querySelector("[data-announce-result]")?.click(); return true;`);
     await sleep(200);
     await botao("Declarar");
     const declarou = await resolver(async () =>

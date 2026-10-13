@@ -52,6 +52,9 @@ const SEM_DECK: DeckList = {
  */
 const SALVAR_APOS_MS = 600;
 
+/** Quantos passos o "Desfazer" guarda, por deck. */
+const PASSOS_DE_DESFAZER = 50;
+
 export interface DeckLibrary {
   /** `null` enquanto carrega — a tela mostra o estado de carregamento. */
   decks: DeckList[] | null;
@@ -74,6 +77,14 @@ export function useDeck() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [lastActionError, setLastActionError] = useState<string | null>(null);
+  /**
+   * Os estados anteriores de cada deck, para o "Desfazer" (e o Ctrl+Z).
+   *
+   * Por deck: trocar de deck e voltar não pode desfazer a edição do outro.
+   * Renomear não entra — cada tecla do nome viraria um passo, e o que se quer
+   * desfazer é a carta que saiu sem querer, o "Limpar" apertado errado.
+   */
+  const [historico, setHistorico] = useState<Record<string, DeckList[]>>({});
 
   /** Decks aguardando gravação, por id — o debounce grava o último estado. */
   const pendentes = useRef(new Map<string, DeckList>());
@@ -195,21 +206,44 @@ export function useDeck() {
    * React, que chama o atualizador duas vezes para detectar efeitos colaterais.
    */
   const setDeck = useCallback(
-    (next: DeckList | ((current: DeckList) => DeckList)) => {
+    (
+      next: DeckList | ((current: DeckList) => DeckList),
+      { lembrar = true }: { lembrar?: boolean } = {},
+    ) => {
       if (!decks || !selectedId) return;
       const indice = decks.findIndex((candidate) => candidate.id === selectedId);
       if (indice < 0) return;
 
-      const bruto = typeof next === "function" ? next(decks[indice]) : next;
+      const anterior = decks[indice];
+      const bruto = typeof next === "function" ? next(anterior) : next;
+      if (bruto === anterior) return;
       const atualizado = { ...bruto, updatedAt: new Date().toISOString() };
 
       const copia = [...decks];
       copia[indice] = atualizado;
       setDecks(copia);
       agendarGravacao(atualizado, profile);
+      if (lembrar) {
+        setHistorico((atual) => ({
+          ...atual,
+          [anterior.id]: [...(atual[anterior.id] ?? []), anterior].slice(-PASSOS_DE_DESFAZER),
+        }));
+      }
     },
     [decks, selectedId, profile, agendarGravacao],
   );
+
+  /** Volta o deck aberto ao estado anterior à última edição de carta. */
+  const undo = useCallback(() => {
+    if (!selectedId) return;
+    const passos = historico[selectedId] ?? [];
+    const alvo = passos.at(-1);
+    if (!alvo) return;
+    setHistorico((atual) => ({ ...atual, [selectedId]: passos.slice(0, -1) }));
+    setDeck(alvo, { lembrar: false });
+    setLastActionError(null);
+  }, [historico, selectedId, setDeck]);
+  const canUndo = Boolean(selectedId && (historico[selectedId]?.length ?? 0) > 0);
 
   const countByPasscode = useMemo(() => buildDeckCountMap(deck), [deck]);
 
@@ -241,7 +275,7 @@ export function useDeck() {
   }, [setDeck]);
 
   const renameDeck = useCallback(
-    (name: string) => setDeck((current) => ({ ...current, name })),
+    (name: string) => setDeck((current) => ({ ...current, name }), { lembrar: false }),
     [setDeck],
   );
 
@@ -288,6 +322,21 @@ export function useDeck() {
   const create = useCallback(() => {
     adotar(createEmptyDeck(nomeUnico("Novo deck", decks ?? []), deck.format));
   }, [adotar, decks, deck.format]);
+
+  /**
+   * Abre como deck NOVO um deck vindo de fora (`.ydk`, `ydke://`) — importar
+   * nunca escreve por cima do deck aberto.
+   */
+  const importDeck = useCallback(
+    (name: string, zonas: Pick<DeckList, "main" | "extra" | "side">) => {
+      adotar({
+        ...createEmptyDeck(nomeUnico(name || "Deck importado", decks ?? []), deck.format),
+        ...zonas,
+      });
+      setLastActionError(null);
+    },
+    [adotar, decks, deck.format],
+  );
 
   const duplicate = useCallback(() => {
     if (deck.id === SEM_DECK.id) return;
@@ -354,5 +403,8 @@ export function useDeck() {
     renameDeck,
     changeFormat,
     loadPreset,
+    undo,
+    canUndo,
+    importDeck,
   };
 }

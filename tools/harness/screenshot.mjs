@@ -57,7 +57,7 @@ try {
   while (tiradas < quantas && acoes < 150) {
     const estado = await page.evaluate(`
       const mesa = document.querySelector(".tf-playmat") ?? document.body;
-      const util = (b) => !b.disabled && b.offsetParent !== null && !b.innerText.includes("\\u{1F50A}") && !b.closest('[aria-label="Idioma das cartas"]');
+      const util = (b) => !b.disabled && b.offsetParent !== null && !b.closest("[data-table-control]") && !b.innerText.includes("\\u{1F50A}") && !b.closest('[aria-label="Idioma das cartas"]');
       return {
         botoes: [...document.querySelectorAll("button")].filter(util).map((b) => b.innerText.trim()).filter(Boolean),
         cartas: document.querySelectorAll(".tf-slot-active").length,
@@ -77,7 +77,8 @@ try {
     if (estado.cartas > 0) {
       await page.evaluate(`const c=[...document.querySelectorAll(".tf-slot-active")]; if(c.length) c[0].click(); return true;`);
       await new Promise((r) => setTimeout(r, 200));
-      const depois = await page.evaluate(`return [...document.querySelectorAll("button")].filter(b=>!b.disabled&&b.offsetParent).map(b=>b.innerText.trim()).filter(Boolean)`);
+      // Sem os controles da mesa: o glossário da leitura também é botão.
+      const depois = await page.evaluate(`return [...document.querySelectorAll("button")].filter(b=>!b.disabled&&b.offsetParent&&!b.closest("[data-table-control]")).map(b=>b.innerText.trim()).filter(Boolean)`);
       const alvo = depois.find((b) => /^(Invocar|Ativar|Atacar|Baixar|Confirmar)/.test(b));
       if (alvo) await page.clickAction(alvo);
     } else {

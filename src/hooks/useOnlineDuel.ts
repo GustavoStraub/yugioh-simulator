@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import type { OcgResponse } from "@n1xx1/ocgcore-wasm";
 
+import type { ChainResponseMode } from "@/lib/duel/chain-mode";
 import type { DuelEvent, DuelEventListener } from "@/lib/duel/duel-events";
 import type { DuelSnapshot } from "@/lib/duel/duel-session";
 import { playerToken } from "@/lib/duel/online-storage";
@@ -63,6 +64,11 @@ export interface OnlineDuel {
   claimWin: () => void;
   /** Desistir do duelo em andamento — o adversário vence. */
   surrender: () => void;
+  /**
+   * Quando perguntar "deseja responder?" a este jogador. Vai para o servidor,
+   * que é quem roda o engine — e é reenviado a cada (re)conexão.
+   */
+  setChainPreference: (preference: { mode?: ChainResponseMode; forceAsk?: boolean }) => void;
   error: string | null;
   ready: boolean;
   /**
@@ -152,6 +158,15 @@ export function useOnlineDuel(params: {
     socket.send(encodeMessage(message));
   }, []);
 
+  /**
+   * Preferência de resposta corrente. Num ref porque precisa ser reenviada de
+   * dentro do `onmessage` (ao entrar na sala), que não re-renderiza.
+   */
+  const prefsRef = useRef<{ chainMode: ChainResponseMode; forceAsk: boolean }>({
+    chainMode: "auto",
+    forceAsk: false,
+  });
+
   useEffect(() => {
     if (!code || !deck) return;
 
@@ -227,6 +242,9 @@ export function useOnlineDuel(params: {
           case "joined":
             meRef.current = message.me;
             setMe(message.me);
+            // A sala guarda a preferência no jogador; numa reconexão ela já
+            // está lá, mas reenviar é barato e cobre a sala que reiniciou.
+            socket.send(encodeMessage({ t: "prefs", ...prefsRef.current }));
             break;
           case "lobby": {
             setSeats(message.seats);
@@ -311,6 +329,20 @@ export function useOnlineDuel(params: {
     send({ t: "surrender" });
   }, [send]);
 
+  const setChainPreference = useCallback(
+    (preference: { mode?: ChainResponseMode; forceAsk?: boolean }) => {
+      const atual = prefsRef.current;
+      const proximo = {
+        chainMode: preference.mode ?? atual.chainMode,
+        forceAsk: preference.forceAsk ?? atual.forceAsk,
+      };
+      if (proximo.chainMode === atual.chainMode && proximo.forceAsk === atual.forceAsk) return;
+      prefsRef.current = proximo;
+      send({ t: "prefs", ...proximo });
+    },
+    [send],
+  );
+
   const respond = useCallback(
     (response: OcgResponse) => {
       const promptId = snapshot?.promptId ?? 0;
@@ -338,6 +370,7 @@ export function useOnlineDuel(params: {
       claimable,
       claimWin,
       surrender,
+      setChainPreference,
       error,
       ready,
       setReady,
@@ -359,6 +392,7 @@ export function useOnlineDuel(params: {
       claimable,
       claimWin,
       surrender,
+      setChainPreference,
       error,
       ready,
       setReady,

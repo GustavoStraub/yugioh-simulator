@@ -138,9 +138,14 @@ export class Page {
 
   /** Clica no primeiro elemento cujo texto casa. Devolve se achou. */
   clickText(text, selector = "button, a, [role=button]") {
+    // Controles da mesa (`data-table-control`) só se nada mais casar, pelo
+    // mesmo motivo do `clickAction`: o glossário sublinha "Invocar por
+    // Invocação-Especial" e "Baixar" no texto das cartas, e o termo vinha
+    // antes do botão do menu na página — o clique ia para a leitura.
     return this.evaluate(`
-      const alvo = [...document.querySelectorAll(${JSON.stringify(selector)})]
-        .find((el) => el.innerText.trim().includes(${JSON.stringify(text)}));
+      const casam = [...document.querySelectorAll(${JSON.stringify(selector)})]
+        .filter((el) => el.innerText.trim().includes(${JSON.stringify(text)}));
+      const alvo = casam.find((el) => !el.closest("[data-table-control]")) ?? casam[0];
       if (!alvo) return false;
       alvo.click();
       return true;
@@ -158,14 +163,21 @@ export class Page {
    * no perfil de teste.
    */
   clickAction(text) {
+    // Botão de jogo primeiro; os controles da mesa (`data-table-control`: ver
+    // a mesa, termos do glossário, dicas) só quando nenhum botão de jogo
+    // casar — "Voltar à decisão" é um deles e os testes o clicam. Sem essa
+    // ordem, o "Cemitério" sublinhado na leitura da carta ganhava da carta
+    // "Cemitério" do seletor, e o laço clicava no glossário para sempre.
     return this.evaluate(`
-      const botoes = [...document.querySelectorAll("button")].filter(
+      const todos = [...document.querySelectorAll("button")].filter(
         (b) => !b.disabled && b.offsetParent !== null && !b.closest("header, nav"),
       );
+      const deJogo = todos.filter((b) => !b.closest("[data-table-control]"));
       const texto = (b) => b.innerText.trim();
-      const alvo =
-        botoes.find((b) => texto(b) === ${JSON.stringify(text)}) ??
-        botoes.find((b) => texto(b).startsWith(${JSON.stringify(text)}));
+      const achar = (lista) =>
+        lista.find((b) => texto(b) === ${JSON.stringify(text)}) ??
+        lista.find((b) => texto(b).startsWith(${JSON.stringify(text)}));
+      const alvo = achar(deJogo) ?? achar(todos);
       if (!alvo) return false;
       alvo.click();
       return true;

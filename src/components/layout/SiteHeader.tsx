@@ -22,12 +22,15 @@ export function SiteHeader() {
 
   if (naMesa) {
     return (
-      <header className="flex shrink-0 items-center justify-between border-b border-amber-900/30 bg-zinc-950/95 px-4 py-1.5">
+      <header className="flex shrink-0 items-center justify-between gap-2 border-b border-amber-900/30 bg-zinc-950/95 px-2 py-1.5 sm:px-4">
         <Link
           href="/duel"
-          className="text-[13px] font-bold tracking-tight text-amber-400 transition hover:text-amber-300"
+          className="shrink-0 whitespace-nowrap text-[13px] font-bold tracking-tight text-amber-400 transition hover:text-amber-300"
         >
-          Yu-Gi-Oh! Goat
+          {/* No celular a barra da mesa divide 390 px entre o nome e quatro
+              itens de navegação; "Goat" sozinho devolve a largura que faltava
+              para o último item não ficar cortado. */}
+          <span className="max-sm:hidden">Yu-Gi-Oh! </span>Goat
         </Link>
         <AppNav />
       </header>
@@ -36,8 +39,11 @@ export function SiteHeader() {
 
   return (
     <header className="shrink-0 border-b border-amber-900/30 bg-zinc-950/95 px-4 py-4 backdrop-blur">
-      <div className="mx-auto flex max-w-[1600px] items-center justify-between gap-4">
-        <div>
+      {/* No celular o título e a navegação empilham: lado a lado, o título
+          ficava com metade da largura e a navegação rolava com "Puzzles" e
+          "Online" fora de vista. */}
+      <div className="mx-auto flex max-w-[1600px] items-center justify-between gap-4 max-sm:flex-col max-sm:items-start max-sm:gap-2">
+        <div className="min-w-0 shrink">
           <h1 className="text-xl font-bold tracking-tight text-amber-400">
             Yu-Gi-Oh! Goat
           </h1>

@@ -6,6 +6,7 @@ import { playSfx } from "@/lib/audio/sfx";
 import type { SortingMode } from "@/lib/duel/duel-actions";
 import { useCardText } from "@/hooks/useCardText";
 import type { CardRegistry } from "@/lib/domain/card-registry";
+import { DecisionShell, PeekButton } from "@/components/duel/DecisionShell";
 
 /**
  * Ordenação de cartas — "veja as N do topo do Deck e recoloque na ordem que
@@ -23,6 +24,8 @@ export function SortCardModal({
   keepLabel,
   onKeep,
   onHover,
+  hidden = false,
+  onPeek,
 }: {
   instruction: string;
   sorting: SortingMode;
@@ -37,6 +40,9 @@ export function SortCardModal({
    * justamente o que decide a ordem.
    */
   onHover?: (card: { code: number } | null) => void;
+  /** Escondido para ver a mesa — a ordem já montada continua aqui. */
+  hidden?: boolean;
+  onPeek?: () => void;
 }) {
   const texto = useCardText();
   /** Índices originais, na ordem escolhida pelo jogador. */
@@ -55,8 +61,11 @@ export function SortCardModal({
   }
 
   return (
-    <div className="tf-modal-scrim tf-modal-area z-50 flex items-center justify-center p-6">
-      <div className="tf-modal tf-anim-modal-in flex max-h-full w-[min(820px,95%)] flex-col overflow-hidden">
+    <DecisionShell
+      label={instruction}
+      hidden={hidden}
+      className="flex max-h-full w-[min(820px,95%)] flex-col overflow-hidden"
+    >
         <header className="tf-modal-head shrink-0 px-5 py-2.5 text-center">
           <p className="text-base font-semibold text-[color:var(--tf-gold-bright)]">
             {instruction}
@@ -115,9 +124,12 @@ export function SortCardModal({
         </div>
 
         <footer className="flex shrink-0 items-center justify-between gap-3 border-t border-[color:var(--tf-slot-border)] px-5 py-3">
-          <span className="font-mono text-[13px] text-[color:var(--tf-gold-dim)]">
-            {order.length}/{total} ordenadas
-          </span>
+          <div className="flex items-center gap-3">
+            <span className="font-mono text-[13px] text-[color:var(--tf-gold-dim)]">
+              {order.length}/{total} ordenadas
+            </span>
+            {onPeek && <PeekButton onPeek={onPeek} />}
+          </div>
           <div className="flex gap-2">
             {order.length > 0 && (
               <button
@@ -145,7 +157,6 @@ export function SortCardModal({
             </button>
           </div>
         </footer>
-      </div>
-    </div>
+    </DecisionShell>
   );
 }

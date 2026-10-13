@@ -105,7 +105,7 @@ async function main() {
       ataques = await page.evaluate("return window.__ataques ?? []");
 
       const estado = await page.evaluate(`
-        const util = (b) => !b.disabled && b.offsetParent !== null && !b.innerText.includes("\\u{1F50A}") && !b.closest('[aria-label="Idioma das cartas"]');
+        const util = (b) => !b.disabled && b.offsetParent !== null && !b.closest("[data-table-control]") && !b.innerText.includes("\\u{1F50A}") && !b.closest('[aria-label="Idioma das cartas"]');
         return {
           botoes: [...document.querySelectorAll("button")].filter(util).map((b) => b.innerText.trim()).filter(Boolean),
           cartas: document.querySelectorAll(".tf-slot-active").length,
@@ -116,7 +116,10 @@ async function main() {
       if (estado.cartas > 0) {
         await page.evaluate(`const c=[...document.querySelectorAll(".tf-slot-active")]; if(c.length) c[Math.floor(Math.random()*c.length)].click(); return true;`);
         await new Promise((r) => setTimeout(r, 180));
-        const depois = await page.evaluate(`return [...document.querySelectorAll("button")].filter(b=>!b.disabled&&b.offsetParent).map(b=>b.innerText.trim()).filter(Boolean)`);
+        // Sem os controles da mesa (`data-table-control`): com a leitura da
+        // carta aberta, o glossário oferece "Invocação-Especial" e "Baixar"
+        // como botões, e o teste os escolhia em vez da jogada do menu.
+        const depois = await page.evaluate(`return [...document.querySelectorAll("button")].filter(b=>!b.disabled&&b.offsetParent&&!b.closest("[data-table-control]")).map(b=>b.innerText.trim()).filter(Boolean)`);
         const acao = escolher(depois);
         if (acao) await page.clickText(acao);
       } else {

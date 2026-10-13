@@ -8,7 +8,9 @@ import type {
   DuelEvent,
   DuelEventListener,
   DuelZoneRef,
+  LeaveReason,
 } from "@/lib/duel/duel-events";
+import { LEAVE_MS, TOSS_MS } from "@/lib/duel/pacing";
 
 /** Quanto o destaque de uma ativação fica no centro. */
 const SPOTLIGHT_ACTIVATE_MS = 1000;
@@ -36,6 +38,30 @@ export interface DrawFlight {
   token: number;
   player: number;
   count: number;
+  /** Velocidade escolhida — multiplica a duração do voo. */
+  scale: number;
+}
+
+/** Uma carta saindo do campo (ver `LeaveFlightLayer`). */
+export interface LeaveGhost {
+  token: number;
+  code: number | null;
+  from: DuelZoneRef;
+  why: LeaveReason;
+  /** Já com a velocidade aplicada. */
+  duration: number;
+}
+
+/**
+ * O sistema pediu menos movimento?
+ *
+ * O CSS já corta as animações declaradas lá; as que rodam pela Web Animations
+ * API (o voo do ataque, a compra, a saída do campo) não passam pelo CSS e
+ * precisavam desta pergunta — antes elas voavam mesmo assim.
+ */
+export function prefersReducedMotion(): boolean {
+  if (typeof window === "undefined" || !window.matchMedia) return false;
+  return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 }
 
 /** Um ataque a ser animado; `token` muda a cada evento para reanimar. */
@@ -52,6 +78,8 @@ export interface AttackFlight {
    * assento é conhecido, evita espalhar `me` por dentro das animações.
    */
   mine: boolean;
+  /** Velocidade escolhida — multiplica a duração da investida. */
+  scale: number;
 }
 
 const SFX_BY_EVENT: Partial<Record<DuelEvent["kind"], SfxName>> = {
@@ -70,6 +98,18 @@ const SFX_BY_EVENT: Partial<Record<DuelEvent["kind"], SfxName>> = {
   reveal: "draw",
 };
 
+/** Som de cada saída do campo: estilhaço, sumiço ou o baque de carta. */
+const SFX_BY_LEAVE: Record<LeaveReason, SfxName> = {
+  battle: "destroy",
+  destroy: "destroy",
+  banish: "banish",
+  tribute: "place",
+  material: "place",
+  grave: "place",
+  hand: "draw",
+  deck: "draw",
+};
+
 /**
  * Traduz os eventos do duelo em som e em feedback visual.
  *
@@ -83,7 +123,19 @@ const SFX_BY_EVENT: Partial<Record<DuelEvent["kind"], SfxName>> = {
 export function useDuelFeedback(
   subscribe: ((listener: DuelEventListener) => () => void) | null,
   me: 0 | 1 = 0,
+  /**
+   * Multiplicador das durações (a velocidade escolhida — ver `duel-prefs.ts`).
+   * Precisa ser o mesmo das pausas da sessão: se a animação durar mais que a
+   * pausa, o tabuleiro muda com ela ainda no ar.
+   */
+  scale = 1,
+  /**
+   * Os avisos de turno. Quem joga lê "SEU TURNO"; quem só assiste bot × bot
+   * não tem turno — ali o aviso diz de quem é a vez, pelo nome.
+   */
+  turnText: { mine: string; foe: string } = { mine: "SEU TURNO", foe: "TURNO DO OPONENTE" },
 ) {
+  const { mine: meuTurno, foe: turnoDoOutro } = turnText;
   const [flashes, setFlashes] = useState<DuelFlash[]>([]);
   /** Que metade da tela treme — já em coordenadas de quem assiste. */
   const [shake, setShake] = useState<"mine" | "theirs" | null>(null);
@@ -98,11 +150,28 @@ export function useDuelFeedback(
   const [toss, setToss] = useState<{
     kind: "coin" | "dice";
     results: (boolean | number)[];
+    /** Quanto a moeda gira — a pausa da sessão espera o mesmo. */
+    duration: number;
   } | null>(null);
   /** A carta em destaque no centro (ativação ou negação de um elo). */
   const [spotlight, setSpotlight] = useState<ChainSpotlightState | null>(null);
+  /** Cartas saindo do campo agora — várias de uma vez num Raigeki. */
+  const [leaves, setLeaves] = useState<LeaveGhost[]>([]);
   const nextId = useRef(0);
+  const lastLeaveSfx = useRef<{ name: SfxName | null; at: number }>({ name: null, at: 0 });
   const spotlightTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Num ref: a velocidade muda no meio do duelo e a assinatura dos eventos não
+  // deve ser refeita por isso (perderia eventos no meio da troca).
+  const scaleRef = useRef(scale);
+  useEffect(() => {
+    scaleRef.current = scale;
+  }, [scale]);
+
+  /** O clique que pula: tira o destaque da ativação antes da hora. */
+  const dismissSpotlight = useCallback(() => {
+    if (spotlightTimer.current) clearTimeout(spotlightTimer.current);
+    setSpotlight(null);
+  }, []);
 
   const pushFlash = useCallback(
     (
@@ -128,11 +197,22 @@ export function useDuelFeedback(
     if (!subscribe) return;
 
     return subscribe((event) => {
+      const veloc = scaleRef.current;
+      const dur = (ms: number) => Math.max(1, Math.round(ms * veloc));
       // Som: invocação tem variantes; o resto é mapeamento direto.
       if (event.kind === "summon") {
         playSfx(event.special ? "specialSummon" : "summon");
       } else if (event.kind === "win") {
         playSfx(event.player === me ? "victory" : "defeat");
+      } else if (event.kind === "leave") {
+        // Um Raigeki tira cinco cartas no mesmo instante: cinco estalos
+        // somados viram ruído. Um por motivo a cada instante basta.
+        const agora = Date.now();
+        const sfx = SFX_BY_LEAVE[event.why];
+        if (lastLeaveSfx.current.name !== sfx || agora - lastLeaveSfx.current.at > 90) {
+          playSfx(sfx);
+          lastLeaveSfx.current = { name: sfx, at: agora };
+        }
       } else {
         const sfx = SFX_BY_EVENT[event.kind];
         if (sfx) playSfx(sfx);
@@ -143,7 +223,7 @@ export function useDuelFeedback(
         case "chainLink":
         case "chainNegated": {
           const negated = event.kind === "chainNegated";
-          const duration = negated ? SPOTLIGHT_NEGATED_MS : SPOTLIGHT_ACTIVATE_MS;
+          const duration = dur(negated ? SPOTLIGHT_NEGATED_MS : SPOTLIGHT_ACTIVATE_MS);
           const token = nextId.current++;
           setSpotlight({
             token,
@@ -151,6 +231,7 @@ export function useDuelFeedback(
             mine: event.player === me,
             link: event.link,
             from: event.kind === "chainLink" ? event.from : 0,
+            description: event.kind === "chainLink" ? (event.description ?? null) : null,
             kind: negated ? "negated" : "activate",
             what: event.kind === "chainNegated" ? event.what : undefined,
             duration,
@@ -164,10 +245,12 @@ export function useDuelFeedback(
           break;
         }
         case "draw":
+          if (prefersReducedMotion()) break;
           setDraw({
             token: nextId.current++,
             player: event.player,
             count: event.count,
+            scale: veloc,
           });
           break;
         case "reveal":
@@ -180,21 +263,34 @@ export function useDuelFeedback(
           break;
         case "coin":
         case "dice":
-          setToss({ kind: event.kind, results: event.results });
-          setTimeout(() => setToss(null), 1900);
+          setToss({ kind: event.kind, results: event.results, duration: dur(TOSS_MS) });
+          setTimeout(() => setToss(null), dur(TOSS_MS));
           break;
+        case "leave": {
+          if (prefersReducedMotion()) break;
+          const token = nextId.current++;
+          const duration = dur(LEAVE_MS[event.why]);
+          setLeaves((current) => [
+            ...current,
+            { token, code: event.code, from: event.from, why: event.why, duration },
+          ]);
+          setTimeout(() => {
+            setLeaves((current) => current.filter((leave) => leave.token !== token));
+          }, duration + 40);
+          break;
+        }
         case "turn":
           pushFlash(
-            event.player === me ? "SEU TURNO" : "TURNO DO OPONENTE",
+            event.player === me ? meuTurno : turnoDoOutro,
             "neutral",
-            1200,
+            dur(1200),
           );
           break;
         case "damage":
           pushFlash(
             `-${event.amount}`,
             event.player === me ? "bad" : "good",
-            900,
+            dur(900),
             event.player === me ? "player" : "opponent",
           );
           setShake(event.player === me ? "mine" : "theirs");
@@ -204,26 +300,28 @@ export function useDuelFeedback(
           pushFlash(
             `+${event.amount}`,
             "good",
-            900,
+            dur(900),
             event.player === me ? "player" : "opponent",
           );
           break;
         case "attack":
+          if (prefersReducedMotion()) break;
           setFlight({
             token: nextId.current++,
             from: event.from,
             to: event.to,
             mine: event.player === me,
+            scale: veloc,
           });
           if (event.direct) {
-            pushFlash("ATAQUE DIRETO", event.player === me ? "good" : "bad", 850);
+            pushFlash("ATAQUE DIRETO", event.player === me ? "good" : "bad", dur(850));
           }
           break;
         default:
           break;
       }
     });
-  }, [subscribe, pushFlash, me]);
+  }, [subscribe, pushFlash, me, meuTurno, turnoDoOutro]);
 
-  return { flashes, shake, toss, flight, reveal, draw, spotlight };
+  return { flashes, shake, toss, flight, reveal, draw, spotlight, leaves, dismissSpotlight };
 }

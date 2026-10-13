@@ -13,6 +13,9 @@ import {
 import { useCardRegistry } from "@/context/CardRegistryProvider";
 import { useCardText } from "@/hooks/useCardText";
 import { useDuelFeedback, type DuelFlash } from "@/hooks/useDuelFeedback";
+import { NARROW_TABLE_QUERY, SHORT_TABLE_QUERY, useMediaQuery } from "@/hooks/useMediaQuery";
+import { useTips } from "@/hooks/useTips";
+import { nextTip } from "@/lib/duel/tips";
 import { playSfx } from "@/lib/audio/sfx";
 import type { DuelEventListener } from "@/lib/duel/duel-events";
 import {
@@ -43,6 +46,7 @@ import {
   type OfficialCardDb,
 } from "@/lib/duel/official-card-data";
 import { linkedZones } from "@/lib/duel/link-geometry";
+import { localizeLogText } from "@/lib/duel/log-names";
 import { cardMarks, slotChips, type CardMark } from "@/lib/duel/card-marks";
 import type {
   DuelChainLink,
@@ -60,12 +64,22 @@ import {
 } from "@/components/duel/DuelCardSlot";
 import { SoundControl } from "@/components/duel/SoundControl";
 import { AttackFlightLayer } from "@/components/duel/AttackFlight";
-import { ChainSpotlight } from "@/components/duel/ChainSpotlight";
+import { ChainSpotlight, ORIGEM } from "@/components/duel/ChainSpotlight";
 import { ChainStack } from "@/components/duel/ChainStack";
 import type { ChainBadge } from "@/components/duel/DuelCardSlot";
 import { DrawFlightLayer } from "@/components/duel/DrawFlight";
 import { SortCardModal } from "@/components/duel/SortCardModal";
 import { AnnounceCardModal } from "@/components/duel/AnnounceCardModal";
+import { DecisionShell, PeekButton } from "@/components/duel/DecisionShell";
+import { GlossaryText } from "@/components/duel/GlossaryText";
+import { LeaveFlightLayer } from "@/components/duel/LeaveFlight";
+import { ChainModeButton, DuelSettings } from "@/components/duel/DuelSettings";
+import {
+  DEFAULT_DUEL_PREFS,
+  SPEED_SCALE,
+  type DuelPrefs,
+} from "@/lib/duel/duel-prefs";
+import type { ChainResponseMode } from "@/lib/duel/chain-mode";
 
 interface DuelBoardProps {
   snapshot: DuelSnapshot;
@@ -89,6 +103,31 @@ interface DuelBoardProps {
   onSurrender?: () => void;
   /** Assinatura dos eventos transitórios — alimenta som e animações. */
   subscribeEvents: ((listener: DuelEventListener) => () => void) | null;
+  /** Preferências da mesa (modo de resposta, velocidade) — ver `duel-prefs.ts`. */
+  prefs?: DuelPrefs;
+  onPrefsChange?: (next: Partial<DuelPrefs>) => void;
+  /**
+   * Ctrl apertado/solto: enquanto apertado o jogador é perguntado em toda
+   * janela de resposta (o *hold* do Master Duel). Quem roda o engine decide.
+   */
+  onForceAsk?: (held: boolean) => void;
+  /**
+   * Encerra a pausa em curso — o clique que pula a animação. Só no duelo
+   * local: no online a pausa é da sala, e o clique só tira o destaque da tela.
+   */
+  onHurry?: () => void;
+  /**
+   * De quem é o ritmo: `local` (a velocidade escolhida vale para as pausas e
+   * as animações) ou `room` (online — o servidor pausa igual para os dois).
+   */
+  pacing?: "local" | "room";
+  /**
+   * Bot × bot: quem olha não joga. Sem botão de modo de resposta, sem dicas,
+   * e o selo de vez não diz "Sua vez" para um assento que é do bot.
+   */
+  spectating?: boolean;
+  /** Duelo-problema: o objetivo fica à vista, com a dica a um clique. */
+  goal?: { title: string; text: string; hint: string };
   /**
    * O que fazer quando o duelo acaba.
    *
@@ -112,6 +151,12 @@ interface DuelBoardProps {
      * partida.
      */
     onBackToRoom?: () => void;
+    /** Revanche com os mesmos decks (duelo local). */
+    onRematch?: () => void;
+    /** Rótulo do botão de revanche ("Tentar de novo" num puzzle). */
+    rematchLabel?: string;
+    /** A solução do puzzle — o resultado oferece mostrá-la depois de errar. */
+    solution?: string;
   };
 }
 
@@ -139,6 +184,22 @@ const EMPTY_PLAYER: BoardPlayer = {
  * campo para mostrar; nesses casos o painel cai nos valores do catálogo.
  */
 type PreviewCard = Pick<BoardCard, "code"> & Partial<Omit<BoardCard, "code">>;
+
+/** O elo que pôs a carta na leitura (ver `ativacaoLida`). */
+interface ActivationRead {
+  code: number;
+  link: number;
+  mine: boolean;
+  /** De onde foi ativada (`OcgLocation`). */
+  from: number;
+  description: string | null;
+}
+
+/** O cabeçalho de ativação da leitura: o elo, quem, e em que pé está. */
+interface ActivationHeader extends ActivationRead {
+  who: string;
+  state: DuelChainLink["state"] | null;
+}
 
 /** Sequência da zona de campo dentro da SZONE (as 5 primeiras são magia/armadilha). */
 const FIELD_ZONE_SEQUENCE = 5;
@@ -181,17 +242,89 @@ export function DuelBoard({
   onSurrender,
   subscribeEvents,
   ending = { backHref: "/duel", backLabel: "Voltar ao lobby" },
+  prefs = DEFAULT_DUEL_PREFS,
+  onPrefsChange,
+  onForceAsk,
+  onHurry,
+  pacing = "local",
+  spectating = false,
+  goal,
 }: DuelBoardProps) {
   /** O outro assento — usado o tempo todo, e `1 - me` espalhado confunde. */
   const foeSeat = (1 - me) as 0 | 1;
   const texto = useCardText();
-  const { flashes, shake, toss, flight, reveal, draw, spotlight } = useDuelFeedback(
-    subscribeEvents,
-    me,
-  );
+  /**
+   * Escala das animações. No local é a velocidade escolhida — a mesma das
+   * pausas da sessão, senão a carta ainda estaria no ar quando o tabuleiro
+   * muda. No online as pausas são da sala, em ritmo normal.
+   */
+  const animationScale = pacing === "local" ? SPEED_SCALE[prefs.speed] : 1;
+  const { flashes, shake, toss, flight, reveal, draw, spotlight, leaves, dismissSpotlight } =
+    useDuelFeedback(
+      subscribeEvents,
+      me,
+      animationScale,
+      spectating
+        ? { mine: `VEZ DE ${playerName.toUpperCase()}`, foe: `VEZ DE ${opponentName.toUpperCase()}` }
+        : undefined,
+    );
   const fieldRef = useRef<HTMLDivElement | null>(null);
   const { registry, cards } = useCardRegistry();
+  /**
+   * A carta em leitura no painel da esquerda.
+   *
+   * **Fica** na última carta lida: o painel do Tag Force nunca esvazia. Antes
+   * ele zerava ao tirar o mouse e passava a maior parte do duelo dizendo "passe
+   * o mouse sobre uma carta" — justamente quando o jogador olhava para o
+   * campo pensando na jogada. Quem quer outra carta passa o mouse nela.
+   */
   const [preview, setPreview] = useState<PreviewCard | null>(null);
+  /**
+   * A ativação que pôs a carta em leitura, quando foi ela (e não o mouse).
+   *
+   * A leitura segue a ativação, como no Master Duel: cada elo novo vai para o
+   * painel da esquerda com quem ativou e o efeito, e fica lá até o jogador
+   * passar o mouse em outra carta. Antes o texto do que foi ativado só
+   * aparecia no diálogo "deseja responder?" — que no modo Automático quase
+   * nunca abre —, e o destaque do centro some em um segundo: um Raigeki do
+   * oponente passava mostrando a carta e nada do que ela fazia.
+   */
+  const [ativacaoLida, setAtivacaoLida] = useState<ActivationRead | null>(null);
+  const showPreview = useCallback((card: PreviewCard | null) => {
+    // Zona vazia e carta virada do oponente não têm o que ler — não apagam a
+    // leitura que está no painel.
+    if (card?.code) {
+      setPreview(card);
+      setAtivacaoLida(null);
+    }
+  }, []);
+  // Um destaque de ativação novo (token novo) leva a carta para a leitura.
+  // Estado derivado durante o render — o padrão do React para "reagir a uma
+  // prop nova" sem efeito e sem render a mais.
+  const [destaqueLido, setDestaqueLido] = useState<number | null>(null);
+  if (spotlight && spotlight.kind === "activate" && spotlight.token !== destaqueLido) {
+    setDestaqueLido(spotlight.token);
+    const elo = snapshot.chainLinks.find(
+      (l) => l.link === spotlight.link && l.code === spotlight.code,
+    );
+    setPreview(
+      elo
+        ? {
+            code: elo.code,
+            controller: elo.zone.controller as 0 | 1,
+            location: elo.zone.location as OcgLocation,
+            sequence: elo.zone.sequence,
+          }
+        : { code: spotlight.code },
+    );
+    setAtivacaoLida({
+      code: spotlight.code,
+      link: spotlight.link,
+      mine: spotlight.mine,
+      from: spotlight.from,
+      description: spotlight.description ?? elo?.description ?? null,
+    });
+  }
   const [menuFor, setMenuFor] = useState<string | null>(null);
   const [picked, setPicked] = useState<number[]>([]);
   /** Painel do próprio deck, de onde se desiste. */
@@ -219,6 +352,24 @@ export function DuelBoard({
   const [modalEspiado, setModalEspiado] = useState(false);
   /** Lista de "Outras jogadas" (cartas fora da mesa e das pilhas) aberta. */
   const [outrasAbertas, setOutrasAbertas] = useState(false);
+  /** Resultado do duelo encolhido para ver a mesa final. */
+  const [resultadoEspiado, setResultadoEspiado] = useState(false);
+  /** Ctrl segurado — força a pergunta em toda janela (ver `onForceAsk`). */
+  const [ctrlHeld, setCtrlHeld] = useState(false);
+  /**
+   * Mesa estreita (tablet em pé, celular): sem os trilhos laterais. A leitura
+   * da carta abre numa folha (toque longo) e o histórico num painel.
+   */
+  const estreita = useMediaQuery(NARROW_TABLE_QUERY);
+  const [folhaAberta, setFolhaAberta] = useState(false);
+  const [historicoAberto, setHistoricoAberto] = useState(false);
+  /** Dicas de primeira vez (`tips.ts`) — desligáveis na engrenagem. */
+  const dicas = useTips();
+  const [dicaDoProblema, setDicaDoProblema] = useState(false);
+  /** `null` = ninguém mexeu: aberto na mesa larga, fechado na estreita/baixa. */
+  const [objetivoAberto, setObjetivoAberto] = useState<boolean | null>(null);
+  const telaBaixa = useMediaQuery(SHORT_TABLE_QUERY);
+  const objetivoVisivel = objetivoAberto ?? !(estreita || telaBaixa);
 
   /**
    * Rótulos das opções de efeito. Recurso estático e igual para qualquer
@@ -296,6 +447,70 @@ export function DuelBoard({
   const board = snapshot.boards[me];
   const you = board?.players[me] ?? EMPTY_PLAYER;
   const foe = board?.players[foeSeat] ?? EMPTY_PLAYER;
+
+  /**
+   * A carta em leitura com os valores de AGORA.
+   *
+   * Como o painel fica na última carta lida, ela pode ter mudado desde então
+   * (perdeu ATK, ganhou contador) ou saído do campo. Se ainda está na mesma
+   * zona, o painel mostra a versão atual; se saiu, mostra a carta impressa —
+   * nunca um ATK de três jogadas atrás.
+   */
+  const previewShown = useMemo((): PreviewCard | null => {
+    if (!preview) return null;
+    const { controller, location, sequence } = preview;
+    if (
+      controller === undefined ||
+      sequence === undefined ||
+      (location !== OcgLocation.MZONE && location !== OcgLocation.SZONE)
+    ) {
+      return preview;
+    }
+    const lado = controller === me ? you : foe;
+    const atual =
+      location === OcgLocation.MZONE
+        ? lado.monsters[sequence]
+        : sequence === FIELD_ZONE_SEQUENCE
+          ? lado.field
+          : lado.spells[sequence];
+    return atual && atual.code === preview.code ? atual : { code: preview.code };
+  }, [preview, me, you, foe]);
+
+  // Antes da primeira carta lida, a leitura mostra a carta de que se trata
+  // agora — o elo da corrente, ou a carta que a pergunta cita —, em vez de um
+  // "passe o mouse" vazio.
+  const cartaEmLeitura: PreviewCard | null =
+    previewShown ??
+    (snapshot.chain
+      ? { code: snapshot.chain.code }
+      : snapshot.promptCard
+        ? { code: snapshot.promptCard }
+        : null);
+
+  /**
+   * Quem ativou. "Você"/"Oponente" como no resto da mesa — o nome do deck do
+   * bot ("Baralho Inicial: Kaiba") não cabe no selo; quem só assiste bot × bot
+   * não é "Você", e lá vão os nomes.
+   */
+  const nomesDaAtivacao = spectating
+    ? { mine: playerName, foe: opponentName }
+    : { mine: "Você", foe: "Oponente" };
+  /**
+   * O cabeçalho "⛓ Elo N — fulano ativou" na leitura, enquanto ela mostra a
+   * carta que a ativação trouxe. O estado do elo (negado?) vem da corrente
+   * viva; depois do fim dela fica o que se sabia.
+   */
+  const ativacaoEmLeitura: ActivationHeader | null =
+    ativacaoLida && cartaEmLeitura?.code === ativacaoLida.code
+      ? {
+          ...ativacaoLida,
+          who: ativacaoLida.mine ? nomesDaAtivacao.mine : nomesDaAtivacao.foe,
+          state:
+            snapshot.chainLinks.find(
+              (l) => l.link === ativacaoLida.link && l.code === ativacaoLida.code,
+            )?.state ?? null,
+        }
+      : null;
 
   /**
    * Mesa de Master Rule 2020: Zonas de Monstro Extra, Pêndulo nas pontas da
@@ -376,6 +591,16 @@ export function DuelBoard({
   /** O engine está esperando o outro assento — nada aqui é clicável. */
   const waitingForFoe =
     snapshot.promptPlayer !== null && snapshot.promptPlayer !== me;
+
+  /**
+   * "O oponente está jogando…": no turno dele nada é clicável e a mesa anda
+   * sozinha, no ritmo das animações. Sem aviso, uma pausa longa parecia
+   * travamento — é o que os testes de navegador chegaram a acusar como
+   * "TRAVOU". O aviso entra com atraso (no CSS), para não piscar a cada
+   * jogada curta.
+   */
+  const foeIsPlaying =
+    snapshot.isProcessing && snapshot.turnPlayer === foeSeat && snapshot.winner === null;
 
   // Enquanto o engine espera o outro assento não há nada a clicar aqui — e o
   // `plan` já vem vazio, mas travar explicitamente evita que um resquício de
@@ -486,6 +711,21 @@ export function DuelBoard({
               return;
             }
             if (selectionIndex >= 0) {
+              // Escolha de exatamente 1 carta: clicar de novo na marcada
+              // confirma — o clique duplo do Master Duel. "Confirmar"
+              // continua lá para quem prefere.
+              if (
+                selection &&
+                selection.min === 1 &&
+                selection.max === 1 &&
+                !selection.alreadyChosen?.length &&
+                picked.length === 1 &&
+                picked[0] === selectionIndex &&
+                (selection.isValid?.(picked) ?? true)
+              ) {
+                respond(selection.build(picked));
+                return;
+              }
               togglePick(selectionIndex);
               return;
             }
@@ -535,9 +775,20 @@ export function DuelBoard({
   }, [snapshot.chainLinks, me]);
   const chainBadgeOf = useCallback((key: string) => chainAt.get(key), [chainAt]);
 
+  /** Toque longo numa carta: na mesa estreita, a leitura sobe numa folha. */
+  const abrirLeitura = useCallback(
+    (card: BoardCard) => {
+      showPreview(card);
+      setFolhaAberta(true);
+    },
+    [showPreview],
+  );
+  const onLongPress = estreita ? abrirLeitura : undefined;
+
   const shared = {
     registry,
-    onHover: setPreview,
+    onHover: showPreview,
+    onLongPress,
     slotProps,
     isTcg,
     linkedBy,
@@ -587,7 +838,8 @@ export function DuelBoard({
         placeholder="Extra"
         upsideDown={owner === foeSeat}
         zoneKey={key}
-        onHover={setPreview}
+        onHover={showPreview}
+        onLongPress={onLongPress}
         showLevel
         linkedBy={linkedBy.get(key)}
         onOpenMaterials={card?.overlays.length ? openMaterials(card) : undefined}
@@ -605,6 +857,139 @@ export function DuelBoard({
   // dia em que a mesa mudasse.
   const needsPicker =
     selection != null && needsCardPicker(selection.candidates, me);
+
+  /**
+   * Qual diálogo de decisão está aberto agora, se algum.
+   *
+   * Uma resposta só, e não uma condição por modal espalhada no JSX, porque é
+   * ela que decide o que o "Ver a mesa" esconde e o que o Esc alterna — e todo
+   * diálogo de decisão tem de poder ser escondido (`DecisionShell`).
+   */
+  const decision: "prompt" | "picker" | "sort" | "announce" | "counters" | null =
+    needsPicker && selection && plan
+      ? "picker"
+      : plan?.sorting && !busy
+        ? "sort"
+        : showModal && plan?.announceCard
+          ? "announce"
+          : showModal && plan?.counters
+            ? "counters"
+            : showModal && plan
+              ? "prompt"
+              : null;
+  const peek = () => setModalEspiado(true);
+
+  /** A seleção em curso já pode ser confirmada? (Enter e o duplo clique.) */
+  const selectionReady =
+    selection != null &&
+    picked.length >= selection.min &&
+    picked.length <= selection.max &&
+    (selection.isValid?.(picked) ?? true);
+  const placeReady = placeSelection != null && picked.length === placeSelection.count;
+
+  /** A dica da vez, se houver — uma por vez, no momento em que serve. */
+  const minhaPergunta = Boolean(prompt) && snapshot.promptPlayer === me && !busy;
+  const dica =
+    // Quem escondeu a decisão para olhar a mesa quer a mesa limpa: a dica
+    // espera, como a própria decisão.
+    spectating || dicas.tips.off || modalEspiado || snapshot.turnCount === 0 || snapshot.winner !== null
+      ? null
+      : nextTip(
+          {
+            myPrompt: minhaPergunta,
+            canPlay:
+              minhaPergunta && prompt?.type === OcgMessageType.SELECT_IDLECMD && actionableKeys.size > 0,
+            battle: minhaPergunta && prompt?.type === OcgMessageType.SELECT_BATTLECMD,
+            chainWindow: minhaPergunta && prompt?.type === OcgMessageType.SELECT_CHAIN,
+            decisionOpen: decision !== null && !modalEspiado,
+            inlineSelection: minhaPergunta && ((selection != null && !needsPicker) || placeSelection != null),
+          },
+          new Set(dicas.tips.seen),
+        );
+
+  /**
+   * Teclado da mesa. Num ref, e não nas dependências de um efeito: o efeito
+   * registra o ouvinte uma vez, e o ouvinte sempre lê o estado do render mais
+   * recente — sem recadastrar a cada clique.
+   */
+  const onKeyRef = useRef<(event: KeyboardEvent) => void>(() => {});
+  const handleKey = (event: KeyboardEvent) => {
+    const alvo = event.target as HTMLElement | null;
+    const digitando =
+      alvo?.tagName === "INPUT" || alvo?.tagName === "TEXTAREA" || alvo?.tagName === "SELECT";
+
+    if (event.key === "Escape") {
+      // Primeiro o que é consulta (fecha), depois a decisão (esconde/mostra).
+      if (menuFor) setMenuFor(null);
+      else if (folhaAberta) setFolhaAberta(false);
+      else if (historicoAberto) setHistoricoAberto(false);
+      else if (openPile) setOpenPile(null);
+      else if (revelacoesAbertas) setRevelacoesAbertas(false);
+      else if (outrasAbertas) setOutrasAbertas(false);
+      else if (deckAberto) setDeckAberto(false);
+      else if (decision) setModalEspiado((atual) => !atual);
+      else if (snapshot.winner != null) setResultadoEspiado((atual) => !atual);
+      else return;
+      event.preventDefault();
+      return;
+    }
+
+    // Enter num elemento clicável (botão, carta focada) é dele: a carta marca
+    // a si mesma no mesmo toque, e confirmar junto mandaria a seleção de
+    // ANTES do clique.
+    const clicavel = alvo?.tagName === "BUTTON" || alvo?.getAttribute("role") === "button";
+    if (event.key === "Enter" && !digitando && !clicavel && !event.defaultPrevented && !busy) {
+      if (selection && selectionReady && (!needsPicker || !modalEspiado)) {
+        event.preventDefault();
+        respond(selection.build(picked));
+      } else if (placeSelection && placeReady) {
+        event.preventDefault();
+        respond(placeSelection.build(picked.map((index) => placeSelection.places[index])));
+      }
+    }
+  };
+  useEffect(() => {
+    onKeyRef.current = handleKey;
+  });
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => onKeyRef.current(event);
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+
+  // Ctrl segurado = perguntar em toda janela. Soltar a tecla, e também perder
+  // o foco da janela com ela apertada (Ctrl+Tab), desliga. O callback mora num
+  // ref: quem passa uma função nova a cada render não pode derrubar o gesto no
+  // meio (a limpeza do efeito soltaria o Ctrl).
+  const onForceAskRef = useRef(onForceAsk);
+  useEffect(() => {
+    onForceAskRef.current = onForceAsk;
+  }, [onForceAsk]);
+  useEffect(() => {
+    let segurando = false;
+    const set = (valor: boolean) => {
+      if (segurando === valor) return;
+      segurando = valor;
+      setCtrlHeld(valor);
+      onForceAskRef.current?.(valor);
+    };
+    const down = (event: KeyboardEvent) => {
+      if (event.key === "Control") set(true);
+    };
+    const up = (event: KeyboardEvent) => {
+      if (event.key === "Control") set(false);
+    };
+    const blur = () => set(false);
+    window.addEventListener("keydown", down);
+    window.addEventListener("keyup", up);
+    window.addEventListener("blur", blur);
+    return () => {
+      window.removeEventListener("keydown", down);
+      window.removeEventListener("keyup", up);
+      window.removeEventListener("blur", blur);
+      set(false);
+    };
+  }, []);
 
   /**
    * Jogadas em cartas FORA da mesa desenhada (Extra Deck, Cemitério, banidas,
@@ -678,9 +1063,10 @@ export function DuelBoard({
         <div className="relative flex min-w-0 flex-1">
           <LifeBar
             name={playerName}
-            role="Você"
+            role={spectating ? "Bot" : "Você"}
             lp={snapshot.lifePoints[me]}
             active={snapshot.turnPlayer === me}
+            mine={!spectating}
           />
           <PlayerHints hints={snapshot.playerHints[me]} />
           <FlashLayer flashes={flashes} anchor="player" />
@@ -696,6 +1082,14 @@ export function DuelBoard({
           <PlayerHints hints={snapshot.playerHints[foeSeat]} align="right" />
           <FlashLayer flashes={flashes} anchor="opponent" />
         </div>
+        {onPrefsChange && (
+          <DuelSettings
+            prefs={prefs}
+            onChange={onPrefsChange}
+            pacing={pacing}
+            tips={spectating ? undefined : { on: !dicas.tips.off, onToggle: (on) => dicas.setOff(!on), onReset: dicas.reset }}
+          />
+        )}
         <SoundControl />
       </div>
 
@@ -709,10 +1103,17 @@ export function DuelBoard({
           antes de cada jogada, e o histórico ganha coluna própria em vez de
           disputar altura com ela.
         */}
-        <aside className="flex w-[var(--tf-rail-left)] shrink-0 flex-col overflow-hidden p-2">
-          <ChainStack links={snapshot.chainLinks ?? []} me={me} registry={registry} />
-          <CardPreview card={preview} registry={registry} marksOf={marksOf} />
-        </aside>
+        {!estreita && (
+          <aside className="flex w-[var(--tf-rail-left)] shrink-0 flex-col overflow-hidden p-2">
+            <ChainStack links={snapshot.chainLinks ?? []} me={me} registry={registry} />
+            <CardPreview
+              card={cartaEmLeitura}
+              registry={registry}
+              marksOf={marksOf}
+              activation={ativacaoEmLeitura}
+            />
+          </aside>
+        )}
 
         {/* -------- campo -------- */}
         <div
@@ -721,12 +1122,15 @@ export function DuelBoard({
             shake !== null ? "tf-shake" : ""
           }`}
           // Teto das cartas pela LARGURA do campo (ver `CARD_SHAPE`): uma
-          // fileira ocupa ~7 larguras de carta + 37 px de vãos e pilhas
-          // laterais (medido em 1024, 1280 e 1440). `cqw` é a largura deste
-          // contêiner; 56 px dão a folga do padding.
+          // fileira ocupa 7 larguras de carta + 36 px de vãos, e as banidas
+          // ficam penduradas FORA dela (`GraveCorner`), 0,62 carta + 4 px de
+          // cada lado — a de cima à esquerda, a de baixo à direita. Sem contar
+          // as duas, no Goat em 1440×900 (fileiras mais altas, logo cartas
+          // mais largas) a pilha de banidas caía sobre os botões BP/M2 da
+          // trilha de fases. `cqw` é a largura deste contêiner.
           style={{
             containerType: "inline-size",
-            ["--tf-card-max-h" as string]: "calc((100cqw - 56px) / 7 * 86 / 59)",
+            ["--tf-card-max-h" as string]: "calc((100cqw - 64px) / 8.3 * 86 / 59)",
           }}
         >
           {/* Clarão no lado atingido. */}
@@ -739,9 +1143,106 @@ export function DuelBoard({
           )}
 
           <FlashLayer flashes={flashes} anchor="center" />
-          {waitingForFoe && <WaitingBanner name={opponentName} />}
+
+          {/* Dica de primeira vez — acima dos diálogos (é deles que ela fala),
+              no canto, sem tapar a jogada. */}
+          {dica && (
+            <div
+              data-tip={dica.id}
+              // Com um duelo-problema, o objetivo mora no canto direito: a dica
+              // para antes dele em vez de cobri-lo (no celular, a dica de 80%
+              // tapava o objetivo inteiro).
+              className={`tf-panel absolute left-2 top-16 z-[55] rounded-md border-sky-400/40 p-2.5 shadow-xl shadow-black/60 ${
+                goal ? "w-[min(300px,calc(100%-8rem))]" : "w-[min(300px,80%)]"
+              }`}
+            >
+              <p className="text-[12px] leading-snug text-zinc-100 [@media(max-height:500px)]:text-[11px]">💡 {dica.text}</p>
+              <div className="mt-2 flex gap-2">
+                <button
+                  type="button"
+                  data-table-control
+                  onClick={() => dicas.markSeen(dica.id)}
+                  className="rounded bg-sky-600 px-2.5 py-1 text-[11px] font-bold text-white hover:bg-sky-500"
+                >
+                  Entendi
+                </button>
+                <button
+                  type="button"
+                  data-table-control
+                  onClick={() => dicas.setOff(true)}
+                  className="rounded px-2 py-1 text-[11px] text-zinc-400 hover:text-zinc-200"
+                >
+                  Desligar dicas
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* O objetivo do duelo-problema, à vista — mas minimizável, como todo
+              painel por cima da mesa: aberto ele cobre duas zonas do
+              oponente, e no celular (ou deitado) começa já fechado num selo,
+              porque lá cobriria metade do campo. */}
+          {goal && !objetivoVisivel && (
+            <button
+              type="button"
+              data-puzzle-goal
+              data-puzzle-goal-toggle
+              data-table-control
+              title={goal.text}
+              onClick={() => setObjetivoAberto(true)}
+              className="tf-panel absolute right-2 top-16 z-[45] rounded-full px-3 py-1 text-[11px] font-bold text-[color:var(--tf-gold-bright)] shadow-lg shadow-black/60 hover:brightness-125"
+            >
+              🧩 Objetivo
+            </button>
+          )}
+          {goal && objetivoVisivel && (
+            <div
+              data-puzzle-goal
+              className="tf-panel absolute right-2 top-16 z-[45] w-[min(280px,70%)] rounded-md p-2.5 shadow-xl shadow-black/60"
+            >
+              <div className="flex items-start justify-between gap-2">
+                <p className="text-[11px] font-bold uppercase tracking-wider text-[color:var(--tf-gold)]">🧩 {goal.title}</p>
+                <button
+                  type="button"
+                  data-puzzle-goal-toggle
+                  data-table-control
+                  aria-label="Minimizar o objetivo"
+                  title="Minimizar o objetivo"
+                  onClick={() => setObjetivoAberto(false)}
+                  className="-mr-1 -mt-1 rounded px-1.5 text-[13px] leading-none text-zinc-400 hover:bg-black/50 hover:text-zinc-100"
+                >
+                  —
+                </button>
+              </div>
+              <p className="mt-0.5 text-[12px] leading-snug text-zinc-100">{goal.text}</p>
+              <button
+                type="button"
+                data-table-control
+                onClick={() => setDicaDoProblema((v) => !v)}
+                className="mt-1 text-[11px] text-sky-300 hover:text-sky-200"
+              >
+                {dicaDoProblema ? "Esconder a dica" : "Ver uma dica"}
+              </button>
+              {dicaDoProblema && <p className="mt-1 text-[11px] leading-snug text-sky-100">{goal.hint}</p>}
+            </div>
+          )}
+
+          {waitingForFoe ? (
+            <WaitingBanner text={`Aguardando ${opponentName}…`} />
+          ) : (
+            foeIsPlaying && <WaitingBanner text={`${opponentName} está jogando…`} />
+          )}
           <AttackFlightLayer flight={flight} fieldRef={fieldRef} />
-          <ChainSpotlight spotlight={spotlight} registry={registry} />
+          <LeaveFlightLayer leaves={leaves} fieldRef={fieldRef} registry={registry} me={me} />
+          <ChainSpotlight
+            spotlight={spotlight}
+            registry={registry}
+            names={nomesDaAtivacao}
+            onSkip={() => {
+              dismissSpotlight();
+              onHurry?.();
+            }}
+          />
           <DrawFlightLayer draw={draw} fieldRef={fieldRef} />
           {toss && <TossOverlay toss={toss} />}
           {reveal && <RevealOverlay reveal={reveal} registry={registry} />}
@@ -753,7 +1254,8 @@ export function DuelBoard({
             cards={foe.hand}
             seat={foeSeat}
             registry={registry}
-            onHover={setPreview}
+            onHover={showPreview}
+            onLongPress={onLongPress}
           />
 
           <div className="flex min-h-0 flex-1 flex-col justify-center gap-1.5">
@@ -767,6 +1269,7 @@ export function DuelBoard({
                 <DuelPile
                   label="Deck"
                   count={foe.deckSize}
+                  warnLow
                   // Índice ABSOLUTO: o voo da compra procura a pilha por
                   // `[data-pile="deck-${player}"]`, com o número que o engine
                   // usa. Fixar "deck-1" aqui mandava a carta do assento 1 para
@@ -777,6 +1280,7 @@ export function DuelBoard({
               right={
                 <DuelPile
                   label="Extra"
+                  dataPile={`extra-${foeSeat}`}
                   count={foe.extraSize}
                   badge={faceUpBadge(foe.extraFaceUp)}
                   // Do Extra Deck do oponente só se vê o que é público: os
@@ -801,6 +1305,7 @@ export function DuelBoard({
                   banished={
                     <DuelPile
                       label="Banidas"
+                      dataPile={`banished-${foeSeat}`}
                       count={foe.banishedSize}
                       onOpen={openWith("Banidas do oponente", (p) => p.foe.banished)}
                     />
@@ -808,6 +1313,7 @@ export function DuelBoard({
                   grave={
                     <DuelPile
                       label="Cemit."
+                      dataPile={`grave-${foeSeat}`}
                       count={foe.graveSize}
                       onOpen={openWith("Cemitério do oponente", (p) => p.foe.grave)}
                       topCard={foe.graveTop}
@@ -818,7 +1324,7 @@ export function DuelBoard({
                   paraFora="left"
                 />
               }
-              right={<FieldSpellSlot player={foe} owner={foeSeat} {...shared} />}
+              right={<FieldSpellSlot player={foe} owner={foeSeat} upsideDown {...shared} />}
               {...shared}
             />
 
@@ -855,6 +1361,7 @@ export function DuelBoard({
                   grave={
                     <DuelPile
                       label="Cemit."
+                      dataPile={`grave-${me}`}
                       count={you.graveSize}
                       onOpen={openWith("Seu Cemitério", (p) => p.you.grave)}
                       topCard={you.graveTop}
@@ -865,6 +1372,7 @@ export function DuelBoard({
                   banished={
                     <DuelPile
                       label="Banidas"
+                      dataPile={`banished-${me}`}
                       count={you.banishedSize}
                       onOpen={openWith("Suas banidas", (p) => p.you.banished)}
                       actionable={pilhaAcionavel(me, OcgLocation.REMOVED)}
@@ -881,6 +1389,7 @@ export function DuelBoard({
               left={
                 <DuelPile
                   label="Extra"
+                  dataPile={`extra-${me}`}
                   count={you.extraSize}
                   badge={faceUpBadge(you.extraFaceUp)}
                   onOpen={openWith("Seu Extra Deck", (p) => p.you.extra)}
@@ -891,6 +1400,7 @@ export function DuelBoard({
                 <DuelPile
                   label="Deck"
                   count={you.deckSize}
+                  warnLow
                   dataPile={`deck-${me}`}
                   // O deck é a única pilha que não se abre para consulta — o
                   // conteúdo é secreto. Sobra como o lugar natural para o
@@ -922,11 +1432,12 @@ export function DuelBoard({
             />
           )}
 
-          {/* Modal escondido: a decisão continua pendurada, e este é o caminho
-              de volta. Sem ele "ver o tabuleiro" seria um beco sem saída. */}
-          {showModal && !plan?.sorting && plan && !plan.announceCard && !plan.counters && modalEspiado && (
+          {/* Decisão escondida: ela continua pendurada, e este é o caminho de
+              volta. Vale para TODO diálogo de decisão — sem ele "ver a mesa"
+              seria um beco sem saída. */}
+          {decision && modalEspiado && plan && (
             <PendingDecisionBar
-              instruction={plan.instruction}
+              instruction={decision === "picker" ? selectionInstruction : plan.instruction}
               chain={snapshot.chain}
               registry={registry}
               onBack={() => setModalEspiado(false)}
@@ -980,15 +1491,111 @@ export function DuelBoard({
             actions={plan?.global ?? []}
             disabled={busy}
             onRespond={respond}
+            chainMode={onPrefsChange && !spectating ? prefs.chainMode : null}
+            forcing={ctrlHeld}
+            onChainMode={(chainMode) => onPrefsChange?.({ chainMode })}
+            extras={
+              estreita ? (
+                <div className="flex flex-col gap-1">
+                  <button
+                    type="button"
+                    data-table-control
+                    data-open-log
+                    onClick={() => setHistoricoAberto(true)}
+                    className="tf-phase-pip rounded-md py-1 text-[10px] font-bold text-[color:var(--tf-gold-bright)]"
+                  >
+                    📜 Histórico
+                  </button>
+                  <button
+                    type="button"
+                    data-table-control
+                    data-open-card
+                    onClick={() => setFolhaAberta(true)}
+                    className="tf-phase-pip rounded-md py-1 text-[10px] font-bold text-[color:var(--tf-gold-bright)]"
+                  >
+                    🔍 Carta
+                  </button>
+                </div>
+              ) : null
+            }
           />
-          <div className="flex min-w-0 flex-1 flex-col">
-            <DuelLog
-              entries={snapshot.log}
-              reveals={minhasRevelacoes}
-              onOpenReveals={() => setRevelacoesAbertas(true)}
-            />
-          </div>
+          {estreita ? null : (
+            <div className="flex min-w-0 flex-1 flex-col">
+              <DuelLog
+                entries={snapshot.log}
+                reveals={minhasRevelacoes}
+                onOpenReveals={() => setRevelacoesAbertas(true)}
+                me={me}
+                onHover={showPreview}
+                registry={registry}
+              />
+            </div>
+          )}
         </aside>
+
+        {/* Mesa estreita: o histórico e a leitura em painéis que se abrem —
+            sem os trilhos, a largura inteira fica para as cartas. Os botões
+            moram na coluna das fases (ver `PhaseTrack.extras`): flutuando
+            sobre a mesa eles cobriam a primeira carta da mão ou o "EP". */}
+        {estreita && historicoAberto && (
+          <div
+            data-log-sheet
+            className="tf-modal-scrim absolute inset-0 z-50 flex justify-end"
+            onClick={() => setHistoricoAberto(false)}
+          >
+            <div
+              role="dialog"
+              aria-label="Histórico"
+              className="flex h-full w-[min(340px,88vw)] flex-col gap-2 p-2"
+              onClick={(event) => event.stopPropagation()}
+            >
+              <button
+                type="button"
+                onClick={() => setHistoricoAberto(false)}
+                className="tf-panel self-end rounded-md px-3 py-1 text-[12px] text-zinc-300"
+              >
+                ✕ Fechar
+              </button>
+              <ChainStack links={snapshot.chainLinks ?? []} me={me} registry={registry} />
+              <DuelLog
+                entries={snapshot.log}
+                reveals={minhasRevelacoes}
+                onOpenReveals={() => setRevelacoesAbertas(true)}
+                me={me}
+                onHover={showPreview}
+                registry={registry}
+              />
+            </div>
+          </div>
+        )}
+        {estreita && folhaAberta && (
+          <div
+            data-card-sheet
+            className="tf-modal-scrim absolute inset-0 z-50 flex items-end justify-center"
+            onClick={() => setFolhaAberta(false)}
+          >
+            <div
+              role="dialog"
+              aria-label="Leitura da carta"
+              className="flex h-[78%] w-full max-w-[560px] flex-col gap-2 p-2"
+              onClick={(event) => event.stopPropagation()}
+            >
+              <button
+                type="button"
+                onClick={() => setFolhaAberta(false)}
+                className="tf-panel self-end rounded-md px-3 py-1 text-[12px] text-zinc-300"
+              >
+                ✕ Fechar
+              </button>
+              <CardPreview
+                card={cartaEmLeitura}
+                registry={registry}
+                marksOf={marksOf}
+                activation={ativacaoEmLeitura}
+              />
+            </div>
+          </div>
+        )}
 
         {/* Os modais nascem AQUI, dentro da linha central, e não na raiz da
             mesa: assim o escurecimento cobre só a coluna do campo. Os trilhos
@@ -1011,7 +1618,7 @@ export function DuelBoard({
           <RevealHistoryModal
             reveals={minhasRevelacoes}
             registry={registry}
-            onHover={setPreview}
+            onHover={showPreview}
             onClose={() => setRevelacoesAbertas(false)}
           />
         )}
@@ -1026,26 +1633,31 @@ export function DuelBoard({
               respond(action.response);
             }}
             registry={registry}
-            onHover={setPreview}
+            onHover={showPreview}
             onClose={() => setOpenPile(null)}
           />
         )}
 
-        {needsPicker && selection && plan && (
+        {/* Diálogos de decisão: todos escondíveis (`hidden` os mantém
+            montados — o que já foi marcado sobrevive à espiada). */}
+        {decision === "picker" && selection && plan && (
           <CardPickerModal
             instruction={selectionInstruction}
             selection={selection}
             picked={picked}
             registry={registry}
+            me={me}
             onToggle={togglePick}
             onConfirm={() => respond(selection.build(picked))}
             extras={plan.global}
             onRespond={respond}
-            onHover={setPreview}
+            onHover={showPreview}
+            hidden={modalEspiado}
+            onPeek={peek}
           />
         )}
 
-        {plan?.sorting && !busy && (
+        {decision === "sort" && plan?.sorting && (
           <SortCardModal
             instruction={plan.instruction}
             sorting={plan.sorting}
@@ -1055,18 +1667,22 @@ export function DuelBoard({
             onKeep={() =>
               respond(plan.global[0]?.response ?? plan.sorting!.build(null))
             }
-            onHover={setPreview}
+            onHover={showPreview}
+            hidden={modalEspiado}
+            onPeek={peek}
           />
         )}
 
-        {showModal && !plan?.sorting && plan?.announceCard && (
+        {decision === "announce" && plan?.announceCard && (
           <AnnounceCardModal
             instruction={plan.instruction}
             opcodes={plan.announceCard.opcodes}
             cards={announcePool}
             officialDb={officialDb}
             onRespond={(code) => respond(plan.announceCard!.build(code))}
-            onHover={setPreview}
+            onHover={showPreview}
+            hidden={modalEspiado}
+            onPeek={peek}
           />
         )}
 
@@ -1092,7 +1708,7 @@ export function DuelBoard({
                       setOutrasAbertas(false);
                       respond(action.response);
                     }}
-                    onHover={setPreview}
+                    onHover={showPreview}
                   />
                 ))}
               </div>
@@ -1100,17 +1716,19 @@ export function DuelBoard({
           </div>
         )}
 
-        {showModal && plan?.counters && (
+        {decision === "counters" && plan?.counters && (
           <CounterSelectModal
             instruction={plan.instruction}
             selection={plan.counters}
             registry={registry}
             onRespond={respond}
-            onHover={setPreview}
+            onHover={showPreview}
+            hidden={modalEspiado}
+            onPeek={peek}
           />
         )}
 
-        {showModal && !plan?.sorting && plan && !plan.announceCard && !plan.counters && !modalEspiado && (
+        {decision === "prompt" && plan && (
           <PromptModal
             plan={plan}
             onRespond={respond}
@@ -1119,22 +1737,33 @@ export function DuelBoard({
             chain={snapshot.chain}
             picked={picked}
             onTogglePick={togglePick}
-            onPeek={() => setModalEspiado(true)}
-            onHover={setPreview}
+            onPeek={peek}
+            onHover={showPreview}
+            hidden={modalEspiado}
           />
         )}
       </div>
 
-      {snapshot.winner != null && (
-        <ResultOverlay
-          winner={snapshot.winner}
-          reason={snapshot.winReason}
-          me={me}
-          playerName={playerName}
-          opponentName={opponentName}
-          ending={ending}
-        />
-      )}
+      {snapshot.winner != null &&
+        (resultadoEspiado ? (
+          <ResultPeekBar
+            winner={snapshot.winner}
+            me={me}
+            onBack={() => setResultadoEspiado(false)}
+          />
+        ) : (
+          <ResultOverlay
+            winner={snapshot.winner}
+            reason={snapshot.winReason}
+            me={me}
+            playerName={playerName}
+            opponentName={opponentName}
+            ending={ending}
+            turns={snapshot.turnCount}
+            lifePoints={snapshot.lifePoints}
+            onPeek={() => setResultadoEspiado(true)}
+          />
+        ))}
 
       {snapshot.error && (
         <p className="shrink-0 border-t border-red-900/50 bg-red-950/80 px-4 py-2 text-sm text-red-200">
@@ -1162,6 +1791,8 @@ type SlotPropsFn = (
 interface SharedSlotProps {
   registry: CardRegistry | null;
   onHover: (card: BoardCard | null) => void;
+  /** Toque longo numa carta (mesa estreita) — ver `DuelCardSlot.onLongPress`. */
+  onLongPress?: (card: BoardCard) => void;
   slotProps: SlotPropsFn;
   /** Mesa de Master Rule 2020 (ver `isTcg` no `DuelBoard`). */
   isTcg: boolean;
@@ -1191,6 +1822,7 @@ function FieldRow({
   right,
   registry,
   onHover,
+  onLongPress,
   slotProps,
   isTcg,
   linkedBy,
@@ -1212,7 +1844,6 @@ function FieldRow({
   if (mirrored) ordered.reverse();
 
   const location = zone === "monster" ? OcgLocation.MZONE : OcgLocation.SZONE;
-  const prefix = zone === "monster" ? "Mon" : "M/A";
 
   return (
     <div className="flex min-h-0 flex-1 items-center justify-center gap-1.5">
@@ -1230,13 +1861,15 @@ function FieldRow({
             key={sequence}
             card={card}
             registry={registry}
-            placeholder={
-              pendulumZone ? `${prefix}${sequence + 1} · P` : `${prefix}${sequence + 1}`
-            }
+            // Zona vazia sem texto: "Mon3" e "M/A5 · P" eram nomes de
+            // engenharia, não de jogo. Só a Zona de Pêndulo ganha um "P" —
+            // é o que muda o que se pode pôr ali.
+            placeholder={pendulumZone ? "P" : ""}
             rotated={zone === "monster" && Boolean(card?.defense)}
             upsideDown={mirrored}
             zoneKey={key}
             onHover={onHover}
+            onLongPress={onLongPress}
             showLevel={isTcg && zone === "monster"}
             scaleSide={
               pendulumZone && isPendulum && !card?.faceDown
@@ -1291,7 +1924,12 @@ function GraveCorner({
       {grave}
       <div
         title="Cartas fora de jogo"
-        className={`absolute top-1/2 h-[62%] -translate-y-1/2 ${
+        // 62% da CARTA, não da fileira: com as cartas limitadas pela largura
+        // (mesa estreita) a fileira fica mais alta que elas, e 62% dela fazia
+        // a pilha quase do tamanho de uma carta — maior que a folga calculada
+        // para ela, encostando na borda.
+        style={{ height: "min(62%, calc(var(--tf-card-max-h, 100%) * 0.62))" }}
+        className={`absolute top-1/2 -translate-y-1/2 ${
           paraFora === "left" ? "right-full mr-1" : "left-full ml-1"
         }`}
       >
@@ -1305,22 +1943,35 @@ function GraveCorner({
 function FieldSpellSlot({
   player,
   owner,
+  upsideDown = false,
   registry,
   onHover,
+  onLongPress,
   slotProps,
   marksOf,
   chainBadgeOf,
-}: Pick<SharedSlotProps, "registry" | "onHover" | "slotProps" | "marksOf" | "chainBadgeOf"> & {
+}: Pick<
+  SharedSlotProps,
+  "registry" | "onHover" | "onLongPress" | "slotProps" | "marksOf" | "chainBadgeOf"
+> & {
   player: BoardPlayer;
   owner: 0 | 1;
+  /**
+   * Do lado do oponente (de cabeça para baixo). Vinha de `owner === 1`, que
+   * só vale quando quem olha é o assento 0 — no online, e agora também quando
+   * o bot começa, quem olha pode ser o 1.
+   */
+  upsideDown?: boolean;
 }) {
   return (
     <DuelCardSlot
       card={player.field}
       registry={registry}
       placeholder="Campo"
-      upsideDown={owner === 1}
+      zoneKey={cardKey(owner, OcgLocation.SZONE, FIELD_ZONE_SEQUENCE)}
+      upsideDown={upsideDown}
       onHover={onHover}
+      onLongPress={onLongPress}
       marks={slotChips(marksOf(player.field))}
       // Uma Magia de Campo ativada também é um elo — o número dela aparece aqui.
       chainBadge={chainBadgeOf(cardKey(owner, OcgLocation.SZONE, FIELD_ZONE_SEQUENCE))}
@@ -1338,8 +1989,9 @@ function Hand({
   seat,
   registry,
   onHover,
+  onLongPress,
   slotProps,
-}: Pick<SharedSlotProps, "registry" | "onHover" | "slotProps"> & {
+}: Pick<SharedSlotProps, "registry" | "onHover" | "onLongPress" | "slotProps"> & {
   cards: BoardCard[];
   seat: 0 | 1;
 }) {
@@ -1347,7 +1999,9 @@ function Hand({
     <div
       // Índice ABSOLUTO — ver o comentário no `dataPile` da fileira acima.
       data-hand={seat}
-      className="tf-panel flex h-[15%] min-h-[104px] shrink-0 items-center justify-center gap-1 rounded-md px-3 py-1.5"
+      // Tela baixa (celular deitado): a mão encolhe para sobrar fileira de
+      // campo — com 104 px fixos as cartas da mesa ficavam com 24 px.
+      className="tf-panel flex h-[15%] min-h-[104px] shrink-0 items-center justify-center gap-1 rounded-md px-3 py-1.5 [@media(max-height:500px)]:min-h-[64px] [@media(max-height:500px)]:py-1"
     >
       {cards.length === 0 ? (
         <span className="text-[13px] text-zinc-500">Mão vazia</span>
@@ -1364,6 +2018,7 @@ function Hand({
             // conseguia invocar nem baixar nada, e o duelo parava ali.
             zoneKey={cardKey(seat, OcgLocation.HAND, card.sequence)}
             onHover={onHover}
+            onLongPress={onLongPress}
             {...slotProps(card, {
               player: seat,
               location: OcgLocation.HAND,
@@ -1398,6 +2053,10 @@ function PhaseTrack({
   actions,
   disabled,
   onRespond,
+  chainMode,
+  forcing,
+  onChainMode,
+  extras,
 }: {
   phase: number | null;
   /** Turnos já iniciados. 0 = o duelo ainda não começou. */
@@ -1407,6 +2066,12 @@ function PhaseTrack({
   actions: GlobalAction[];
   disabled?: boolean;
   onRespond: (response: OcgResponse) => void;
+  /** Modo de resposta atual; `null` esconde o botão (sem quem o aplique). */
+  chainMode: ChainResponseMode | null;
+  forcing: boolean;
+  onChainMode: (mode: ChainResponseMode) => void;
+  /** Botões a mais no fim da coluna (o histórico e a leitura, na mesa estreita). */
+  extras?: React.ReactNode;
 }) {
   const actionFor = (short: string) => {
     const match = PHASE_ACTION_MATCH.find((entry) => entry.short === short);
@@ -1425,7 +2090,9 @@ function PhaseTrack({
       // z-50: os avisos grandes (SEU TURNO, dano) passam por cima da mesa em
       // z-40. A fase é a informação consultada para decidir a jogada — ela
       // nunca pode sumir debaixo de um deles.
-      className="relative z-50 flex w-[var(--tf-rail-phase)] shrink-0 flex-col justify-center gap-1.5"
+      // Em tela baixa (celular deitado) a coluna não cabe centrada: começa no
+      // topo e rola, em vez de cortar a contagem de turno e os botões do fim.
+      className="relative z-50 flex w-[var(--tf-rail-phase)] shrink-0 flex-col justify-center gap-1.5 [@media(max-height:500px)]:justify-start [@media(max-height:500px)]:gap-1 [@media(max-height:500px)]:overflow-y-auto"
     >
       {/* Contagem de turno junto das fases: as duas respondem "em que ponto do
           duelo estamos", e é o número que as cartas de contagem (Espada da
@@ -1434,7 +2101,7 @@ function PhaseTrack({
           olho que está nas fases. */}
       <div
         title={turn > 0 ? `Turno ${turn} — ${mine ? "seu" : "do oponente"}` : "Duelo começando"}
-        className={`tf-phase-pip flex flex-col items-center rounded-md py-1.5 ${
+        className={`tf-phase-pip flex flex-col items-center rounded-md py-1.5 [@media(max-height:500px)]:py-0.5 ${
           mine ? "tf-phase-turn-mine" : "tf-phase-turn-foe"
         }`}
       >
@@ -1460,7 +2127,7 @@ function PhaseTrack({
               disabled={!action || disabled}
               onClick={() => action && onRespond(action.response)}
               title={action ? action.label : phaseLabel(entry.value)}
-              className={`h-9 w-full rounded-md text-[15px] font-bold tracking-wide transition ${
+              className={`h-9 w-full rounded-md text-[15px] font-bold tracking-wide transition [@media(max-height:500px)]:h-6 [@media(max-height:500px)]:text-[12px] ${
                 active
                   ? "tf-phase-pip tf-phase-pip-active"
                   : action
@@ -1476,9 +2143,17 @@ function PhaseTrack({
 
       {/* O nome da fase atual por extenso — "BP" não diz nada a quem está
           começando; "Battle Phase" diz. */}
-      <span className="min-h-[2lh] px-0.5 text-center text-[10px] font-semibold leading-tight text-[color:var(--tf-gold-bright)]">
+      <span className="min-h-[2lh] px-0.5 text-center text-[10px] font-semibold leading-tight text-[color:var(--tf-gold-bright)] [@media(max-height:500px)]:hidden">
         {phase !== null ? phaseLabel(phase) : ""}
       </span>
+
+      {/* O modo de resposta, junto das fases: é a outra coisa que se ajusta
+          no meio do turno, e precisa estar à vista (quem esqueceu o "Nunca"
+          ligado tem de ver isso antes de perder a janela da armadilha). */}
+      {chainMode && (
+        <ChainModeButton mode={chainMode} forcing={forcing} onChange={onChainMode} />
+      )}
+      {extras}
     </div>
   );
 }
@@ -1496,28 +2171,38 @@ function CardPickerModal({
   selection,
   picked,
   registry,
+  me,
   onToggle,
   onConfirm,
   extras,
   onRespond,
   onHover,
+  hidden,
+  onPeek,
 }: {
   instruction: string;
   selection: NonNullable<PromptPlan["selection"]>;
   picked: number[];
   registry: CardRegistry | null;
+  /** Quem olha — separa "suas" cartas das do oponente na lista. */
+  me: 0 | 1;
   onToggle: (index: number) => void;
   onConfirm: () => void;
   extras: GlobalAction[];
   onRespond: (response: OcgResponse) => void;
   /** Passar o mouse num candidato manda a carta para a leitura da esquerda. */
   onHover: (card: PreviewCard | null) => void;
+  /** Escondido para ver a mesa (continua montado). */
+  hidden: boolean;
+  onPeek: () => void;
 }) {
   const texto = useCardText();
   const canConfirm =
     picked.length >= selection.min &&
     picked.length <= selection.max &&
     (selection.isValid?.(picked) ?? true);
+  /** Escolha de exatamente uma carta: clicar de novo na marcada confirma. */
+  const umaSo = selection.min === 1 && selection.max === 1 && !selection.alreadyChosen?.length;
 
   const progress = selection.progress
     ? `soma ${selection.progress(picked)}`
@@ -1527,9 +2212,30 @@ function CardPickerModal({
           : `${selection.min}-${selection.max}`
       }`;
 
+  /**
+   * A ordem de exibição: as cartas do OPONENTE primeiro.
+   *
+   * A lição do Tag Force 1, cujo cursor começava nas próprias cartas — num
+   * "destrua 1 carta no campo" o jogador destruía a própria sem querer. Os
+   * índices continuam os do engine (é por eles que a resposta é montada); só
+   * a ordem na tela muda.
+   */
+  const ordem = selection.candidates
+    .map((candidate, index) => ({ candidate, index }))
+    .sort(
+      (a, b) =>
+        Number(a.candidate.controller === me) - Number(b.candidate.controller === me),
+    );
+  const misturado =
+    selection.candidates.some((candidate) => candidate.controller === me) &&
+    selection.candidates.some((candidate) => candidate.controller !== me);
+
   return (
-    <div className="tf-modal-scrim tf-modal-area z-50 flex items-center justify-center p-6">
-      <div className="tf-modal tf-anim-modal-in flex max-h-full w-[min(860px,95%)] flex-col overflow-hidden">
+    <DecisionShell
+      label={instruction}
+      hidden={hidden}
+      className="flex max-h-full w-[min(860px,95%)] flex-col overflow-hidden"
+    >
         <header className="tf-modal-head shrink-0 px-5 py-2.5">
           <p className="text-center text-base font-semibold text-[color:var(--tf-gold-bright)]">
             {instruction}
@@ -1538,6 +2244,7 @@ function CardPickerModal({
             {selection.candidates.some((candidate) => candidate.code === 0)
               ? "Cartas de verso são as que você ainda não pode ver — escolha e a face aparece."
               : "Apenas as cartas elegíveis são mostradas. O deck é reembaralhado depois da escolha."}
+            {umaSo ? " Clique de novo na carta marcada para confirmar." : ""}
           </p>
         </header>
 
@@ -1578,7 +2285,7 @@ function CardPickerModal({
           )}
 
           <div className="grid grid-cols-[repeat(auto-fill,minmax(104px,1fr))] gap-2.5">
-            {selection.candidates.map((candidate, index) => {
+            {ordem.map(({ candidate, index }) => {
               // `code: 0` é o candidato que este assento não tem direito de ver
               // (`maskHiddenCards`) — carta na mão do adversário, virada para
               // baixo no campo dele. Escolhe-se pelo verso, e a face aparece
@@ -1589,12 +2296,19 @@ function CardPickerModal({
               const jaEscolhida = selection.alreadyChosen?.includes(index) ?? false;
               // Clicar numa já escolhida desfaz: a marca inverte.
               const isPicked = picked.includes(index) !== jaEscolhida;
+              const doOponente = candidate.controller !== me;
               return (
                 <button
                   key={`${candidate.code}-${index}`}
                   type="button"
+                  data-picker-card={index}
+                  data-picker-owner={doOponente ? "foe" : "me"}
                   onClick={() => {
                     playSfx("click");
+                    if (umaSo && canConfirm && picked.length === 1 && picked[0] === index) {
+                      onConfirm();
+                      return;
+                    }
                     onToggle(index);
                   }}
                   onMouseEnter={() =>
@@ -1604,7 +2318,9 @@ function CardPickerModal({
                   className={`relative aspect-[59/86] overflow-hidden rounded border-2 transition ${
                     isPicked
                       ? "border-emerald-400 brightness-110"
-                      : "border-[color:var(--tf-slot-border)] hover:border-[color:var(--tf-gold)]"
+                      : misturado && doOponente
+                        ? "border-red-500/60 hover:border-[color:var(--tf-gold)]"
+                        : "border-[color:var(--tf-slot-border)] hover:border-[color:var(--tf-gold)]"
                   }`}
                 >
                   {image ? (
@@ -1625,6 +2341,7 @@ function CardPickerModal({
 
                   <span className="absolute inset-x-0 bottom-0 bg-black/80 px-1 py-0.5 text-[9px] font-semibold text-[color:var(--tf-gold-bright)]">
                     {locationLabel(candidate.location)}
+                    {misturado ? (doOponente ? " · oponente" : " · sua") : ""}
                   </span>
 
                   {isPicked && (
@@ -1639,9 +2356,12 @@ function CardPickerModal({
         </div>
 
         <footer className="flex shrink-0 items-center justify-between gap-3 border-t border-[color:var(--tf-slot-border)] px-5 py-3">
-          <span className="font-mono text-[13px] text-[color:var(--tf-gold-dim)]">
-            {progress}
-          </span>
+          <div className="flex items-center gap-3">
+            <span className="font-mono text-[13px] text-[color:var(--tf-gold-dim)]">
+              {progress}
+            </span>
+            <PeekButton onPeek={onPeek} />
+          </div>
           <div className="flex gap-2">
             {extras.map((action, index) => (
               <button
@@ -1666,8 +2386,7 @@ function CardPickerModal({
             </button>
           </div>
         </footer>
-      </div>
-    </div>
+    </DecisionShell>
   );
 }
 
@@ -1687,11 +2406,13 @@ function OpponentHand({
   seat,
   registry,
   onHover,
+  onLongPress,
 }: {
   cards: BoardCard[];
   seat: 0 | 1;
   registry: CardRegistry | null;
   onHover: (card: BoardCard | null) => void;
+  onLongPress?: (card: BoardCard) => void;
 }) {
   const revelada = cards.some((card) => card.code !== null);
 
@@ -1699,7 +2420,7 @@ function OpponentHand({
     <div
       data-hand={seat}
       className={`tf-panel flex shrink-0 items-center justify-center gap-1 rounded-md px-3 py-1 ${
-        revelada ? "h-[96px]" : "h-[56px]"
+        revelada ? "h-[96px] [@media(max-height:500px)]:h-[64px]" : "h-[56px] [@media(max-height:500px)]:h-[36px]"
       }`}
     >
       <span
@@ -1730,6 +2451,7 @@ function OpponentHand({
               registry={registry}
               inHand
               onHover={onHover}
+              onLongPress={onLongPress}
             />
           ))}
           <span className="ml-2 font-mono text-[13px] font-bold text-[color:var(--tf-gold-bright)]">
@@ -1794,14 +2516,18 @@ function RevealOverlay({
 function TossOverlay({
   toss,
 }: {
-  toss: { kind: "coin" | "dice"; results: (boolean | number)[] };
+  toss: { kind: "coin" | "dice"; results: (boolean | number)[]; duration: number };
 }) {
   return (
     <div className="pointer-events-none absolute inset-0 z-40 flex items-center justify-center gap-4">
       {toss.results.map((result, index) => (
         <div
           key={index}
-          style={{ animationDelay: `${index * 120}ms` }}
+          // O giro acompanha a velocidade escolhida (a sessão espera o mesmo).
+          style={{
+            animationDelay: `${index * 120}ms`,
+            animationDuration: `${Math.round((toss.duration * 1200) / 1900)}ms`,
+          }}
           // Classes estáticas: o Tailwind não enxerga nomes montados em runtime.
           className={`${toss.kind === "coin" ? "tf-coin rounded-full" : "tf-dice rounded-xl"} flex h-24 w-24 items-center justify-center border-4 border-[color:var(--tf-gold)] bg-gradient-to-br from-[color:var(--tf-gold-bright)] to-[color:var(--tf-gold-dim)] font-black text-black shadow-2xl shadow-black/70`}
         >
@@ -1843,8 +2569,10 @@ function FlashLayer({
           <span
             key={flash.id}
             style={{ ["--tf-flash-duration" as string]: `${flash.duration}ms` }}
-            className={`tf-flash-text tf-hud-text select-none font-mono font-black tracking-wider ${
-              centered ? "text-5xl" : "text-3xl"
+            className={`tf-flash-text tf-hud-text select-none whitespace-nowrap font-mono font-black tracking-wider ${
+              // Em tela estreita o aviso grande ("TURNO DO OPONENTE") passava
+              // da largura da mesa.
+              centered ? "text-2xl sm:text-5xl" : "text-xl sm:text-3xl"
             } ${
               flash.tone === "good"
                 ? "text-emerald-300"
@@ -1987,9 +2715,14 @@ function PileModal({
                   playSfx("click");
                   onChoose?.(action);
                 }}
-                className="rounded bg-[color:var(--tf-gold)] px-4 py-2 text-[13px] font-bold text-black transition hover:brightness-110"
+                className="rounded bg-[color:var(--tf-gold)] px-4 py-2 text-left text-[13px] font-bold text-black transition hover:brightness-110"
               >
                 {action.label}
+                {action.detail && (
+                  <span className="block max-w-[260px] text-[11px] font-semibold opacity-75">
+                    {action.detail}
+                  </span>
+                )}
               </button>
             ))}
           </footer>
@@ -2108,6 +2841,7 @@ function PromptModal({
   onTogglePick,
   onPeek,
   onHover,
+  hidden,
 }: {
   plan: PromptPlan;
   onRespond: (response: OcgResponse) => void;
@@ -2129,6 +2863,8 @@ function PromptModal({
    * `line-clamp` de três linhas do botão, que é onde ele mais importa.
    */
   onHover: (card: PreviewCard | null) => void;
+  /** Escondido para ver a mesa (continua montado). */
+  hidden: boolean;
 }) {
   const { announce } = plan;
 
@@ -2145,8 +2881,11 @@ function PromptModal({
   const subject = subjectCode === chain?.code ? null : subjectCode;
 
   return (
-    <div className="tf-modal-scrim tf-modal-area z-50 flex items-center justify-center p-6">
-      <div className="tf-modal tf-anim-modal-in flex max-h-full w-[min(520px,94%)] flex-col overflow-hidden">
+    <DecisionShell
+      label={plan.instruction}
+      hidden={hidden}
+      className="flex max-h-full w-[min(520px,94%)] flex-col overflow-hidden"
+    >
         <p className="tf-modal-head shrink-0 px-5 py-2.5 text-center text-[15px] font-semibold text-[color:var(--tf-gold-bright)]">
           {plan.instruction}
         </p>
@@ -2248,16 +2987,9 @@ function PromptModal({
               />
             ))
           )}
-          <button
-            type="button"
-            onClick={onPeek}
-            className="w-full rounded border border-[color:var(--tf-slot-border)] px-3 py-1.5 text-[12px] text-[color:var(--tf-gold-dim)] transition hover:bg-black/50 hover:text-[color:var(--tf-gold-bright)]"
-          >
-            👁 Ver o tabuleiro (a decisão continua esperando)
-          </button>
+          <PeekButton onPeek={onPeek} />
         </div>
-      </div>
-    </div>
+    </DecisionShell>
   );
 }
 
@@ -2317,6 +3049,10 @@ function CardChoiceButton({
         <span className="text-[11px] font-semibold text-emerald-400">
           {action.label} · {locationLabel(action.location)}
         </span>
+        {/* Qual efeito, quando a carta tem mais de um — ver `CardAction.detail`. */}
+        {action.detail && (
+          <span className="text-[11px] font-semibold text-sky-300">{action.detail}</span>
+        )}
         {definition?.desc && (
           <span className="mt-1 line-clamp-3 text-[11px] leading-snug text-zinc-300">
             {texto.desc(definition)}
@@ -2426,6 +3162,7 @@ function PendingDecisionBar({
         )}
         <button
           type="button"
+          data-table-control
           onClick={() => {
             playSfx("click");
             onBack();
@@ -2604,11 +3341,14 @@ function PainelDoDeck({
  * Sem ele o duelo online parece travado: o core bloqueia inteiro esperando um
  * jogador, e a tela de quem espera fica idêntica à de um duelo congelado.
  */
-function WaitingBanner({ name }: { name: string }) {
+function WaitingBanner({ text }: { text: string }) {
   return (
     <div className="pointer-events-none absolute inset-x-0 top-2 z-30 flex justify-center">
-      <span className="tf-panel rounded-full px-4 py-1 text-[11px] font-semibold uppercase tracking-wider text-[color:var(--tf-gold-dim)]">
-        Aguardando {name}…
+      <span
+        data-waiting-banner
+        className="tf-panel tf-delayed-in rounded-full px-4 py-1 text-[11px] font-semibold uppercase tracking-wider text-[color:var(--tf-gold-dim)]"
+      >
+        {text}
       </span>
     </div>
   );
@@ -2621,6 +3361,9 @@ function ResultOverlay({
   playerName,
   opponentName,
   ending,
+  turns,
+  lifePoints,
+  onPeek,
 }: {
   winner: number;
   /** Por que o duelo acabou, quando se sabe — ver `DuelSnapshot.winReason`. */
@@ -2629,6 +3372,12 @@ function ResultOverlay({
   playerName: string;
   opponentName: string;
   ending: NonNullable<DuelBoardProps["ending"]>;
+  /** Turnos jogados. */
+  turns: number;
+  /** LP final, por assento absoluto. */
+  lifePoints: [number, number];
+  /** Encolhe o resultado para ver a mesa final. */
+  onPeek: () => void;
 }) {
   // `winner` é o assento absoluto que o core declarou; 2 é empate.
   const text =
@@ -2637,10 +3386,17 @@ function ResultOverlay({
       : winner === me
         ? `${playerName} venceu!`
         : `${opponentName} venceu!`;
+  const foe = (1 - me) as 0 | 1;
 
   return (
     <div className="tf-modal-scrim absolute inset-0 z-50 flex items-center justify-center">
-      <div className="tf-panel rounded-lg px-10 py-6 text-center">
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label={text}
+        data-result
+        className="tf-panel rounded-lg px-10 py-6 text-center"
+      >
         <p className="text-2xl font-bold text-[color:var(--tf-gold-bright)]">{text}</p>
         {/* O motivo embaixo do nome: nos finais que não passam por dano (deck
             vazio, rendição, Exodia) a tela não dizia nada sobre o que
@@ -2648,6 +3404,23 @@ function ResultOverlay({
         {reason && (
           <p className="mt-1 text-[13px] text-[color:var(--tf-gold-dim)]">{reason}</p>
         )}
+
+        {/* O resumo que o Tag Force mostrava ao fim: quanto durou e como cada
+            um terminou. */}
+        <dl className="mx-auto mt-3 grid max-w-[18rem] grid-cols-3 gap-2 text-[12px]">
+          <div className="rounded border border-[color:var(--tf-slot-border)] px-2 py-1">
+            <dt className="text-[10px] uppercase tracking-wider text-[color:var(--tf-gold-dim)]">Turnos</dt>
+            <dd className="font-mono text-base font-bold text-zinc-100">{turns}</dd>
+          </div>
+          <div className="rounded border border-[color:var(--tf-slot-border)] px-2 py-1">
+            <dt className="truncate text-[10px] uppercase tracking-wider text-[color:var(--tf-gold-dim)]">Seus LP</dt>
+            <dd className="font-mono text-base font-bold text-zinc-100">{lifePoints[me]}</dd>
+          </div>
+          <div className="rounded border border-[color:var(--tf-slot-border)] px-2 py-1">
+            <dt className="truncate text-[10px] uppercase tracking-wider text-[color:var(--tf-gold-dim)]">Oponente</dt>
+            <dd className="font-mono text-base font-bold text-zinc-100">{lifePoints[foe]}</dd>
+          </div>
+        </dl>
 
         <div className="mt-4 flex flex-col items-center gap-2">
           {ending.onBackToRoom && (
@@ -2666,17 +3439,93 @@ function ResultOverlay({
             </>
           )}
 
+          {/* Revanche contra o bot: os mesmos decks, um clique. Trocar de deck
+              é o "voltar ao lobby" logo abaixo — o caminho do Tag Force, que
+              depois de uma derrota oferecia trocar de deck para a revanche. */}
+          {ending.onRematch && (
+            <button
+              type="button"
+              data-rematch
+              onClick={ending.onRematch}
+              className="rounded bg-[color:var(--tf-gold)] px-4 py-2 text-sm font-bold text-black hover:brightness-110"
+            >
+              {ending.rematchLabel ?? "Revanche"}
+            </button>
+          )}
+
+          {ending.solution && winner !== me && <SolucaoDoProblema texto={ending.solution} />}
+
           <a
             href={ending.backHref}
             className={`rounded px-4 py-2 text-sm font-bold ${
-              ending.onBackToRoom
+              ending.onBackToRoom || ending.onRematch
                 ? "text-[color:var(--tf-gold-dim)] hover:text-[color:var(--tf-gold-bright)]"
                 : "bg-[color:var(--tf-gold)] text-black hover:brightness-110"
             }`}
           >
-            {ending.backLabel}
+            {ending.onRematch && !ending.rematchLabel ? "Trocar de deck" : ending.backLabel}
           </a>
+
+          <button
+            type="button"
+            data-table-control
+            onClick={onPeek}
+            className="text-[12px] text-[color:var(--tf-gold-dim)] hover:text-[color:var(--tf-gold-bright)]"
+          >
+            👁 Ver a mesa final <span className="opacity-60">(Esc)</span>
+          </button>
         </div>
+      </div>
+    </div>
+  );
+}
+
+/** A solução do puzzle, escondida até o jogador pedir. */
+function SolucaoDoProblema({ texto }: { texto: string }) {
+  const [aberta, setAberta] = useState(false);
+  return aberta ? (
+    <p data-puzzle-solution className="max-w-[22rem] text-[12px] leading-snug text-sky-100">
+      💡 {texto}
+    </p>
+  ) : (
+    <button
+      type="button"
+      onClick={() => setAberta(true)}
+      className="text-[12px] text-sky-300 hover:text-sky-200"
+    >
+      Ver a solução
+    </button>
+  );
+}
+
+/**
+ * O resultado encolhido: uma faixa no topo, para conferir a mesa final (o que
+ * ficou no campo, o Cemitério, o histórico) e voltar ao resultado.
+ */
+function ResultPeekBar({
+  winner,
+  me,
+  onBack,
+}: {
+  winner: number;
+  me: 0 | 1;
+  onBack: () => void;
+}) {
+  const texto = winner === 2 ? "Empate" : winner === me ? "Vitória" : "Derrota";
+  return (
+    <div className="pointer-events-none absolute inset-x-0 top-12 z-50 flex justify-center">
+      <div className="tf-panel pointer-events-auto flex items-center gap-3 rounded-full px-4 py-2 shadow-xl shadow-black/60">
+        <span className="text-[13px] font-bold text-[color:var(--tf-gold-bright)]">
+          Duelo encerrado — {texto}
+        </span>
+        <button
+          type="button"
+          data-table-control
+          onClick={onBack}
+          className="rounded-full bg-[color:var(--tf-gold)] px-4 py-1.5 text-[13px] font-bold text-black transition hover:brightness-110"
+        >
+          Voltar ao resultado
+        </button>
       </div>
     </div>
   );
@@ -2688,12 +3537,15 @@ function LifeBar({
   lp,
   active,
   align = "left",
+  mine = false,
 }: {
   name: string;
   role: string;
   lp: number;
   active: boolean;
   align?: "left" | "right";
+  /** A barra de quem olha a mesa — muda o texto do selo de vez. */
+  mine?: boolean;
 }) {
   const ratio = Math.max(0, Math.min(1, lp / 8000));
   const low = ratio <= 0.25;
@@ -2709,6 +3561,7 @@ function LifeBar({
 
   return (
     <div
+      data-lp-bar
       className={`tf-panel flex min-w-0 flex-1 items-center gap-3 rounded-md px-3 py-1 ${
         align === "right" ? "flex-row-reverse text-right" : ""
       } ${active ? "ring-1 ring-[color:var(--tf-gold)]/70" : ""}`}
@@ -2733,9 +3586,26 @@ function LifeBar({
         </div>
       </div>
 
-      <span className="shrink-0 text-[10px] uppercase tracking-[0.2em] text-[color:var(--tf-gold-dim)]">
-        {active ? "TURNO" : role}
-      </span>
+      {/* De quem é a vez, como estado e não como rótulo: antes a barra de
+          quem jogava dizia "TURNO" e a outra "Oponente" — dois textos no
+          mesmo lugar, que se liam como dois nomes. */}
+      {active ? (
+        // No celular a barra tem ~140 px: o LP e o selo não cabem juntos, e o
+        // selo vazava por cima da barra do lado. Lá a vez fica com o contorno
+        // dourado da barra e com o "Turno N — Você" da trilha de fases.
+        <span
+          data-turn-badge
+          className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-wider max-[520px]:hidden ${
+            mine ? "bg-[color:var(--tf-gold)] text-black" : "bg-red-600 text-white"
+          }`}
+        >
+          {mine ? "Sua vez" : role === "Oponente" ? "Vez do oponente" : "Na vez"}
+        </span>
+      ) : (
+        <span className="shrink-0 text-[10px] uppercase tracking-[0.2em] text-[color:var(--tf-gold-dim)] max-[520px]:hidden">
+          {role}
+        </span>
+      )}
     </div>
   );
 }
@@ -2744,12 +3614,37 @@ function DuelLog({
   entries,
   reveals,
   onOpenReveals,
+  me,
+  onHover,
+  registry,
 }: {
   entries: DuelLogEntry[];
   /** Revelações desta ótica — o botão só existe quando houve alguma. */
   reveals: DuelReveal[];
   onOpenReveals: () => void;
+  /** Quem olha — pinta as linhas de cada lado com a cor dele. */
+  me: 0 | 1;
+  /** Passar o mouse numa linha com carta mostra a carta na leitura. */
+  onHover: (card: PreviewCard | null) => void;
+  /** Para escrever os nomes de carta no idioma escolhido (ver `log-names.ts`). */
+  registry: CardRegistry | null;
 }) {
+  const texto = useCardText();
+  const noIdioma = (entry: DuelLogEntry) =>
+    localizeLogText(
+      entry.text,
+      entry.codes,
+      (code) => registry?.get(code)?.name,
+      (code) => {
+        const definicao = registry?.get(code);
+        return definicao ? texto.name(definicao) : undefined;
+      },
+    );
+  // O que é jogo. Fora: o progresso da carga (`system`) e as dicas do core
+  // sobre a escolha em curso (`hint`) — essas já aparecem na barra da seleção,
+  // onde servem, e no histórico só empurravam o jogo para fora da tela.
+  const linhas = entries.filter((entry) => entry.kind !== "system" && entry.kind !== "hint");
+
   return (
     // Em coluna própria, à direita: não disputa mais altura com a leitura da
     // carta, então pode usar tudo o que tem — um duelo gera muita linha e
@@ -2762,6 +3657,7 @@ function DuelLog({
         {reveals.length > 0 && (
           <button
             type="button"
+            data-table-control
             onClick={onOpenReveals}
             title="Ver as cartas que foram reveladas"
             className="rounded border border-[color:var(--tf-slot-border)] px-1.5 py-0.5 text-[10px] font-semibold text-[color:var(--tf-gold-bright)] hover:bg-black/50"
@@ -2773,30 +3669,113 @@ function DuelLog({
       {/* `flex-col-reverse` com a lista invertida gruda a rolagem embaixo: a
           linha mais nova fica sempre visível sem precisar de scroll manual,
           que é justamente a linha que importa. */}
-      <div className="flex min-h-0 flex-1 flex-col-reverse overflow-y-auto pr-1 text-[11px] leading-snug text-zinc-300">
-        {entries
-          .slice(-60)
+      <div
+        data-duel-log
+        className="flex min-h-0 flex-1 flex-col-reverse overflow-y-auto pr-1 text-[11px] leading-snug text-zinc-300"
+      >
+        {linhas
+          .slice(-80)
           .map((entry, index) => ({ entry, index }))
           .reverse()
-          .map(({ entry, index }) => (
-            <p key={`${index}-${entry.text}`} className="border-b border-white/5 pb-0.5">
-              {entry.text}
-            </p>
-          ))}
+          .map(({ entry, index }) => {
+            const carta = entry.codes?.[0];
+            const lado =
+              entry.actor === undefined ? null : entry.actor === me ? "mine" : "foe";
+            if (entry.kind === "turn") {
+              // O turno vira separador: é por ele que se rola o histórico
+              // ("o que ele fez no turno passado?").
+              return (
+                <p
+                  key={`${index}-${entry.text}`}
+                  data-log-kind="turn"
+                  className={`mt-2 border-t pt-1 text-[10px] font-extrabold uppercase tracking-wider ${
+                    lado === "foe"
+                      ? "border-red-500/40 text-red-300"
+                      : "border-[color:var(--tf-gold)]/50 text-[color:var(--tf-gold)]"
+                  }`}
+                >
+                  {noIdioma(entry)}
+                </p>
+              );
+            }
+            if (entry.kind === "phase") {
+              return (
+                <p key={`${index}-${entry.text}`} data-log-kind="phase" className="text-[10px] text-zinc-500">
+                  {entry.text}
+                </p>
+              );
+            }
+            return (
+              <p
+                key={`${index}-${entry.text}`}
+                data-log-card={carta}
+                onMouseEnter={carta ? () => onHover({ code: carta }) : undefined}
+                className={`border-l-2 pb-0.5 pl-1.5 ${
+                  lado === "mine"
+                    ? "border-[color:var(--tf-gold)]/70"
+                    : lado === "foe"
+                      ? "border-red-500/70"
+                      : "border-transparent"
+                } ${carta ? "cursor-help hover:bg-white/5" : ""}`}
+              >
+                {noIdioma(entry)}
+              </p>
+            );
+          })}
       </div>
     </div>
   );
 }
 
 /** Leitura da carta em foco — o painel grande do canto esquerdo do Tag Force. */
+/**
+ * "⛓ Elo 2 — Oponente ativou (da mão)" no topo da leitura, com o efeito que o
+ * core diz ter sido ativado. O texto completo da carta vem logo abaixo, como
+ * em qualquer leitura — este cabeçalho só diz por que ela está ali e qual
+ * efeito foi (a carta pode ter mais de um).
+ */
+function ActivationBanner({ activation }: { activation: ActivationHeader }) {
+  const origem = ORIGEM[activation.from];
+  const negado = activation.state === "negated" || activation.state === "disabled";
+  return (
+    <div
+      data-preview-activation={activation.link}
+      className={`shrink-0 rounded border px-2 py-1.5 ${
+        negado
+          ? "border-red-500/60 bg-red-950/40"
+          : activation.mine
+            ? "border-[color:var(--tf-gold)]/50 bg-black/40"
+            : "border-red-500/40 bg-black/40"
+      }`}
+    >
+      <p className="text-[11px] font-bold uppercase tracking-wider text-[color:var(--tf-gold)]">
+        ⛓ Elo {activation.link} — {activation.who} ativou{origem ? ` ${origem}` : ""}
+        {negado && (
+          <span className="ml-1.5 rounded bg-red-700 px-1 py-px text-[10px] text-white">
+            {activation.state === "negated" ? "Ativação negada" : "Efeito negado"}
+          </span>
+        )}
+      </p>
+      {activation.description && (
+        <p className="mt-0.5 text-[12px] font-semibold leading-snug text-sky-300">
+          {activation.description}
+        </p>
+      )}
+    </div>
+  );
+}
+
 function CardPreview({
   card,
   registry,
   marksOf,
+  activation = null,
 }: {
   card: PreviewCard | null;
   registry: CardRegistry | null;
   marksOf: (card: BoardCard | null | undefined) => CardMark[];
+  /** Quando a carta está aqui porque acabou de ser ativada (ver `ativacaoLida`). */
+  activation?: ActivationHeader | null;
 }) {
   const texto = useCardText();
   const definition = card?.code ? registry?.get(card.code) : undefined;
@@ -2831,6 +3810,8 @@ function CardPreview({
   const markers = card?.link?.markers ?? definition.linkMarkers ?? 0;
   const rank = card?.rank || (isXyz ? (definition.level ?? 0) : 0);
   const level = card?.level || (!isXyz && !isLink ? (definition.level ?? 0) : 0);
+  /** O Nível impresso — para mostrar quando um efeito o mudou. */
+  const levelBase = !isXyz && !isLink ? (definition.level ?? 0) : 0;
   const leftScale = card?.scales?.left ?? definition.scale;
   const rightScale = card?.scales?.right ?? definition.scale;
   const materials = card?.overlays ?? [];
@@ -2842,6 +3823,7 @@ function CardPreview({
 
   return (
     <div className="tf-panel flex min-h-0 flex-1 flex-col gap-2 overflow-hidden rounded-md p-2.5">
+      {activation && <ActivationBanner activation={activation} />}
       {image && (
         // eslint-disable-next-line @next/next/no-img-element
         <img
@@ -2883,17 +3865,40 @@ function CardPreview({
         </p>
         {isMonster && (
           <p className="flex flex-wrap items-center gap-x-2 text-[12px] text-amber-300">
+            {/* O número vem antes dos símbolos, nos três: contar oito estrelas
+                (ou seis setas) para saber se dá Xyz ou Link é trabalho que a
+                tela pode fazer. É o mesmo "Nv." do construtor. */}
             {isLink ? (
-              <span className="flex items-center gap-1.5 text-sky-300">
+              <span data-preview-link={rating} className="flex items-center gap-1.5 text-sky-300">
+                <span className="font-semibold">Link {rating}</span>
                 <LinkArrowsGlyph markers={markers} />
-                Link {rating}
               </span>
             ) : rank ? (
-              <span title={`Rank ${rank}`} className="text-zinc-100">
-                Rank {rank} {"☆".repeat(Math.min(rank, 13))}
+              <span data-preview-rank={rank} title={`Rank ${rank}`} className="flex items-center gap-1.5 text-zinc-100">
+                <span className="font-semibold">Rank {rank}</span>
+                <span>{"☆".repeat(Math.min(rank, 13))}</span>
               </span>
             ) : level ? (
-              <span title={`Nível ${level}`}>{"★".repeat(Math.min(level, 12))}</span>
+              <span
+                data-preview-level={level}
+                title={levelBase && levelBase !== level ? `Nível ${level} (original ${levelBase})` : `Nível ${level}`}
+                className="flex items-center gap-1.5"
+              >
+                {/* Nível mudado por efeito (Ruído Mental, Fusão do Nível…): a
+                    mesma cor do ATK/DEF alterado — azul subiu, vermelho desceu. */}
+                <span
+                  className={`font-semibold ${
+                    levelBase && level > levelBase
+                      ? "text-sky-400"
+                      : levelBase && level < levelBase
+                        ? "text-red-400"
+                        : ""
+                  }`}
+                >
+                  Nv. {level}
+                </span>
+                <span>{"★".repeat(Math.min(level, 12))}</span>
+              </span>
             ) : null}
             <span>{attributeLabel(definition.attribute) ?? ""}</span>
           </p>
@@ -2951,9 +3956,12 @@ function CardPreview({
         )}
       </div>
 
-      <p className="min-h-0 flex-1 overflow-y-auto pr-1 text-[13px] leading-relaxed text-zinc-200">
-        {texto.desc(definition)}
-      </p>
+      {/* Termos de regra sublinhados, com a definição a um toque (glossário);
+          as quebras de linha da carta (as listas "●") ficam como estão. */}
+      <GlossaryText
+        text={texto.desc(definition)}
+        className="min-h-0 flex-1 overflow-y-auto whitespace-pre-line pr-1 text-[13px] leading-relaxed text-zinc-200"
+      />
     </div>
   );
 }
@@ -3020,12 +4028,17 @@ function CounterSelectModal({
   registry,
   onRespond,
   onHover,
+  hidden,
+  onPeek,
 }: {
   instruction: string;
   selection: CounterSelection;
   registry: CardRegistry | null;
   onRespond: (response: OcgResponse) => void;
   onHover: (card: PreviewCard | null) => void;
+  /** Escondido para ver a mesa — a distribuição já feita continua aqui. */
+  hidden: boolean;
+  onPeek: () => void;
 }) {
   const texto = useCardText();
   const [amounts, setAmounts] = useState<number[]>(() => selection.cards.map(() => 0));
@@ -3042,8 +4055,11 @@ function CounterSelectModal({
   }
 
   return (
-    <div className="tf-modal-scrim tf-modal-area z-50 flex items-center justify-center p-6">
-      <div className="tf-modal tf-anim-modal-in flex max-h-full w-[min(520px,94%)] flex-col overflow-hidden">
+    <DecisionShell
+      label={instruction}
+      hidden={hidden}
+      className="flex max-h-full w-[min(520px,94%)] flex-col overflow-hidden"
+    >
         <p className="tf-modal-head shrink-0 px-5 py-2.5 text-center text-[15px] font-semibold text-[color:var(--tf-gold-bright)]">
           {instruction}
         </p>
@@ -3100,6 +4116,7 @@ function CounterSelectModal({
           <span className="font-mono text-[13px] text-[color:var(--tf-gold-dim)]">
             {total}/{selection.count}
           </span>
+          <PeekButton onPeek={onPeek} />
           <ModalButton
             tone="primary"
             label="Confirmar"
@@ -3107,7 +4124,6 @@ function CounterSelectModal({
             onClick={() => onRespond(selection.build(amounts))}
           />
         </div>
-      </div>
-    </div>
+    </DecisionShell>
   );
 }

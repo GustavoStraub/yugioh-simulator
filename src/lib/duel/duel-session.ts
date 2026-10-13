@@ -6,6 +6,7 @@ import {
   OcgPlayerHintType,
   OcgLogType,
   OcgMessageType,
+  OcgPhase,
   OcgPosition,
   OcgProcessResult,
   OcgQueryFlags,
@@ -16,9 +17,15 @@ import {
 } from "@n1xx1/ocgcore-wasm";
 
 import { autoResponseFor } from "@/lib/duel/auto-response";
+import { chainWindowSkip, type ChainResponseMode } from "@/lib/duel/chain-mode";
 import { browserAssets } from "@/lib/duel/browser-assets";
 import type { DuelAssets } from "@/lib/duel/duel-assets";
-import type { DuelEvent, DuelEventListener, DuelZoneRef } from "@/lib/duel/duel-events";
+import type {
+  DuelEvent,
+  DuelEventListener,
+  DuelZoneRef,
+  LeaveReason,
+} from "@/lib/duel/duel-events";
 import {
   readBoardState,
   type BoardState,
@@ -31,7 +38,7 @@ import {
 } from "@/lib/duel/card-adapter";
 import { findPromptMessage } from "@/lib/duel/bot-responder";
 import { BotBrain, type BotContext } from "@/lib/duel/bot/bot-brain";
-import { beatFor, phaseBeat, MAX_BEAT_PER_BATCH_MS } from "@/lib/duel/pacing";
+import { beatFor, leaveBeat, phaseBeat, MAX_BEAT_PER_BATCH_MS } from "@/lib/duel/pacing";
 import { phaseLabel } from "@/lib/duel/phase-labels";
 import {
   EMPTY_ENGINE_STRINGS,
@@ -70,6 +77,12 @@ export interface SeatConfig {
   kind: SeatKind;
   /** Nome usado na narração do log ("Você invocou...", "Gustavo invocou..."). */
   name: string;
+  /**
+   * Quando perguntar "deseja responder?" a este assento (ver `chain-mode.ts`).
+   * Omitido = automático. Só vale para assento humano; trocável no meio do
+   * duelo por `setChainPreference`.
+   */
+  chainMode?: ChainResponseMode;
 }
 
 /** Duelo de hoje: você embaixo, bot em cima. */
@@ -124,6 +137,36 @@ export interface DuelSessionConfig {
    * duelo online: só quem monta o duelo por código.
    */
   scenario?: ScenarioCard[];
+  /**
+   * Multiplicador das pausas entre jogadas (ver `pacing.ts`): 1 = ritmo
+   * normal, menos = mais rápido, 0 = sem pausa nenhuma (testes). Trocável no
+   * meio do duelo por `setPace`.
+   */
+  pace?: number;
+  /**
+   * Em que assento senta quem joga (`playerDeck`) — padrão 0.
+   *
+   * O core SEMPRE dá o primeiro turno ao assento 0, então "o bot começa" é o
+   * jogador sentar no 1: o `playerDeck` vai para o assento 1, o do oponente
+   * para o 0, e os assentos padrão se invertem. O `scenario` continua
+   * escrito do ponto de vista de quem joga (`player: 0` = você) e é traduzido.
+   * Ignorado quando `seats` vem explícito (o online já monta os dois).
+   */
+  humanSeat?: 0 | 1;
+  /** Uma linha logo depois de "Duelo iniciado" — o resultado da moeda. */
+  openingNote?: string;
+  /**
+   * Duelo-problema (modo puzzle): a mesa vem pronta pelo `scenario`, ninguém
+   * compra mão inicial, os pontos de vida são os do problema e quem começa
+   * pode atacar já no primeiro turno — o desafio é vencer NESTE turno.
+   * `lifePoints` é [quem joga, oponente].
+   */
+  puzzle?: { lifePoints: [number, number] };
+  /**
+   * Assento cujo tabuleiro é lido mesmo sendo bot — o modo espectador (bot ×
+   * bot). Sem isto ninguém olha um assento de bot e a mesa ficaria vazia.
+   */
+  watchSeat?: 0 | 1;
 }
 
 /**
@@ -136,7 +179,42 @@ export interface DuelSessionConfig {
 export interface DuelLogEntry {
   text: string;
   visibleTo: 0 | 1 | null;
+  /**
+   * Que tipo de linha é. Ausente = uma jogada.
+   *
+   * A tela usa para dar peso — o turno vira separador, a fase fica discreta —
+   * e para tirar do histórico o que não é jogo: o progresso da carga
+   * (`system`) e as dicas do core sobre a escolha em curso (`hint`, "Selecione
+   * o(s) card(s) para usar como Matéria de Sincro"), que já aparecem onde
+   * servem, na barra da seleção. Antes as duas enchiam o histórico de linhas
+   * que nenhum jogador lia.
+   */
+  kind?: "turn" | "phase" | "hint" | "system";
+  /**
+   * Cartas citadas na linha, só as públicas — passar o mouse na linha mostra a
+   * primeira na leitura da carta. Atravessa a rede no online, e por isso nunca
+   * leva o código de uma carta que a linha não nomeia.
+   */
+  codes?: number[];
+  /** Assento que agiu ou de quem é a carta — a tela pinta a linha com a cor dele. */
+  actor?: 0 | 1;
 }
+
+/**
+ * Motivos que o core guarda na carta (`REASON_*` de constant.lua) — só os que
+ * mudam a frase do histórico.
+ */
+const REASON = {
+  DESTROY: 0x1,
+  RELEASE: 0x2,
+  MATERIAL: 0x8,
+  BATTLE: 0x20,
+  FUSION: 0x40000,
+  SYNCHRO: 0x80000,
+  RITUAL: 0x100000,
+  XYZ: 0x200000,
+  LINK: 0x10000000,
+} as const;
 
 /**
  * Uma revelação que já aconteceu, guardada para poder ser reconsultada.
@@ -355,9 +433,6 @@ const PLAY_EVENTS = new Set<OcgMessageType>([
   OcgMessageType.DRAW,
 ]);
 
-const delay = (ms: number) =>
-  new Promise<void>((resolve) => setTimeout(resolve, ms));
-
 /**
  * Monstro Normal sem efeito — o core lida com ele sem script nenhum, então a
  * ausência de script não é problema. Serve para não alarmar à toa.
@@ -460,6 +535,28 @@ export class DuelSession {
    * dois estão decidindo ao mesmo tempo.
    */
   private readonly brains = new Map<0 | 1, BotBrain>();
+  /** Modo de resposta de cada assento — ver `chain-mode.ts`. */
+  private chainModes: [ChainResponseMode, ChainResponseMode] = ["auto", "auto"];
+  /**
+   * "Segurando Ctrl": enquanto valer, o assento é perguntado em toda janela,
+   * qualquer que seja o modo. É o *hold* do Master Duel — o jeito de parar
+   * numa janela que o automático pularia (a Standby do oponente, para um MST).
+   */
+  private forceAsk: [boolean, boolean] = [false, false];
+  /** Multiplicador das pausas — ver `DuelSessionConfig.pace`. */
+  private pace = 1;
+  /** Ver `DuelSessionConfig.watchSeat`. */
+  private watchSeat: 0 | 1 | null = null;
+  /** Encerra a pausa em curso, quando há uma — ver `hurry`. */
+  private endPause: (() => void) | null = null;
+  /**
+   * Pausa pedida pelas saídas do campo deste lote (ver `narrateFieldExit`).
+   *
+   * O `MOVE` tem batida mínima porque dispara para toda troca de zona; uma
+   * destruição precisa de mais — é o tempo do fantasma da carta se desfazer na
+   * zona de onde saiu. Zerado a cada lote.
+   */
+  private leaveBeatWanted = 0;
 
   subscribe(listener: (snapshot: DuelSnapshot) => void): () => void {
     this.listeners.add(listener);
@@ -485,12 +582,22 @@ export class DuelSession {
     if (this.started) return;
     this.started = true;
     this.registry = config.registry;
-    this.seats = config.seats ?? DEFAULT_SEATS;
+    const humanSeat: 0 | 1 = config.humanSeat === 1 ? 1 : 0;
+    this.watchSeat = config.watchSeat ?? null;
+    this.seats =
+      config.seats ?? (humanSeat === 0 ? DEFAULT_SEATS : [DEFAULT_SEATS[1], DEFAULT_SEATS[0]]);
+    // O que o assento trouxe vale; senão fica o que a tela já pediu antes do
+    // `start` (a preferência pode chegar antes de o duelo carregar).
+    this.chainModes = [
+      this.seats[0].chainMode ?? this.chainModes[0],
+      this.seats[1].chainMode ?? this.chainModes[1],
+    ];
+    this.setPace(config.pace ?? this.pace);
     this.assets = config.assets ?? browserAssets;
     const format = config.format ?? DEFAULT_FORMAT;
     const rules = FORMAT_RULES[format];
     this.update({ error: null, isProcessing: true, log: [], format });
-    this.appendLog("Carregando engine...");
+    this.appendLog("Carregando engine...", null, { kind: "system" });
 
     /** Códigos que o catálogo não tinha — quase sempre fichas. */
     const unknownCodes = new Set<number>();
@@ -509,7 +616,7 @@ export class DuelSession {
         ...config.opponentDeck.extra,
         ...scenario.map((card) => card.code),
       ];
-      this.appendLog("Carregando scripts base do engine...");
+      this.appendLog("Carregando scripts base do engine...", null, { kind: "system" });
       const [{ core: coreScripts, support, patchesAusentes }, cardDb, engineStrings] =
         await Promise.all([
           preloadCoreScripts(this.assets.fetchScript),
@@ -529,7 +636,7 @@ export class DuelSession {
         );
       }
 
-      this.appendLog("Carregando scripts das cartas...");
+      this.appendLog("Carregando scripts das cartas...", null, { kind: "system" });
       const { cache, viaAlias, missing } = await preloadDuelScripts(
         allPasscodes,
         cardDb,
@@ -540,6 +647,8 @@ export class DuelSession {
       if (viaAlias.length > 0) {
         this.appendLog(
           `${viaAlias.length} carta(s) usando script do passcode original.`,
+          null,
+          { kind: "system" },
         );
       }
 
@@ -554,6 +663,8 @@ export class DuelSession {
           `⚠ Sem script (não terão efeito): ${inert
             .map((passcode) => this.cardName(passcode))
             .join(", ")}`,
+          null,
+          { codes: inert },
         );
       }
 
@@ -565,20 +676,28 @@ export class DuelSession {
       }
 
       this.core = await this.assets.loadCore((message) =>
-        this.appendLog(`[core] ${message}`),
+        this.appendLog(`[core] ${message}`, null, { kind: "system" }),
       );
 
       const core = this.core;
-      const team = {
-        startingLP: rules.startingLp,
-        startingDrawCount: rules.startingHandSize,
+      const puzzle = config.puzzle;
+      // O LP do problema é escrito de quem joga para o oponente; o core quer
+      // por assento.
+      const lpDoAssento = (assento: 0 | 1) =>
+        puzzle ? puzzle.lifePoints[assento === humanSeat ? 0 : 1] : rules.startingLp;
+      const team = (assento: 0 | 1) => ({
+        startingLP: lpDoAssento(assento),
+        startingDrawCount: puzzle ? 0 : rules.startingHandSize,
         drawCountPerTurn: rules.drawPerTurn,
-      };
+      });
+      if (puzzle) {
+        this.update({ lifePoints: [lpDoAssento(0), lpDoAssento(1)] });
+      }
       const handle = core.createDuel({
-        flags: DUEL_FLAGS[format],
+        flags: puzzle ? DUEL_FLAGS[format] | OcgDuelMode.ATTACK_FIRST_TURN : DUEL_FLAGS[format],
         seed: randomSeed(),
-        team1: team,
-        team2: team,
+        team1: team(0),
+        team2: team(1),
         cardReader: (code) => {
           const card = config.registry.get(code);
           if (card) return cardDefinitionToOcgData(card, this.cardDb);
@@ -611,14 +730,16 @@ export class DuelSession {
         }
       }
 
-      this.loadDeck(0, config.playerDeck);
-      this.loadDeck(1, config.opponentDeck);
+      this.loadDeck(humanSeat, config.playerDeck);
+      this.loadDeck((1 - humanSeat) as 0 | 1, config.opponentDeck);
       for (const card of scenario) {
+        // `player: 0` é quem joga — no assento que ele ocupar.
+        const assento = (card.player === 0 ? humanSeat : 1 - humanSeat) as 0 | 1;
         core.duelNewCard(handle, {
-          team: card.player,
+          team: assento,
           duelist: 0,
           code: card.code,
-          controller: card.player,
+          controller: assento,
           location: card.location as OcgLocation,
           sequence: card.sequence ?? 0,
           position: (card.position ??
@@ -633,6 +754,7 @@ export class DuelSession {
       this.appendLog(
         `Duelo iniciado — ${config.playerName} vs ${config.opponentName}`,
       );
+      if (config.openingNote) this.appendLog(config.openingNote);
 
       await this.core.startDuel(handle);
       await this.runLoop();
@@ -642,6 +764,49 @@ export class DuelSession {
         isProcessing: false,
       });
     }
+  }
+
+  /**
+   * Troca, no meio do duelo, quando o assento é perguntado se quer responder.
+   *
+   * Não mexe numa pergunta já na tela: o jogador que abriu o modal decide ele.
+   * Vale a partir da próxima janela.
+   */
+  setChainPreference(
+    seat: 0 | 1,
+    preference: { mode?: ChainResponseMode; forceAsk?: boolean },
+  ): void {
+    if (preference.mode) this.chainModes[seat] = preference.mode;
+    if (preference.forceAsk !== undefined) this.forceAsk[seat] = preference.forceAsk;
+  }
+
+  /**
+   * "Pula": encerra agora a pausa entre jogadas que está correndo.
+   *
+   * É o ○ do Tag Force e o clique do Master Duel — quem já leu o destaque da
+   * ativação não precisa esperar o resto dele. Só a pausa em curso: a próxima
+   * jogada volta ao ritmo escolhido.
+   */
+  hurry(): void {
+    this.endPause?.();
+  }
+
+  /** Espera `ms`, ou menos se alguém chamar `hurry`. */
+  private pause(ms: number): Promise<void> {
+    return new Promise<void>((resolve) => {
+      const done = () => {
+        clearTimeout(timer);
+        if (this.endPause === done) this.endPause = null;
+        resolve();
+      };
+      const timer = setTimeout(done, ms);
+      this.endPause = done;
+    });
+  }
+
+  /** Troca o ritmo no meio do duelo (ver `DuelSessionConfig.pace`). */
+  setPace(scale: number): void {
+    this.pace = Number.isFinite(scale) ? Math.min(2, Math.max(0, scale)) : 1;
   }
 
   /**
@@ -816,7 +981,7 @@ export class DuelSession {
           // atacante ainda no ar. Já um MOVE de carta quase não precisa de
           // nada. Uma pausa única para tudo deixava o combate atropelado e as
           // jogadas triviais lentas ao mesmo tempo.
-          const isOwnTurn = this.snapshot.turnPlayer === 0;
+          const isOwnTurn = this.ownTurnDiscount();
           let wanted = 0;
           for (const message of messages) {
             wanted = Math.max(wanted, beatFor(message.type, isOwnTurn));
@@ -824,13 +989,14 @@ export class DuelSession {
           if (changedPhase) {
             wanted = Math.max(wanted, phaseBeat(isOwnTurn));
           }
+          wanted = Math.max(wanted, this.leaveBeatWanted);
 
           // O teto vale por LOTE, não pelo turno inteiro. Com um teto por
           // turno as primeiras jogadas gastavam a cota e o resto do turno
           // corria sem pausa nenhuma — o ritmo mudava no meio da jogada, que
           // é justamente o que dá a sensação de engasgo.
-          const allowed = Math.min(wanted, MAX_BEAT_PER_BATCH_MS);
-          if (allowed > 0) await delay(allowed);
+          const allowed = Math.round(Math.min(wanted, MAX_BEAT_PER_BATCH_MS) * this.pace);
+          if (allowed > 0) await this.pause(allowed);
         }
 
         // Com o duelo decidido não há mais o que perguntar ao jogador.
@@ -899,6 +1065,25 @@ export class DuelSession {
           continue;
         }
 
+        // Janela de resposta que o modo do jogador manda pular (ver
+        // `chain-mode.ts`): "não responder" sem a pergunta chegar à tela. Só
+        // para humano — o bot decide as próprias janelas.
+        if (
+          prompt.type === OcgMessageType.SELECT_CHAIN &&
+          this.seats[promptPlayer].kind !== "bot"
+        ) {
+          const skip = chainWindowSkip(
+            prompt,
+            this.forceAsk[promptPlayer] ? "always" : this.chainModes[promptPlayer],
+            { topLinkPlayer: this.openChainController() },
+          );
+          if (skip) {
+            this.core.duelSetResponse(this.handle, skip);
+            this.selectHint = null;
+            continue;
+          }
+        }
+
         if (this.seats[promptPlayer].kind === "bot") {
           this.core.duelSetResponse(
             this.handle,
@@ -935,6 +1120,7 @@ export class DuelSession {
   }
 
   private consumeMessages(messages: OcgMessage[]): void {
+    this.leaveBeatWanted = 0;
     for (const message of messages) {
       switch (message.type) {
         // HINT carrega códigos internos do core (ids de efeito, timings) que
@@ -959,7 +1145,7 @@ export class DuelSession {
             // linha vai só para quem foi perguntado.
             if (text) {
               const para = message.player === 0 || message.player === 1 ? message.player : null;
-              this.appendLog(`💬 ${text}`, para);
+              this.appendLog(`💬 ${text}`, para, { kind: "hint" });
               // "%ls" é o nome da carta, que o core preenche do lado dele.
               if (message.hint_type === OcgHintType.SELECTMSG && !text.includes("%ls")) {
                 this.selectHint = text;
@@ -974,13 +1160,16 @@ export class DuelSession {
           // Reckless Greed, Mensagem do Espírito) e não existia na tela.
           const turnCount = this.snapshot.turnCount + 1;
           this.update({ turnPlayer: message.player, turnCount, chain: null, chainLinks: [] });
-          this.appendLog(`Turno ${turnCount} — ${this.seatName(message.player)}`);
+          this.appendLog(`Turno ${turnCount} — ${this.seatName(message.player)}`, null, {
+            kind: "turn",
+            actor: seatOf(message.player),
+          });
           this.emit({ kind: "turn", player: message.player });
           break;
         }
         case OcgMessageType.NEW_PHASE:
           this.update({ phase: message.phase });
-          this.appendLog(`— ${phaseLabel(message.phase)} —`);
+          this.appendLog(`— ${phaseLabel(message.phase)} —`, null, { kind: "phase" });
           this.emit({ kind: "phase", phase: message.phase });
           break;
 
@@ -989,6 +1178,8 @@ export class DuelSession {
         case OcgMessageType.SUMMONING:
           this.appendLog(
             `${this.seatName(message.controller)} Invocou ${this.cardName(message.code)}`,
+            null,
+            { codes: [message.code], actor: message.controller },
           );
           this.emit({
             kind: "summon",
@@ -1000,6 +1191,8 @@ export class DuelSession {
         case OcgMessageType.SPSUMMONING:
           this.appendLog(
             `${this.seatName(message.controller)} fez Invocação-Especial de ${this.cardName(message.code)}`,
+            null,
+            { codes: [message.code], actor: message.controller },
           );
           this.emit({
             kind: "summon",
@@ -1011,6 +1204,8 @@ export class DuelSession {
         case OcgMessageType.FLIPSUMMONING:
           this.appendLog(
             `${this.seatName(message.controller)} virou ${this.cardName(message.code)} para cima`,
+            null,
+            { codes: [message.code], actor: message.controller },
           );
           this.emit({
             kind: "flip",
@@ -1019,8 +1214,16 @@ export class DuelSession {
           });
           break;
         case OcgMessageType.SET:
-          this.appendLog("Uma carta foi baixada");
-          this.emit({ kind: "set", player: this.snapshot.turnPlayer ?? 0 });
+          // Onde foi baixada é público (a carta está ali na mesa); o que é,
+          // não — a linha diz quem e em que fileira, nunca o nome.
+          this.appendLog(
+            `${this.seatName(message.controller)} baixou ${
+              message.location === OcgLocation.MZONE ? "um monstro" : "uma Magia/Armadilha"
+            }`,
+            null,
+            { actor: message.controller },
+          );
+          this.emit({ kind: "set", player: message.controller });
           break;
         case OcgMessageType.CONFIRM_CARDS:
         case OcgMessageType.CONFIRM_DECKTOP: {
@@ -1105,6 +1308,8 @@ export class DuelSession {
               what === "activation"
                 ? `✖ Elo ${link.link} — ativação de ${this.cardName(link.code)} negada`
                 : `✖ Elo ${link.link} — efeito de ${this.cardName(link.code)} negado`,
+              null,
+              { codes: [link.code], actor: seatOf(link.player) },
             );
             this.emit({ kind: "chainNegated", link: link.link, player: link.player, code: link.code, what });
           }
@@ -1125,8 +1330,31 @@ export class DuelSession {
         // da cadeira do jogador o efeito parecia não ter funcionado.
         case OcgMessageType.MOVE: {
           const line = this.describeHandExit(message);
-          if (line) this.appendLog(line);
-          this.moveCardHints(message.from, message.to);
+          if (line) {
+            this.appendLog(line, null, {
+              actor: message.from.controller,
+              // O descarte vai para pilha pública; banida virada para baixo
+              // ou de volta ao Deck, não — e aí a linha nem cita o nome.
+              codes:
+                (message.to.location & OcgLocation.GRAVE) !== 0 ||
+                ((message.to.location & OcgLocation.REMOVED) !== 0 &&
+                  (message.to.position & OcgPosition.FACEDOWN) === 0)
+                  ? [message.card]
+                  : undefined,
+            });
+          } else {
+            this.narrateFieldExit(message);
+          }
+          // Matéria Xyz não é carta do campo, mesmo que a zona dita seja a do
+          // Xyz: desanexar uma não pode levar as marcas do monstro de cima
+          // (antes levava — o Xyz perdia contadores e avisos ao desanexar), e
+          // virar matéria não passa as marcas da carta para ele.
+          if (message.from.overlay_sequence === undefined) {
+            this.moveCardHints(
+              message.from,
+              message.to.overlay_sequence !== undefined ? { ...message.to, location: 0 } : message.to,
+            );
+          }
           break;
         }
         case OcgMessageType.TOSS_COIN:
@@ -1148,6 +1376,20 @@ export class DuelSession {
           });
           break;
         case OcgMessageType.DRAW:
+          // A compra da Draw Phase é implícita — narrá-la todo turno só
+          // empurraria o resto para fora da tela —, e a mão inicial também (é
+          // sempre a mesma). A que vem de efeito (Pote da Ganância, Upstart
+          // Goblin) é a que o jogador quer conferir.
+          if (
+            this.snapshot.turnCount > 0 &&
+            (this.snapshot.phase !== OcgPhase.DRAW || message.drawn.length > 1)
+          ) {
+            this.appendLog(
+              `${this.seatName(message.player)} comprou ${message.drawn.length} carta(s)`,
+              null,
+              { actor: seatOf(message.player) },
+            );
+          }
           this.emit({
             kind: "draw",
             player: message.player,
@@ -1159,6 +1401,8 @@ export class DuelSession {
           this.appendLog(
             `⛓ Elo ${message.chain_size} — ${this.seatName(message.controller)} ativou ` +
               `${this.cardName(message.code)}${origem ? ` (${origem})` : ""}`,
+            null,
+            { codes: [message.code], actor: message.controller },
           );
           const link: DuelChainLink = {
             code: message.code,
@@ -1194,14 +1438,33 @@ export class DuelSession {
             player: link.player,
             code: link.code,
             from: link.from,
+            description: link.description,
           });
           break;
         }
-        case OcgMessageType.ATTACK:
+        case OcgMessageType.ATTACK: {
+          // Com os nomes: "declarou ataque" sozinho não dizia quem atacou quem,
+          // e o combate é o que mais se confere depois. O alvo pode estar
+          // virado para baixo — aí ele é "uma carta virada para baixo".
+          const { card: atacante, target: alvo } = message;
+          const codigoAtacante = this.publicCodeAt(atacante.controller, atacante.location, atacante.sequence);
+          const nomeAtacante = this.publicNameAt(atacante.controller, atacante.location, atacante.sequence);
+          const codigoAlvo = alvo
+            ? this.publicCodeAt(alvo.controller, alvo.location, alvo.sequence)
+            : null;
           this.appendLog(
-            message.target
-              ? `⚔ ${this.seatName(message.card.controller)} declarou ataque`
-              : `⚔ ${this.seatName(message.card.controller)} atacou diretamente`,
+            alvo
+              ? `⚔ ${this.seatName(atacante.controller)} atacou ${this.publicNameAt(
+                  alvo.controller,
+                  alvo.location,
+                  alvo.sequence,
+                )} com ${nomeAtacante}`
+              : `⚔ ${this.seatName(atacante.controller)} atacou diretamente com ${nomeAtacante}`,
+            null,
+            {
+              codes: [codigoAtacante, codigoAlvo].filter((code): code is number => code !== null),
+              actor: atacante.controller,
+            },
           );
           this.emit({
             kind: "attack",
@@ -1221,9 +1484,12 @@ export class DuelSession {
               : null,
           });
           break;
+        }
         case OcgMessageType.POS_CHANGE:
           this.appendLog(
             `${this.cardName(message.code)} mudou de posição de batalha`,
+            null,
+            { codes: [message.code], actor: message.controller },
           );
           this.emit({ kind: "position", player: message.controller });
           break;
@@ -1237,6 +1503,8 @@ export class DuelSession {
           this.adjustLifePoints(message.player, -message.amount);
           this.appendLog(
             `${this.seatName(message.player)} perdeu ${message.amount} LP`,
+            null,
+            { actor: seatOf(message.player) },
           );
           this.emit({
             kind: "damage",
@@ -1248,12 +1516,16 @@ export class DuelSession {
           this.adjustLifePoints(message.player, -message.amount);
           this.appendLog(
             `${this.seatName(message.player)} pagou ${message.amount} LP`,
+            null,
+            { actor: seatOf(message.player) },
           );
           break;
         case OcgMessageType.RECOVER:
           this.adjustLifePoints(message.player, message.amount);
           this.appendLog(
             `${this.seatName(message.player)} recuperou ${message.amount} LP`,
+            null,
+            { actor: seatOf(message.player) },
           );
           this.emit({
             kind: "recover",
@@ -1314,6 +1586,11 @@ export class DuelSession {
             message.type === OcgMessageType.ADD_COUNTER
               ? `✦ ${nome} recebeu ${message.count} ${contador}`
               : `✦ ${nome} perdeu ${message.count} ${contador}`,
+            null,
+            {
+              codes: this.publicCodesAt(message),
+              actor: message.controller,
+            },
           );
           break;
         }
@@ -1321,12 +1598,16 @@ export class DuelSession {
           this.appendLog(
             `🔗 ${this.publicNameAt(message.card.controller, message.card.location, message.card.sequence)} ` +
               `foi equipada a ${this.publicNameAt(message.target.controller, message.target.location, message.target.sequence)}`,
+            null,
+            { codes: this.publicCodesAt(message.card, message.target), actor: message.card.controller },
           );
           break;
         case OcgMessageType.CARD_TARGET:
           this.appendLog(
             `🎯 ${this.publicNameAt(message.card.controller, message.card.location, message.card.sequence)} ` +
               `passou a ter como alvo ${this.publicNameAt(message.target.controller, message.target.location, message.target.sequence)}`,
+            null,
+            { codes: this.publicCodesAt(message.card, message.target), actor: message.card.controller },
           );
           break;
         case OcgMessageType.RETRY:
@@ -1336,6 +1617,30 @@ export class DuelSession {
           break;
       }
     }
+  }
+
+  /**
+   * As pausas do turno do próprio jogador podem ser encurtadas?
+   *
+   * Só quando quem joga é um humano local e do outro lado está o bot: quem
+   * clicou já sabe o que fez, e ninguém mais assiste. Num duelo online os dois
+   * assentos são humanos e um deles está sempre só assistindo — antes o teste
+   * era `turnPlayer === 0`, e o assento 1 via o turno do 0 em ritmo acelerado
+   * (e o 0 via o turno do 1 lento), nos dois sentidos errados.
+   */
+  private ownTurnDiscount(): boolean {
+    const turn = this.snapshot.turnPlayer;
+    if (turn !== 0 && turn !== 1) return false;
+    return this.seats[turn].kind === "local" && this.seats[1 - turn].kind === "bot";
+  }
+
+  /** Quem ativou o último elo ainda por resolver; `null` fora de corrente. */
+  private openChainController(): number | null {
+    for (let i = this.snapshot.chainLinks.length - 1; i >= 0; i -= 1) {
+      const link = this.snapshot.chainLinks[i];
+      if (link.state === "pending") return link.player;
+    }
+    return null;
   }
 
   /** Chave da zona nas marcas, a mesma do `cardKey` da mesa. */
@@ -1398,19 +1703,33 @@ export class DuelSession {
         break;
       case OcgCardHintType.CARD:
         entry.value = { kind: "card", code: raw };
-        this.appendLog(`📢 ${nome} — carta declarada: ${this.cardName(raw)}`);
+        this.appendLog(`📢 ${nome} — carta declarada: ${this.cardName(raw)}`, null, {
+          // A carta declarada é pública (foi dita em voz alta); a que
+          // declarou, só se estiver com a face para cima.
+          codes: [...this.publicCodesAt(message), raw],
+          actor: message.controller,
+        });
         break;
       case OcgCardHintType.RACE:
         entry.value = { kind: "race", mask: raw };
-        this.appendLog(`📢 ${nome} — Tipo declarado`);
+        this.appendLog(`📢 ${nome} — Tipo declarado`, null, {
+          codes: this.publicCodesAt(message),
+          actor: message.controller,
+        });
         break;
       case OcgCardHintType.ATTRIBUTE:
         entry.value = { kind: "attribute", mask: raw };
-        this.appendLog(`📢 ${nome} — Atributo declarado`);
+        this.appendLog(`📢 ${nome} — Atributo declarado`, null, {
+          codes: this.publicCodesAt(message),
+          actor: message.controller,
+        });
         break;
       case OcgCardHintType.NUMBER:
         entry.value = { kind: "number", value: raw };
-        this.appendLog(`📢 ${nome} — número declarado: ${raw}`);
+        this.appendLog(`📢 ${nome} — número declarado: ${raw}`, null, {
+          codes: this.publicCodesAt(message),
+          actor: message.controller,
+        });
         break;
       case OcgCardHintType.DESC_ADD:
       case OcgCardHintType.DESC_REMOVE: {
@@ -1463,22 +1782,147 @@ export class DuelSession {
    * nome de uma carta baixada entregaria o segredo.
    */
   private publicNameAt(controller: number, location: number, sequence: number): string {
+    const raw = this.queryAt(controller, location, sequence);
+    if (!raw?.code) return "uma carta";
+    if (((raw.position ?? 0) & OcgPosition.FACEDOWN) !== 0) return "uma carta virada para baixo";
+    return this.cardName(raw.code);
+  }
+
+  /** O passcode numa zona se a carta é pública (face para cima); senão `null`. */
+  private publicCodeAt(controller: number, location: number, sequence: number): number | null {
+    const raw = this.queryAt(controller, location, sequence);
+    if (!raw?.code) return null;
+    return ((raw.position ?? 0) & OcgPosition.FACEDOWN) !== 0 ? null : raw.code;
+  }
+
+  /** Os passcodes públicos das zonas citadas, na ordem (os baixados ficam de fora). */
+  private publicCodesAt(
+    ...zonas: { controller: number; location: number; sequence: number }[]
+  ): number[] {
+    return zonas
+      .map((zona) => this.publicCodeAt(zona.controller, zona.location, zona.sequence))
+      .filter((code): code is number => code !== null);
+  }
+
+  /** Código, posição e motivo da carta numa zona — `null` se não houver. */
+  private queryAt(
+    controller: number,
+    location: number,
+    sequence: number,
+  ): { code?: number; position?: number; reason?: number } | null {
     const { core, handle } = this;
-    if (!core || !handle) return "uma carta";
+    if (!core || !handle) return null;
     try {
-      const raw = core.duelQuery(handle, {
-        flags: (OcgQueryFlags.CODE | OcgQueryFlags.POSITION) as OcgQueryFlags,
+      return core.duelQuery(handle, {
+        flags: (OcgQueryFlags.CODE | OcgQueryFlags.POSITION | OcgQueryFlags.REASON) as OcgQueryFlags,
         controller: controller as 0 | 1,
         location: location as OcgLocation,
         sequence,
         overlaySequence: 0,
-      }) as { code?: number; position?: number } | null;
-      if (!raw?.code) return "uma carta";
-      if (((raw.position ?? 0) & OcgPosition.FACEDOWN) !== 0) return "uma carta virada para baixo";
-      return this.cardName(raw.code);
+      }) as { code?: number; position?: number; reason?: number } | null;
     } catch {
-      return "uma carta";
+      return null;
     }
+  }
+
+  /**
+   * Narra uma carta saindo do campo e avisa a mesa para animar a saída.
+   *
+   * O `MOVE` diz de onde e para onde, mas não por quê: o binding lê a mensagem
+   * sem o `reason` que o core escreve no fim dela. O motivo continua guardado
+   * na carta, então é lido no destino — conferindo que a carta lá é a mesma (no
+   * mesmo lote ela pode ter seguido para outro lugar; aí a frase cai no
+   * genérico pelo destino, que nunca mente).
+   *
+   * Nome só do que é público: uma carta baixada que volta para a mão ou o
+   * Deck continua secreta ("uma carta baixada"); a que vai para o Cemitério ou
+   * é banida com a face para cima passa a ser vista por todo mundo.
+   */
+  private narrateFieldExit(message: {
+    card: number;
+    from: LocPos;
+    to: LocPos;
+  }): void {
+    const { from, to } = message;
+    const campo = OcgLocation.MZONE | OcgLocation.SZONE;
+    if ((from.location & campo) === 0) return;
+    // Matéria Xyz, neste binding, NÃO vem com o bit OVERLAY na localização:
+    // vem a zona do monstro Xyz e um `overlay_sequence`. E na Invocação-Xyz a
+    // matéria é anexada ao Xyz ainda no Extra Deck — lido pela localização,
+    // isso parecia "foi para o Extra Deck".
+    const deMateria = from.overlay_sequence !== undefined;
+    const paraMateria = to.overlay_sequence !== undefined;
+    if (deMateria && paraMateria) return;
+    // Troca de zona dentro do campo (controle, mover de coluna) não é saída.
+    if (!paraMateria && (to.location & campo) !== 0) return;
+
+    const faceUpBefore = (from.position & OcgPosition.FACEDOWN) === 0;
+    const publicDestination =
+      (to.location & OcgLocation.GRAVE) !== 0 ||
+      ((to.location & (OcgLocation.REMOVED | OcgLocation.EXTRA)) !== 0 &&
+        (to.position & OcgPosition.FACEDOWN) === 0);
+    const code = message.card && (faceUpBefore || publicDestination) ? message.card : null;
+    const nome = code !== null ? this.cardName(code) : "Uma carta baixada";
+
+    // Matéria Xyz desanexada: sai de baixo do monstro, não de uma zona.
+    if (deMateria) {
+      if ((to.location & OcgLocation.GRAVE) !== 0) {
+        this.appendLog(`◈ ${nome} foi desanexada (matéria Xyz)`, null, {
+          codes: code !== null ? [code] : undefined,
+          actor: from.controller,
+        });
+      }
+      return;
+    }
+
+    const consulta =
+      to.location && !paraMateria ? this.queryAt(to.controller, to.location, to.sequence) : null;
+    const reason = paraMateria
+      ? REASON.MATERIAL | REASON.XYZ
+      : consulta?.code === message.card
+        ? (consulta.reason ?? 0)
+        : 0;
+    const why = leaveReasonOf(paraMateria ? 0 : to.location, reason);
+    const materia =
+      reason & REASON.SYNCHRO
+        ? " de Sincro"
+        : reason & REASON.XYZ
+          ? " Xyz"
+          : reason & REASON.LINK
+            ? " de Link"
+            : reason & REASON.FUSION
+              ? " de Fusão"
+              : reason & REASON.RITUAL
+                ? " de Ritual"
+                : "";
+    const facedownBanish = (to.position & OcgPosition.FACEDOWN) !== 0;
+
+    const texto: Record<LeaveReason, string> = {
+      battle: `💥 ${nome} foi destruída em batalha`,
+      destroy: `💥 ${nome} foi destruída`,
+      tribute: `${nome} foi oferecida como Tributo`,
+      material: `${nome} foi usada como matéria${materia}`,
+      grave: `⚰ ${nome} foi enviada ao Cemitério`,
+      banish: facedownBanish ? `🚫 ${nome} foi banida virada para baixo` : `🚫 ${nome} foi banida`,
+      hand: `↩ ${nome} voltou para a mão`,
+      deck:
+        (to.location & OcgLocation.EXTRA) !== 0
+          ? `↩ ${nome} foi para o Extra Deck`
+          : `↩ ${nome} voltou para o Deck`,
+    };
+    this.appendLog(texto[why], null, {
+      codes: code !== null ? [code] : undefined,
+      actor: from.controller,
+    });
+
+    this.leaveBeatWanted = Math.max(this.leaveBeatWanted, leaveBeat(why, this.ownTurnDiscount()));
+    this.emit({
+      kind: "leave",
+      player: from.controller,
+      code,
+      from: { controller: from.controller, location: from.location, sequence: from.sequence },
+      why,
+    });
   }
 
   /**
@@ -1571,6 +2015,8 @@ export class DuelSession {
     this.appendLog(
       `👁 ${title}: ${codes.map((code) => this.cardName(code)).join(", ")}`,
       seat,
+      // A linha é só de quem tem direito de ver (`seat`): os códigos também.
+      { codes },
     );
     this.revealCounter += 1;
     this.update({
@@ -1693,7 +2139,7 @@ export class DuelSession {
     // o resultado — e é justamente esse custo que o modo `light` contém.
     const hints = this.hintsByZone();
     const boards = [0, 1].map((seat) =>
-      this.seats[seat as 0 | 1].kind === "bot"
+      this.seats[seat as 0 | 1].kind === "bot" && this.watchSeat !== seat
         ? null
         : readBoardState(core, handle, seat as 0 | 1, light, hints),
     ) as [BoardState | null, BoardState | null];
@@ -1702,8 +2148,16 @@ export class DuelSession {
   }
 
   /** @param visibleTo assento que pode ler a linha; `null` é público. */
-  private appendLog(text: string, visibleTo: 0 | 1 | null = null): void {
-    this.update({ log: [...this.snapshot.log.slice(-199), { text, visibleTo }] });
+  private appendLog(
+    text: string,
+    visibleTo: 0 | 1 | null = null,
+    extra: Pick<DuelLogEntry, "kind" | "codes" | "actor"> = {},
+  ): void {
+    const entry: DuelLogEntry = { text, visibleTo };
+    if (extra.kind) entry.kind = extra.kind;
+    if (extra.codes?.length) entry.codes = extra.codes;
+    if (extra.actor === 0 || extra.actor === 1) entry.actor = extra.actor;
+    this.update({ log: [...this.snapshot.log.slice(-199), entry] });
   }
 
   private update(partial: Partial<DuelSnapshot>): void {
@@ -1712,6 +2166,43 @@ export class DuelSession {
       listener(this.snapshot);
     }
   }
+}
+
+/** Origem/destino de um `MOVE`, como o binding entrega. */
+interface LocPos {
+  controller: 0 | 1;
+  location: number;
+  sequence: number;
+  position: number;
+  /** Presente quando a carta é (ou era) matéria Xyz — ver `narrateFieldExit`. */
+  overlay_sequence?: number;
+}
+
+/** O assento como `0 | 1`, ou `undefined` para o 2 do empate e afins. */
+function seatOf(player: number): 0 | 1 | undefined {
+  return player === 0 || player === 1 ? player : undefined;
+}
+
+/**
+ * O motivo da saída, do destino e dos `REASON_*` que o core guardou.
+ *
+ * O destino manda quando a carta não foi para o Cemitério (banida, mão,
+ * Deck); no Cemitério, o motivo separa destruição em batalha, destruição,
+ * Tributo e matéria do "enviado" genérico (custo, efeito, regra).
+ */
+function leaveReasonOf(to: number, reason: number): LeaveReason {
+  if (to & OcgLocation.REMOVED) return "banish";
+  if (to & OcgLocation.HAND) return "hand";
+  // Pêndulo destruído vai para o Extra Deck com a face para cima — continua
+  // sendo uma destruição, e é isso que o jogador quer ler.
+  if (to & OcgLocation.EXTRA && reason & REASON.DESTROY) {
+    return reason & REASON.BATTLE ? "battle" : "destroy";
+  }
+  if (to & (OcgLocation.DECK | OcgLocation.EXTRA)) return "deck";
+  if (reason & REASON.DESTROY) return reason & REASON.BATTLE ? "battle" : "destroy";
+  if (reason & REASON.RELEASE) return "tribute";
+  if (reason & REASON.MATERIAL) return "material";
+  return "grave";
 }
 
 function createInitialSnapshot(): DuelSnapshot {

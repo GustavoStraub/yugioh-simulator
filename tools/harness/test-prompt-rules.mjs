@@ -18,14 +18,18 @@
  *
  * Uso: npm run test:prompt-rules
  */
-import { OcgMessageType, OcgOpCode } from "@n1xx1/ocgcore-wasm";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+
+import { OcgLocation, OcgMessageType, OcgOpCode } from "@n1xx1/ocgcore-wasm";
 
 import { isDeclarable } from "@/lib/duel/announce-filter";
 import { autoResponseFor } from "@/lib/duel/auto-response";
-import { buildPromptPlan } from "@/lib/duel/duel-actions";
+import { buildPromptPlan, cardKey } from "@/lib/duel/duel-actions";
+import { EngineStringsDb } from "@/lib/duel/engine-strings";
 import { findSumSubset, isValidSum } from "@/lib/duel/sum-selection";
 
-import { loadCardDb } from "./env.mjs";
+import { loadCardDb, REPO } from "./env.mjs";
 
 const falhas = [];
 function conferir(condicao, descricao, detalhe = "") {
@@ -41,7 +45,73 @@ const db = loadCardDb();
 const dados = (code) => ({ code, ...db.get(code) });
 
 // ---------------------------------------------------------------------------
-console.log("ANNOUNCE_CARD — o filtro do core");
+console.log("Jogadas de efeito com nome (não só \"Ativar\")");
+{
+  const strings = new EngineStringsDb(
+    JSON.parse(readFileSync(join(REPO, "src/data/engine-strings.json"), "utf8")),
+  );
+  const BLS = 72989439; // Soldado do Lustro Negro — Enviado do Princípio
+  const ODD_EYES = 16178681;
+  const BREAKER = 71413901;
+  const stringId = (code, n) => BigInt(code) * 0x100000n + BigInt(n);
+  const carta = (code, location, sequence, description) => ({
+    code, controller: 0, location, sequence, description, client_mode: 0,
+  });
+  const idle = {
+    type: OcgMessageType.SELECT_IDLECMD,
+    player: 0,
+    summons: [], special_summons: [], pos_changes: [], monster_sets: [], spell_sets: [],
+    activates: [
+      carta(BLS, OcgLocation.MZONE, 0, stringId(BLS, 1)),
+      carta(ODD_EYES, OcgLocation.HAND, 0, 1160n),
+      carta(BREAKER, OcgLocation.MZONE, 1, stringId(BREAKER, 1)),
+      carta(BREAKER, OcgLocation.MZONE, 1, 0n),
+    ],
+    to_bp: false, to_ep: true, shuffle: false,
+  };
+  const plano = buildPromptPlan(idle, strings);
+  const de = (code, location, sequence) => plano.byCard.get(cardKey(0, location, sequence)) ?? [];
+  conferir(
+    de(BLS, OcgLocation.MZONE, 0)[0]?.detail === "Banish 1 monster on the field",
+    "Soldado do Lustro Negro: 'Ativar' diz qual efeito (banir)",
+    JSON.stringify(de(BLS, OcgLocation.MZONE, 0)),
+  );
+  conferir(
+    de(ODD_EYES, OcgLocation.HAND, 0)[0]?.detail === "Como Escala de Pêndulo",
+    "Pêndulo da mão: 'Ativar — Como Escala de Pêndulo' (string do sistema traduzida)",
+  );
+  const breaker = de(BREAKER, OcgLocation.MZONE, 1);
+  conferir(
+    breaker.length === 2 && breaker[0].detail !== breaker[1].detail,
+    "duas jogadas na mesma carta não ficam idênticas",
+    JSON.stringify(breaker),
+  );
+  conferir(
+    breaker.every((acao) => acao.label === "Ativar"),
+    "o rótulo continua sendo o verbo (é por ele que se acha a ação)",
+  );
+  conferir(breaker[1].detail === undefined, "efeito sem descrição fica só 'Ativar'");
+  const semBanco = buildPromptPlan(idle);
+  conferir(
+    [...semBanco.byCard.values()].flat().every((acao) => acao.detail === undefined),
+    "sem o banco de strings (falha de download) nada quebra",
+  );
+  const corrente = buildPromptPlan(
+    {
+      type: OcgMessageType.SELECT_CHAIN,
+      player: 0, spe_count: 1, forced: false, hint_timing: 0, hint_timing_other: 0,
+      selects: [{ ...carta(14558127, OcgLocation.HAND, 0, stringId(14558127, 0)), position: 0 }],
+    },
+    strings,
+  );
+  conferir(
+    corrente.byCard.get(cardKey(0, OcgLocation.HAND, 0))?.[0]?.detail === "Negate that effect",
+    "resposta na corrente também diz o efeito (Ash: 'Negate that effect')",
+  );
+}
+
+// ---------------------------------------------------------------------------
+console.log("\nANNOUNCE_CARD — o filtro do core");
 {
   const ANCIENT_GEAR_GADGET = 18486927;
   // O filtro do próprio script (`s.announce_filter`): um monstro "Gadget" que

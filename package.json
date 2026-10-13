@@ -50,7 +50,15 @@
     "test:bot": "node --import ./tools/harness/ts-loader-register.mjs tools/harness/test-bot.mjs",
     "test:presets": "node --import ./tools/harness/ts-loader-register.mjs tools/harness/test-preset-decks.mjs",
     "test:sort-card": "node --import ./tools/harness/ts-loader-register.mjs tools/harness/test-sort-card.mjs",
-    "test:token-images": "node --import ./tools/harness/ts-loader-register.mjs tools/harness/test-token-images.mjs"
+    "test:token-images": "node --import ./tools/harness/ts-loader-register.mjs tools/harness/test-token-images.mjs",
+    "test:chain-mode": "node --import ./tools/harness/ts-loader-register.mjs tools/harness/test-chain-mode.mjs",
+    "test:duel-log": "node --import ./tools/harness/ts-loader-register.mjs tools/harness/test-duel-log.mjs",
+    "test:browser-peek": "node tools/harness/test-browser-peek.mjs",
+    "test:deck-codec": "node --import ./tools/harness/ts-loader-register.mjs tools/harness/test-deck-codec.mjs",
+    "test:browser-builder": "node tools/harness/test-browser-builder.mjs",
+    "test:puzzles": "node --import ./tools/harness/ts-loader-register.mjs tools/harness/test-puzzles.mjs",
+    "test:learning": "node --import ./tools/harness/ts-loader-register.mjs tools/harness/test-learning.mjs",
+    "test:browser-learning": "node tools/harness/test-browser-learning.mjs"
   },
   "dependencies": {
     "@n1xx1/ocgcore-wasm": "npm:@jsr/n1xx1__ocgcore-wasm@^0.1.4",

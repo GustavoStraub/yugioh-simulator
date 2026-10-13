@@ -7,6 +7,7 @@ import { DuelBoard } from "@/components/duel/DuelBoard";
 import { CardRegistryProvider, useCardRegistry } from "@/context/CardRegistryProvider";
 import { useClientSnapshot } from "@/hooks/useClientSnapshot";
 import { useDeckEscolha } from "@/hooks/useDeckEscolha";
+import { useDuelPrefs } from "@/hooks/useDuelPrefs";
 import { DeckSelect } from "@/components/duel/DeckSelect";
 import { JokenpoDisputa } from "@/components/duel/JokenpoDisputa";
 import { useOnlineDuel } from "@/hooks/useOnlineDuel";
@@ -51,6 +52,19 @@ function OnlineDuelInner({ code }: { code: string }) {
   });
 
   const { me, seats, started, finished, snapshot, status, error } = duel;
+
+  // Preferências da mesa. O modo de resposta vai para o servidor (é ele quem
+  // roda o engine e decide pular a janela); a velocidade não — online o ritmo
+  // é da sala.
+  const [prefs, setPrefs] = useDuelPrefs();
+  const { setChainPreference } = duel;
+  useEffect(() => {
+    setChainPreference({ mode: prefs.chainMode });
+  }, [prefs.chainMode, setChainPreference]);
+  const forceAsk = useCallback(
+    (held: boolean) => setChainPreference({ forceAsk: held }),
+    [setChainPreference],
+  );
 
   /**
    * A tela de sala aberta por cima de um duelo terminado.
@@ -135,6 +149,10 @@ function OnlineDuelInner({ code }: { code: string }) {
           onRespond={duel.respond}
           onSurrender={duel.surrender}
           subscribeEvents={duel.subscribeEvents}
+          prefs={prefs}
+          onPrefsChange={setPrefs}
+          onForceAsk={forceAsk}
+          pacing="room"
           ending={{
             backHref: "/duel/online",
             backLabel: "Sair da sala",
