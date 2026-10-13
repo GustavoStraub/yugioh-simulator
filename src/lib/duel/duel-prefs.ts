@@ -13,6 +13,12 @@ export interface DuelPrefs {
   chainMode: ChainResponseMode;
   /** Velocidade das animações e das pausas entre jogadas. */
   speed: DuelSpeed;
+  /**
+   * O corte de invocação do Master Duel: a arte do monstro em tela cheia nas
+   * invocações do Extra Deck, de Ritual e por Tributo. Ligado por padrão; no
+   * duelo local, desligar também tira a pausa que a sessão faz por ele.
+   */
+  cutIns: boolean;
 }
 
 /**
@@ -52,7 +58,7 @@ export const CHAIN_MODE_HINT: Record<ChainResponseMode, string> = {
   never: "Só pergunta quando encadear é obrigatório. Segure Ctrl para parar.",
 };
 
-export const DEFAULT_DUEL_PREFS: DuelPrefs = { chainMode: "auto", speed: "normal" };
+export const DEFAULT_DUEL_PREFS: DuelPrefs = { chainMode: "auto", speed: "normal", cutIns: true };
 
 export const DUEL_PREFS_KEY = "yugioh-goat-duel-prefs-v1";
 
@@ -70,6 +76,7 @@ export function parseDuelPrefs(raw: string | null): DuelPrefs {
         ? parsed.chainMode
         : DEFAULT_DUEL_PREFS.chainMode,
       speed: isSpeed(parsed.speed) ? parsed.speed : DEFAULT_DUEL_PREFS.speed,
+      cutIns: typeof parsed.cutIns === "boolean" ? parsed.cutIns : DEFAULT_DUEL_PREFS.cutIns,
     };
   } catch {
     return DEFAULT_DUEL_PREFS;

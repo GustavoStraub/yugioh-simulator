@@ -17,6 +17,55 @@ export function phaseLabel(phase: number): string {
   return PHASE_LABELS[phase] ?? `Fase ${phase}`;
 }
 
+/** Os passos da Battle Phase — todos são "Battle" no botão e na faixa. */
+const BATTLE_STEPS =
+  OcgPhase.BATTLE_START | OcgPhase.BATTLE_STEP | OcgPhase.DAMAGE | OcgPhase.DAMAGE_CAL | OcgPhase.BATTLE;
+
+/**
+ * O nome curto da fase no botão redondo do Master Duel ("Turn 3 / Main1").
+ * Em inglês estilizado, como no jogo em qualquer idioma — decisão do Gustavo.
+ */
+export function mdPhaseShort(phase: number): string {
+  switch (phase) {
+    case OcgPhase.DRAW:
+      return "Draw";
+    case OcgPhase.STANDBY:
+      return "Standby";
+    case OcgPhase.MAIN1:
+      return "Main1";
+    case OcgPhase.MAIN2:
+      return "Main2";
+    case OcgPhase.END:
+      return "End";
+    default:
+      return (phase & BATTLE_STEPS) !== 0 ? "Battle" : "—";
+  }
+}
+
+/**
+ * A faixa que atravessa a tela na troca de fase ("BATTLE PHASE"). Só as
+ * fases que o jogador enxerga: os passos internos da batalha não ganham faixa
+ * (a do início dela basta), e o fim da batalha também não.
+ */
+export function mdPhaseBanner(phase: number): string | null {
+  switch (phase) {
+    case OcgPhase.DRAW:
+      return "DRAW PHASE";
+    case OcgPhase.STANDBY:
+      return "STANDBY PHASE";
+    case OcgPhase.MAIN1:
+      return "MAIN PHASE 1";
+    case OcgPhase.BATTLE_START:
+      return "BATTLE PHASE";
+    case OcgPhase.MAIN2:
+      return "MAIN PHASE 2";
+    case OcgPhase.END:
+      return "END PHASE";
+    default:
+      return null;
+  }
+}
+
 /**
  * Trilha de fases exibida na lateral da mesa, como nos jogos Tag Force.
  * Só as fases que o jogador realmente enxerga — os passos internos da Battle
