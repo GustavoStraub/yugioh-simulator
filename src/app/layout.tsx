@@ -19,7 +19,7 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Yu-Gi-Oh! Goat — Deck Builder & Duelo",
   description:
-    "Construtor de decks e duelos Goat Format com cartas em português.",
+    "Construtor de decks e duelos — Goat Format e TCG — com cartas em português.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

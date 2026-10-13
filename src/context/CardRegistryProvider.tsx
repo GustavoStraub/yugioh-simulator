@@ -10,8 +10,9 @@ import {
   type ReactNode,
 } from "react";
 
+import type { CatalogFile } from "@/lib/catalog/catalog-format";
 import { CardRegistry } from "@/lib/domain/card-registry";
-import type { CardDefinition, YgoProDeckCard } from "@/lib/types";
+import type { CardDefinition } from "@/lib/types";
 
 interface CardRegistryContextValue {
   registry: CardRegistry | null;
@@ -41,16 +42,15 @@ export function CardRegistryProvider({ children }: { children: ReactNode }) {
   const buscar = useCallback(async () => {
     try {
       const response = await fetch("/api/cards");
-      const payload = (await response.json()) as {
-        data?: YgoProDeckCard[];
+      const payload = (await response.json()) as Partial<CatalogFile> & {
         error?: string;
       };
 
-      if (!response.ok || !payload.data) {
+      if (!response.ok || !payload.cards) {
         throw new Error(payload.error ?? "Falha ao carregar cartas.");
       }
 
-      setRegistry(CardRegistry.fromApiResponse(payload.data));
+      setRegistry(CardRegistry.fromCatalog(payload as CatalogFile));
     } catch (err) {
       setError(err instanceof Error ? err.message : "Erro desconhecido.");
       setRegistry(null);

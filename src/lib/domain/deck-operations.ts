@@ -1,13 +1,21 @@
 import { canAddCard } from "./deck-rules";
 
 import { randomId } from "@/lib/random-id";
-import type { CardDefinition, DeckCardRef, DeckList, DeckZone, Passcode } from "@/lib/types";
+import { formatOf } from "@/lib/types";
+import type {
+  CardDefinition,
+  DeckCardRef,
+  DeckList,
+  DeckZone,
+  DuelFormat,
+  Passcode,
+} from "@/lib/types";
 
-export function createEmptyDeck(name = "Meu Deck Goat"): DeckList {
+export function createEmptyDeck(name = "Meu Deck Goat", format: DuelFormat = "goat"): DeckList {
   return {
     id: randomId(),
     name,
-    format: "goat",
+    format,
     main: [],
     extra: [],
     side: [],
@@ -58,9 +66,24 @@ export function removeCardFromDeck(
 
 export function clearDeck(deck: DeckList): DeckList {
   return {
-    ...createEmptyDeck(deck.name),
+    ...createEmptyDeck(deck.name, deck.format),
     id: deck.id,
   };
+}
+
+/**
+ * Deck vindo de fora (servidor, `localStorage`, arquivo antigo) no formato de
+ * hoje: sem `format` é Goat — todo deck salvo antes do TCG existir no app.
+ */
+export function normalizeDeck(deck: DeckList): DeckList {
+  const format = formatOf(deck.format);
+  return deck.format === format ? deck : { ...deck, format };
+}
+
+/** Troca o formato do deck (as cartas ficam; o que sair do pool é avisado). */
+export function setDeckFormat(deck: DeckList, format: DuelFormat): DeckList {
+  if (deck.format === format) return deck;
+  return { ...deck, format, updatedAt: new Date().toISOString() };
 }
 
 export function replaceDeck(deck: DeckList, next: DeckList): DeckList {

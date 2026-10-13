@@ -125,6 +125,11 @@ export class OfficialCardDb {
   get size(): number {
     return Object.keys(this.rows).length;
   }
+
+  /** Todos os passcodes do banco (cartas, fichas e artes alternativas). */
+  passcodes(): number[] {
+    return Object.keys(this.rows).map(Number);
+  }
 }
 
 /** Banco vazio — usado quando o download do `card-db` falha. */

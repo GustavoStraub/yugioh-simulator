@@ -25,7 +25,9 @@ import { PRESET_DECKS } from "@/lib/data/preset-decks-catalog";
 import { presetToDuelPayload } from "@/lib/domain/preset-decks";
 import { decodeMessage, encodeMessage, WS_PATH } from "@/lib/net/duel-protocol";
 
-const PORTA = Number(process.env.PORT ?? 3000);
+// 3210 por padrão, a porta do servidor de teste (ver o topo): o 3000 é o dev
+// server de quem desenvolve, e o teste entra em salas e derruba conexões.
+const PORTA = Number(process.env.PORT ?? 3210);
 const BASE = `ws://127.0.0.1:${PORTA}${WS_PATH}`;
 
 const falhas = [];
@@ -136,6 +138,15 @@ console.log("\nConexão que morre sem fechar, no meio do duelo...");
   // vez de guardá-lo, e não haveria "caído" para detectar.
   fica.ws.send(encodeMessage({ t: "ready", ready: true }));
   cru.write(quadroDeTexto(encodeMessage({ t: "ready", ready: true })));
+  // Com os dois prontos, a sala decide quem começa no jokenpô — sem jogá-lo o
+  // duelo nunca começa (o teste esperava o "pronto" bastar, de antes do
+  // jokenpô existir, e falhava aqui). Pedra ganha de tesoura: quem fica ganha
+  // e escolhe começar.
+  conferir(await until(() => fica.lobby?.jokenpo, 10_000), "o jokenpô abre");
+  fica.ws.send(encodeMessage({ t: "jokenpo", jogada: "pedra" }));
+  cru.write(quadroDeTexto(encodeMessage({ t: "jokenpo", jogada: "tesoura" })));
+  conferir(await until(() => fica.lobby?.jokenpo?.chooseFirst, 10_000), "quem ficou ganha o jokenpô");
+  fica.ws.send(encodeMessage({ t: "firstGo", first: true }));
   conferir(await until(() => fica.lobby?.started === true, 120_000), "o duelo começa");
 
   const percebeu = await until(

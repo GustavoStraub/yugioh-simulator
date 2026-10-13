@@ -39,3 +39,26 @@ export function needsCardPicker(
 ): boolean {
   return candidates.some((candidate) => !isCandidateOnBoard(candidate, viewer));
 }
+
+/**
+ * Onde o jogador alcança uma JOGADA (ação de `PromptPlan.byCard`) numa carta:
+ *
+ * - `board` — na mesa desenhada (mão, monstros, magias/armadilhas);
+ * - `pile` — numa pilha que brilha e abre com a carta em destaque (Cemitério,
+ *   banidas, Extra Deck): Invocar do Extra Deck, efeito de Cemitério;
+ * - `other` — em lugar nenhum desenhado (Deck, material Xyz): a mesa oferece
+ *   "Outras jogadas", para nenhuma jogada do engine ficar inalcançável.
+ *
+ * A mesa agrupa as jogadas por aqui, e o harness confere com a mesma função.
+ */
+export function actionReach(location: number): "board" | "pile" | "other" {
+  if (ZONAS_NA_MESA.has(location)) return "board";
+  if (
+    location === OcgLocation.GRAVE ||
+    location === OcgLocation.REMOVED ||
+    location === OcgLocation.EXTRA
+  ) {
+    return "pile";
+  }
+  return "other";
+}

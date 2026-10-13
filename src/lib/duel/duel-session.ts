@@ -1,7 +1,9 @@
 import {
+  OcgCardHintType,
   OcgDuelMode,
   OcgHintType,
   OcgLocation,
+  OcgPlayerHintType,
   OcgLogType,
   OcgMessageType,
   OcgPosition,
@@ -16,8 +18,12 @@ import {
 import { autoResponseFor } from "@/lib/duel/auto-response";
 import { browserAssets } from "@/lib/duel/browser-assets";
 import type { DuelAssets } from "@/lib/duel/duel-assets";
-import type { DuelEvent, DuelEventListener } from "@/lib/duel/duel-events";
-import { readBoardState, type BoardState } from "@/lib/duel/board-state";
+import type { DuelEvent, DuelEventListener, DuelZoneRef } from "@/lib/duel/duel-events";
+import {
+  readBoardState,
+  type BoardState,
+  type CardHint,
+} from "@/lib/duel/board-state";
 import {
   cardDefinitionToOcgData,
   genericTokenData,
@@ -43,8 +49,8 @@ import {
 } from "@/lib/duel/win-reason";
 import { preloadCoreScripts, preloadDuelScripts } from "@/lib/duel/script-reader";
 import type { CardRegistry } from "@/lib/domain/card-registry";
-import type { CardDefinition } from "@/lib/types";
-import type { DuelDeckPayload } from "@/lib/types";
+import { DEFAULT_FORMAT, FORMAT_RULES } from "@/lib/types";
+import type { CardDefinition, DuelDeckPayload, DuelFormat } from "@/lib/types";
 
 /**
  * Quem responde por um assento.
@@ -72,6 +78,28 @@ const DEFAULT_SEATS: [SeatConfig, SeatConfig] = [
   { kind: "bot", name: "O oponente" },
 ];
 
+/**
+ * Uma carta já em jogo quando o duelo começa (ver `DuelSessionConfig.scenario`).
+ * `location`/`position` são os valores do core (`OcgLocation`/`OcgPosition`).
+ */
+export interface ScenarioCard {
+  player: 0 | 1;
+  location: number;
+  sequence?: number;
+  position?: number;
+  code: number;
+}
+
+/** Onde um cenário pode pôr carta — nada de Deck reordenado ou zona inventada. */
+const SCENARIO_LOCATIONS = new Set<number>([
+  OcgLocation.HAND,
+  OcgLocation.MZONE,
+  OcgLocation.SZONE,
+  OcgLocation.GRAVE,
+  OcgLocation.REMOVED,
+  OcgLocation.EXTRA,
+]);
+
 export interface DuelSessionConfig {
   playerName: string;
   playerDeck: DuelDeckPayload;
@@ -82,6 +110,20 @@ export interface DuelSessionConfig {
   seats?: [SeatConfig, SeatConfig];
   /** De onde vêm wasm, scripts e dados. Omitido = navegador. */
   assets?: DuelAssets;
+  /**
+   * Regras do duelo. Omitido = Goat, o formato de todo deck salvo antes do
+   * TCG existir no app.
+   */
+  format?: DuelFormat;
+  /**
+   * Mesa de teste: cartas que já começam em jogo, além dos decks.
+   *
+   * Existe para os testes de navegador e as capturas chegarem direto a uma
+   * situação (um Link na Zona Extra, escalas armadas) sem jogar dez turnos —
+   * o mesmo `place` do harness. Não há caminho para isto na interface nem no
+   * duelo online: só quem monta o duelo por código.
+   */
+  scenario?: ScenarioCard[];
 }
 
 /**
@@ -120,6 +162,19 @@ export interface DuelReveal {
 /** Quantas revelações o histórico guarda. */
 const MAX_REVEALS = 14;
 
+/**
+ * "de onde" uma ativação veio, para o histórico — só as origens que não são o
+ * campo, que é o caso que o jogador já enxerga. É o que transforma "o oponente
+ * ativou Ash Blossom" em "…Ash Blossom (da mão)".
+ */
+const ORIGIN_LABEL: Partial<Record<number, string>> = {
+  [OcgLocation.HAND]: "da mão",
+  [OcgLocation.GRAVE]: "do Cemitério",
+  [OcgLocation.REMOVED]: "das banidas",
+  [OcgLocation.DECK]: "do Deck",
+  [OcgLocation.EXTRA]: "do Extra Deck",
+};
+
 
 /**
  * O elo de corrente que está em jogo agora.
@@ -140,9 +195,34 @@ export interface DuelChainLink {
   playerName: string;
   /** Texto do efeito ativado, quando o engine diz qual foi. */
   description: string | null;
+  /** Número do elo (1 = o primeiro a entrar, o último a resolver). */
+  link: number;
+  /**
+   * De onde a carta foi ativada (`OcgLocation`): mão, campo, Cemitério… É o
+   * que diz "foi uma hand trap" — a Ash Blossom sai da mão e, sem isto, só se
+   * via a carta já no Cemitério.
+   */
+  from: number;
+  /** Onde a carta está agora — para o número do elo aparecer no slot dela. */
+  zone: DuelZoneRef;
+  /**
+   * `pending` na corrente; `resolving` enquanto resolve; `resolved` depois;
+   * `negated` quando a ATIVAÇÃO foi negada; `disabled` quando o EFEITO foi
+   * negado (a Ash nega o efeito do elo anterior — ele ainda "resolve", sem
+   * fazer nada, e precisa continuar marcado como negado).
+   */
+  state: "pending" | "resolving" | "resolved" | "negated" | "disabled";
 }
 
 export interface DuelSnapshot {
+  /**
+   * Formato do duelo em andamento.
+   *
+   * A mesa precisa dele para desenhar o que a regra tem: Zonas de Monstro
+   * Extra e escalas de Pêndulo só existem no TCG — no Goat a mesa continua a
+   * de 2005, com cinco zonas por fileira.
+   */
+  format: DuelFormat;
   /**
    * Tabuleiro na ótica de cada assento — `null` onde ninguém olha (o bot).
    *
@@ -159,9 +239,26 @@ export interface DuelSnapshot {
   phase: number | null;
   /** Efeito em cima da corrente agora, ou `null` fora de uma corrente. */
   chain: DuelChainLink | null;
+  /**
+   * A corrente inteira, do elo 1 ao último — vazia fora de uma corrente.
+   * Pública: tudo o que entra numa corrente é revelado ao ativar.
+   */
+  chainLinks: DuelChainLink[];
   log: DuelLogEntry[];
   /** Revelações já ocorridas, da mais antiga para a mais recente. */
   reveals: DuelReveal[];
+  /**
+   * Avisos que valem para um JOGADOR, não para uma carta ("não pode
+   * Invocar-Especial neste turno", "não recebe dano neste turno"), por assento
+   * e já em texto. São públicos: a mesa mostra junto do LP de cada um.
+   */
+  playerHints: [string[], string[]];
+  /**
+   * Zonas inutilizadas agora (`FIELD_DISABLED`), na máscara do core e na ótica
+   * do jogador 0: bits 0–6 monstros e 8–12 magias dele, 16–22 e 24–28 do
+   * jogador 1. A mesa hachura essas zonas.
+   */
+  disabledZones: number;
   winner: number | null;
   /**
    * Por que o duelo acabou, em uma frase — "Os pontos de vida de X chegaram a
@@ -191,11 +288,28 @@ export interface DuelSnapshot {
   promptId: number;
   /** Carta a que o prompt atual se refere, quando o core informa via HINT. */
   promptCard: number | null;
+  /**
+   * O que a pergunta atual pede, em texto — a dica `SELECTMSG` que o core
+   * manda antes de cada escolha ("Selecione o(s) card(s) para usar como
+   * Matéria de Sincro"). A barra de seleção mostra isto no lugar do genérico
+   * "Selecione 1 carta"; `null` quando o core não disse.
+   */
+  promptHint: string | null;
   isProcessing: boolean;
   error: string | null;
 }
 
-const GOAT_DUEL_FLAGS = OcgDuelMode.MODE_GOAT;
+/**
+ * Flags do core por formato.
+ *
+ * `MODE_GOAT` liga as regras de 2005 que o core implementa (compra no primeiro
+ * turno, uma Magia de Campo por vez, prioridade de Ignição, Damage Step de
+ * seis passos); `MODE_MR5` é a Master Rule 2020, a vigente.
+ */
+const DUEL_FLAGS: Record<DuelFormat, bigint> = {
+  goat: OcgDuelMode.MODE_GOAT,
+  tcg: OcgDuelMode.MODE_MR5,
+};
 
 /** Um RETRY é recuperável; muitos seguidos significam resposta impossível. */
 const MAX_CONSECUTIVE_RETRIES = 5;
@@ -221,6 +335,9 @@ const PLAY_EVENTS = new Set<OcgMessageType>([
   OcgMessageType.FLIPSUMMONING,
   OcgMessageType.SET,
   OcgMessageType.CHAINING,
+  OcgMessageType.CHAIN_SOLVING,
+  OcgMessageType.CHAIN_NEGATED,
+  OcgMessageType.CHAIN_DISABLED,
   OcgMessageType.ATTACK,
   OcgMessageType.BATTLE,
   OcgMessageType.POS_CHANGE,
@@ -292,6 +409,8 @@ export class DuelSession {
   private eventListeners = new Set<DuelEventListener>();
   /** Passcode da última carta apontada por um HINT — contexto dos prompts. */
   private hintedCard: number | null = null;
+  /** Texto da última dica de seleção (`HINT SELECTMSG`) — ver `promptHint`. */
+  private selectHint: string | null = null;
   /** Dados oficiais das cartas (setcode, alias, type) — regras do engine. */
   private cardDb: OfficialCardDb = EMPTY_CARD_DB;
   /** Textos que o engine referencia por id (instruções, opções de efeito). */
@@ -310,6 +429,28 @@ export class DuelSession {
   private revealedTo: [Set<string>, Set<string>] = [new Set(), new Set()];
   /** Id incremental das revelações do histórico. */
   private revealCounter = 0;
+  /**
+   * Marcas que o engine anuncia por mensagem (`CARD_HINT`), por zona do campo.
+   *
+   * Não existe consulta que as devolva: o EDOPro guarda no objeto da carta, do
+   * lado do cliente. Aqui a sessão faz o papel desse objeto — a marca anda
+   * junto no `MOVE` (troca de controle, mudança de zona) e some quando a carta
+   * sai do campo, porque a posição sozinha não identifica a carta: a mesma
+   * zona recebe outra carta depois.
+   *
+   * Cada zona tem UMA marca de valor (turnos, declaração — a nova substitui a
+   * anterior, como no EDOPro) e os avisos de texto com contagem (o mesmo aviso
+   * pode vir de dois efeitos, e só sai quando os dois acabam).
+   */
+  private cardHints = new Map<
+    string,
+    { value: CardHint | null; descs: Map<string, number> }
+  >();
+  /** Avisos por jogador (`PLAYER_HINT`), texto → quantas vezes está ativo. */
+  private playerHintCounts: [Map<string, number>, Map<string, number>] = [
+    new Map(),
+    new Map(),
+  ];
   /**
    * Um cérebro por assento de bot.
    *
@@ -346,18 +487,27 @@ export class DuelSession {
     this.registry = config.registry;
     this.seats = config.seats ?? DEFAULT_SEATS;
     this.assets = config.assets ?? browserAssets;
-    this.update({ error: null, isProcessing: true, log: [] });
+    const format = config.format ?? DEFAULT_FORMAT;
+    const rules = FORMAT_RULES[format];
+    this.update({ error: null, isProcessing: true, log: [], format });
     this.appendLog("Carregando engine...");
 
     /** Códigos que o catálogo não tinha — quase sempre fichas. */
     const unknownCodes = new Set<number>();
 
     try {
+      const scenario = (config.scenario ?? []).filter(
+        (card) =>
+          (card.player === 0 || card.player === 1) &&
+          SCENARIO_LOCATIONS.has(card.location) &&
+          Number.isInteger(card.code),
+      );
       const allPasscodes = [
         ...config.playerDeck.main,
         ...config.playerDeck.extra,
         ...config.opponentDeck.main,
         ...config.opponentDeck.extra,
+        ...scenario.map((card) => card.code),
       ];
       this.appendLog("Carregando scripts base do engine...");
       const [{ core: coreScripts, support, patchesAusentes }, cardDb, engineStrings] =
@@ -419,19 +569,16 @@ export class DuelSession {
       );
 
       const core = this.core;
+      const team = {
+        startingLP: rules.startingLp,
+        startingDrawCount: rules.startingHandSize,
+        drawCountPerTurn: rules.drawPerTurn,
+      };
       const handle = core.createDuel({
-        flags: GOAT_DUEL_FLAGS,
+        flags: DUEL_FLAGS[format],
         seed: randomSeed(),
-        team1: {
-          startingLP: 8000,
-          startingDrawCount: 5,
-          drawCountPerTurn: 1,
-        },
-        team2: {
-          startingLP: 8000,
-          startingDrawCount: 5,
-          drawCountPerTurn: 1,
-        },
+        team1: team,
+        team2: team,
         cardReader: (code) => {
           const card = config.registry.get(code);
           if (card) return cardDefinitionToOcgData(card, this.cardDb);
@@ -466,6 +613,22 @@ export class DuelSession {
 
       this.loadDeck(0, config.playerDeck);
       this.loadDeck(1, config.opponentDeck);
+      for (const card of scenario) {
+        core.duelNewCard(handle, {
+          team: card.player,
+          duelist: 0,
+          code: card.code,
+          controller: card.player,
+          location: card.location as OcgLocation,
+          sequence: card.sequence ?? 0,
+          position: (card.position ??
+            (card.location === OcgLocation.MZONE
+              ? OcgPosition.FACEUP_ATTACK
+              : card.location === OcgLocation.SZONE || card.location === OcgLocation.EXTRA
+                ? OcgPosition.FACEDOWN
+                : OcgPosition.FACEUP)) as OcgPosition,
+        });
+      }
 
       this.appendLog(
         `Duelo iniciado — ${config.playerName} vs ${config.opponentName}`,
@@ -496,10 +659,12 @@ export class DuelSession {
 
     this.core.duelSetResponse(this.handle, response);
     this.hintedCard = null;
+    this.selectHint = null;
     this.update({
       pendingPrompt: null,
       promptPlayer: null,
       promptCard: null,
+      promptHint: null,
       isProcessing: true,
     });
     await this.runLoop();
@@ -730,6 +895,7 @@ export class DuelSession {
         const automatic = autoResponseFor(prompt);
         if (automatic) {
           this.core.duelSetResponse(this.handle, automatic);
+          this.selectHint = null;
           continue;
         }
 
@@ -738,6 +904,7 @@ export class DuelSession {
             this.handle,
             this.botFor(promptPlayer).decide(this.botContext(prompt, promptPlayer)),
           );
+          this.selectHint = null;
           continue;
         }
 
@@ -755,6 +922,7 @@ export class DuelSession {
           promptPlayer,
           promptId: this.promptCounter,
           promptCard: this.hintedCard,
+          promptHint: this.selectHint,
           isProcessing: false,
         });
         break;
@@ -786,7 +954,17 @@ export class DuelSession {
           // — sem nunca dizer o que estava sendo pedido.
           if (HINT_TEXT_TYPES.has(message.hint_type)) {
             const text = this.engineStrings.describeOption(Number(message.hint));
-            if (text) this.appendLog(`💬 ${text}`);
+            // A dica é dirigida a quem vai escolher; narrá-la aos dois é ruído
+            // para o outro e, num efeito de busca, não esconde nada — mas a
+            // linha vai só para quem foi perguntado.
+            if (text) {
+              const para = message.player === 0 || message.player === 1 ? message.player : null;
+              this.appendLog(`💬 ${text}`, para);
+              // "%ls" é o nome da carta, que o core preenche do lado dele.
+              if (message.hint_type === OcgHintType.SELECTMSG && !text.includes("%ls")) {
+                this.selectHint = text;
+              }
+            }
           }
           break;
         }
@@ -795,7 +973,7 @@ export class DuelSession {
           // jogador usa para tudo o que é "no seu 3º turno" (Espada da Luz,
           // Reckless Greed, Mensagem do Espírito) e não existia na tela.
           const turnCount = this.snapshot.turnCount + 1;
-          this.update({ turnPlayer: message.player, turnCount, chain: null });
+          this.update({ turnPlayer: message.player, turnCount, chain: null, chainLinks: [] });
           this.appendLog(`Turno ${turnCount} — ${this.seatName(message.player)}`);
           this.emit({ kind: "turn", player: message.player });
           break;
@@ -890,21 +1068,55 @@ export class DuelSession {
           break;
         }
 
+        // Um elo começa a resolver: a tela acende ele na pilha e no slot.
+        case OcgMessageType.CHAIN_SOLVING: {
+          this.revealedTo = [new Set(), new Set()];
+          this.updateChainLink(message.chain_size, (current) =>
+            // Já negado (a ativação ou o efeito) continua negado ao "resolver".
+            current.state === "pending" ? "resolving" : current.state,
+          );
+          break;
+        }
+
         // Fim de uma resolução: o que foi revelado nela não vale mais como
         // "posso ver esta posição" — ver `revealedTo`.
-        case OcgMessageType.CHAIN_SOLVING:
         case OcgMessageType.CHAIN_SOLVED:
+          this.revealedTo = [new Set(), new Set()];
+          this.updateChainLink(message.chain_size, (current) =>
+            current.state === "resolving" ? "resolved" : current.state,
+          );
+          break;
         case OcgMessageType.SHUFFLE_HAND:
         case OcgMessageType.SHUFFLE_DECK:
           this.revealedTo = [new Set(), new Set()];
           break;
+
+        // Ativação negada (Solemn Judgment, Magic Jammer) ou efeito negado
+        // (Ash Blossom, Effect Veiler): o momento que o jogador mais precisa
+        // ver — antes, a carta só ia para o Cemitério e "nada acontecia".
+        case OcgMessageType.CHAIN_NEGATED:
+        case OcgMessageType.CHAIN_DISABLED: {
+          const what = message.type === OcgMessageType.CHAIN_NEGATED ? "activation" : "effect";
+          const link = this.updateChainLink(message.chain_size, () =>
+            what === "activation" ? "negated" : "disabled",
+          );
+          if (link) {
+            this.appendLog(
+              what === "activation"
+                ? `✖ Elo ${link.link} — ativação de ${this.cardName(link.code)} negada`
+                : `✖ Elo ${link.link} — efeito de ${this.cardName(link.code)} negado`,
+            );
+            this.emit({ kind: "chainNegated", link: link.link, player: link.player, code: link.code, what });
+          }
+          break;
+        }
 
         // A corrente acabou: além do conhecimento da resolução, sai também o
         // efeito anunciado no modal — ele já passou, e continuar mostrando faz
         // o jogador responder a uma pergunta que não existe mais.
         case OcgMessageType.CHAIN_END:
           this.revealedTo = [new Set(), new Set()];
-          this.update({ chain: null });
+          this.update({ chain: null, chainLinks: [] });
           break;
 
         // Carta trocando de zona. Só as saídas da MÃO são narradas, e só para
@@ -914,6 +1126,7 @@ export class DuelSession {
         case OcgMessageType.MOVE: {
           const line = this.describeHandExit(message);
           if (line) this.appendLog(line);
+          this.moveCardHints(message.from, message.to);
           break;
         }
         case OcgMessageType.TOSS_COIN:
@@ -941,29 +1154,49 @@ export class DuelSession {
             count: message.drawn.length,
           });
           break;
-        case OcgMessageType.CHAINING:
+        case OcgMessageType.CHAINING: {
+          const origem = ORIGIN_LABEL[message.triggering_location];
           this.appendLog(
-            `⛓ ${this.seatName(message.controller)} ativou ${this.cardName(message.code)}`,
+            `⛓ Elo ${message.chain_size} — ${this.seatName(message.controller)} ativou ` +
+              `${this.cardName(message.code)}${origem ? ` (${origem})` : ""}`,
           );
-          this.update({
-            chain: {
-              code: message.code,
-              player: message.controller,
-              playerName: this.seatName(message.controller),
-              // `description` é o id da string do efeito ativado — resolvido
-              // aqui, e não na tela, porque no duelo online é o servidor que
-              // tem o banco de strings carregado.
-              description: this.engineStrings.describeOption(
-                Number(message.description),
-              ),
+          const link: DuelChainLink = {
+            code: message.code,
+            player: message.controller,
+            playerName: this.seatName(message.controller),
+            // `description` é o id da string do efeito ativado — resolvido
+            // aqui, e não na tela, porque no duelo online é o servidor que
+            // tem o banco de strings carregado.
+            description: this.engineStrings.describeOption(Number(message.description)),
+            link: message.chain_size,
+            from: message.triggering_location,
+            zone: {
+              controller: message.controller,
+              location: message.location,
+              sequence: message.sequence,
             },
+            state: "pending",
+          };
+          this.update({
+            chain: link,
+            // O número do elo é a posição: um elo novo nunca repete um que
+            // ainda está na corrente.
+            chainLinks: [...this.snapshot.chainLinks.filter((l) => l.link < link.link), link],
           });
           this.emit({
             kind: "activate",
             player: message.controller,
             code: message.code,
           });
+          this.emit({
+            kind: "chainLink",
+            link: link.link,
+            player: link.player,
+            code: link.code,
+            from: link.from,
+          });
           break;
+        }
         case OcgMessageType.ATTACK:
           this.appendLog(
             message.target
@@ -1047,12 +1280,204 @@ export class DuelSession {
         case OcgMessageType.START:
           this.appendLog("Duelo começou!");
           break;
+
+        // ---- Marcas nas cartas e nos jogadores ---------------------------
+        case OcgMessageType.CARD_HINT:
+          this.applyCardHint(message);
+          break;
+        case OcgMessageType.PLAYER_HINT: {
+          if (message.player !== 0 && message.player !== 1) break;
+          const text = this.engineStrings.hintText(Number(message.description), (code) =>
+            this.cardName(code),
+          );
+          if (!text) break;
+          const counts = this.playerHintCounts[message.player];
+          const now = counts.get(text) ?? 0;
+          if (message.player_hint === OcgPlayerHintType.DESC_ADD) counts.set(text, now + 1);
+          else if (now <= 1) counts.delete(text);
+          else counts.set(text, now - 1);
+          const playerHints: [string[], string[]] = [
+            [...this.playerHintCounts[0].keys()],
+            [...this.playerHintCounts[1].keys()],
+          ];
+          this.update({ playerHints });
+          break;
+        }
+        case OcgMessageType.FIELD_DISABLED:
+          this.update({ disabledZones: message.field_mask >>> 0 });
+          break;
+        case OcgMessageType.ADD_COUNTER:
+        case OcgMessageType.REMOVE_COUNTER: {
+          const nome = this.publicNameAt(message.controller, message.location, message.sequence);
+          const contador = this.engineStrings.counterName(message.counter_type);
+          this.appendLog(
+            message.type === OcgMessageType.ADD_COUNTER
+              ? `✦ ${nome} recebeu ${message.count} ${contador}`
+              : `✦ ${nome} perdeu ${message.count} ${contador}`,
+          );
+          break;
+        }
+        case OcgMessageType.EQUIP:
+          this.appendLog(
+            `🔗 ${this.publicNameAt(message.card.controller, message.card.location, message.card.sequence)} ` +
+              `foi equipada a ${this.publicNameAt(message.target.controller, message.target.location, message.target.sequence)}`,
+          );
+          break;
+        case OcgMessageType.CARD_TARGET:
+          this.appendLog(
+            `🎯 ${this.publicNameAt(message.card.controller, message.card.location, message.card.sequence)} ` +
+              `passou a ter como alvo ${this.publicNameAt(message.target.controller, message.target.location, message.target.sequence)}`,
+          );
+          break;
         case OcgMessageType.RETRY:
           this.appendLog("Resposta inválida — tente novamente.");
           break;
         default:
           break;
       }
+    }
+  }
+
+  /** Chave da zona nas marcas, a mesma do `cardKey` da mesa. */
+  private hintKey(controller: number, location: number, sequence: number): string {
+    return `${controller}:${location}:${sequence}`;
+  }
+
+  /** A carta está no campo (onde as marcas por mensagem valem)? */
+  private onField(location: number): boolean {
+    return (
+      (location === OcgLocation.MZONE || location === OcgLocation.SZONE) &&
+      (location & OcgLocation.OVERLAY) === 0
+    );
+  }
+
+  /**
+   * Muda o estado de um elo da corrente; devolve o elo atualizado (ou
+   * `undefined` se não há elo com esse número — uma mensagem fora de ordem não
+   * pode derrubar a sessão).
+   */
+  private updateChainLink(
+    linkNumber: number,
+    next: (current: DuelChainLink) => DuelChainLink["state"],
+  ): DuelChainLink | undefined {
+    let updated: DuelChainLink | undefined;
+    const chainLinks = this.snapshot.chainLinks.map((link) => {
+      if (link.link !== linkNumber) return link;
+      updated = { ...link, state: next(link) };
+      return updated;
+    });
+    if (!updated) return undefined;
+    const top = chainLinks.at(-1) ?? null;
+    this.update({ chainLinks, chain: top });
+    return updated;
+  }
+
+  /**
+   * Aplica um `CARD_HINT` à zona da carta.
+   *
+   * Só no campo: é onde a mesa desenha marca, e fora dele a posição (mão,
+   * cemitério) muda o tempo todo sem MOVE da própria carta.
+   */
+  private applyCardHint(message: {
+    controller: 0 | 1;
+    location: number;
+    sequence: number;
+    card_hint: OcgCardHintType;
+    description: bigint;
+  }): void {
+    if (!this.onField(message.location)) return;
+    const key = this.hintKey(message.controller, message.location, message.sequence);
+    const entry = this.cardHints.get(key) ?? { value: null, descs: new Map<string, number>() };
+    const raw = Number(message.description);
+    const nome = this.publicNameAt(message.controller, message.location, message.sequence);
+
+    switch (message.card_hint) {
+      case OcgCardHintType.TURN:
+        // Turno 0 é "zerou/terminou" — não vale marca nenhuma.
+        entry.value = raw > 0 ? { kind: "turn", value: raw } : null;
+        break;
+      case OcgCardHintType.CARD:
+        entry.value = { kind: "card", code: raw };
+        this.appendLog(`📢 ${nome} — carta declarada: ${this.cardName(raw)}`);
+        break;
+      case OcgCardHintType.RACE:
+        entry.value = { kind: "race", mask: raw };
+        this.appendLog(`📢 ${nome} — Tipo declarado`);
+        break;
+      case OcgCardHintType.ATTRIBUTE:
+        entry.value = { kind: "attribute", mask: raw };
+        this.appendLog(`📢 ${nome} — Atributo declarado`);
+        break;
+      case OcgCardHintType.NUMBER:
+        entry.value = { kind: "number", value: raw };
+        this.appendLog(`📢 ${nome} — número declarado: ${raw}`);
+        break;
+      case OcgCardHintType.DESC_ADD:
+      case OcgCardHintType.DESC_REMOVE: {
+        const text = this.engineStrings.hintText(raw, (code) => this.cardName(code));
+        if (!text) break;
+        const now = entry.descs.get(text) ?? 0;
+        if (message.card_hint === OcgCardHintType.DESC_ADD) entry.descs.set(text, now + 1);
+        else if (now <= 1) entry.descs.delete(text);
+        else entry.descs.set(text, now - 1);
+        break;
+      }
+      default:
+        break;
+    }
+
+    if (entry.value || entry.descs.size > 0) this.cardHints.set(key, entry);
+    else this.cardHints.delete(key);
+  }
+
+  /** As marcas andam com a carta; fora do campo, somem. */
+  private moveCardHints(
+    from: { controller: number; location: number; sequence: number },
+    to: { controller: number; location: number; sequence: number },
+  ): void {
+    if (!this.onField(from.location)) return;
+    const key = this.hintKey(from.controller, from.location, from.sequence);
+    const entry = this.cardHints.get(key);
+    if (!entry) return;
+    this.cardHints.delete(key);
+    if (this.onField(to.location)) {
+      this.cardHints.set(this.hintKey(to.controller, to.location, to.sequence), entry);
+    }
+  }
+
+  /** As marcas por zona no formato que `readBoardState` mescla nas cartas. */
+  private hintsByZone(): Map<string, CardHint[]> {
+    const out = new Map<string, CardHint[]>();
+    this.cardHints.forEach((entry, key) => {
+      const hints: CardHint[] = [];
+      if (entry.value) hints.push(entry.value);
+      for (const text of entry.descs.keys()) hints.push({ kind: "desc", text });
+      out.set(key, hints);
+    });
+    return out;
+  }
+
+  /**
+   * Nome de uma carta numa zona, para a narração — ou "uma carta virada para
+   * baixo" quando ela não é pública. O log é lido pelos dois lados, e dizer o
+   * nome de uma carta baixada entregaria o segredo.
+   */
+  private publicNameAt(controller: number, location: number, sequence: number): string {
+    const { core, handle } = this;
+    if (!core || !handle) return "uma carta";
+    try {
+      const raw = core.duelQuery(handle, {
+        flags: (OcgQueryFlags.CODE | OcgQueryFlags.POSITION) as OcgQueryFlags,
+        controller: controller as 0 | 1,
+        location: location as OcgLocation,
+        sequence,
+        overlaySequence: 0,
+      }) as { code?: number; position?: number } | null;
+      if (!raw?.code) return "uma carta";
+      if (((raw.position ?? 0) & OcgPosition.FACEDOWN) !== 0) return "uma carta virada para baixo";
+      return this.cardName(raw.code);
+    } catch {
+      return "uma carta";
     }
   }
 
@@ -1239,7 +1664,7 @@ export class DuelSession {
         if (!core || !handle) {
           throw new Error("duelo encerrado durante a decisão do bot");
         }
-        const board = readBoardState(core, handle, seat, !full);
+        const board = readBoardState(core, handle, seat, !full, this.hintsByZone());
         cache.set(full, board);
         return board;
       },
@@ -1248,6 +1673,7 @@ export class DuelSession {
       phase: this.snapshot.phase,
       turnPlayer: this.snapshot.turnPlayer,
       turnCount: this.snapshot.turnCount,
+      chainPlayer: this.snapshot.chain?.player ?? null,
     };
   }
 
@@ -1265,10 +1691,11 @@ export class DuelSession {
     // Uma leitura por assento que alguém realmente olha. Ler o tabuleiro do
     // bot dobraria as chamadas ao WASM por lote de mensagens sem ninguém ver
     // o resultado — e é justamente esse custo que o modo `light` contém.
+    const hints = this.hintsByZone();
     const boards = [0, 1].map((seat) =>
       this.seats[seat as 0 | 1].kind === "bot"
         ? null
-        : readBoardState(core, handle, seat as 0 | 1, light),
+        : readBoardState(core, handle, seat as 0 | 1, light, hints),
     ) as [BoardState | null, BoardState | null];
 
     this.update({ boards });
@@ -1289,12 +1716,16 @@ export class DuelSession {
 
 function createInitialSnapshot(): DuelSnapshot {
   return {
+    format: DEFAULT_FORMAT,
+    playerHints: [[], []],
+    disabledZones: 0,
     boards: [null, null],
     lifePoints: [8000, 8000],
     turnPlayer: null,
     turnCount: 0,
     phase: null,
     chain: null,
+    chainLinks: [],
     log: [],
     reveals: [],
     winner: null,
@@ -1303,6 +1734,7 @@ function createInitialSnapshot(): DuelSnapshot {
     promptPlayer: null,
     promptId: 0,
     promptCard: null,
+    promptHint: null,
     isProcessing: false,
     error: null,
   };

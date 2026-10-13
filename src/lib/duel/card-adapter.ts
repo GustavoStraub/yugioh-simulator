@@ -174,6 +174,23 @@ export function genericTokenData(
   };
 }
 
+/**
+ * Setas e DEF de um monstro, como o core espera.
+ *
+ * Num monstro Link a coluna `def` do `cards.cdb` não é DEF nenhuma: são as
+ * **setas** (Link Spider `0x02` = baixo; Decode Talker `0x85` = cima,
+ * baixo-esquerda, baixo-direita) — e `level` é o rating. Mandar `def` como
+ * defesa e `link_marker: 0`, como antes, deixava todo Link sem seta: ele não
+ * apontava para zona nenhuma, e as cartas que dependem disso (co-link, zonas
+ * apontadas, "monstro para o qual este card aponta") simplesmente não
+ * funcionavam.
+ */
+export function linkFields(type: number, def: number): { defense: number; link_marker: number } {
+  return (type & OcgType.LINK) !== 0
+    ? { defense: 0, link_marker: def }
+    : { defense: def, link_marker: 0 };
+}
+
 /** Converte uma linha do banco oficial no formato que o core espera. */
 function officialToOcgData(
   code: number,
@@ -192,10 +209,9 @@ function officialToOcgData(
     attribute: official.attribute,
     race: BigInt(official.race),
     attack: official.atk,
-    defense: official.def,
     lscale: official.lscale,
     rscale: official.rscale,
-    link_marker: 0,
+    ...linkFields(official.type, official.def),
   };
 }
 

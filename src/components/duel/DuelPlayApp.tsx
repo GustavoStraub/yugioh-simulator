@@ -14,6 +14,7 @@ import {
   type StoredDuelSetup,
 } from "@/lib/duel/duel-storage";
 import type { DuelSessionConfig } from "@/lib/duel/duel-session";
+import { formatOf } from "@/lib/types";
 
 function DuelLoading() {
   return (
@@ -53,6 +54,8 @@ function DuelPlayInner() {
             opponentName: setup.opponentName,
             opponentDeck: setup.opponentDeck,
             registry,
+            format: formatOf(setup.format),
+            scenario: setup.scenario,
           }
         : null,
     [setup, registry],

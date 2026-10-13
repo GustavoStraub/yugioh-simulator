@@ -6,6 +6,31 @@ import {
   type OcgDuelHandle,
 } from "@n1xx1/ocgcore-wasm";
 
+/** Uma zona do campo, sem a carta. */
+export interface ZoneRef {
+  controller: 0 | 1;
+  location: OcgLocation;
+  sequence: number;
+}
+
+/**
+ * Marca que o engine anuncia por mensagem (`CARD_HINT`) e que não dá para
+ * consultar depois — a sessão acompanha e entrega aqui.
+ *
+ * - `turn` — contagem de turnos (Espadas da Luz Reveladora: "falta 1 turno");
+ * - `card`/`race`/`attribute`/`number` — o que foi DECLARADO para esta carta
+ *   (Proibição, Transplante de DNA, um número de Nível);
+ * - `desc` — aviso que o efeito escreve na carta enquanto vale ("não pode
+ *   atacar", "efeito já usado neste turno"), já em texto.
+ */
+export type CardHint =
+  | { kind: "turn"; value: number }
+  | { kind: "card"; code: number }
+  | { kind: "race"; mask: number }
+  | { kind: "attribute"; mask: number }
+  | { kind: "number"; value: number }
+  | { kind: "desc"; text: string };
+
 /** Uma carta como o tabuleiro precisa exibi-la. */
 export interface BoardCard {
   /** Passcode, ou null quando a carta é oculta para o observador. */
@@ -27,10 +52,46 @@ export interface BoardCard {
   defenseValue: number | null;
   baseAttack: number | null;
   baseDefense: number | null;
+  /**
+   * Nível **atual** (com efeitos aplicados) — 0 num Xyz ou Link, que não têm
+   * nível. `null` fora do campo ou numa carta que o observador não vê.
+   */
+  level: number | null;
+  /** Rank atual de um Xyz; 0 nos outros. */
+  rank: number | null;
+  /** Rating e setas de um Link (`OcgLinkMarker`); `null` nos outros. */
+  link: { rating: number; markers: number } | null;
+  /**
+   * Escalas de Pêndulo atuais. Vêm para toda carta em campo (0/0 em quem não é
+   * Pêndulo): é a tela que decide, pelo tipo da carta, se elas valem algo ali.
+   */
+  scales: { left: number; right: number } | null;
+  /**
+   * Materiais Xyz encaixados, por passcode. Informação pública: material fica
+   * com a face para cima embaixo do monstro.
+   */
+  overlays: number[];
+  /** Contadores na carta (tipo do core → quantidade). */
+  counters: { type: number; count: number }[];
+  /** A quem esta carta está equipada (Equipamento, Monstro União…). */
+  equippedTo: ZoneRef | null;
+  /** Alvos contínuos (Chamado do Assombrado → o monstro que ela trouxe). */
+  targets: ZoneRef[];
+  /** Os efeitos desta carta estão negados agora. */
+  negated: boolean;
+  /** Marcas anunciadas por mensagem — ver `CardHint`. */
+  hints: CardHint[];
 }
 
 export interface BoardPlayer {
-  /** 5 zonas de monstro (Goat não usa as extra monster zones). */
+  /**
+   * Zonas de monstro deste jogador, pelo índice do core: 0–4 são as principais
+   * e 5–6 as **Zonas de Monstro Extra** (Master Rule 4/5). No Goat as duas
+   * últimas ficam sempre vazias — a regra de 2005 não as tem.
+   *
+   * As Zonas Extra são compartilhadas: a zona 5 de um jogador é a zona 6 do
+   * outro. Quem desenha a mesa resolve qual ocupante mostrar (ver `DuelBoard`).
+   */
   monsters: (BoardCard | null)[];
   /** 5 zonas de magia/armadilha + a zona de campo. */
   spells: (BoardCard | null)[];
@@ -39,6 +100,11 @@ export interface BoardPlayer {
   /** Conteúdo das pilhas — para o jogador poder abrir e conferir. */
   grave: BoardCard[];
   banished: BoardCard[];
+  /**
+   * Extra Deck. O do observador vem inteiro; o do oponente só com as cartas
+   * **viradas para cima** — os Pêndulos que voltaram para lá são públicos pela
+   * regra, o resto do Extra Deck dele continua secreto.
+   */
   extra: BoardCard[];
   /**
    * Carta do topo do cemitério, à parte da lista.
@@ -53,6 +119,8 @@ export interface BoardPlayer {
   graveSize: number;
   banishedSize: number;
   extraSize: number;
+  /** Quantas cartas do Extra Deck estão viradas para cima (Pêndulos). */
+  extraFaceUp: number;
 }
 
 export interface BoardState {
@@ -67,6 +135,51 @@ const ZONE_FLAGS = (OcgQueryFlags.CODE |
   OcgQueryFlags.DEFENSE |
   OcgQueryFlags.BASE_ATTACK |
   OcgQueryFlags.BASE_DEFENSE) as OcgQueryFlags;
+
+/**
+ * O que só faz sentido para carta em campo: nível/rank atuais, Link, escalas e
+ * materiais Xyz.
+ *
+ * ⚠️ `OcgQueryFlags.TYPE` fica de fora de propósito: o binding (0.1.4) não sabe
+ * desserializar esse campo — sozinho ele lança `eof`, e junto de outros
+ * desalinha a resposta inteira (zonas trocadas, `code` indefinido). O tipo da
+ * carta vem do banco oficial/catálogo, que é estático e serve à tela.
+ */
+const FIELD_FLAGS = (ZONE_FLAGS |
+  OcgQueryFlags.LEVEL |
+  OcgQueryFlags.RANK |
+  OcgQueryFlags.LINK |
+  OcgQueryFlags.LSCALE |
+  OcgQueryFlags.RSCALE |
+  OcgQueryFlags.OVERLAY_CARD |
+  OcgQueryFlags.COUNTERS |
+  OcgQueryFlags.EQUIP_CARD |
+  OcgQueryFlags.TARGET_CARD |
+  OcgQueryFlags.STATUS) as OcgQueryFlags;
+
+/**
+ * `STATUS_DISABLED` do core: os efeitos da carta estão negados agora (Skill
+ * Drain, Véu de Efeito, Contínua negada). É o que o EDOPro usa para pintar a
+ * carta de cinza.
+ */
+const STATUS_DISABLED = 0x0001;
+
+/** Marcas por zona, que a sessão acompanha (chave `controller:location:sequence`). */
+export type HintsByZone = ReadonlyMap<string, readonly CardHint[]>;
+
+function zoneRef(raw: unknown): ZoneRef | null {
+  if (!raw || typeof raw !== "object") return null;
+  const zone = raw as { controller?: number; location?: number; sequence?: number };
+  if (typeof zone.location !== "number" || zone.location === 0) return null;
+  return {
+    controller: zone.controller === 1 ? 1 : 0,
+    location: zone.location as OcgLocation,
+    sequence: zone.sequence ?? 0,
+  };
+}
+
+/** Zonas de monstro: 5 principais + 2 Zonas Extra. */
+const MONSTER_ZONE_COUNT = 7;
 
 /** Lê um número de um campo da query, ou null quando ausente. */
 function num(raw: Record<string, unknown>, key: string): number | null {
@@ -85,6 +198,8 @@ function toBoardCard(
   location: OcgLocation,
   /** Se o observador pode ver cartas viradas para baixo desse jogador. */
   canSeeHidden: boolean,
+  /** Marcas acompanhadas pela sessão, por zona. */
+  hints?: HintsByZone,
 ): BoardCard | null {
   if (!raw) return null;
 
@@ -95,8 +210,13 @@ function toBoardCard(
   const faceDown = (position & OcgPosition.FACEDOWN) !== 0;
   const defense = (position & OcgPosition.DEFENSE) !== 0;
 
+  const visible = !faceDown || canSeeHidden;
+  const link = raw.link as { rating?: number; marker?: number } | undefined;
+  const left = num(raw, "leftScale");
+  const right = num(raw, "rightScale");
+
   return {
-    code: faceDown && !canSeeHidden ? null : code,
+    code: visible ? code : null,
     position,
     sequence,
     controller,
@@ -110,7 +230,31 @@ function toBoardCard(
     // e o ATK/DEF impresso caía no catálogo, mascarando o erro.
     baseAttack: num(raw, "baseAttack"),
     baseDefense: num(raw, "baseDefense"),
+    // Nada disto vaza de carta oculta: o nível ou as setas de um monstro
+    // baixado já dizem que carta ele é.
+    level: visible ? num(raw, "level") : null,
+    rank: visible ? num(raw, "rank") : null,
+    link: visible && link?.rating ? { rating: link.rating, markers: link.marker ?? 0 } : null,
+    scales: visible && left !== null && right !== null ? { left, right } : null,
+    overlays: visible && Array.isArray(raw.overlayCards) ? (raw.overlayCards as number[]) : [],
+    // Marcas seguem a carta: carta oculta para quem olha não mostra nenhuma —
+    // um contador num monstro baixado já diria que monstro ele é.
+    counters: visible ? countersOf(raw.counters) : [],
+    equippedTo: visible ? zoneRef(raw.equipCard) : null,
+    targets:
+      visible && Array.isArray(raw.targetCards)
+        ? (raw.targetCards as unknown[]).map(zoneRef).filter((z): z is ZoneRef => z !== null)
+        : [],
+    negated: visible && !faceDown && ((num(raw, "status") ?? 0) & STATUS_DISABLED) !== 0,
+    hints: visible ? [...(hints?.get(`${controller}:${location}:${sequence}`) ?? [])] : [],
   };
+}
+
+function countersOf(raw: unknown): { type: number; count: number }[] {
+  if (!raw || typeof raw !== "object") return [];
+  return Object.entries(raw as Record<string, number>)
+    .map(([type, count]) => ({ type: Number(type), count: Number(count) }))
+    .filter((counter) => counter.count > 0);
 }
 
 function queryZone(
@@ -118,10 +262,11 @@ function queryZone(
   handle: OcgDuelHandle,
   controller: 0 | 1,
   location: OcgLocation,
+  flags: OcgQueryFlags = ZONE_FLAGS,
 ): (Record<string, unknown> | null)[] {
   try {
     return core.duelQueryLocation(handle, {
-      flags: ZONE_FLAGS,
+      flags,
       controller,
       location,
     }) as (Record<string, unknown> | null)[];
@@ -142,20 +287,22 @@ function readPlayer(
    * WASM, e durante uma jogada em andamento ninguém está com a lista aberta.
    */
   light: boolean,
+  hints?: HintsByZone,
 ): BoardPlayer {
   const isViewer = controller === viewer;
 
-  const monsterRaw = queryZone(core, handle, controller, OcgLocation.MZONE);
-  const spellRaw = queryZone(core, handle, controller, OcgLocation.SZONE);
+  const monsterRaw = queryZone(core, handle, controller, OcgLocation.MZONE, FIELD_FLAGS);
+  const spellRaw = queryZone(core, handle, controller, OcgLocation.SZONE, FIELD_FLAGS);
   const handRaw = queryZone(core, handle, controller, OcgLocation.HAND);
 
-  const monsters = Array.from({ length: 5 }, (_, index) =>
+  const monsters = Array.from({ length: MONSTER_ZONE_COUNT }, (_, index) =>
     toBoardCard(
       monsterRaw[index] ?? null,
       index,
       controller,
       OcgLocation.MZONE,
       isViewer,
+      hints,
     ),
   );
 
@@ -166,6 +313,7 @@ function readPlayer(
       controller,
       OcgLocation.SZONE,
       isViewer,
+      hints,
     ),
   );
 
@@ -175,6 +323,7 @@ function readPlayer(
     controller,
     OcgLocation.SZONE,
     isViewer,
+    hints,
   );
 
   /**
@@ -212,6 +361,16 @@ function readPlayer(
       defenseValue: null,
       baseAttack: null,
       baseDefense: null,
+      level: null,
+      rank: null,
+      link: null,
+      scales: null,
+      overlays: [],
+      counters: [],
+      equippedTo: null,
+      targets: [],
+      negated: false,
+      hints: [],
     });
   });
 
@@ -260,6 +419,12 @@ function readPlayer(
     }
   }
 
+  // O Extra Deck é lido mesmo no modo leve: é uma consulta só, e é dela que
+  // sai a contagem de Pêndulos virados para cima, que muda justamente no meio
+  // das jogadas (Pêndulo destruído volta para lá com a face para cima).
+  const extraAll = pile(OcgLocation.EXTRA);
+  const extraFaceUp = extraAll.filter((card) => !card.faceDown);
+
   return {
     monsters,
     spells,
@@ -267,12 +432,16 @@ function readPlayer(
     hand,
     grave,
     banished: light ? [] : pile(OcgLocation.REMOVED),
-    extra: light || !isViewer ? [] : pile(OcgLocation.EXTRA),
+    // Do oponente, só o que é público. `pile` já zera o código das viradas
+    // para baixo; tirá-las da lista é o que impede a CONTAGEM e a POSIÇÃO de
+    // cada uma de virar pista. (Vem até no modo leve: a consulta já foi feita.)
+    extra: isViewer ? extraAll : extraFaceUp,
     graveTop: graveTopCard(),
     deckSize: core.duelQueryCount(handle, controller, OcgLocation.DECK),
     graveSize,
     banishedSize: core.duelQueryCount(handle, controller, OcgLocation.REMOVED),
     extraSize: core.duelQueryCount(handle, controller, OcgLocation.EXTRA),
+    extraFaceUp: extraFaceUp.length,
   };
 }
 
@@ -283,11 +452,13 @@ export function readBoardState(
   viewer: 0 | 1 = 0,
   /** Leitura leve: pula o conteúdo das pilhas (mantém os contadores). */
   light = false,
+  /** Marcas anunciadas por mensagem, que a sessão acompanha (`CARD_HINT`). */
+  hints?: HintsByZone,
 ): BoardState {
   return {
     players: [
-      readPlayer(core, handle, 0, viewer, light),
-      readPlayer(core, handle, 1, viewer, light),
+      readPlayer(core, handle, 0, viewer, light, hints),
+      readPlayer(core, handle, 1, viewer, light, hints),
     ],
   };
 }

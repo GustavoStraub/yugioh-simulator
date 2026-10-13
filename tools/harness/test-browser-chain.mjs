@@ -1,0 +1,192 @@
+/**
+ * A corrente se entende pela tela? O caso que motivou: tomar uma Ash Blossom.
+ *
+ * Antes, a Ash do oponente ia da mão para o Cemitério e a busca do jogador
+ * simplesmente não acontecia — uma linha no histórico e nada mais. Agora cada
+ * elo aparece em destaque no centro (quem ativou, de onde, o número do elo), a
+ * pilha da corrente fica no trilho esquerdo, e o elo negado volta com o
+ * carimbo NEGADO.
+ *
+ * O cenário: eu tenho Reforço do Exército na mão e um Deck de Guerreiros; o
+ * bot tem Ash Blossom na mão. Ativo o Reforço clicando, o bot encadeia a Ash,
+ * a Ash resolve e nega o efeito do Reforço. O teste acompanha a tela o tempo
+ * todo e confere o que apareceu; as fotos vão para `.cache/shots/corrente-*.png`.
+ *
+ * Uso: APP_URL=http://127.0.0.1:3000 npm run test:browser-chain [-- --headed]
+ */
+import { mkdirSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
+
+import { OcgLocation } from "@n1xx1/ocgcore-wasm";
+
+import { launchChrome, openPage } from "./browser.mjs";
+import { REPO } from "./env.mjs";
+
+const BASE = process.env.APP_URL ?? "http://127.0.0.1:3000";
+const OUT = join(REPO, ".cache/shots");
+
+const CELTIC_GUARDIAN = 91152256; // Guerreiro de Nível 4: alvo do Reforço
+const REINFORCEMENT = 32807846; // Reforço do Exército
+const ASH_BLOSSOM = 14558127;
+
+const setup = {
+  playerName: "Testador",
+  playerDeck: { main: Array(40).fill(CELTIC_GUARDIAN), extra: [], side: [] },
+  opponentId: "teste",
+  opponentName: "Oponente",
+  opponentDeck: { main: Array(40).fill(CELTIC_GUARDIAN), extra: [], side: [] },
+  format: "tcg",
+  scenario: [
+    { player: 0, location: OcgLocation.HAND, code: REINFORCEMENT },
+    { player: 1, location: OcgLocation.HAND, code: ASH_BLOSSOM },
+  ],
+};
+
+const falhas = [];
+function conferir(condicao, descricao, detalhe = "") {
+  console.log(condicao ? `  ✓ ${descricao}` : `  ✗ ${descricao}${detalhe ? ` — ${detalhe}` : ""}`);
+  if (!condicao) falhas.push(descricao);
+}
+
+const espera = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+/** O que a tela mostra da corrente agora. */
+const LER = `
+  const destaque = document.querySelector("[data-chain-spotlight]");
+  const pilha = document.querySelector("[data-chain-stack]");
+  return {
+    destaque: destaque && {
+      tipo: destaque.dataset.chainSpotlight,
+      elo: Number(destaque.dataset.chainLink),
+      texto: destaque.innerText.replace(/\\s+/g, " "),
+    },
+    pilha: pilha && [...pilha.querySelectorAll("[data-chain-row]")].map((linha) => ({
+      elo: Number(linha.dataset.chainRow),
+      estado: linha.dataset.chainState,
+      texto: linha.innerText.replace(/\\s+/g, " "),
+    })),
+    botoes: [...document.querySelectorAll("button")]
+      .filter((b) => !b.disabled && b.offsetParent !== null && !b.closest("header, nav"))
+      .map((b) => b.innerText.trim()),
+    log: [...document.querySelectorAll("aside")].at(-1)?.innerText ?? "",
+  };
+`;
+
+async function main() {
+  mkdirSync(OUT, { recursive: true });
+  const { child, port } = await launchChrome({ headless: !process.argv.includes("--headed") });
+  try {
+    const page = await openPage(port);
+    await page.setViewport(1440, 900);
+    await page.goto(`${BASE}/duel`);
+    await page.evaluate(
+      `localStorage.setItem("yugioh-goat-profile-v1", ${JSON.stringify(
+        JSON.stringify({ id: "harnesschain01", name: "Testador" }),
+      )});
+       sessionStorage.setItem("yugioh-goat-duel-setup-v1", ${JSON.stringify(JSON.stringify(setup))});
+       return true;`,
+    );
+    await page.goto(`${BASE}/duel/play`);
+
+    // Espera o Reforço ficar clicável na minha mão (Main Phase 1).
+    const acharReforco = `
+      const slot = [...document.querySelectorAll('[data-zone^="0:2:"]')]
+        .find((el) => /Refor|Reinforcement/.test(el.querySelector("img")?.alt ?? ""));
+      return slot && slot.querySelector(".tf-slot-active") ? slot.dataset.zone : null;
+    `;
+    let zona = null;
+    for (let i = 0; i < 120 && !zona; i += 1) {
+      zona = await page.evaluate(acharReforco).catch(() => null);
+      if (!zona) await espera(500);
+    }
+    conferir(Boolean(zona), "o Reforço do Exército está clicável na mão");
+    if (!zona) return;
+
+    await page.evaluate(`document.querySelector('[data-zone="${zona}"] [role="button"]').click(); return true;`);
+    await espera(250);
+    conferir(await page.clickAction("Ativar"), "ativei o Reforço pelo menu da carta");
+    // Em MR5 a Magia da mão pergunta em que zona entra: a primeira serve
+    // (espera ela acender como escolhível, em vez de um tempo fixo).
+    for (let i = 0; i < 25; i += 1) {
+      if (await page.evaluate(`return Boolean(document.querySelector('[data-zone="0:8:0"] .tf-slot-place'));`)) break;
+      await espera(200);
+    }
+    await page.evaluate(`document.querySelector('[data-zone="0:8:0"] [role="button"]')?.click(); return true;`);
+
+    // Acompanha a tela: destaques, pilha e respostas ("Não responder").
+    const vistos = { destaques: new Map(), pilhaMax: 0, estados: new Map(), fotos: new Set() };
+    const fim = Date.now() + 20_000;
+    let estado = null;
+    while (Date.now() < fim) {
+      estado = await page.evaluate(LER);
+      if (estado.destaque) {
+        const chave = `${estado.destaque.tipo}:${estado.destaque.elo}`;
+        if (!vistos.destaques.has(chave)) {
+          vistos.destaques.set(chave, estado.destaque.texto);
+          // A foto espera o destaque terminar de entrar (14% da duração).
+          await espera(250);
+          const { data } = await page.screenshot();
+          writeFileSync(join(OUT, `corrente-${estado.destaque.tipo}-${estado.destaque.elo}.png`), Buffer.from(data, "base64"));
+        }
+      }
+      if (estado.pilha) {
+        vistos.pilhaMax = Math.max(vistos.pilhaMax, estado.pilha.length);
+        for (const linha of estado.pilha) {
+          const lista = vistos.estados.get(linha.elo) ?? new Set();
+          lista.add(linha.estado);
+          vistos.estados.set(linha.elo, lista);
+        }
+        if (estado.pilha.length === 2 && !vistos.fotos.has("pilha")) {
+          vistos.fotos.add("pilha");
+          const { data } = await page.screenshot();
+          writeFileSync(join(OUT, "corrente-pilha.png"), Buffer.from(data, "base64"));
+        }
+      }
+      // A corrente me pergunta se respondo: não.
+      if (estado.botoes.includes("Não responder")) await page.clickAction("Não responder");
+      if (vistos.destaques.has("negated:1") && !estado.pilha) break;
+      await espera(90);
+    }
+
+    const ativou1 = vistos.destaques.get("activate:1") ?? "";
+    const ativou2 = vistos.destaques.get("activate:2") ?? "";
+    const negou1 = vistos.destaques.get("negated:1") ?? "";
+    // `innerText` devolve o texto como a tela mostra (os rótulos em
+    // maiúsculas), e o nome vem no idioma do jogador — daí o `i` e as duas
+    // grafias.
+    const ASH = /Ash Blossom|Florescer de Cinzas/i;
+    conferir(/Você ativou/i.test(ativou1) && /Refor|Reinforcement/i.test(ativou1), "destaque do elo 1: eu ativei o Reforço", ativou1);
+    conferir(
+      /Oponente ativou/i.test(ativou2) && ASH.test(ativou2) && /da mão/i.test(ativou2),
+      "destaque do elo 2: o oponente ativou a Ash Blossom, da mão",
+      ativou2,
+    );
+    conferir(/Efeito negado .*\bNegado\b/i.test(negou1), "o elo 1 volta em destaque com EFEITO NEGADO e o carimbo", negou1);
+    conferir(vistos.pilhaMax === 2, "a pilha da corrente mostrou os dois elos", String(vistos.pilhaMax));
+    conferir(vistos.estados.get(2)?.has("resolving") ?? false, "o elo 2 apareceu resolvendo", [...(vistos.estados.get(2) ?? [])].join(","));
+    conferir(vistos.estados.get(1)?.has("disabled") ?? false, "o elo 1 ficou marcado como efeito negado", [...(vistos.estados.get(1) ?? [])].join(","));
+    const log = estado?.log ?? "";
+    const historico = log.replace(/\s+/g, " ");
+    conferir(
+      new RegExp(`Elo 2 — O oponente ativou (${ASH.source}).*\\(da mão\\)`, "i").test(historico),
+      "o histórico diz que a Ash veio da mão",
+      historico.slice(-300),
+    );
+    conferir(/Elo 1 — efeito de .* negado/.test(historico), "o histórico diz que o efeito do elo 1 foi negado", historico.slice(-300));
+
+    const erros = page.console.filter((c) => c.level === "error");
+    conferir(page.errors.length === 0, "sem exceções na página", page.errors.join(" | "));
+    conferir(erros.length === 0, "sem erros de console", erros.map((e) => e.text).join(" | ").slice(0, 300));
+  } finally {
+    child.kill();
+  }
+
+  if (falhas.length) {
+    console.log(`\n${falhas.length} falha(s).`);
+    process.exitCode = 1;
+  } else {
+    console.log(`\nCorrente pela tela: tudo certo. Fotos em ${OUT}`);
+  }
+}
+
+await main();

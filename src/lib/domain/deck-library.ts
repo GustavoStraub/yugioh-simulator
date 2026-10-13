@@ -1,4 +1,4 @@
-import { createEmptyDeck } from "@/lib/domain/deck-operations";
+import { createEmptyDeck, normalizeDeck } from "@/lib/domain/deck-operations";
 import type { Profile } from "@/lib/domain/profile";
 import type { DeckList } from "@/lib/types";
 
@@ -21,7 +21,7 @@ export async function fetchDecks(profile: Profile): Promise<DeckList[]> {
   if (profile.previousId) busca.set("from", profile.previousId);
 
   const { decks } = await pedir<{ decks: DeckList[] }>(`/api/decks?${busca}`);
-  return decks;
+  return decks.map(normalizeDeck);
 }
 
 export async function persistDeck(
@@ -33,7 +33,7 @@ export async function persistDeck(
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ profile: profile.id, profileName: profile.name, deck }),
   });
-  return decks;
+  return decks.map(normalizeDeck);
 }
 
 export async function removeDeck(
@@ -44,7 +44,7 @@ export async function removeDeck(
     `/api/decks?profile=${encodeURIComponent(profile.id)}&deck=${encodeURIComponent(deckId)}`,
     { method: "DELETE" },
   );
-  return decks;
+  return decks.map(normalizeDeck);
 }
 
 /** Nome livre dentro da biblioteca — "Cópia", "Cópia 2"... */
@@ -59,7 +59,7 @@ export function nomeUnico(base: string, existentes: DeckList[]): string {
 }
 
 export function duplicarDeck(deck: DeckList, existentes: DeckList[]): DeckList {
-  const copia = createEmptyDeck(nomeUnico(`${deck.name} (cópia)`, existentes));
+  const copia = createEmptyDeck(nomeUnico(`${deck.name} (cópia)`, existentes), deck.format);
   return {
     ...copia,
     main: deck.main.map((ref) => ({ ...ref })),

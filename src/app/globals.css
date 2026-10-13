@@ -37,7 +37,9 @@ body {
      histórico à direita. Mora aqui porque os modais precisam do mesmo número
      para escurecer só o campo e deixar os dois trilhos intactos. */
   --tf-rail-left: 330px;
-  --tf-rail-right: 264px;
+  /* Trilho direito = coluna das fases + histórico (ver `PhaseTrack`). */
+  --tf-rail-right: 300px;
+  --tf-rail-phase: 72px;
 }
 
 /* Mesa de duelo: profundidade radial + leve textura de vinheta. */
@@ -183,6 +185,7 @@ body {
   top: 0;
   bottom: 0;
   left: var(--tf-rail-left);
+  /* O trilho direito inclui as fases: ficam à vista com o modal aberto. */
   right: var(--tf-rail-right);
 }
 
@@ -195,6 +198,13 @@ body {
   .tf-modal-area {
     left: 0;
     right: 0;
+  }
+
+  /* E a leitura da carta cede largura ao campo: com 330 px ela sobrava
+     vazia enquanto as cartas da mesa encolhiam para caber (o teto pela
+     largura, ver `CARD_SHAPE`). 250 px ainda mostram a carta e o texto. */
+  :root {
+    --tf-rail-left: 250px;
   }
 }
 
@@ -386,11 +396,81 @@ body {
   background: rgba(4, 20, 30, 0.75);
 }
 
+/* Quem está no turno, na contagem do trilho de fases: dourado é o seu,
+   vermelho o do oponente — como as barras de LP. */
+.tf-phase-turn-mine {
+  border-color: var(--tf-gold);
+  color: var(--tf-gold-bright);
+}
+
+.tf-phase-turn-foe {
+  border-color: rgba(220, 90, 90, 0.7);
+  color: #f0a3a3;
+}
+
 .tf-phase-pip-active {
   border-color: var(--tf-gold);
   background: linear-gradient(180deg, var(--tf-gold), var(--tf-gold-dim));
   color: #1a1206;
   box-shadow: 0 0 12px rgba(217, 180, 81, 0.5);
+}
+
+/* Destaque de uma ativação (ChainSpotlight): entra crescendo, fica, sai. A
+   duração vem inline — ativação e negação têm tempos diferentes. */
+@keyframes tf-spotlight {
+  0% { opacity: 0; transform: scale(0.82); }
+  14% { opacity: 1; transform: scale(1); }
+  82% { opacity: 1; transform: scale(1); }
+  100% { opacity: 0; transform: scale(1.03); }
+}
+
+.tf-spotlight {
+  animation-name: tf-spotlight;
+  animation-timing-function: ease-out;
+  animation-fill-mode: both;
+}
+
+/* O fundo do destaque acompanha a carta: entra, fica e sai junto. */
+@keyframes tf-spotlight-backdrop {
+  0% { opacity: 0; }
+  14% { opacity: 1; }
+  82% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+.tf-spotlight-backdrop {
+  background: radial-gradient(ellipse at center, rgba(0, 0, 0, 0.55) 0%, rgba(0, 0, 0, 0.25) 55%, rgba(0, 0, 0, 0.05) 100%);
+  animation-name: tf-spotlight-backdrop;
+  animation-timing-function: ease-out;
+  animation-fill-mode: both;
+}
+
+.tf-spotlight-glow-mine {
+  box-shadow: 0 0 0 3px var(--tf-gold), 0 0 38px 8px rgba(217, 180, 81, 0.55);
+}
+
+.tf-spotlight-glow-foe {
+  box-shadow: 0 0 0 3px #dc2626, 0 0 38px 8px rgba(220, 38, 38, 0.5);
+}
+
+@keyframes tf-negated-stamp {
+  0% { opacity: 0; transform: translateY(-50%) rotate(-12deg) scale(1.6); }
+  30% { opacity: 1; transform: translateY(-50%) rotate(-12deg) scale(1); }
+  100% { opacity: 1; transform: translateY(-50%) rotate(-12deg) scale(1); }
+}
+
+.tf-negated-stamp {
+  animation: tf-negated-stamp 0.45s ease-out both;
+}
+
+/* Elo resolvendo, no slot da carta: pulsa enquanto é a vez dele. */
+@keyframes tf-chain-resolving {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(245, 221, 143, 0.9); }
+  50% { box-shadow: 0 0 0 6px rgba(245, 221, 143, 0); }
+}
+
+.tf-chain-resolving {
+  animation: tf-chain-resolving 0.8s ease-in-out infinite;
 }
 
 /* Acessibilidade: quem configurou "menos movimento" no sistema recebe o
@@ -405,7 +485,11 @@ body {
   .tf-hit-flash,
   .tf-flash-text,
   .tf-lp-bump,
-  .tf-slot-active {
+  .tf-slot-active,
+  .tf-spotlight,
+  .tf-spotlight-backdrop,
+  .tf-negated-stamp,
+  .tf-chain-resolving {
     animation: none !important;
   }
 }
@@ -431,4 +515,39 @@ body {
 
 .tf-dice {
   animation: tf-dice-roll 1.2s cubic-bezier(0.2, 0.7, 0.2, 1) forwards;
+}
+
+/* ----- Mesa moderna (TCG) --------------------------------------------------
+   Setas Link: triângulos nas bordas da arte. As acesas brilham em vermelho,
+   como na carta impressa; as apagadas ficam quase invisíveis, mas presentes —
+   é a posição relativa que se lê de relance.
+------------------------------------------------------------------------- */
+.tf-link-arrow {
+  display: block;
+  width: 70%;
+  height: 55%;
+  clip-path: polygon(50% 0, 100% 100%, 0 100%);
+  background: rgba(10, 10, 10, 0.55);
+}
+
+.tf-link-arrow-on {
+  background: linear-gradient(180deg, #ff8a7a, #d4202a);
+  filter: drop-shadow(0 0 2px rgba(255, 90, 70, 0.95));
+}
+
+/* Zona para onde um Link aponta: contorno tracejado, discreto o bastante para
+   não competir com o realce de "clique aqui", que é outro assunto. */
+.tf-slot-linked {
+  outline: 1px dashed rgba(255, 120, 100, 0.75);
+  outline-offset: -3px;
+}
+
+/* Zona inutilizada por um efeito (FIELD_DISABLED): hachurada em vermelho,
+   como uma zona interditada. */
+.tf-zone-disabled {
+  background-image: repeating-linear-gradient(
+    135deg,
+    rgba(220, 38, 38, 0.32) 0 6px,
+    transparent 6px 12px
+  );
 }

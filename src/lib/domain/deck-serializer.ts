@@ -3,7 +3,7 @@ import { isDeckDuelReady } from "./deck-rules";
 
 import type { CardRegistry } from "./card-registry";
 import type { DeckList, DuelDeckPayload, DuelSetup } from "@/lib/types";
-import { GOAT_FORMAT_RULES } from "@/lib/types";
+import { FORMAT_RULES, formatOf } from "@/lib/types";
 
 /** Converte DeckList para payload que o ocgcore aceita. */
 export function deckToDuelPayload(deck: DeckList): DuelDeckPayload {
@@ -11,6 +11,7 @@ export function deckToDuelPayload(deck: DeckList): DuelDeckPayload {
     main: expandDeckZone(deck.main),
     extra: expandDeckZone(deck.extra),
     side: expandDeckZone(deck.side),
+    format: formatOf(deck.format),
   };
 }
 
@@ -23,7 +24,7 @@ export function deckToDuelSetup(
   if (!isDeckDuelReady(playerDeck)) return null;
 
   return {
-    rules: GOAT_FORMAT_RULES,
+    rules: FORMAT_RULES[formatOf(playerDeck.format)],
     player1: {
       name: playerDeck.name,
       deck: deckToDuelPayload(playerDeck),

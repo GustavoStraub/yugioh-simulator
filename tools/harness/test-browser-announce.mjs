@@ -11,8 +11,11 @@
  *
  * Uso: node tools/harness/test-browser-announce.mjs [--headed]
  */
+import { existsSync, readdirSync, readFileSync, rmSync } from "node:fs";
+import { join } from "node:path";
+
 import { launchChrome, openPage } from "./browser.mjs";
-import { loadGoatPool } from "./env.mjs";
+import { REPO, loadGoatPool } from "./env.mjs";
 
 const BASE = process.env.APP_URL ?? "http://127.0.0.1:3000";
 const DECK_STORAGE_KEY = "yugioh-goat-deck-v1";
@@ -94,7 +97,8 @@ const LER = `
   const mesa = document.querySelector(".tf-playmat") ?? document.body;
   const texto = mesa.innerText;
   const util = (b) => !b.disabled && b.offsetParent !== null &&
-    !b.innerText.includes("\\u{1F50A}") && !b.innerText.includes("\\u{1F507}");
+    !b.innerText.includes("\\u{1F50A}") && !b.innerText.includes("\\u{1F507}") &&
+    !b.closest('[aria-label="Idioma das cartas"]');
   return {
     texto,
     botoes: [...document.querySelectorAll("button")].filter(util).map((b) => b.innerText.trim()).filter(Boolean),
@@ -104,7 +108,10 @@ const LER = `
     // faz o teste achar que o modal de declarar carta está aberto o duelo
     // inteiro.
     temBusca: Boolean(document.querySelector("input[type=text]")),
-    processando: /Processando|Preparando duelo/.test(texto),
+    processando:
+      mesa.dataset?.processing === "1" ||
+      mesa.dataset?.waitingFoe === "1" ||
+      /Processando|Preparando duelo/.test(texto),
     acabou: /venceu|empatad/.test(texto),
   };
 `;
@@ -228,10 +235,10 @@ async function main() {
         await new Promise((r) => setTimeout(r, 150));
         const depois = await page.evaluate(LER);
         const acao = escolher(depois.botoes);
-        if (acao) await page.clickText(acao);
+        if (acao) await page.clickAction(acao);
       } else {
         const acao = escolher(estado.botoes);
-        if (acao) await page.clickText(acao);
+        if (acao) await page.clickAction(acao);
       }
       acoes += 1;
       await new Promise((r) => setTimeout(r, 160));
@@ -250,6 +257,22 @@ async function main() {
     if (erros.length || consoleErros.length) process.exitCode = 1;
   } finally {
     child.kill();
+    // `.data/decks` é a biblioteca DE VERDADE dos jogadores: o perfil
+    // "Locutor" que este teste cria (com o deck "Teste de prompts") não pode
+    // ficar lá — ficava um `locutor.json` a cada rodada.
+    const pasta = join(REPO, ".data/decks");
+    if (existsSync(pasta)) {
+      for (const nome of readdirSync(pasta).filter((n) => n.endsWith(".json"))) {
+        try {
+          const arquivo = JSON.parse(readFileSync(join(pasta, nome), "utf8"));
+          if (arquivo.profile?.name === "Locutor" && arquivo.decks?.every((d) => d.id === "teste-announce")) {
+            rmSync(join(pasta, nome));
+          }
+        } catch {
+          // Ilegível ou de outra pessoa: não é nosso, fica.
+        }
+      }
+    }
   }
 }
 

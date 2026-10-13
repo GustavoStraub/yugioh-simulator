@@ -1,21 +1,20 @@
-import { NextResponse } from "next/server";
-
-import { fetchGoatCards } from "@/lib/domain/goat-cards";
+import { loadCatalogPayload } from "@/server/catalog/catalog-store";
+import { compressedJsonResponse } from "@/server/http/compressed-json";
 
 /**
- * Serve o catálogo Goat para o navegador.
+ * Serve o catálogo de cartas para o navegador — o arquivo enxuto que
+ * `catalog-build.ts` monta (pool TCG inteiro + Goat + fichas, texto PT/EN).
  *
- * A busca vive em `goat-cards.ts` porque o servidor de duelo online precisa do
- * mesmo catálogo sem passar por HTTP — e sem poder importar este arquivo, que
- * depende de `next/server`.
+ * A busca mora em `catalog-store.ts` porque o servidor de duelo online precisa
+ * do mesmo catálogo sem passar por HTTP — e sem poder importar este arquivo.
+ * Vai comprimido (~1,6 MB em brotli; ~10 MB cru) e com ETag — revisita é 304.
  */
-export async function GET() {
+export async function GET(request: Request) {
   try {
-    const cards = await fetchGoatCards();
-    return NextResponse.json({ data: cards, total: cards.length });
+    return compressedJsonResponse(request, await loadCatalogPayload());
   } catch (error) {
     const message =
-      error instanceof Error ? error.message : "Erro ao buscar cartas.";
-    return NextResponse.json({ error: message }, { status: 502 });
+      error instanceof Error ? error.message : "Erro ao montar o catálogo.";
+    return Response.json({ error: message }, { status: 502 });
   }
 }

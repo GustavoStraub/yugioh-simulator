@@ -105,8 +105,13 @@ async function main() {
   try {
     const page = await openPage(port);
     await page.goto(`${BASE}/duel`);
+    // O perfil vem ANTES do deck: sem nome, a portaria (`PlayerProvider`)
+    // segura a aplicação na pergunta "como você quer ser chamado?".
     await page.evaluate(
-      `localStorage.setItem("yugioh-goat-deck-v1", ${JSON.stringify(JSON.stringify(deck()))}); return true;`,
+      `localStorage.setItem("yugioh-goat-profile-v1", ${JSON.stringify(
+        JSON.stringify({ id: "harnessdrawlandi", name: "Testador" }),
+      )});
+       localStorage.setItem("yugioh-goat-deck-v1", ${JSON.stringify(JSON.stringify(deck()))}); return true;`,
     );
     await page.goto(`${BASE}/duel`);
     for (let i = 0; i < 60; i += 1) {
@@ -115,6 +120,9 @@ async function main() {
       await new Promise((r) => setTimeout(r, 1000));
     }
 
+    // Espera o botão existir: o catálogo (TCG inteiro) e a biblioteca de decks
+    // carregam antes, e clicar cedo demais não acha nada.
+    await page.waitForText("Iniciar duelo", { timeout: 60000 }).catch(() => {});
     if (!(await page.clickText("Iniciar duelo"))) throw new Error("não iniciou o duelo");
 
     // O grampo precisa entrar já na mesa: o lobby e o duelo são páginas
@@ -166,22 +174,31 @@ async function main() {
 
       // Toca o jogo para o turno passar e novas compras acontecerem.
       const estado = await page.evaluate(`
-        const util = (b) => !b.disabled && b.offsetParent !== null && !b.innerText.includes("\\u{1F50A}");
+        const util = (b) => !b.disabled && b.offsetParent !== null && !b.innerText.includes("\\u{1F50A}") && !b.closest('[aria-label="Idioma das cartas"]');
         return {
           botoes: [...document.querySelectorAll("button")].filter(util).map((b) => b.innerText.trim()).filter(Boolean),
           cartas: document.querySelectorAll(".tf-slot-active").length,
         };
       `);
-      if (estado.cartas > 0) {
+      // PASSAR o turno, não jogar: o caso que importa é a compra de turno
+      // chegando numa mão que já tem mais de 5 cartas. Jogando cartas (como
+      // o teste fazia), a mão ficava em 5 ou menos e o caso dependia de
+      // sorte — duas rodadas em três terminavam sem medi-lo. Carta só quando
+      // o jogo obriga (descarte no limite de mão, escolha forçada).
+      const passar =
+        estado.botoes.find((b) => b.includes("Encerrar turno")) ??
+        estado.botoes.find((b) => b === "EP") ??
+        estado.botoes.find((b) => b.startsWith("Não"));
+      if (passar) {
+        await page.clickAction(passar);
+      } else if (estado.cartas > 0) {
         await page.evaluate(`const c=[...document.querySelectorAll(".tf-slot-active")]; if(c.length)c[0].click(); return true;`);
         await new Promise((r) => setTimeout(r, 150));
-        const depois = await page.evaluate(`return [...document.querySelectorAll("button")].filter(b=>!b.disabled&&b.offsetParent).map(b=>b.innerText.trim()).filter(Boolean)`);
-        const acao = depois.find((b) => /^(Invocar|Baixar|Ativar|Confirmar)/.test(b));
-        if (acao) await page.clickText(acao);
-      } else {
-        const alvo = estado.botoes.find((b) => b.includes("Encerrar turno"))
-          ?? estado.botoes.find((b) => b === "EP") ?? estado.botoes[0];
-        if (alvo) await page.clickText(alvo);
+        const depois = await page.evaluate(`return [...document.querySelectorAll("button")].filter(b=>!b.disabled&&b.offsetParent&&!b.closest("header, nav")).map(b=>b.innerText.trim()).filter(Boolean)`);
+        const acao = depois.find((b) => /^(Confirmar|Descartar|Baixar|Invocar|Ativar)/.test(b));
+        if (acao) await page.clickAction(acao);
+      } else if (estado.botoes[0]) {
+        await page.clickAction(estado.botoes[0]);
       }
       await new Promise((r) => setTimeout(r, 220));
     }

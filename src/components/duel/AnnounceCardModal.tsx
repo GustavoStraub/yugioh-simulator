@@ -7,6 +7,7 @@ import type { OcgOpCode } from "@n1xx1/ocgcore-wasm";
 import { playSfx } from "@/lib/audio/sfx";
 import { isTokenCard } from "@/lib/duel/card-adapter";
 import { announceCardMatches } from "@/lib/duel/duel-actions";
+import type { OfficialCardDb } from "@/lib/duel/official-card-data";
 import type { CardDefinition } from "@/lib/types";
 import { useCardText } from "@/hooks/useCardText";
 
@@ -22,19 +23,26 @@ const MAX_RESULTS = 60;
  * Arquidemônio, Designators, Estilhaçar Mentes, Proibição, Questionamento...
  *
  * O core manda um filtro (pilha de opcodes) restringindo quais nomes valem;
- * `announceCardMatches` decide, carta a carta do registry, quem passa nele.
- * Fichas nunca são um nome declarável e ficam de fora da busca.
+ * `announceCardMatches` decide, carta a carta do registry, quem passa nele —
+ * com os dados oficiais (`officialDb`), pela mesma conta do core. Fichas nunca
+ * são um nome declarável e ficam de fora da busca.
+ *
+ * Quando o filtro deixa poucos nomes ("declare 1 'Gadget'"), eles aparecem já
+ * de saída: digitar para descobrir quais existem seria adivinhação.
  */
 export function AnnounceCardModal({
   instruction,
   opcodes,
   cards,
+  officialDb,
   onRespond,
   onHover,
 }: {
   instruction: string;
   opcodes: readonly OcgOpCode[];
   cards: CardDefinition[];
+  /** Banco oficial; `null` enquanto carrega. */
+  officialDb: OfficialCardDb | null;
   onRespond: (code: number) => void;
   /**
    * Manda a carta sob o mouse para o painel de leitura da esquerda. Declarar
@@ -49,15 +57,19 @@ export function AnnounceCardModal({
 
   const legal = useMemo(
     () =>
-      cards.filter(
-        (card) => !isTokenCard(card) && announceCardMatches(opcodes, card),
-      ),
-    [cards, opcodes],
+      officialDb
+        ? cards.filter(
+            (card) =>
+              !isTokenCard(card) &&
+              announceCardMatches(opcodes, card, officialDb.get(card.passcode)),
+          )
+        : [],
+    [cards, opcodes, officialDb],
   );
 
   const matches = useMemo(() => {
     const term = query.trim().toLowerCase();
-    if (!term) return [];
+    if (!term) return legal.length <= MAX_RESULTS ? legal : [];
     return legal
       .filter((card) =>
         `${card.name} ${card.nameEn ?? ""}`.toLowerCase().includes(term),
@@ -86,9 +98,13 @@ export function AnnounceCardModal({
         </header>
 
         <div className="min-h-0 flex-1 overflow-y-auto p-4">
-          {query.trim() === "" ? (
+          {!officialDb ? (
             <p className="py-10 text-center text-[13px] text-zinc-500">
-              Digite para buscar entre as cartas do catálogo.
+              Carregando os dados das cartas...
+            </p>
+          ) : query.trim() === "" && matches.length === 0 ? (
+            <p className="py-10 text-center text-[13px] text-zinc-500">
+              {legal.length} nomes podem ser declarados — digite para buscar.
             </p>
           ) : matches.length === 0 ? (
             <p className="py-10 text-center text-[13px] text-zinc-500">

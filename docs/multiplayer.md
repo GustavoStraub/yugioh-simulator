@@ -273,8 +273,9 @@ export interface DuelAssets {
   e compartilhado, para não existirem dois caminhos que possam divergir.
 
 O catálogo (`CardRegistry`) continua vindo pelo `config`, como hoje; no servidor
-ele é montado por `src/lib/domain/goat-cards.ts` — a lógica de busca extraída de
-`src/app/api/cards/route.ts`, que passa a ser um invólucro fino.
+ele é montado por `src/server/catalog/catalog-store.ts` — o mesmo arquivo de
+catálogo que `src/app/api/cards/route.ts` serve ao navegador. (Até o pool TCG,
+era `goat-cards.ts`, que buscava o pool Goat na YGOPRODeck a cada hora.)
 
 ## 5. Mudanças arquivo a arquivo
 
@@ -292,7 +293,7 @@ ele é montado por `src/lib/domain/goat-cards.ts` — a lógica de busca extraí
 | `src/lib/duel/duel-assets.ts` | a interface `DuelAssets` |
 | `src/lib/duel/browser-assets.ts` | implementação do navegador |
 | `src/lib/duel/script-source.ts` | busca de script Lua no ProjectIgnis (compartilhada) |
-| `src/lib/domain/goat-cards.ts` | catálogo Goat da YGOPRODeck (compartilhado) |
+| `src/server/catalog/catalog-store.ts` | catálogo de cartas lido do disco (compartilhado; antes `goat-cards.ts`) |
 | `src/hooks/useOnlineDuel.ts` | socket → mesma forma de retorno do `useDuelEngine` |
 | `src/components/duel/OnlineLobby.tsx` | criar/entrar em sala |
 | `src/components/duel/OnlineDuelApp.tsx` | sala + mesa |

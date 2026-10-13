@@ -53,7 +53,15 @@ const BEAT: Partial<Record<OcgMessageType, number>> = {
   [OcgMessageType.BATTLE]: 420,
   [OcgMessageType.DAMAGE]: HIT_MS,
   [OcgMessageType.RECOVER]: HIT_MS,
-  [OcgMessageType.CHAINING]: 480,
+  // Ativação: o destaque da carta no centro (`ChainSpotlight`) precisa de
+  // tempo para ser lido — "quem ativou o quê, de onde". Com 480 ms a Ash do
+  // oponente ia da mão para o Cemitério antes de o olho chegar nela.
+  [OcgMessageType.CHAINING]: 950,
+  // Cada elo resolvendo acende na pilha; um instante basta para seguir a ordem.
+  [OcgMessageType.CHAIN_SOLVING]: 380,
+  // Negação é o desfecho da corrente: o carimbo "NEGADO" fica à vista.
+  [OcgMessageType.CHAIN_NEGATED]: 900,
+  [OcgMessageType.CHAIN_DISABLED]: 900,
   [OcgMessageType.SUMMONING]: 420,
   [OcgMessageType.SPSUMMONING]: 420,
   [OcgMessageType.FLIPSUMMONING]: 420,

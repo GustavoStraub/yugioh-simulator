@@ -11,8 +11,11 @@ node tools/harness/sync-fixtures.mjs      # clona CardScripts + baixa o pool Goa
 node scripts/build-card-db.mjs            # gera src/data/card-db.json
 ```
 
-Ambos escrevem em `.cache/` (fora do controle de versão) e só precisam rodar
-de novo quando você quiser dados mais novos.
+Ambos escrevem em `.cache/` (fora do controle de versão). O CardScripts fica
+**no commit fixo** de `src/lib/duel/cardscripts-pin.ts` — o mesmo que o app lê
+pela rota `/api/scripts` e pelo servidor online. Subir esse commit é decisão
+(junto com a versão do binding, seguida da bateria inteira); o harness avisa
+quando o clone está em outro commit.
 
 ## Os testes
 
@@ -23,18 +26,28 @@ Há atalhos no `package.json` para todos eles (`npm run test:cards`,
 | comando | o que responde |
 |---|---|
 | `node tools/harness/test-cards.mjs` | Para cada uma das ~1.700 cartas do pool Goat: o script carrega sem erro de Lua? A carta é oferecida para ativar/invocar no Main Phase 1? |
+| `npm run test:tcg-pool` | O mesmo do `test-cards`, para as ~13 mil cartas TCG com script, em Master Rule 2020 e com os monstros de Extra Deck no Extra Deck. Roda em 4 processos (`--jobs N`). Falhas já conhecidas ficam listadas no próprio arquivo e não reprovam. |
+| `npm run test:modern-summons` | Sincro, Xyz, Link e Pêndulo pelo caminho da tela (`autoResponseFor` → `buildPromptPlan`, `decodeFieldMask`, `readBoardState`), mais a leitura de volta das escalas e setas que o core guardou. |
+| `npm run test:board-modern` | Navegador: mesa TCG montada por `scenario` (Link em cada Zona Extra, escalas, Xyz, Pêndulo destruído indo para o Extra Deck do oponente). Confere setas, zonas apontadas, selos e o Extra Deck público; fotos em `.cache/shots/tcg-*.png`. Precisa da app no ar (`APP_URL`). |
+| `npm run test:modern-play` | Navegador, só cliques: Sincro, Xyz e Link pelo Extra Deck que brilha, efeito de Cemitério, escalas + Invocação-Pêndulo e declaração de nome de arquétipo. Fotos de cada passo em `.cache/shots/jogo-*.png`. Precisa da app no ar (`APP_URL`). |
+| `npm run test:marks` | Marcas das cartas (contador, turnos, declaração, aviso, equipamento, alvo, negação, aviso de jogador, zona interditada) na `DuelSession` real, nas duas óticas e na projeção por assento. |
+| `npm run test:formats` | A `DuelSession` roda as regras do formato pedido (Goat compra no 1º turno, TCG não). |
+| `npm run test:presets` | Os decks pré-montados: validação de todos (Main/Extra, zona certa, dados oficiais e script, prova cruzada Goat × Yugipedia) e **uma partida bot × bot por deck TCG** em MR5, com cada prompt do assento 0 passando pela régua do `test:ui`. `--only id1,id2` repete partidas; `--skip-duels` só valida. Em massa: `--rodadas N --fatia i/n --json saída` (rode n processos; os dois assentos passam pela régua, e o resumo conta RETRY e `eof` recuperados, partidas longas e as mensagens que o binding não leu). |
+| `npm run test:token-images` | Toda ficha do banco oficial tem nome no catálogo e imagem (arte da YGOPRODeck ou a face desenhada quando ela não tem); com `APP_URL`, carrega as duas pela rota num Chrome e grava a face em `.cache/shots/ficha-sem-arte.png`. |
+| `npm run test:sort-card` | "Recoloque as cartas do topo na ordem que quiser": a resposta é aceita (conserto do binding no `postinstall`) e a ordem escolhida na tela é a que fica no Deck. |
 | `node tools/harness/test-archetypes.mjs` | Cartas de arquétipo, com companheiros do mesmo `setcode` em campo/mão/deck: o efeito **enxerga** os parceiros? |
 | `node tools/harness/test-ui-prompts.mjs` | Joga duelos inteiros e submete cada pergunta do engine ao mesmo código que a tela usa. Acha prompts que a UI não sabe responder — a causa de duelo congelado. |
 | `node tools/harness/test-ui-rare-prompts.mjs` | Força os prompts raros (ANNOUNCE_*, SELECT_SUM, SORT_CARD, SELECT_DISFIELD) pondo na mão a carta que produz cada um. São justamente os que passam despercebidos num duelo comum. |
-| `node tools/harness/test-browser.mjs` | Ponta a ponta num Chrome real: abre o lobby, começa o duelo e joga clicando. |
+| `node tools/harness/test-browser.mjs` | Ponta a ponta num Chrome real: abre o lobby, começa o duelo e joga clicando. `PRESET=tcg-ys17` joga um deck TCG (contra um deck TCG do bot). Ao travar, mostra botões, modais, a mesa e grava uma foto em `.cache/shots/travou-*.png`; sair da mesa também reprova. |
 | `node tools/harness/test-browser-announce.mjs` | Igual, mas com um deck montado só com as cartas dos prompts raros — é o que faz o modal de declarar raça/carta e o texto real das opções aparecerem na tela de verdade. |
 | `node tools/harness/screenshot.mjs [n]` | Fotos do duelo em `.cache/shots/`. Ler o DOM diz se a tela funciona; só olhando dá para dizer se está boa. |
 | `node tools/harness/test-triggers.mjs` | Cartas reativas: constrói o EVENTO (ataque, invocação, ativação do oponente) em vez de só o tabuleiro. |
 | `node tools/harness/test-remaining.mjs` | As cartas com condição própria e específica — cada uma com o cenário exato lido do seu Lua. |
 | `node tools/harness/test-patches.mjs` | Vigia as emendas de `script-patches.ts`: âncora ainda casa, tolera reindentação, e as cartas que dependem dela seguem funcionando. |
-| `node tools/harness/test-bot.mjs [partidas] [passivo\|guloso]` | O bot joga melhor? Cenários dirigidos (não ataca de peito aberto, compra antes de invocar, responde ao ataque) e depois um placar contra dois adversários de referência. |
+| `node tools/harness/test-bot.mjs [partidas] [passivo\|guloso] [goat\|tcg]` | O bot joga melhor? Cenários dirigidos (não ataca de peito aberto, compra antes de invocar, responde ao ataque; no TCG: não troca monstro bom por Link fraco, faz o Xyz que vale, põe escala de Pêndulo só com faixa útil, não encadeia hand trap na própria jogada) e depois um placar contra dois adversários de referência. `tcg` usa os ~100 decks pré-montados em MR5. `--partidas 59,100` repete partidas específicas; num RETRY_LOOP o relatório mostra a resposta recusada e de quem era. |
 | `node tools/harness/test-cancel.mjs` | Desistir de uma Invocação-Tributo: o core aceita e o campo fica intacto. |
 | `node tools/harness/test-browser-cancel.mjs` | O mesmo, mas pela tela — o botão aparece e devolve o turno. |
+| `node tools/harness/test-browser-chain.mjs` | A corrente pela tela (`npm run test:browser-chain`): ativo Reforço do Exército, o bot encadeia Ash Blossom da mão. Confere o destaque de cada elo (quem ativou, de onde, o número), a pilha da corrente (resolvendo / efeito negado), o carimbo NEGADO e o histórico. Fotos em `.cache/shots/corrente-*.png`. |
 | `node tools/harness/test-draw-landing.mjs` | Mede onde a carta comprada pousa: tem que ser o slot real da mão. |
 | `node tools/harness/test-attack-rotation.mjs` | O monstro do oponente não pode se endireitar ao atacar. |
 | `node tools/harness/test-viewports.mjs` | Telas menores e "movimento reduzido" ligado. |
@@ -60,6 +73,22 @@ APP_URL=http://127.0.0.1:3100 node tools/harness/test-browser.mjs
 ```
 
 Passe `--headed` para assistir.
+
+## Duelo roteirizado (`duel.mjs`)
+
+`createDuel({ place, decks, mode, ... })` monta o campo já arrumado:
+
+- `mode` — regras do core (`OcgDuelMode`); Goat por padrão, `MODE_MR5` para o
+  pool TCG.
+- O Extra Deck de `place` nasce **virado para baixo**, como no app. Virado para
+  cima, o core de Master Rule 4/5 só libera a Zona de Monstro Extra para
+  Sincro/Xyz — o teste pareceria mostrar um bug que o jogo não tem.
+- O piloto automático troca de resposta quando o core recusa a anterior
+  (RETRY): ataca com quem é obrigado a atacar, declara quantos valores o
+  ANNOUNCE pede, procura soma exata no SELECT_SUM.
+
+O cenário farto da varredura carta a carta mora em `card-scan.mjs`, usado pelo
+`test-cards` (pool Goat) e pelo `test-tcg-pool` (pool TCG).
 
 ## Flags comuns
 
@@ -116,7 +145,7 @@ custa caro de achar de outro jeito:
 | Comando | O que prova |
 |---|---|
 | `npm run test:multiplayer` | O **servidor**: sala, jokenpô do primeiro turno (inclusive que a jogada do outro não atravessa a rede antes da hora), `promptId` contra resposta atrasada, codec de BigInt e — o mais importante — que a projeção de um assento nunca carrega a mão, o Extra Deck, o prompt nem o log do outro. Não abre navegador nem socket. |
-| `npm run test:browser-online` | O **resto do caminho**: lobby, `sessionStorage` por aba, WebSocket do navegador e a mesa desenhada na ótica do assento **1**. Precisa do app rodando (`APP_URL=http://127.0.0.1:3000`). |
+| `npm run test:browser-online` | O **resto do caminho**: lobby, `sessionStorage` por aba, WebSocket do navegador e a mesa desenhada na ótica do assento **1**. Precisa do app rodando (`APP_URL=http://127.0.0.1:3000`). `FORMATO=tcg` joga a sala inteira com decks TCG. |
 
 Um terceiro cobre o construtor:
 

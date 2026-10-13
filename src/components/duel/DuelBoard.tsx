@@ -1,21 +1,33 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import { OcgLocation, type OcgResponse, type SelectFieldPlace } from "@n1xx1/ocgcore-wasm";
+import {
+  OcgLocation,
+  OcgMessageType,
+  OcgPhase,
+  type OcgResponse,
+  type SelectFieldPlace,
+} from "@n1xx1/ocgcore-wasm";
 
 import { useCardRegistry } from "@/context/CardRegistryProvider";
 import { useCardText } from "@/hooks/useCardText";
 import { useDuelFeedback, type DuelFlash } from "@/hooks/useDuelFeedback";
 import { playSfx } from "@/lib/audio/sfx";
 import type { DuelEventListener } from "@/lib/duel/duel-events";
-import { attributeLabel, translateRace, translateType } from "@/lib/card-labels";
+import {
+  attributeLabel,
+  monsterTypeParts,
+  translateRace,
+  translateType,
+} from "@/lib/card-labels";
 import { PHASE_TRACK, phaseLabel } from "@/lib/duel/phase-labels";
 import {
   buildPromptPlan,
   cardKey,
   locationLabel,
   type CardAction,
+  type CounterSelection,
   type GlobalAction,
   type PromptPlan,
 } from "@/lib/duel/duel-actions";
@@ -24,8 +36,14 @@ import {
   fetchEngineStrings,
   type EngineStringsDb,
 } from "@/lib/duel/engine-strings";
-import { needsCardPicker } from "@/lib/duel/prompt-reach";
+import { actionReach, needsCardPicker } from "@/lib/duel/prompt-reach";
 import type { BoardCard, BoardPlayer } from "@/lib/duel/board-state";
+import {
+  fetchOfficialCardDb,
+  type OfficialCardDb,
+} from "@/lib/duel/official-card-data";
+import { linkedZones } from "@/lib/duel/link-geometry";
+import { cardMarks, slotChips, type CardMark } from "@/lib/duel/card-marks";
 import type {
   DuelChainLink,
   DuelLogEntry,
@@ -34,9 +52,17 @@ import type {
 } from "@/lib/duel/duel-session";
 import type { CardRegistry } from "@/lib/domain/card-registry";
 
-import { DuelCardSlot, DuelPile, StatValue } from "@/components/duel/DuelCardSlot";
+import {
+  CARD_SHAPE,
+  DuelCardSlot,
+  DuelPile,
+  StatValue,
+} from "@/components/duel/DuelCardSlot";
 import { SoundControl } from "@/components/duel/SoundControl";
 import { AttackFlightLayer } from "@/components/duel/AttackFlight";
+import { ChainSpotlight } from "@/components/duel/ChainSpotlight";
+import { ChainStack } from "@/components/duel/ChainStack";
+import type { ChainBadge } from "@/components/duel/DuelCardSlot";
 import { DrawFlightLayer } from "@/components/duel/DrawFlight";
 import { SortCardModal } from "@/components/duel/SortCardModal";
 import { AnnounceCardModal } from "@/components/duel/AnnounceCardModal";
@@ -90,7 +116,7 @@ interface DuelBoardProps {
 }
 
 const EMPTY_PLAYER: BoardPlayer = {
-  monsters: Array(5).fill(null),
+  monsters: Array(7).fill(null),
   spells: Array(5).fill(null),
   field: null,
   hand: [],
@@ -102,6 +128,7 @@ const EMPTY_PLAYER: BoardPlayer = {
   graveSize: 0,
   banishedSize: 0,
   extraSize: 0,
+  extraFaceUp: 0,
 };
 
 /**
@@ -116,6 +143,35 @@ type PreviewCard = Pick<BoardCard, "code"> & Partial<Omit<BoardCard, "code">>;
 /** Sequência da zona de campo dentro da SZONE (as 5 primeiras são magia/armadilha). */
 const FIELD_ZONE_SEQUENCE = 5;
 
+/**
+ * Materiais Xyz como "cartas" de pilha, para reaproveitar o modal das pilhas.
+ * São públicos (ficam com a face para cima embaixo do monstro).
+ */
+function overlayCards(card: BoardCard): BoardCard[] {
+  return card.overlays.map((code, index) => ({
+    ...card,
+    code,
+    sequence: index,
+    location: OcgLocation.OVERLAY,
+    faceDown: false,
+    defense: false,
+    attack: null,
+    defenseValue: null,
+    baseAttack: null,
+    baseDefense: null,
+    level: null,
+    rank: null,
+    link: null,
+    scales: null,
+    overlays: [],
+    counters: [],
+    equippedTo: null,
+    targets: [],
+    negated: false,
+    hints: [],
+  }));
+}
+
 export function DuelBoard({
   snapshot,
   me,
@@ -128,7 +184,8 @@ export function DuelBoard({
 }: DuelBoardProps) {
   /** O outro assento — usado o tempo todo, e `1 - me` espalhado confunde. */
   const foeSeat = (1 - me) as 0 | 1;
-  const { flashes, shake, toss, flight, reveal, draw } = useDuelFeedback(
+  const texto = useCardText();
+  const { flashes, shake, toss, flight, reveal, draw, spotlight } = useDuelFeedback(
     subscribeEvents,
     me,
   );
@@ -139,10 +196,16 @@ export function DuelBoard({
   const [picked, setPicked] = useState<number[]>([]);
   /** Painel do próprio deck, de onde se desiste. */
   const [deckAberto, setDeckAberto] = useState(false);
-  /** Pilha aberta para consulta (cemitério, banidas, extra). */
+  /**
+   * Pilha aberta para consulta (cemitério, banidas, extra, materiais).
+   *
+   * Guarda COMO achar a lista, não a lista: com o modal aberto a pilha muda
+   * (uma carta cai no cemitério, um Pêndulo volta para o Extra Deck) e uma
+   * cópia tirada no clique mostraria o passado.
+   */
   const [openPile, setOpenPile] = useState<{
     title: string;
-    cards: BoardCard[];
+    pick: (players: { you: BoardPlayer; foe: BoardPlayer }) => BoardCard[];
   } | null>(null);
   /** Histórico de revelações aberto. */
   const [revelacoesAbertas, setRevelacoesAbertas] = useState(false);
@@ -154,6 +217,8 @@ export function DuelBoard({
    * responder nada; a decisão continua pendurada e volta pelo botão flutuante.
    */
   const [modalEspiado, setModalEspiado] = useState(false);
+  /** Lista de "Outras jogadas" (cartas fora da mesa e das pilhas) aberta. */
+  const [outrasAbertas, setOutrasAbertas] = useState(false);
 
   /**
    * Rótulos das opções de efeito. Recurso estático e igual para qualquer
@@ -175,7 +240,41 @@ export function DuelBoard({
     };
   }, []);
 
+  /**
+   * Nomes que se pode declarar (ANNOUNCE_CARD): o pool do formato do duelo.
+   * O catálogo traz o TCG inteiro; num duelo Goat, oferecer um Link para
+   * declarar seria oferecer um nome que nem existia em 2005.
+   */
+  const announcePool = useMemo(
+    () =>
+      cards.filter((card) =>
+        snapshot.format === "goat" ? card.goat : card.playable !== false,
+      ),
+    [cards, snapshot.format],
+  );
+
   const prompt = snapshot.pendingPrompt;
+
+  /**
+   * Banco oficial (tipos, raça, atributo, setcodes em bitfield), buscado só
+   * quando um ANNOUNCE_CARD aparece: é com ele que a busca de nomes avalia o
+   * filtro do core. No duelo online a tela não roda o engine e não o tinha.
+   */
+  const [officialDb, setOfficialDb] = useState<OfficialCardDb | null>(null);
+  const precisaDoBanco = prompt?.type === OcgMessageType.ANNOUNCE_CARD;
+  useEffect(() => {
+    if (!precisaDoBanco || officialDb) return;
+    let cancelado = false;
+    fetchOfficialCardDb()
+      .then((db) => {
+        if (!cancelado) setOfficialDb(db);
+      })
+      .catch(() => {});
+    return () => {
+      cancelado = true;
+    };
+  }, [precisaDoBanco, officialDb]);
+
   const plan = useMemo(
     () => (prompt ? buildPromptPlan(prompt, engineStrings) : null),
     [prompt, engineStrings],
@@ -189,6 +288,7 @@ export function DuelBoard({
     setMenuFor(null);
     setPicked([]);
     setModalEspiado(false);
+    setOutrasAbertas(false);
   }
 
   // A leitura já vem mascarada na ótica de `me` (ver `readBoardState`), então
@@ -196,6 +296,74 @@ export function DuelBoard({
   const board = snapshot.boards[me];
   const you = board?.players[me] ?? EMPTY_PLAYER;
   const foe = board?.players[foeSeat] ?? EMPTY_PLAYER;
+
+  /**
+   * Mesa de Master Rule 2020: Zonas de Monstro Extra, Pêndulo nas pontas da
+   * fileira de magias, Nível/Rank/Link à vista. No Goat a mesa continua a de
+   * 2005 — cinco zonas por fileira e nada que a regra não tinha.
+   */
+  const isTcg = snapshot.format === "tcg";
+
+  /** Zona → nomes dos Links que apontam para ela. */
+  const linkedBy = useMemo(() => {
+    const names = new Map<string, string[]>();
+    if (!board || !isTcg) return names;
+    linkedZones(board).forEach((codes, key) => {
+      names.set(
+        key,
+        codes.map((code) => {
+          const definition = registry?.get(code);
+          return definition ? texto.name(definition) : `Carta ${code}`;
+        }),
+      );
+    });
+    return names;
+  }, [board, isTcg, registry, texto]);
+
+  /**
+   * As marcas de uma carta (`card-marks.ts`), com os nomes resolvidos NA
+   * ÓTICA DE QUEM OLHA: "equipada a" uma carta baixada do oponente diz "carta
+   * baixada", não o nome dela.
+   */
+  const marksOf = useCallback(
+    (card: BoardCard | null | undefined): CardMark[] => {
+      if (!card || card.code === null) return [];
+      return cardMarks(card, {
+        engineStrings,
+        cardName: (code) => {
+          const definition = registry?.get(code);
+          return definition ? texto.name(definition) : `Carta ${code}`;
+        },
+        nameAt: (zone) => {
+          const lado = zone.controller === me ? you : foe;
+          const alvo =
+            zone.location === OcgLocation.MZONE
+              ? lado.monsters[zone.sequence]
+              : zone.sequence === FIELD_ZONE_SEQUENCE
+                ? lado.field
+                : lado.spells[zone.sequence];
+          if (!alvo) return "uma carta";
+          if (alvo.code === null) return "uma carta baixada";
+          const definition = registry?.get(alvo.code);
+          return definition ? texto.name(definition) : `Carta ${alvo.code}`;
+        },
+      });
+    },
+    [engineStrings, registry, me, you, foe, texto],
+  );
+
+  /**
+   * Zona inutilizada? A máscara do core vem na ótica do jogador 0 (bits 0–6
+   * monstros e 8–12 magias dele; +16 para o jogador 1).
+   */
+  const isDisabledZone = useCallback(
+    (owner: 0 | 1, location: number, sequence: number) => {
+      const bit =
+        (owner === 0 ? 0 : 16) + (location === OcgLocation.SZONE ? 8 : 0) + sequence;
+      return ((snapshot.disabledZones >>> bit) & 1) === 1;
+    },
+    [snapshot.disabledZones],
+  );
 
   // Online o snapshot já vem recortado (`projectSnapshot`); num duelo local ele
   // traz as duas óticas, e o filtro aqui é o que impede o histórico de mostrar
@@ -216,6 +384,12 @@ export function DuelBoard({
   const selection = plan?.selection ?? null;
   const announce = plan?.announce ?? null;
   const placeSelection = plan?.placeSelection ?? null;
+  /**
+   * Instrução de uma seleção: a dica do core quando houver ("Selecione o(s)
+   * card(s) para usar como Matéria de Sincro"), senão a genérica do plano.
+   * A contagem já aparece ao lado, na barra.
+   */
+  const selectionInstruction = snapshot.promptHint ?? plan?.instruction ?? "";
 
   function respond(response: OcgResponse) {
     setMenuFor(null);
@@ -276,9 +450,11 @@ export function DuelBoard({
     const hasActions = card ? actionableKeys.has(key) : false;
     const selectionIndex = selection?.keys.indexOf(key) ?? -1;
     const isLocked = lockedKeys.has(key);
+    const alreadyChosen =
+      selectionIndex >= 0 && (selection?.alreadyChosen?.includes(selectionIndex) ?? false);
     const isPicked =
       isLocked ||
-      (selectionIndex >= 0 && picked.includes(selectionIndex)) ||
+      (selectionIndex >= 0 && picked.includes(selectionIndex) !== alreadyChosen) ||
       (placeSelectionIndex >= 0 && picked.includes(placeSelectionIndex));
 
     const clickable =
@@ -322,7 +498,106 @@ export function DuelBoard({
     };
   };
 
-  const shared = { registry, onHover: setPreview, slotProps };
+  /** Abre os materiais Xyz de um monstro (selo no slot). */
+  const openMaterials = (card: BoardCard) => () =>
+    setOpenPile({
+      title: `Materiais Xyz — ${(() => {
+        const definition = registry?.get(card.code ?? 0);
+        return definition ? texto.name(definition) : "monstro";
+      })()}`,
+      // O monstro é reencontrado pela zona: os materiais mudam (desanexar é
+      // o custo mais comum de um Xyz) com o modal aberto.
+      pick: (players) => {
+        const lado = card.controller === me ? players.you : players.foe;
+        const atual = lado.monsters[card.sequence];
+        return atual ? overlayCards(atual) : [];
+      },
+    });
+
+  /**
+   * Número do elo em cada carta do campo que está na corrente — como os
+   * números de corrente do Master Duel: dá para ver de relance quem ativou o
+   * quê e em que ordem vai resolver. Quem saiu da mão (hand trap) aparece na
+   * pilha da corrente e no destaque, não tem slot.
+   */
+  const chainAt = useMemo(() => {
+    const map = new Map<string, ChainBadge>();
+    for (const link of snapshot.chainLinks ?? []) {
+      const { controller, location, sequence } = link.zone;
+      if (location !== OcgLocation.MZONE && location !== OcgLocation.SZONE) continue;
+      map.set(cardKey(controller, location, sequence), {
+        link: link.link,
+        mine: link.player === me,
+        state: link.state,
+      });
+    }
+    return map;
+  }, [snapshot.chainLinks, me]);
+  const chainBadgeOf = useCallback((key: string) => chainAt.get(key), [chainAt]);
+
+  const shared = {
+    registry,
+    onHover: setPreview,
+    slotProps,
+    isTcg,
+    linkedBy,
+    openMaterials,
+    marksOf,
+    isDisabledZone,
+    chainBadgeOf,
+  };
+
+  /**
+   * Uma Zona de Monstro Extra, vista de `me`.
+   *
+   * As duas Zonas Extra são compartilhadas: a da esquerda (na tela de quem
+   * olha) é a zona 5 de `me` e a zona 6 do oponente. Quem estiver nela é
+   * desenhado — de cabeça para baixo se for do oponente —, e é pela identidade
+   * DELE que a zona casa com as ações e as seleções do engine.
+   */
+  function extraZone(side: "left" | "right") {
+    const mineSeq = side === "left" ? 5 : 6;
+    const foeSeq = side === "left" ? 6 : 5;
+    const mine = you.monsters[mineSeq] ?? null;
+    const theirs = foe.monsters[foeSeq] ?? null;
+    const card = mine ?? theirs;
+    const owner = theirs && !mine ? foeSeat : me;
+    const sequence = owner === me ? mineSeq : foeSeq;
+    let zone: SelectFieldPlace = { player: owner, location: OcgLocation.MZONE, sequence };
+    let props = slotProps(card, zone);
+    // Vazia: a zona pode ter sido oferecida pela identidade do oponente (um
+    // efeito que invoca para o lado dele) — vale a que estiver clicável.
+    if (!card && !props.onClick) {
+      const alt: SelectFieldPlace = {
+        player: foeSeat,
+        location: OcgLocation.MZONE,
+        sequence: foeSeq,
+      };
+      const altProps = slotProps(null, alt);
+      if (altProps.onClick) {
+        zone = alt;
+        props = altProps;
+      }
+    }
+    const key = cardKey(zone.player, zone.location, zone.sequence);
+    return (
+      <DuelCardSlot
+        card={card}
+        registry={registry}
+        placeholder="Extra"
+        upsideDown={owner === foeSeat}
+        zoneKey={key}
+        onHover={setPreview}
+        showLevel
+        linkedBy={linkedBy.get(key)}
+        onOpenMaterials={card?.overlays.length ? openMaterials(card) : undefined}
+        marks={slotChips(marksOf(card))}
+        disabledZone={isDisabledZone(zone.player as 0 | 1, zone.location, zone.sequence)}
+        chainBadge={chainBadgeOf(key)}
+        {...props}
+      />
+    );
+  }
   const showModal = plan?.presentation === "modal" && !busy;
 
   // A regra mora em `prompt-reach.ts` porque o harness também precisa dela:
@@ -331,13 +606,73 @@ export function DuelBoard({
   const needsPicker =
     selection != null && needsCardPicker(selection.candidates, me);
 
+  /**
+   * Jogadas em cartas FORA da mesa desenhada (Extra Deck, Cemitério, banidas,
+   * Deck, materiais), num prompt em que se joga clicando na carta.
+   *
+   * Agrupadas por pilha (`controller:location`): a pilha brilha e abre com as
+   * cartas jogáveis em destaque. O que não mora numa pilha desenhada (Deck,
+   * material Xyz) vai para "Outras jogadas", para nunca haver jogada que o
+   * engine oferece e a tela esconde.
+   */
+  const { pilhasComJogada, outrasJogadas } = useMemo(() => {
+    const pilhas = new Set<string>();
+    const outras: CardAction[] = [];
+    if (plan && plan.presentation === "inline" && !busy) {
+      plan.byCard.forEach((actions, key) => {
+        const [controller, location] = key.split(":").map(Number);
+        const onde = actionReach(location);
+        if (onde === "pile") pilhas.add(`${controller}:${location}`);
+        else if (onde === "other") outras.push(...actions);
+      });
+    }
+    return { pilhasComJogada: pilhas, outrasJogadas: outras };
+  }, [plan, busy]);
+  const pilhaAcionavel = (owner: 0 | 1, location: number) =>
+    pilhasComJogada.has(`${owner}:${location}`);
+
   /** Abre a lista de uma pilha. Cemitério e banidas são públicos dos dois
-   *  lados; o Extra Deck só o próprio jogador consulta. */
-  const openWith = (title: string, cards: BoardCard[]) => () =>
-    setOpenPile({ title, cards });
+   *  lados; do Extra Deck do oponente só se vê o que está virado para cima. */
+  const openWith =
+    (title: string, pick: (players: { you: BoardPlayer; foe: BoardPlayer }) => BoardCard[]) =>
+    () =>
+      setOpenPile({ title, pick });
+
+  /**
+   * O conteúdo da pilha aberta, vindo do tabuleiro de agora.
+   *
+   * Durante uma jogada em andamento a sessão lê o tabuleiro no modo leve, sem
+   * o conteúdo das pilhas — a lista chega vazia por um instante. Nesse caso
+   * fica a última lista cheia, em vez de o modal piscar "Vazio".
+   */
+  const pileCards = useMemo(
+    () => (openPile ? openPile.pick({ you, foe }) : []),
+    [openPile, you, foe],
+  );
+  // Ajustado durante o render (o mesmo padrão do `lastPrompt` acima): a última
+  // lista cheia DESTA pilha.
+  const [ultimaPilha, setUltimaPilha] = useState<{
+    de: typeof openPile;
+    cards: BoardCard[];
+  }>({ de: null, cards: [] });
+  if (pileCards.length > 0 && (ultimaPilha.de !== openPile || ultimaPilha.cards !== pileCards)) {
+    setUltimaPilha({ de: openPile, cards: pileCards });
+  }
+  const pileShown =
+    pileCards.length === 0 && snapshot.isProcessing && ultimaPilha.de === openPile
+      ? ultimaPilha.cards
+      : pileCards;
 
   return (
-    <div className="tf-playmat relative flex min-h-0 flex-1 flex-col overflow-hidden">
+    <div
+      className="tf-playmat relative flex min-h-0 flex-1 flex-col overflow-hidden"
+      // Estado do motor para quem observa a mesa de fora (os testes de
+      // navegador): o turno do bot é ritmado — cada ataque espera a investida
+      // inteira —, e sem isto um turno longo dele parecia "nada clicável, mesa
+      // parada". O texto "Processando" que o teste procurava já não existe.
+      data-processing={snapshot.isProcessing ? "1" : undefined}
+      data-waiting-foe={waitingForFoe ? "1" : undefined}
+    >
       {/* ---------------- LP nos cantos, estilo Tag Force ---------------- */}
       <div className="flex shrink-0 items-stretch gap-2 px-2 pt-1.5">
         <div className="relative flex min-w-0 flex-1">
@@ -347,6 +682,7 @@ export function DuelBoard({
             lp={snapshot.lifePoints[me]}
             active={snapshot.turnPlayer === me}
           />
+          <PlayerHints hints={snapshot.playerHints[me]} />
           <FlashLayer flashes={flashes} anchor="player" />
         </div>
         <div className="relative flex min-w-0 flex-1">
@@ -357,6 +693,7 @@ export function DuelBoard({
             active={snapshot.turnPlayer === foeSeat}
             align="right"
           />
+          <PlayerHints hints={snapshot.playerHints[foeSeat]} align="right" />
           <FlashLayer flashes={flashes} anchor="opponent" />
         </div>
         <SoundControl />
@@ -373,7 +710,8 @@ export function DuelBoard({
           disputar altura com ela.
         */}
         <aside className="flex w-[var(--tf-rail-left)] shrink-0 flex-col overflow-hidden p-2">
-          <CardPreview card={preview} registry={registry} />
+          <ChainStack links={snapshot.chainLinks ?? []} me={me} registry={registry} />
+          <CardPreview card={preview} registry={registry} marksOf={marksOf} />
         </aside>
 
         {/* -------- campo -------- */}
@@ -382,6 +720,14 @@ export function DuelBoard({
           className={`relative flex min-h-0 min-w-0 flex-1 flex-col gap-1 p-1.5 ${
             shake !== null ? "tf-shake" : ""
           }`}
+          // Teto das cartas pela LARGURA do campo (ver `CARD_SHAPE`): uma
+          // fileira ocupa ~7 larguras de carta + 37 px de vãos e pilhas
+          // laterais (medido em 1024, 1280 e 1440). `cqw` é a largura deste
+          // contêiner; 56 px dão a folga do padding.
+          style={{
+            containerType: "inline-size",
+            ["--tf-card-max-h" as string]: "calc((100cqw - 56px) / 7 * 86 / 59)",
+          }}
         >
           {/* Clarão no lado atingido. */}
           {shake !== null && (
@@ -395,6 +741,7 @@ export function DuelBoard({
           <FlashLayer flashes={flashes} anchor="center" />
           {waitingForFoe && <WaitingBanner name={opponentName} />}
           <AttackFlightLayer flight={flight} fieldRef={fieldRef} />
+          <ChainSpotlight spotlight={spotlight} registry={registry} />
           <DrawFlightLayer draw={draw} fieldRef={fieldRef} />
           {toss && <TossOverlay toss={toss} />}
           {reveal && <RevealOverlay reveal={reveal} registry={registry} />}
@@ -427,11 +774,25 @@ export function DuelBoard({
                   dataPile={`deck-${foeSeat}`}
                 />
               }
-              right={<DuelPile label="Extra" count={foe.extraSize} />}
+              right={
+                <DuelPile
+                  label="Extra"
+                  count={foe.extraSize}
+                  badge={faceUpBadge(foe.extraFaceUp)}
+                  // Do Extra Deck do oponente só se vê o que é público: os
+                  // Pêndulos virados para cima.
+                  onOpen={
+                    foe.extraFaceUp > 0
+                      ? openWith("Extra Deck do oponente — viradas para cima", (p) => p.foe.extra)
+                      : undefined
+                  }
+                  openTitle="Ver os Pêndulos virados para cima no Extra Deck do oponente"
+                />
+              }
               {...shared}
             />
             <FieldRow
-              cards={foe.monsters}
+              cards={foe.monsters.slice(0, 5)}
               owner={foeSeat}
               zone="monster"
               mirrored
@@ -441,14 +802,14 @@ export function DuelBoard({
                     <DuelPile
                       label="Banidas"
                       count={foe.banishedSize}
-                      onOpen={openWith("Banidas do oponente", foe.banished)}
+                      onOpen={openWith("Banidas do oponente", (p) => p.foe.banished)}
                     />
                   }
                   grave={
                     <DuelPile
                       label="Cemit."
                       count={foe.graveSize}
-                      onOpen={openWith("Cemitério do oponente", foe.grave)}
+                      onOpen={openWith("Cemitério do oponente", (p) => p.foe.grave)}
                       topCard={foe.graveTop}
                       registry={registry}
                       upsideDown
@@ -461,18 +822,31 @@ export function DuelBoard({
               {...shared}
             />
 
-            {/* Trilha de fases entre os dois campos, como no Tag Force —
-                clicar avança a fase quando o engine permite. */}
-            <PhaseTrack
-              phase={snapshot.phase}
-              turn={snapshot.turnCount}
-              actions={plan?.global ?? []}
-              disabled={busy}
-              onRespond={respond}
-            />
+            {/* No TCG, a fileira das Zonas Extra entre os dois campos: as
+                duas zonas ficam exatamente sobre as colunas 2 e 4, que é o que
+                faz as setas Link de quem está nelas se lerem — por isso o vão
+                do meio é uma carta vazia. A trilha de fases, que morava nesse
+                vão (do tamanho de uma carta, ilegível), tem coluna própria ao
+                lado do histórico. No Goat, só um fio separando os campos. */}
+            {isTcg ? (
+              <div
+                data-row="extra-monster-zones"
+                className="flex min-h-0 flex-1 items-center justify-center gap-1.5"
+              >
+                <div className={CARD_SHAPE} />
+                <div className={CARD_SHAPE} />
+                {extraZone("left")}
+                <div className={CARD_SHAPE} />
+                {extraZone("right")}
+                <div className={CARD_SHAPE} />
+                <div className={CARD_SHAPE} />
+              </div>
+            ) : (
+              <div className="mx-10 h-px shrink-0 bg-gradient-to-r from-transparent via-[color:var(--tf-gold-dim)] to-transparent" />
+            )}
 
             <FieldRow
-              cards={you.monsters}
+              cards={you.monsters.slice(0, 5)}
               owner={me}
               zone="monster"
               left={<FieldSpellSlot player={you} owner={me} {...shared} />}
@@ -482,16 +856,18 @@ export function DuelBoard({
                     <DuelPile
                       label="Cemit."
                       count={you.graveSize}
-                      onOpen={openWith("Seu Cemitério", you.grave)}
+                      onOpen={openWith("Seu Cemitério", (p) => p.you.grave)}
                       topCard={you.graveTop}
                       registry={registry}
+                      actionable={pilhaAcionavel(me, OcgLocation.GRAVE)}
                     />
                   }
                   banished={
                     <DuelPile
                       label="Banidas"
                       count={you.banishedSize}
-                      onOpen={openWith("Suas banidas", you.banished)}
+                      onOpen={openWith("Suas banidas", (p) => p.you.banished)}
+                      actionable={pilhaAcionavel(me, OcgLocation.REMOVED)}
                     />
                   }
                 />
@@ -506,7 +882,9 @@ export function DuelBoard({
                 <DuelPile
                   label="Extra"
                   count={you.extraSize}
-                  onOpen={openWith("Seu Extra Deck", you.extra)}
+                  badge={faceUpBadge(you.extraFaceUp)}
+                  onOpen={openWith("Seu Extra Deck", (p) => p.you.extra)}
+                  actionable={pilhaAcionavel(me, OcgLocation.EXTRA)}
                 />
               }
               right={
@@ -535,7 +913,7 @@ export function DuelBoard({
               porque o jogador precisa continuar vendo as cartas que marca. */}
           {selection && !needsPicker && (
             <SelectionBar
-              instruction={plan?.instruction ?? ""}
+              instruction={selectionInstruction}
               selection={selection}
               picked={picked}
               onConfirm={() => respond(selection.build(picked))}
@@ -546,7 +924,7 @@ export function DuelBoard({
 
           {/* Modal escondido: a decisão continua pendurada, e este é o caminho
               de volta. Sem ele "ver o tabuleiro" seria um beco sem saída. */}
-          {showModal && !plan?.sorting && plan && !plan.announceCard && modalEspiado && (
+          {showModal && !plan?.sorting && plan && !plan.announceCard && !plan.counters && modalEspiado && (
             <PendingDecisionBar
               instruction={plan.instruction}
               chain={snapshot.chain}
@@ -560,7 +938,7 @@ export function DuelBoard({
               precisa da barra — nunca do modal de busca. */}
           {placeSelection && (
             <SelectionBar
-              instruction={plan?.instruction ?? ""}
+              instruction={selectionInstruction}
               selection={{ min: placeSelection.count, max: placeSelection.count }}
               picked={picked}
               onConfirm={() =>
@@ -574,13 +952,42 @@ export function DuelBoard({
           )}
         </div>
 
-        {/* -------- histórico, em coluna própria -------- */}
-        <aside className="flex w-[var(--tf-rail-right)] shrink-0 flex-col overflow-hidden p-2">
-          <DuelLog
-            entries={snapshot.log}
-            reveals={minhasRevelacoes}
-            onOpenReveals={() => setRevelacoesAbertas(true)}
+        {outrasJogadas.length > 0 && !outrasAbertas && (
+          <div className="pointer-events-none absolute bottom-[19%] left-1/2 z-40 -translate-x-1/2">
+            <button
+              type="button"
+              data-other-actions={outrasJogadas.length}
+              onClick={() => setOutrasAbertas(true)}
+              className="tf-panel pointer-events-auto rounded-full px-4 py-2 text-[13px] font-bold text-[color:var(--tf-gold-bright)] shadow-xl shadow-black/60 hover:brightness-125"
+            >
+              ⚡ Outras jogadas ({outrasJogadas.length})
+            </button>
+          </div>
+        )}
+
+        {/* -------- fases e histórico, no trilho direito --------
+            A trilha de fases é o que o jogador consulta antes de cada jogada
+            ("ainda estou na Main 1?") e o botão que a avança. Entre as Zonas
+            Extra ela tinha a largura de uma carta e não se lia; aqui é uma
+            coluna compacta à direita do campo, antes do histórico, sem
+            roubar largura dele. (Uma barra da altura inteira do campo foi
+            testada e ficou pior — botões soltos demais para a leitura.) */}
+        <aside className="flex w-[var(--tf-rail-right)] shrink-0 gap-2 overflow-hidden p-2">
+          <PhaseTrack
+            phase={snapshot.phase}
+            turn={snapshot.turnCount}
+            mine={snapshot.turnPlayer === me}
+            actions={plan?.global ?? []}
+            disabled={busy}
+            onRespond={respond}
           />
+          <div className="flex min-w-0 flex-1 flex-col">
+            <DuelLog
+              entries={snapshot.log}
+              reveals={minhasRevelacoes}
+              onOpenReveals={() => setRevelacoesAbertas(true)}
+            />
+          </div>
         </aside>
 
         {/* Os modais nascem AQUI, dentro da linha central, e não na raiz da
@@ -612,7 +1019,12 @@ export function DuelBoard({
         {openPile && (
           <PileModal
             title={openPile.title}
-            cards={openPile.cards}
+            cards={pileShown}
+            actions={plan?.presentation === "inline" && !busy ? plan.byCard : undefined}
+            onChoose={(action) => {
+              setOpenPile(null);
+              respond(action.response);
+            }}
             registry={registry}
             onHover={setPreview}
             onClose={() => setOpenPile(null)}
@@ -621,7 +1033,7 @@ export function DuelBoard({
 
         {needsPicker && selection && plan && (
           <CardPickerModal
-            instruction={plan.instruction}
+            instruction={selectionInstruction}
             selection={selection}
             picked={picked}
             registry={registry}
@@ -651,13 +1063,54 @@ export function DuelBoard({
           <AnnounceCardModal
             instruction={plan.instruction}
             opcodes={plan.announceCard.opcodes}
-            cards={cards}
+            cards={announcePool}
+            officialDb={officialDb}
             onRespond={(code) => respond(plan.announceCard!.build(code))}
             onHover={setPreview}
           />
         )}
 
-        {showModal && !plan?.sorting && plan && !plan.announceCard && !modalEspiado && (
+        {outrasAbertas && (
+          <div
+            className="tf-modal-scrim tf-modal-area z-50 flex items-center justify-center p-6"
+            onClick={() => setOutrasAbertas(false)}
+          >
+            <div
+              className="tf-modal tf-anim-modal-in flex max-h-full w-[min(520px,94%)] flex-col overflow-hidden"
+              onClick={(event) => event.stopPropagation()}
+            >
+              <p className="tf-modal-head shrink-0 px-5 py-2.5 text-center text-[15px] font-semibold text-[color:var(--tf-gold-bright)]">
+                Jogadas com cartas fora da mesa
+              </p>
+              <div className="min-h-0 flex-1 space-y-1.5 overflow-y-auto p-3.5">
+                {outrasJogadas.map((action, index) => (
+                  <CardChoiceButton
+                    key={index}
+                    action={action}
+                    registry={registry}
+                    onClick={() => {
+                      setOutrasAbertas(false);
+                      respond(action.response);
+                    }}
+                    onHover={setPreview}
+                  />
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {showModal && plan?.counters && (
+          <CounterSelectModal
+            instruction={plan.instruction}
+            selection={plan.counters}
+            registry={registry}
+            onRespond={respond}
+            onHover={setPreview}
+          />
+        )}
+
+        {showModal && !plan?.sorting && plan && !plan.announceCard && !plan.counters && !modalEspiado && (
           <PromptModal
             plan={plan}
             onRespond={respond}
@@ -710,6 +1163,23 @@ interface SharedSlotProps {
   registry: CardRegistry | null;
   onHover: (card: BoardCard | null) => void;
   slotProps: SlotPropsFn;
+  /** Mesa de Master Rule 2020 (ver `isTcg` no `DuelBoard`). */
+  isTcg: boolean;
+  /** Zona → nomes dos Links que apontam para ela. */
+  linkedBy: Map<string, string[]>;
+  openMaterials: (card: BoardCard) => () => void;
+  /** Marcas de uma carta, já resolvidas para quem olha. */
+  marksOf: (card: BoardCard | null | undefined) => CardMark[];
+  isDisabledZone: (owner: 0 | 1, location: number, sequence: number) => boolean;
+  /** Número do elo da corrente da carta nesta zona, se ela estiver numa. */
+  chainBadgeOf: (key: string) => ChainBadge | undefined;
+}
+
+/** Selo de "N viradas para cima" do Extra Deck, quando houver alguma. */
+function faceUpBadge(count: number): { text: string; title: string } | null {
+  return count > 0
+    ? { text: `↑${count}`, title: `${count} carta(s) virada(s) para cima (públicas)` }
+    : null;
 }
 
 function FieldRow({
@@ -722,6 +1192,12 @@ function FieldRow({
   registry,
   onHover,
   slotProps,
+  isTcg,
+  linkedBy,
+  openMaterials,
+  marksOf,
+  isDisabledZone,
+  chainBadgeOf,
 }: SharedSlotProps & {
   cards: (BoardCard | null)[];
   owner: 0 | 1;
@@ -741,19 +1217,43 @@ function FieldRow({
   return (
     <div className="flex min-h-0 flex-1 items-center justify-center gap-1.5">
       {left}
-      {ordered.map(({ card, sequence }) => (
-        <DuelCardSlot
-          key={sequence}
-          card={card}
-          registry={registry}
-          placeholder={`${prefix}${sequence + 1}`}
-          rotated={zone === "monster" && Boolean(card?.defense)}
-          upsideDown={mirrored}
-          zoneKey={cardKey(owner, location, sequence)}
-          onHover={onHover}
-          {...slotProps(card, { player: owner, location, sequence })}
-        />
-      ))}
+      {ordered.map(({ card, sequence }) => {
+        const key = cardKey(owner, location, sequence);
+        // Pêndulo nas pontas da fileira de magias (zonas 1 e 5) vale como
+        // escala — a da esquerda usa a escala esquerda da carta.
+        const pendulumZone = isTcg && zone === "spell" && (sequence === 0 || sequence === 4);
+        const isPendulum =
+          card?.code != null &&
+          (registry?.get(card.code)?.frameType.includes("pendulum") ?? false);
+        return (
+          <DuelCardSlot
+            key={sequence}
+            card={card}
+            registry={registry}
+            placeholder={
+              pendulumZone ? `${prefix}${sequence + 1} · P` : `${prefix}${sequence + 1}`
+            }
+            rotated={zone === "monster" && Boolean(card?.defense)}
+            upsideDown={mirrored}
+            zoneKey={key}
+            onHover={onHover}
+            showLevel={isTcg && zone === "monster"}
+            scaleSide={
+              pendulumZone && isPendulum && !card?.faceDown
+                ? sequence === 0
+                  ? "left"
+                  : "right"
+                : null
+            }
+            linkedBy={zone === "monster" ? linkedBy.get(key) : undefined}
+            onOpenMaterials={card?.overlays.length ? openMaterials(card) : undefined}
+            marks={slotChips(marksOf(card))}
+            disabledZone={isDisabledZone(owner, location, sequence)}
+            chainBadge={chainBadgeOf(key)}
+            {...slotProps(card, { player: owner, location, sequence })}
+          />
+        );
+      })}
       {right}
     </div>
   );
@@ -808,7 +1308,12 @@ function FieldSpellSlot({
   registry,
   onHover,
   slotProps,
-}: SharedSlotProps & { player: BoardPlayer; owner: 0 | 1 }) {
+  marksOf,
+  chainBadgeOf,
+}: Pick<SharedSlotProps, "registry" | "onHover" | "slotProps" | "marksOf" | "chainBadgeOf"> & {
+  player: BoardPlayer;
+  owner: 0 | 1;
+}) {
   return (
     <DuelCardSlot
       card={player.field}
@@ -816,6 +1321,9 @@ function FieldSpellSlot({
       placeholder="Campo"
       upsideDown={owner === 1}
       onHover={onHover}
+      marks={slotChips(marksOf(player.field))}
+      // Uma Magia de Campo ativada também é um elo — o número dela aparece aqui.
+      chainBadge={chainBadgeOf(cardKey(owner, OcgLocation.SZONE, FIELD_ZONE_SEQUENCE))}
       {...slotProps(player.field, {
         player: owner,
         location: OcgLocation.SZONE,
@@ -831,7 +1339,10 @@ function Hand({
   registry,
   onHover,
   slotProps,
-}: SharedSlotProps & { cards: BoardCard[]; seat: 0 | 1 }) {
+}: Pick<SharedSlotProps, "registry" | "onHover" | "slotProps"> & {
+  cards: BoardCard[];
+  seat: 0 | 1;
+}) {
   return (
     <div
       // Índice ABSOLUTO — ver o comentário no `dataPile` da fileira acima.
@@ -876,9 +1387,14 @@ const PHASE_ACTION_MATCH: { short: string; test: RegExp }[] = [
   { short: "EP", test: /encerrar turno/i },
 ];
 
+/** Passos da Battle Phase que o engine anuncia — todos acendem o "BP". */
+const BATTLE_STEPS =
+  OcgPhase.BATTLE_START | OcgPhase.BATTLE_STEP | OcgPhase.DAMAGE | OcgPhase.DAMAGE_CAL | OcgPhase.BATTLE;
+
 function PhaseTrack({
   phase,
   turn,
+  mine,
   actions,
   disabled,
   onRespond,
@@ -886,6 +1402,8 @@ function PhaseTrack({
   phase: number | null;
   /** Turnos já iniciados. 0 = o duelo ainda não começou. */
   turn: number;
+  /** O turno é de quem olha a mesa? */
+  mine: boolean;
   actions: GlobalAction[];
   disabled?: boolean;
   onRespond: (response: OcgResponse) => void;
@@ -895,47 +1413,72 @@ function PhaseTrack({
     if (!match) return null;
     return actions.find((action) => match.test.test(action.label)) ?? null;
   };
+  // A Battle Phase passa por vários passos (Battle Step, Damage Step…): o
+  // "BP" fica aceso em todos — antes só no instante em que ela começava.
+  const isActive = (value: number) =>
+    phase !== null &&
+    (phase === value || (value === OcgPhase.BATTLE_START && (phase & BATTLE_STEPS) !== 0));
 
   return (
-    // z-50: os avisos grandes do centro (SEU TURNO, dano) passam por cima do
-    // tabuleiro em z-40 e cairiam justamente aqui. A fase atual é a informação
-    // que o jogador consulta para decidir a jogada — ela nunca pode sumir.
-    <div className="relative z-50 flex shrink-0 items-center justify-center gap-1 py-0.5">
-      <div className="h-px flex-1 bg-gradient-to-r from-transparent to-[color:var(--tf-gold-dim)]" />
-      {/* Contagem de turno colada na trilha de fases: as duas respondem "em que
-          ponto do duelo estamos", e é o número que as cartas de contagem
-          (Espada da Luz, Reckless Greed, Mensagem do Espírito) cobram. */}
-      {turn > 0 && (
-        <span
-          title={`Turno ${turn}`}
-          className="tf-phase-pip flex h-6 items-center rounded px-2 font-mono text-[12px] font-bold text-[color:var(--tf-gold-bright)]"
-        >
-          T{turn}
-        </span>
-      )}
-      {PHASE_TRACK.map((entry) => {
-        const action = actionFor(entry.short);
-        const active = phase === entry.value;
-        return (
-          <button
-            key={entry.value}
-            type="button"
-            disabled={!action || disabled}
-            onClick={() => action && onRespond(action.response)}
-            title={action ? action.label : phaseLabel(entry.value)}
-            className={`h-6 w-14 rounded text-[12px] font-bold tracking-wide transition ${
-              active
-                ? "tf-phase-pip tf-phase-pip-active"
-                : action
-                  ? "tf-phase-pip cursor-pointer text-[color:var(--tf-gold-bright)] hover:bg-[color:var(--tf-gold)] hover:text-black"
-                  : "tf-phase-pip cursor-default text-[color:var(--tf-gold-dim)]/50"
-            }`}
-          >
-            {entry.short}
-          </button>
-        );
-      })}
-      <div className="h-px flex-1 bg-gradient-to-l from-transparent to-[color:var(--tf-gold-dim)]" />
+    <div
+      data-phase-track
+      // z-50: os avisos grandes (SEU TURNO, dano) passam por cima da mesa em
+      // z-40. A fase é a informação consultada para decidir a jogada — ela
+      // nunca pode sumir debaixo de um deles.
+      className="relative z-50 flex w-[var(--tf-rail-phase)] shrink-0 flex-col justify-center gap-1.5"
+    >
+      {/* Contagem de turno junto das fases: as duas respondem "em que ponto do
+          duelo estamos", e é o número que as cartas de contagem (Espada da
+          Luz, Reckless Greed, Mensagem do Espírito) cobram. A cor diz de quem
+          é o turno — o mesmo que a barra de LP indica, aqui ao alcance do
+          olho que está nas fases. */}
+      <div
+        title={turn > 0 ? `Turno ${turn} — ${mine ? "seu" : "do oponente"}` : "Duelo começando"}
+        className={`tf-phase-pip flex flex-col items-center rounded-md py-1.5 ${
+          mine ? "tf-phase-turn-mine" : "tf-phase-turn-foe"
+        }`}
+      >
+        <span className="text-[9px] font-semibold uppercase tracking-[0.18em] opacity-80">Turno</span>
+        <span className="font-mono text-[22px] font-bold leading-none">{turn > 0 ? turn : "—"}</span>
+        {turn > 0 && (
+          <span className="mt-0.5 text-[9px] font-semibold uppercase tracking-wider opacity-80">
+            {mine ? "Você" : "Oponente"}
+          </span>
+        )}
+      </div>
+
+      <div className="flex flex-col gap-1.5">
+        {PHASE_TRACK.map((entry) => {
+          const action = actionFor(entry.short);
+          const active = isActive(entry.value);
+          return (
+            <button
+              key={entry.value}
+              type="button"
+              data-phase={entry.short}
+              data-phase-active={active ? "1" : undefined}
+              disabled={!action || disabled}
+              onClick={() => action && onRespond(action.response)}
+              title={action ? action.label : phaseLabel(entry.value)}
+              className={`h-9 w-full rounded-md text-[15px] font-bold tracking-wide transition ${
+                active
+                  ? "tf-phase-pip tf-phase-pip-active"
+                  : action
+                    ? "tf-phase-pip cursor-pointer text-[color:var(--tf-gold-bright)] hover:bg-[color:var(--tf-gold)] hover:text-black"
+                    : "tf-phase-pip cursor-default text-[color:var(--tf-gold-dim)]/50"
+              }`}
+            >
+              {entry.short}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* O nome da fase atual por extenso — "BP" não diz nada a quem está
+          começando; "Battle Phase" diz. */}
+      <span className="min-h-[2lh] px-0.5 text-center text-[10px] font-semibold leading-tight text-[color:var(--tf-gold-bright)]">
+        {phase !== null ? phaseLabel(phase) : ""}
+      </span>
     </div>
   );
 }
@@ -970,6 +1513,7 @@ function CardPickerModal({
   /** Passar o mouse num candidato manda a carta para a leitura da esquerda. */
   onHover: (card: PreviewCard | null) => void;
 }) {
+  const texto = useCardText();
   const canConfirm =
     picked.length >= selection.min &&
     picked.length <= selection.max &&
@@ -1013,14 +1557,14 @@ function CardPickerModal({
                     <div
                       key={`locked-${candidate.code}-${index}`}
                       onMouseEnter={() => onHover({ code: candidate.code })}
-                      title={definition?.name}
+                      title={definition ? texto.name(definition) : undefined}
                       className="relative w-[72px] shrink-0 overflow-hidden rounded border-2 border-emerald-400/80 brightness-90"
                     >
                       {image ? (
                         // eslint-disable-next-line @next/next/no-img-element
                         <img
                           src={image}
-                          alt={definition?.name ?? "Carta"}
+                          alt={(definition ? texto.name(definition) : "Carta")}
                           className="aspect-[59/86] w-full object-cover"
                         />
                       ) : (
@@ -1042,7 +1586,9 @@ function CardPickerModal({
               const oculta = candidate.code === 0;
               const definition = oculta ? undefined : registry?.get(candidate.code);
               const image = definition?.images[0]?.image_url_small;
-              const isPicked = picked.includes(index);
+              const jaEscolhida = selection.alreadyChosen?.includes(index) ?? false;
+              // Clicar numa já escolhida desfaz: a marca inverte.
+              const isPicked = picked.includes(index) !== jaEscolhida;
               return (
                 <button
                   key={`${candidate.code}-${index}`}
@@ -1054,7 +1600,7 @@ function CardPickerModal({
                   onMouseEnter={() =>
                     onHover(oculta ? null : { code: candidate.code })
                   }
-                  title={definition?.name ?? (oculta ? "Carta oculta" : undefined)}
+                  title={(definition ? texto.name(definition) : oculta ? "Carta oculta" : undefined)}
                   className={`relative aspect-[59/86] overflow-hidden rounded border-2 transition ${
                     isPicked
                       ? "border-emerald-400 brightness-110"
@@ -1065,7 +1611,7 @@ function CardPickerModal({
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
                       src={image}
-                      alt={definition?.name ?? "Carta"}
+                      alt={(definition ? texto.name(definition) : "Carta")}
                       loading="lazy"
                       className="h-full w-full object-cover"
                     />
@@ -1073,7 +1619,7 @@ function CardPickerModal({
                     <div className="tf-card-back h-full w-full" />
                   ) : (
                     <span className="flex h-full items-center justify-center bg-black/60 p-1 text-[9px] text-zinc-300">
-                      {definition?.name ?? candidate.code}
+                      {definition ? texto.name(definition) : candidate.code}
                     </span>
                   )}
 
@@ -1209,6 +1755,7 @@ function RevealOverlay({
   reveal: { codes: number[]; title: string };
   registry: CardRegistry | null;
 }) {
+  const texto = useCardText();
   return (
     <div className="pointer-events-none absolute inset-x-0 top-[18%] z-40 flex justify-center">
       <div className="tf-panel tf-anim-card-in flex flex-col items-center gap-2 rounded-lg px-5 py-3 shadow-2xl shadow-black/80">
@@ -1225,14 +1772,14 @@ function RevealOverlay({
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
                     src={image}
-                    alt={definition?.name ?? "Carta"}
+                    alt={(definition ? texto.name(definition) : "Carta")}
                     className="h-32 w-auto rounded border border-[color:var(--tf-gold)] shadow-lg"
                   />
                 ) : (
                   <div className="tf-card-back h-32 w-[88px] rounded" />
                 )}
                 <span className="max-w-[100px] truncate text-[10px] text-zinc-200">
-                  {definition?.name ?? code}
+                  {definition ? texto.name(definition) : code}
                 </span>
               </div>
             );
@@ -1314,26 +1861,47 @@ function FlashLayer({
   );
 }
 
-/** Lista o conteúdo de uma pilha (cemitério, banidas, extra) em grade. */
+/**
+ * Lista o conteúdo de uma pilha (cemitério, banidas, extra, materiais) em
+ * grade.
+ *
+ * Com `actions`, a pilha vira lugar de jogada: as cartas que o engine deixa
+ * usar agora (Invocar do Extra Deck, ativar efeito de Cemitério, de banida)
+ * brilham, e clicar numa delas mostra as jogadas dela. No Goat isso quase não
+ * aparecia; no TCG é rotina — sem isto não havia como invocar um Sincro.
+ */
 function PileModal({
   title,
   cards,
   registry,
   onHover,
   onClose,
+  actions,
+  onChoose,
 }: {
   title: string;
   cards: BoardCard[];
   registry: CardRegistry | null;
   onHover: (card: BoardCard | null) => void;
   onClose: () => void;
+  /** Jogadas por carta (`cardKey`), quando o prompt atual oferece alguma aqui. */
+  actions?: Map<string, CardAction[]>;
+  onChoose?: (action: CardAction) => void;
 }) {
+  const texto = useCardText();
+  const [escolhida, setEscolhida] = useState<string | null>(null);
+  const jogadas = escolhida ? (actions?.get(escolhida) ?? []) : [];
+  const temJogada = (card: BoardCard) =>
+    Boolean(actions?.get(cardKey(card.controller, card.location, card.sequence))?.length);
+  const quantasComJogada = cards.filter(temJogada).length;
+
   return (
     <div
       className="tf-modal-scrim tf-modal-area z-50 flex items-center justify-center p-6"
       onClick={onClose}
     >
       <div
+        data-pile-modal
         className="tf-panel flex max-h-full w-[min(720px,92%)] flex-col overflow-hidden rounded-lg"
         onClick={(event) => event.stopPropagation()}
       >
@@ -1341,6 +1909,11 @@ function PileModal({
           <h3 className="text-base font-bold text-[color:var(--tf-gold-bright)]">
             {title}{" "}
             <span className="text-[color:var(--tf-gold-dim)]">({cards.length})</span>
+            {quantasComJogada > 0 && (
+              <span className="ml-2 text-[12px] font-semibold text-amber-300">
+                · {quantasComJogada} com jogada agora
+              </span>
+            )}
           </h3>
           <button
             type="button"
@@ -1360,23 +1933,42 @@ function PileModal({
               {cards.map((card, index) => {
                 const definition = card.code ? registry?.get(card.code) : undefined;
                 const image = definition?.images[0]?.image_url_small;
+                const key = cardKey(card.controller, card.location, card.sequence);
+                const acionavel = temJogada(card);
                 return (
                   <div
                     key={`${card.sequence}-${index}`}
+                    data-pile-card={key}
+                    data-actionable={acionavel || undefined}
                     onMouseEnter={() => onHover(card)}
-                    title={definition?.name}
-                    className="aspect-[59/86] overflow-hidden rounded-[3px] border border-[color:var(--tf-slot-border)]"
+                    onClick={acionavel ? () => setEscolhida(key) : undefined}
+                    role={acionavel ? "button" : undefined}
+                    title={definition ? texto.name(definition) : undefined}
+                    className={`relative aspect-[59/86] overflow-hidden rounded-[3px] border ${
+                      escolhida === key
+                        ? "border-emerald-400 ring-2 ring-emerald-400"
+                        : acionavel
+                          ? "tf-slot-active tf-slot-activate cursor-pointer border-[color:var(--tf-gold-bright)]"
+                          : quantasComJogada > 0
+                            ? "border-[color:var(--tf-slot-border)] opacity-60"
+                            : "border-[color:var(--tf-slot-border)]"
+                    }`}
                   >
                     {image ? (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img
                         src={image}
-                        alt={definition?.name ?? "Carta"}
+                        alt={(definition ? texto.name(definition) : "Carta")}
                         loading="lazy"
                         className="h-full w-full object-cover"
                       />
                     ) : (
                       <div className="tf-card-back h-full w-full" />
+                    )}
+                    {card.location === OcgLocation.EXTRA && !card.faceDown && (
+                      <span className="absolute left-0.5 top-0.5 rounded bg-emerald-900/90 px-1 text-[9px] font-bold text-emerald-200">
+                        ↑ face para cima
+                      </span>
                     )}
                   </div>
                 );
@@ -1384,6 +1976,24 @@ function PileModal({
             </div>
           )}
         </div>
+
+        {jogadas.length > 0 && (
+          <footer className="flex shrink-0 flex-wrap items-center justify-end gap-2 border-t border-[color:var(--tf-slot-border)] px-4 py-3">
+            {jogadas.map((action, index) => (
+              <button
+                key={index}
+                type="button"
+                onClick={() => {
+                  playSfx("click");
+                  onChoose?.(action);
+                }}
+                className="rounded bg-[color:var(--tf-gold)] px-4 py-2 text-[13px] font-bold text-black transition hover:brightness-110"
+              >
+                {action.label}
+              </button>
+            ))}
+          </footer>
+        )}
       </div>
     </div>
   );
@@ -1409,6 +2019,7 @@ function RevealHistoryModal({
   onHover: (card: PreviewCard | null) => void;
   onClose: () => void;
 }) {
+  const texto = useCardText();
   return (
     <div
       className="tf-modal-scrim tf-modal-area z-50 flex items-center justify-center p-6"
@@ -1458,14 +2069,14 @@ function RevealHistoryModal({
                         <div
                           key={`${reveal.id}-${code}-${index}`}
                           onMouseEnter={() => onHover({ code })}
-                          title={definition?.name}
+                          title={definition ? texto.name(definition) : undefined}
                           className="w-[64px] shrink-0 overflow-hidden rounded-[3px] border border-[color:var(--tf-slot-border)]"
                         >
                           {image ? (
                             // eslint-disable-next-line @next/next/no-img-element
                             <img
                               src={image}
-                              alt={definition?.name ?? "Carta"}
+                              alt={(definition ? texto.name(definition) : "Carta")}
                               loading="lazy"
                               className="aspect-[59/86] w-full object-cover"
                             />
@@ -1692,7 +2303,7 @@ function CardChoiceButton({
         // eslint-disable-next-line @next/next/no-img-element
         <img
           src={image}
-          alt={definition?.name ?? "Carta"}
+          alt={(definition ? texto.name(definition) : "Carta")}
           className="h-20 w-auto shrink-0 rounded-[3px] border border-[color:var(--tf-slot-border)]"
         />
       ) : (
@@ -1701,7 +2312,7 @@ function CardChoiceButton({
 
       <span className="flex min-w-0 flex-1 flex-col">
         <span className="text-[14px] font-bold text-[color:var(--tf-gold-bright)]">
-          {definition?.name ?? `Carta ${action.code}`}
+          {definition ? texto.name(definition) : `Carta ${action.code}`}
         </span>
         <span className="text-[11px] font-semibold text-emerald-400">
           {action.label} · {locationLabel(action.location)}
@@ -1756,7 +2367,7 @@ function ChainLinkPanel({
           // eslint-disable-next-line @next/next/no-img-element
           <img
             src={image}
-            alt={definition?.name ?? "Carta"}
+            alt={(definition ? texto.name(definition) : "Carta")}
             className="h-20 w-auto shrink-0 rounded-[3px] border border-[color:var(--tf-slot-border)]"
           />
         ) : (
@@ -2181,9 +2792,11 @@ function DuelLog({
 function CardPreview({
   card,
   registry,
+  marksOf,
 }: {
   card: PreviewCard | null;
   registry: CardRegistry | null;
+  marksOf: (card: BoardCard | null | undefined) => CardMark[];
 }) {
   const texto = useCardText();
   const definition = card?.code ? registry?.get(card.code) : undefined;
@@ -2200,16 +2813,32 @@ function CardPreview({
 
   const image =
     definition.images[0]?.image_url ?? definition.images[0]?.image_url_small;
-  const isMonster = definition.atk !== undefined && definition.atk !== null;
+  const isMonster = definition.type.includes("Monster");
+  const isLink = Boolean(definition.linkval) || Boolean(card?.link);
+  const isXyz = definition.frameType.includes("xyz");
+  const isPendulum = definition.frameType.includes("pendulum");
 
-  // Linha de tipo no formato do Tag Force: [Dragão/Efeito]
+  // Linha de tipo no formato da carta: [Dragão/Sincro/Regulador/Efeito]
   const typeLine = isMonster
-    ? `[${translateRace(definition.race) ?? "?"}/${translateType(definition.type)
-        .replace(/^Monstro (de )?/i, "")
-        .trim()}]`
+    ? `[${[translateRace(definition.race) ?? "?", ...monsterTypeParts(definition.humanReadableCardType, definition.type)].join("/")}]`
     : `[${translateType(definition.type)}${
         definition.race ? ` / ${translateRace(definition.race)}` : ""
       }]`;
+
+  // Valores ATUAIS quando a carta está em campo (o core informa); os impressos
+  // quando ela está na mão, numa pilha ou num modal.
+  const rating = card?.link?.rating ?? definition.linkval ?? 0;
+  const markers = card?.link?.markers ?? definition.linkMarkers ?? 0;
+  const rank = card?.rank || (isXyz ? (definition.level ?? 0) : 0);
+  const level = card?.level || (!isXyz && !isLink ? (definition.level ?? 0) : 0);
+  const leftScale = card?.scales?.left ?? definition.scale;
+  const rightScale = card?.scales?.right ?? definition.scale;
+  const materials = card?.overlays ?? [];
+  // Só carta EM CAMPO tem marca (a da mão ou de um modal não tem zona).
+  const marks =
+    card && "counters" in card && card.counters !== undefined
+      ? marksOf(card as BoardCard)
+      : [];
 
   return (
     <div className="tf-panel flex min-h-0 flex-1 flex-col gap-2 overflow-hidden rounded-md p-2.5">
@@ -2231,13 +2860,17 @@ function CardPreview({
               base={card?.baseAttack ?? definition.atk ?? null}
             />
           </span>
-          <span className="text-[color:var(--tf-gold-dim)]">
-            DEF/{" "}
-            <StatValue
-              value={card?.defenseValue ?? definition.def ?? null}
-              base={card?.baseDefense ?? definition.def ?? null}
-            />
-          </span>
+          {isLink ? (
+            <span className="text-sky-300">LINK-{rating}</span>
+          ) : (
+            <span className="text-[color:var(--tf-gold-dim)]">
+              DEF/{" "}
+              <StatValue
+                value={card?.defenseValue ?? definition.def ?? null}
+                base={card?.baseDefense ?? definition.def ?? null}
+              />
+            </span>
+          )}
         </div>
       )}
 
@@ -2249,16 +2882,232 @@ function CardPreview({
           {typeLine}
         </p>
         {isMonster && (
-          <p className="text-[12px] text-amber-300">
-            {definition.level ? `${"★".repeat(Math.min(definition.level, 12))} ` : ""}
-            {attributeLabel(definition.attribute) ?? ""}
+          <p className="flex flex-wrap items-center gap-x-2 text-[12px] text-amber-300">
+            {isLink ? (
+              <span className="flex items-center gap-1.5 text-sky-300">
+                <LinkArrowsGlyph markers={markers} />
+                Link {rating}
+              </span>
+            ) : rank ? (
+              <span title={`Rank ${rank}`} className="text-zinc-100">
+                Rank {rank} {"☆".repeat(Math.min(rank, 13))}
+              </span>
+            ) : level ? (
+              <span title={`Nível ${level}`}>{"★".repeat(Math.min(level, 12))}</span>
+            ) : null}
+            <span>{attributeLabel(definition.attribute) ?? ""}</span>
           </p>
+        )}
+        {isPendulum && leftScale !== undefined && (
+          <p className="text-[12px] font-semibold">
+            <span className="text-sky-300">Escala ◂{leftScale}</span>
+            <span className="text-[color:var(--tf-gold-dim)]"> · </span>
+            <span className="text-rose-300">{rightScale}▸</span>
+          </p>
+        )}
+        {marks.length > 0 && (
+          <ul data-preview-marks className="mt-1.5 space-y-0.5">
+            {marks.map((mark, index) => (
+              <li
+                key={index}
+                className={`text-[12px] leading-snug ${
+                  mark.tone === "negated"
+                    ? "font-semibold text-red-300"
+                    : mark.tone === "counter"
+                      ? "text-amber-200"
+                      : mark.tone === "declared"
+                        ? "text-fuchsia-200"
+                        : mark.tone === "link"
+                          ? "text-emerald-200"
+                          : mark.tone === "turn"
+                            ? "text-sky-200"
+                            : "text-zinc-200"
+                }`}
+              >
+                {mark.chip.replace(/\d+$/, "")} {mark.text}
+              </li>
+            ))}
+          </ul>
+        )}
+        {materials.length > 0 && (
+          <div className="mt-1.5">
+            <p className="text-[11px] font-semibold uppercase tracking-wide text-violet-300">
+              ◈ Materiais Xyz ({materials.length})
+            </p>
+            <div className="mt-1 flex flex-wrap gap-1">
+              {materials.map((code, index) => {
+                const material = registry?.get(code);
+                return (
+                  <span
+                    key={`${code}-${index}`}
+                    className="rounded bg-violet-950/70 px-1.5 py-0.5 text-[11px] text-violet-100"
+                  >
+                    {material ? texto.name(material) : `Carta ${code}`}
+                  </span>
+                );
+              })}
+            </div>
+          </div>
         )}
       </div>
 
       <p className="min-h-0 flex-1 overflow-y-auto pr-1 text-[13px] leading-relaxed text-zinc-200">
         {texto.desc(definition)}
       </p>
+    </div>
+  );
+}
+
+/**
+ * As setas de um Link em miniatura (3×3), para a leitura da carta — a mesma
+ * disposição da carta impressa, com o centro vazio.
+ */
+function LinkArrowsGlyph({ markers }: { markers: number }) {
+  const cells = [0x040, 0x080, 0x100, 0x008, 0, 0x020, 0x001, 0x002, 0x004];
+  return (
+    <span className="inline-grid grid-cols-3 gap-px" aria-hidden>
+      {cells.map((bit, index) => (
+        <span
+          key={index}
+          className={`h-1.5 w-1.5 rounded-[1px] ${
+            bit === 0 ? "bg-transparent" : markers & bit ? "bg-red-500" : "bg-zinc-700"
+          }`}
+        />
+      ))}
+    </span>
+  );
+}
+
+/**
+ * Avisos que valem para um jogador ("não pode Invocar-Especial neste turno"),
+ * pendurados embaixo da barra de LP dele — é para lá que se olha para saber o
+ * que cada um ainda pode fazer.
+ */
+function PlayerHints({
+  hints,
+  align = "left",
+}: {
+  hints: string[];
+  align?: "left" | "right";
+}) {
+  if (hints.length === 0) return null;
+  return (
+    <div
+      data-player-hints={hints.length}
+      className={`pointer-events-none absolute top-full z-40 mt-0.5 flex max-w-full flex-wrap gap-1 ${
+        align === "right" ? "right-0 justify-end" : "left-0"
+      }`}
+    >
+      {hints.map((hint) => (
+        <span
+          key={hint}
+          className="rounded bg-zinc-900/95 px-1.5 py-0.5 text-[10px] font-semibold text-amber-100 ring-1 ring-amber-400/50"
+        >
+          ⓘ {hint}
+        </span>
+      ))}
+    </div>
+  );
+}
+
+/**
+ * De onde saem os marcadores (SELECT_COUNTER): uma linha por carta, com quanto
+ * tirar dela — de 0 até o que ela tem —, e o total precisa fechar em N.
+ */
+function CounterSelectModal({
+  instruction,
+  selection,
+  registry,
+  onRespond,
+  onHover,
+}: {
+  instruction: string;
+  selection: CounterSelection;
+  registry: CardRegistry | null;
+  onRespond: (response: OcgResponse) => void;
+  onHover: (card: PreviewCard | null) => void;
+}) {
+  const texto = useCardText();
+  const [amounts, setAmounts] = useState<number[]>(() => selection.cards.map(() => 0));
+  const total = amounts.reduce((sum, value) => sum + value, 0);
+
+  function ajustar(index: number, delta: number) {
+    setAmounts((current) =>
+      current.map((value, i) =>
+        i === index
+          ? Math.max(0, Math.min(selection.cards[i].max, value + delta))
+          : value,
+      ),
+    );
+  }
+
+  return (
+    <div className="tf-modal-scrim tf-modal-area z-50 flex items-center justify-center p-6">
+      <div className="tf-modal tf-anim-modal-in flex max-h-full w-[min(520px,94%)] flex-col overflow-hidden">
+        <p className="tf-modal-head shrink-0 px-5 py-2.5 text-center text-[15px] font-semibold text-[color:var(--tf-gold-bright)]">
+          {instruction}
+        </p>
+        <div className="min-h-0 flex-1 space-y-1.5 overflow-y-auto p-3.5">
+          {selection.cards.map((card, index) => {
+            const definition = registry?.get(card.code);
+            const image = definition?.images[0]?.image_url_small;
+            return (
+              <div
+                key={`${card.controller}-${card.location}-${card.sequence}`}
+                onMouseEnter={() => onHover({ code: card.code })}
+                className="flex items-center gap-3 rounded border border-[color:var(--tf-slot-border)] bg-black/40 p-2"
+              >
+                {image ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={image} alt="" className="h-14 w-auto rounded-[3px]" />
+                ) : (
+                  <div className="tf-card-back h-14 w-10 rounded-[3px]" />
+                )}
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate text-[13px] font-bold text-[color:var(--tf-gold-bright)]">
+                    {definition ? texto.name(definition) : `Carta ${card.code}`}
+                  </span>
+                  <span className="text-[11px] text-amber-200">
+                    tem {card.max} {selection.counterName}
+                  </span>
+                </span>
+                <span className="flex items-center gap-1">
+                  <button
+                    type="button"
+                    onClick={() => ajustar(index, -1)}
+                    disabled={amounts[index] === 0}
+                    className="h-7 w-7 rounded border border-[color:var(--tf-slot-border)] text-[15px] font-bold text-[color:var(--tf-gold-bright)] disabled:opacity-30"
+                  >
+                    −
+                  </button>
+                  <span className="w-6 text-center font-mono text-[15px] font-bold text-zinc-100">
+                    {amounts[index]}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => ajustar(index, 1)}
+                    disabled={amounts[index] >= card.max || total >= selection.count}
+                    className="h-7 w-7 rounded border border-[color:var(--tf-slot-border)] text-[15px] font-bold text-[color:var(--tf-gold-bright)] disabled:opacity-30"
+                  >
+                    +
+                  </button>
+                </span>
+              </div>
+            );
+          })}
+        </div>
+        <div className="flex shrink-0 items-center justify-between gap-3 border-t border-[color:var(--tf-slot-border)] p-4">
+          <span className="font-mono text-[13px] text-[color:var(--tf-gold-dim)]">
+            {total}/{selection.count}
+          </span>
+          <ModalButton
+            tone="primary"
+            label="Confirmar"
+            disabled={total !== selection.count}
+            onClick={() => onRespond(selection.build(amounts))}
+          />
+        </div>
+      </div>
     </div>
   );
 }

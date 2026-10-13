@@ -1,9 +1,10 @@
 import type { OcgResponse } from "@n1xx1/ocgcore-wasm";
 
-import { CardRegistry } from "@/lib/domain/card-registry";
-import { DECK_LIMITS } from "@/lib/domain/deck-rules";
-import { fetchGoatCards } from "@/lib/domain/goat-cards";
+import type { CardRegistry } from "@/lib/domain/card-registry";
+import { deckLimits } from "@/lib/domain/deck-rules";
+import { formatOf } from "@/lib/types";
 import type { DuelEvent } from "@/lib/duel/duel-events";
+import { loadCatalogRegistry } from "@/server/catalog/catalog-store";
 import {
   createDuelSession,
   type DuelSession,
@@ -56,19 +57,11 @@ function toleranciaDeQuedaMs(): number {
  * Catálogo de cartas do processo.
  *
  * O engine precisa dele para criar cada carta (`cardReader`), e ele é o mesmo
- * para todas as salas — buscar por duelo seria uma ida à YGOPRODeck por partida.
+ * para todas as salas — o arquivo do catálogo é lido uma vez por processo
+ * (`catalog-store.ts`), e uma falha não fica em cache.
  */
-let registryPromise: Promise<CardRegistry> | null = null;
 function duelRegistry(): Promise<CardRegistry> {
-  registryPromise ??= fetchGoatCards()
-    .then((cards) => CardRegistry.fromApiResponse(cards))
-    .catch((error: unknown) => {
-      // Sem cache do fracasso: a próxima sala tenta de novo em vez de herdar
-      // uma falha de rede momentânea para sempre.
-      registryPromise = null;
-      throw error;
-    });
-  return registryPromise;
+  return loadCatalogRegistry();
 }
 
 /** O deck vem de um cliente, e cliente não é confiável. */
@@ -76,18 +69,23 @@ export function deckProblem(deck: DuelDeckPayload | undefined): string | null {
   if (!deck || !Array.isArray(deck.main) || !Array.isArray(deck.extra)) {
     return "Deck inválido.";
   }
+  if (deck.format !== undefined && deck.format !== "goat" && deck.format !== "tcg") {
+    return "Formato desconhecido.";
+  }
   const passcodes = [...deck.main, ...deck.extra];
   if (passcodes.some((code) => !Number.isSafeInteger(code) || code <= 0)) {
     return "Deck contém cartas inválidas.";
   }
-  if (deck.main.length < DECK_LIMITS.main.min) {
-    return `Deck principal precisa de ao menos ${DECK_LIMITS.main.min} cartas.`;
+  // Os limites do formato do deck: o Extra Deck do TCG é de 15, o do Goat 60.
+  const limites = deckLimits(formatOf(deck.format));
+  if (deck.main.length < limites.main.min) {
+    return `Deck principal precisa de ao menos ${limites.main.min} cartas.`;
   }
-  if (deck.main.length > DECK_LIMITS.main.max) {
-    return `Deck principal passa de ${DECK_LIMITS.main.max} cartas.`;
+  if (deck.main.length > limites.main.max) {
+    return `Deck principal passa de ${limites.main.max} cartas.`;
   }
-  if (deck.extra.length > DECK_LIMITS.extra.max) {
-    return `Extra Deck passa de ${DECK_LIMITS.extra.max} cartas.`;
+  if (deck.extra.length > limites.extra.max) {
+    return `Extra Deck passa de ${limites.extra.max} cartas.`;
   }
   return null;
 }
@@ -463,6 +461,7 @@ export class DuelRoom {
       ready: player.ready,
       hasDeck: player.deck !== null,
       deckName: player === para ? player.deckName : null,
+      format: player.deck ? formatOf(player.deck.format) : null,
     }));
   }
 
@@ -494,6 +493,10 @@ export class DuelRoom {
     if (!this.players.every((player) => player.ready && player.deck && player.send)) {
       return;
     }
+    // Goat contra TCG não tem regra comum: o duelo só começa com os dois decks
+    // no mesmo formato. A sala mostra o formato de cada assento (`SeatInfo`),
+    // e é por lá que os dois veem por que o jogo não começa.
+    if (this.formatosDiferentes()) return;
     if (this.jokenpo) return;
 
     this.jokenpo = {
@@ -503,6 +506,14 @@ export class DuelRoom {
       vencedor: null,
     };
     this.broadcastLobby();
+  }
+
+  /** Os dois decks sentados são de formatos diferentes? */
+  private formatosDiferentes(): boolean {
+    const formatos = new Set(
+      this.players.filter((player) => player.deck).map((player) => formatOf(player.deck?.format)),
+    );
+    return formatos.size > 1;
   }
 
   /** O jokenpô na ótica de um jogador — ver `JokenpoState`. */
@@ -664,6 +675,8 @@ export class DuelRoom {
         { kind: "remote", name: segundo.name },
       ],
       assets: nodeAssets,
+      // Os dois decks têm o mesmo formato (`tentarIniciar` não começa sem isso).
+      format: formatOf(primeiro.deck?.format),
     });
   }
 
@@ -728,6 +741,7 @@ export function projectSnapshot(master: DuelSnapshot, seat: 0 | 1): DuelSnapshot
     boards: seat === 0 ? [master.boards[0], null] : [null, master.boards[1]],
     pendingPrompt: meuPrompt ? master.pendingPrompt : null,
     promptCard: meuPrompt ? master.promptCard : null,
+    promptHint: meuPrompt ? master.promptHint : null,
     log: master.log.filter(
       (entry) => entry.visibleTo === null || entry.visibleTo === seat,
     ),

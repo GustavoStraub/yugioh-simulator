@@ -12,7 +12,13 @@
 import { launchChrome, openPage } from "./browser.mjs";
 
 const APP_URL = process.env.APP_URL ?? "http://127.0.0.1:3000";
-const MAX_ACOES = 60;
+/**
+ * Jogadas antes de derrubar a aba do Bruno. A queda precisa de um duelo EM
+ * ANDAMENTO (terminado, não há o que encerrar), e com decks TCG um duelo
+ * acaba em ~50 ações — com 60 o teste às vezes testava a queda depois do
+ * fim. 24 exercitam bem a mesa e deixam o duelo vivo.
+ */
+const MAX_ACOES = 24;
 
 /**
  * Endereço pelo qual o teste abre o app.
@@ -46,14 +52,18 @@ const LER_ESTADO = `
   if (!mesa) return { naMesa: false, texto: document.body.innerText.slice(0, 300) };
   const util = (b) =>
     !b.disabled && b.offsetParent !== null &&
-    !b.innerText.includes("\\u{1F50A}") && !b.innerText.includes("\\u{1F507}");
+    !b.innerText.includes("\\u{1F50A}") && !b.innerText.includes("\\u{1F507}") &&
+    !b.closest('[aria-label="Idioma das cartas"]');
   const texto = mesa.innerText;
   return {
     naMesa: true,
     botoes: [...document.querySelectorAll("button")].filter(util).map((b) => b.innerText.trim()).filter(Boolean),
     cartas: document.querySelectorAll(".tf-slot-active").length,
     aguardando: /aguardando /i.test(texto),
-    processando: /Processando|Preparando duelo/.test(texto),
+    processando:
+      mesa.dataset?.processing === "1" ||
+      mesa.dataset?.waitingFoe === "1" ||
+      /Processando|Preparando duelo/.test(texto),
     erro: texto.includes("Erro:") || texto.includes("interrompido"),
     acabou: texto.includes("venceu") || texto.includes("empatad"),
     trecho: texto.slice(0, 300),
@@ -97,8 +107,8 @@ function escolherAcao(botoes) {
 }
 
 const falhas = [];
-function conferir(condicao, descricao) {
-  console.log(`  ${condicao ? "✓" : "✗"} ${descricao}`);
+function conferir(condicao, descricao, detalhe = "") {
+  console.log(`  ${condicao ? "✓" : "✗"} ${descricao}${!condicao && detalhe ? ` — ${detalhe}` : ""}`);
   if (!condicao) falhas.push(descricao);
 }
 
@@ -114,13 +124,22 @@ async function until(fn, label, timeout = 60000) {
   }
 }
 
-/** Escolhe um deck pronto no seletor do lobby (o jogador não tem deck salvo). */
+/**
+ * `FORMATO=tcg` joga a sala inteira com decks TCG (os dois do mesmo formato,
+ * senão a sala não abre o jokenpô); o padrão é Goat.
+ */
+const GRUPO = process.env.FORMATO === "tcg" ? "TCG" : "Goat";
+
+/** Escolhe um deck pronto do formato no seletor do lobby (o jogador não tem deck salvo). */
 async function escolherPreset(page, indice) {
   return page.evaluate(`
     const select = document.querySelector("select");
     if (!select) return false;
-    // A primeira opção é o deck salvo do jogador, que nesta aba está vazio.
-    const opcao = select.options[${indice} + 1];
+    // Só os grupos do formato: "Meus decks" (o deck salvo, vazio nesta aba)
+    // e os do outro formato ficam de fora.
+    const opcao = [...select.querySelectorAll("optgroup")]
+      .filter((grupo) => grupo.label.startsWith(${JSON.stringify(GRUPO)}))
+      .flatMap((grupo) => [...grupo.querySelectorAll("option")])[${indice}];
     if (!opcao) return false;
     select.value = opcao.value;
     select.dispatchEvent(new Event("change", { bubbles: true }));
@@ -220,10 +239,17 @@ async function main() {
     // A ÚLTIMA opção de propósito: pegar "a próxima diferente" caía no mesmo
     // deck que a Ana já tinha escolhido, e aí o nome aparecer na tela dela era
     // legítimo — a checagem de privacidade acusava um vazamento que não havia.
+    // A última dos grupos **Goat**: a Ana está num deck Goat, e com os decks
+    // TCG no fim da lista a última opção virou um deck TCG — a sala, com
+    // razão, não abria o jokenpô entre formatos diferentes.
     const trocado = await bruno.evaluate(`
       const select = document.querySelector("select");
       if (!select) return null;
-      const opcao = [...select.options].filter((o) => o.value).at(-1);
+      const opcao = [...select.querySelectorAll("optgroup")]
+        .filter((grupo) => grupo.label.startsWith(${JSON.stringify(GRUPO)}))
+        .flatMap((grupo) => [...grupo.querySelectorAll("option")])
+        .filter((o) => o.value)
+        .at(-1);
       if (!opcao) return null;
       select.value = opcao.value;
       select.dispatchEvent(new Event("change", { bubbles: true }));
@@ -323,6 +349,7 @@ async function main() {
     let parado = 0;
     const prazo = Date.now() + 1000 * 60 * 4;
     let viuAguardando = false;
+    let duelosAcabados = false;
 
     while (acoes < MAX_ACOES && Date.now() < prazo) {
       let agiu = false;
@@ -333,6 +360,7 @@ async function main() {
         if (estado.aguardando) viuAguardando = true;
         if (estado.acabou) {
           console.log(`  duelo terminou após ${acoes} ações (${nome} viu o resultado).`);
+          duelosAcabados = true;
           acoes = MAX_ACOES;
           break;
         }
@@ -348,10 +376,10 @@ async function main() {
           await espera(180);
           const depois = await page.evaluate(LER_ESTADO);
           const acao = escolherAcao(depois.botoes);
-          if (acao) await page.clickText(acao);
+          if (acao) await page.clickAction(acao);
         } else {
           const acao = escolherAcao(estado.botoes);
-          if (acao) await page.clickText(acao);
+          if (acao) await page.clickAction(acao);
         }
         acoes += 1;
         agiu = true;
@@ -430,7 +458,11 @@ async function main() {
       console.log(`      aviso: ${diag.aviso}`);
       console.log(`      botões: ${JSON.stringify(diag.botoes)}`);
     }
-    conferir(Boolean(podeEncerrar), "passada a tolerância aparece como encerrar");
+    conferir(
+      Boolean(podeEncerrar),
+      "passada a tolerância aparece como encerrar",
+      duelosAcabados ? "o duelo acabou ANTES da queda — nada a encerrar; jogar menos ações antes" : "",
+    );
 
     if (podeEncerrar) {
       await ana.clickText("Encerrar duelo");

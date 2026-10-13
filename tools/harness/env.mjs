@@ -6,6 +6,7 @@
  * disso existe, então este módulo dá ao core as mesmas peças a partir do disco
  * — é o que permite testar as cartas sem abrir o navegador.
  */
+import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
@@ -13,6 +14,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 
 // Importado por caminho relativo, não pelo atalho `@/...`: o harness roda no
 // Node puro, sem o resolvedor de caminhos do bundler.
+import { CARDSCRIPTS_COMMIT } from "../../src/lib/duel/cardscripts-pin.ts";
 import { patchCoreScript } from "../../src/lib/duel/script-patches.ts";
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -21,6 +23,34 @@ export const REPO = join(here, "../..");
 /** Onde o clone do ProjectIgnis/CardScripts fica. */
 export const SCRIPTS_DIR =
   process.env.CARDSCRIPTS_DIR ?? join(REPO, ".cache/CardScripts");
+
+/**
+ * O clone precisa estar no commit fixo do app (`cardscripts-pin.ts`).
+ *
+ * Só avisa, não aborta: dá para querer testar um commit novo de propósito
+ * (`CARDSCRIPTS_DIR` apontando para outro clone). O que não pode é o harness
+ * rodar outra versão dos scripts sem ninguém saber — aí ele testaria um jogo
+ * diferente do que o jogador joga.
+ */
+function warnIfUnpinned() {
+  if (!existsSync(join(SCRIPTS_DIR, ".git"))) return;
+  try {
+    const head = execFileSync("git", ["-C", SCRIPTS_DIR, "rev-parse", "HEAD"], {
+      stdio: ["ignore", "pipe", "ignore"],
+    })
+      .toString()
+      .trim();
+    if (head !== CARDSCRIPTS_COMMIT) {
+      process.stderr.write(
+        `⚠ CardScripts em ${head.slice(0, 8)}, mas o app usa ${CARDSCRIPTS_COMMIT.slice(0, 8)} ` +
+          "— rode `npm run fixtures`.\n",
+      );
+    }
+  } catch {
+    // Sem git ou clone estranho: o teste segue, só sem a conferência.
+  }
+}
+warnIfUnpinned();
 
 /** `fetch` do Node não abre `file://`; o loader do wasm depende disso. */
 export function installFileFetch() {

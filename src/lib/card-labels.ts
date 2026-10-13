@@ -2,14 +2,66 @@ const TYPE_LABELS: Record<string, string> = {
   "Normal Monster": "Monstro Normal",
   "Effect Monster": "Monstro de Efeito",
   "Flip Effect Monster": "Monstro de Efeito Flip",
-  "Flip Tuner Effect Monster": "Monstro Tuner Flip",
-  "Tuner Monster": "Monstro Tuner",
+  "Flip Tuner Effect Monster": "Monstro Regulador Flip",
+  "Tuner Monster": "Monstro Regulador",
+  "Normal Tuner Monster": "Monstro Regulador Normal",
   "Ritual Monster": "Monstro de Ritual",
   "Ritual Effect Monster": "Monstro de Ritual de Efeito",
   "Fusion Monster": "Monstro Fusion",
+  "Synchro Monster": "Monstro Sincro",
+  "Synchro Tuner Monster": "Monstro Sincro Regulador",
+  "Synchro Pendulum Effect Monster": "Monstro Sincro/Pêndulo",
+  "XYZ Monster": "Monstro Xyz",
+  "XYZ Pendulum Effect Monster": "Monstro Xyz/Pêndulo",
+  "Link Monster": "Monstro Link",
+  "Pendulum Effect Monster": "Monstro Pêndulo de Efeito",
+  "Pendulum Normal Monster": "Monstro Pêndulo Normal",
+  "Pendulum Tuner Effect Monster": "Monstro Pêndulo Regulador",
+  "Pendulum Flip Effect Monster": "Monstro Pêndulo Flip",
+  "Pendulum Effect Ritual Monster": "Monstro Pêndulo de Ritual",
+  "Pendulum Effect Fusion Monster": "Monstro Pêndulo Fusion",
+  "Spirit Monster": "Monstro Espírito",
+  "Union Effect Monster": "Monstro União",
+  "Gemini Monster": "Monstro Gêmeos",
+  "Toon Monster": "Monstro Toon",
   "Spell Card": "Magia",
   "Trap Card": "Armadilha",
+  Token: "Ficha",
 };
+
+/**
+ * Partes do tipo de um monstro, na ordem em que a carta impressa as escreve
+ * depois da raça: `[Dragão/Sincro/Pêndulo/Regulador/Efeito]`.
+ *
+ * Vem do `humanReadableCardType` da YGOPRODeck ("Synchro Tuner Effect
+ * Monster"), cujas palavras não seguem a ordem da carta.
+ */
+const TYPE_WORDS: [string, string][] = [
+  ["Fusion", "Fusion"],
+  ["Ritual", "Ritual"],
+  ["Synchro", "Sincro"],
+  ["XYZ", "Xyz"],
+  ["Xyz", "Xyz"],
+  ["Link", "Link"],
+  ["Pendulum", "Pêndulo"],
+  ["Flip", "Flip"],
+  ["Toon", "Toon"],
+  ["Spirit", "Espírito"],
+  ["Union", "União"],
+  ["Gemini", "Gêmeos"],
+  ["Tuner", "Regulador"],
+  ["Normal", "Normal"],
+  ["Effect", "Efeito"],
+];
+
+export function monsterTypeParts(humanType: string | undefined, type: string): string[] {
+  const words = new Set((humanType ?? type).replace(/Monster/g, "").split(/\s+/));
+  const parts: string[] = [];
+  for (const [word, label] of TYPE_WORDS) {
+    if (words.has(word) && !parts.includes(label)) parts.push(label);
+  }
+  return parts;
+}
 
 const FRAME_COLORS: Record<string, string> = {
   normal: "border-amber-600/60 bg-amber-950/30",
@@ -52,6 +104,7 @@ const RACE_LABELS: Record<string, string> = {
   "Creator God": "Deus Criador",
   Wyrm: "Wyrm",
   Cyberse: "Ciberso",
+  Illusion: "Ilusão",
   Normal: "Normal",
   Continuous: "Contínua",
   Equip: "Equipamento",
@@ -138,6 +191,7 @@ const OCG_RACE_NAMES: Record<string, string> = {
   4194304: "Creator God",
   8388608: "Wyrm",
   16777216: "Cyberse",
+  33554432: "Illusion",
 };
 
 /** Traduz uma raça pelo valor do ocgcore (ANNOUNCE_RACE) — ver `OCG_RACE_NAMES`. */
@@ -160,6 +214,16 @@ const OCG_ATTRIBUTE_NAMES: Record<number, string> = {
   32: "DARK",
   64: "DIVINE",
 };
+
+/** Nome (formato YGOPRODeck) da raça pelo bitmask do engine; `null` se desconhecida. */
+export function ocgRaceName(race: number): string | null {
+  return OCG_RACE_NAMES[String(race)] ?? null;
+}
+
+/** Nome (formato YGOPRODeck) do atributo pelo bitmask do engine; `null` se desconhecido. */
+export function ocgAttributeName(attribute: number): string | null {
+  return OCG_ATTRIBUTE_NAMES[attribute] ?? null;
+}
 
 /** Traduz um atributo pelo valor do ocgcore (ANNOUNCE_ATTRIB) — ver `OCG_ATTRIBUTE_NAMES`. */
 export function translateOcgAttribute(attribute: number): string {

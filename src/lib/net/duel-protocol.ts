@@ -3,7 +3,7 @@ import type { OcgResponse } from "@n1xx1/ocgcore-wasm";
 import type { DuelEvent } from "@/lib/duel/duel-events";
 import type { DuelSnapshot } from "@/lib/duel/duel-session";
 import type { JokenpoJogada } from "@/lib/duel/jokenpo";
-import type { DuelDeckPayload } from "@/lib/types";
+import type { DuelDeckPayload, DuelFormat } from "@/lib/types";
 
 /** Caminho do WebSocket, servido fora do Next (ver `server.mjs`). */
 export const WS_PATH = "/api/duel-ws";
@@ -74,6 +74,12 @@ export interface SeatInfo {
    * por destinatário; a tela nunca chega a receber o do oponente.
    */
   deckName: string | null;
+  /**
+   * Formato do deck escolhido (Goat ou TCG), público: os dois decks precisam
+   * ser do mesmo formato para o duelo começar, e é isto que deixa a tela dizer
+   * por que ele não começa.
+   */
+  format: DuelFormat | null;
 }
 
 export type ClientMessage =

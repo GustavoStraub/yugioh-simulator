@@ -79,20 +79,30 @@ export function autoResponseFor(message: OcgMessage): OcgResponse | null {
         : null;
     }
 
+    // Ordem dos gatilhos simultâneos na corrente: a ordem padrão do core
+    // (`order: null` vira o -1 que ele entende). É o que o plano previa — nunca
+    // congelar —, e na prática a ordem só importa em combos que o jogador
+    // monta de propósito; um seletor de ordem pode vir depois sem mudar nada aqui.
+    case OcgMessageType.SORT_CHAIN:
+      return { type: OcgResponseType.SORT_CARD, order: null };
+
     case OcgMessageType.ANNOUNCE_NUMBER:
       return message.options.length === 1
         ? { type: OcgResponseType.ANNOUNCE_NUMBER, value: 0 }
         : null;
 
-    case OcgMessageType.SELECT_COUNTER:
-      // Tantas cartas candidatas quanto contadores exigidos: não há "qual
-      // carta escolher", todas recebem 1 (mesmo modelo de duel-actions.ts).
-      return message.cards.length === message.count
+    case OcgMessageType.SELECT_COUNTER: {
+      // Só não há escolha quando é preciso tirar TODOS os marcadores que
+      // existem. "Uma carta por marcador" (a regra antiga daqui) não era isso:
+      // dava para tirar dois da mesma carta e deixar a outra intacta.
+      const total = message.cards.reduce((sum, card) => sum + card.count, 0);
+      return total === message.count
         ? {
             type: OcgResponseType.SELECT_COUNTER,
-            counters: message.cards.map(() => 1),
+            counters: message.cards.map((card) => card.count),
           }
         : null;
+    }
 
     default:
       return null;

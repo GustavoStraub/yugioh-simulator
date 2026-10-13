@@ -49,6 +49,20 @@ export type DuelEvent =
       title: string;
       visibleTo: 0 | 1;
     }
+  /**
+   * Corrente: um elo entrou (`from` = de onde a carta foi ativada, como
+   * `OcgLocation`) ou foi negado — a ATIVAÇÃO (Solemn) ou o EFEITO (Ash
+   * Blossom). O "resolvendo" não é evento: vai no `chainLinks` do snapshot.
+   * Públicos: ativar revela a carta.
+   */
+  | { kind: "chainLink"; link: number; player: number; code: number; from: number }
+  | {
+      kind: "chainNegated";
+      link: number;
+      player: number;
+      code: number;
+      what: "activation" | "effect";
+    }
   | { kind: "win"; player: number };
 
 export type DuelEventKind = DuelEvent["kind"];

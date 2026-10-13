@@ -18,9 +18,11 @@ import {
   type SelectFieldPlace,
 } from "@n1xx1/ocgcore-wasm";
 
+import { isDeclarable } from "@/lib/duel/announce-filter";
 import { decodeFieldMask } from "@/lib/duel/field-places";
+import type { OfficialCardData } from "@/lib/duel/official-card-data";
 import type { EngineStringsDb } from "@/lib/duel/engine-strings";
-import { isValidSum, remainingTarget, sumOf } from "@/lib/duel/sum-selection";
+import { isValidSum, sumProgress, sumRequestOf } from "@/lib/duel/sum-selection";
 import { translateOcgAttribute, translateOcgRace } from "@/lib/card-labels";
 import type { CardDefinition } from "@/lib/types";
 
@@ -46,12 +48,25 @@ export interface SelectionCandidate {
  * Ordenação de cartas (SORT_CARD) — efeitos do tipo "veja as N cartas do topo
  * do Deck e recoloque-as na ordem que quiser".
  *
- * A resposta esperada pelo core é: para cada posição `i`, o **índice original**
- * da carta que deve ficar ali. `null` mantém a ordem em que vieram.
+ * `build` recebe a ordem como a tela a pensa — para cada posição `i` (0 = topo),
+ * o **índice original** da carta que deve ficar ali — e devolve a resposta no
+ * formato do core, que é o inverso: para cada carta `i`, a **posição** dela
+ * (`field::sort_deck`: `tc[returns[i]] = select_cards[i]`). Com duas cartas
+ * as duas leituras coincidem; com três, `[2, 0, 1]` punha no topo a carta 1 em
+ * vez da 2. `null` mantém a ordem em que vieram.
  */
 export interface SortingMode {
   cards: SelectionCandidate[];
   build: (order: number[] | null) => OcgResponse;
+}
+
+/** Ordem "carta em cada posição" → ordem "posição de cada carta" (a do core). */
+export function sortOrderForCore(order: readonly number[]): number[] {
+  const positions = new Array<number>(order.length);
+  order.forEach((card, position) => {
+    positions[card] = position;
+  });
+  return positions;
 }
 
 /**
@@ -127,6 +142,13 @@ export interface SelectionMode {
    * "já incluídas", nunca clicáveis.
    */
   locked?: SelectionCandidate[];
+  /**
+   * Índices de `candidates` que JÁ foram escolhidos em passos anteriores
+   * (SELECT_UNSELECT_CARD: `unselect_cards`). Aparecem marcados; clicar num
+   * deles desfaz a escolha. Sem a marca, um material já escolhido parecia
+   * igual aos que faltavam escolher, e clicar nele de novo o tirava.
+   */
+  alreadyChosen?: number[];
 }
 
 /**
@@ -139,6 +161,21 @@ export interface PlaceSelectionMode {
   count: number;
   places: SelectFieldPlace[];
   build: (chosen: SelectFieldPlace[]) => OcgResponse;
+}
+
+/**
+ * SELECT_COUNTER: distribuir N marcadores entre cartas — o core pergunta de
+ * quais cartas sai cada marcador quando um efeito remove "N marcadores" e mais
+ * de uma carta os tem. Cada carta tem um teto (quantos ela tem), e a soma tem
+ * que dar exatamente N.
+ */
+export interface CounterSelection {
+  count: number;
+  /** Nome do marcador ("Marcador de Magia"), quando as strings do engine estão à mão. */
+  counterName: string;
+  cards: (SelectionCandidate & { max: number })[];
+  /** Resposta a partir de quantos sai de cada carta, na ordem de `cards`. */
+  build: (amounts: number[]) => OcgResponse;
 }
 
 export interface PromptPlan {
@@ -168,6 +205,8 @@ export interface PromptPlan {
   announceCard: AnnounceCardChoice | null;
   /** Presente quando SELECT_PLACE/SELECT_DISFIELD pede mais de uma zona. */
   placeSelection: PlaceSelectionMode | null;
+  /** Presente em SELECT_COUNTER — distribuir marcadores entre cartas. */
+  counters: CounterSelection | null;
   /**
    * A carta a que o prompt se refere, quando o engine informa.
    * Sem isso um "Ativar este efeito?" não diz de qual carta está falando.
@@ -229,6 +268,7 @@ function emptyPlan(
     announce: null,
     announceCard: null,
     placeSelection: null,
+    counters: null,
     subject: null,
   };
 }
@@ -526,7 +566,10 @@ export function buildPromptPlan(
       );
       plan.sorting = {
         cards: candidatesOf(message.cards),
-        build: (order) => ({ type: OcgResponseType.SORT_CARD, order }),
+        build: (order) => ({
+          type: OcgResponseType.SORT_CARD,
+          order: order ? sortOrderForCore(order) : null,
+        }),
       };
       plan.global.push({
         label: "Manter a ordem atual",
@@ -585,7 +628,11 @@ export function buildPromptPlan(
     }
 
     case OcgMessageType.SELECT_UNSELECT_CARD: {
-      const plan = emptyPlan("Selecione uma carta.");
+      const plan = emptyPlan(
+        message.unselect_cards.length > 0
+          ? `Selecione a próxima carta (${message.unselect_cards.length} já escolhida(s); clique numa marcada para desfazer).`
+          : "Selecione uma carta.",
+      );
       const keys = [
         ...message.select_cards.map(keyOf),
         ...message.unselect_cards.map(keyOf),
@@ -598,6 +645,9 @@ export function buildPromptPlan(
           ...message.select_cards,
           ...message.unselect_cards,
         ]),
+        alreadyChosen: message.unselect_cards.map(
+          (_, index) => message.select_cards.length + index,
+        ),
         build: (indices) => ({
           type: OcgResponseType.SELECT_UNSELECT_CARD,
           index: indices[0] ?? 0,
@@ -644,61 +694,51 @@ export function buildPromptPlan(
     }
 
     case OcgMessageType.SELECT_COUNTER: {
+      const counterName = engineStrings?.counterName(message.counter_type) ?? "marcador";
       const plan = emptyPlan(
-        `Escolha ${message.count} carta(s) para receber um contador.`,
+        `Escolha de onde sai(em) ${message.count} ${counterName}.`,
+        "modal",
       );
-      // Simplificação: cada carta escolhida recebe exatamente 1 contador — o
-      // core também permite empilhar vários contadores numa única carta, mas
-      // isso pediria um seletor "quantos em cada carta" (stepper por carta) em
-      // vez do toggle de marcar/desmarcar já usado nos outros seletores. Nenhuma
-      // carta do pool Goat confirmada até hoje precisa de mais que isso, e o
-      // caso comum (N contadores em N cartas distintas) fica coberto.
-      plan.selection = {
-        min: message.count,
-        max: message.count,
-        keys: message.cards.map(keyOf),
-        candidates: candidatesOf(message.cards),
-        build: (indices) => ({
-          type: OcgResponseType.SELECT_COUNTER,
-          counters: message.cards.map((_, index) =>
-            indices.includes(index) ? 1 : 0,
-          ),
-        }),
+      // Antes: "cada carta escolhida recebe 1". Não expressava "tire 3 de uma
+      // carta só", e o core recusava (RETRY) quando a escolha não somava N.
+      plan.counters = {
+        count: message.count,
+        counterName,
+        cards: message.cards.map((card) => ({
+          code: card.code,
+          controller: card.controller,
+          location: card.location,
+          sequence: card.sequence,
+          max: card.count,
+        })),
+        build: (amounts) => ({ type: OcgResponseType.SELECT_COUNTER, counters: amounts }),
       };
       return plan;
     }
 
     case OcgMessageType.SELECT_SUM: {
-      const request = {
-        amount: message.amount,
-        selects: message.selects,
-        selectsMust: message.selects_must,
-      };
-      const target = remainingTarget(request);
-      // Soma que as cartas obrigatórias (`selects_must`) já garantem. Elas não
-      // entram nos índices da resposta (o core não as espera ali), mas
-      // escondê-las da UI fazia o número exibido não bater com o que a carta
-      // pede de verdade (ex.: o nível do Ritual).
-      const mandatory = message.amount - target;
-
+      const request = sumRequestOf(message);
+      const exact = request.mode === "exact";
       const plan = emptyPlan(
-        `Escolha cartas somando ${message.amount} (ex.: níveis para o ritual).`,
+        exact
+          ? `Escolha ${describeRange(request.min, Math.max(request.max, request.min))} carta(s) somando exatamente ${message.amount}.`
+          : `Escolha cartas somando ${message.amount} ou mais (ex.: Níveis para o Ritual), sem carta sobrando.`,
       );
       plan.selection = {
-        // Cartas obrigatórias já cobrem o alvo (target<=0): zero cartas extras
-        // já é válido. Exigir min:1 sempre travava a confirmação nesse caso.
-        min: target <= 0 ? 0 : 1,
-        max: message.selects.length,
+        // No modo "igual ou maior" as obrigatórias podem já bastar: zero cartas
+        // extras é válido, e exigir 1 sempre travava a confirmação.
+        min: exact ? request.min : 0,
+        max: exact ? Math.max(request.max, request.min) : message.selects.length,
         keys: message.selects.map(keyOf),
         candidates: candidatesOf(message.selects),
+        // Já entram na soma sem o jogador marcar; não fazem parte da resposta.
         locked: candidatesOf(message.selects_must),
         build: (indices) => ({
           type: OcgResponseType.SELECT_SUM,
           indicies: indices,
         }),
         isValid: (indices) => isValidSum(request, indices),
-        progress: (indices) =>
-          `${sumOf(message.selects, indices) + mandatory}/${message.amount}`,
+        progress: (indices) => sumProgress(request, indices),
       };
       return plan;
     }
@@ -834,7 +874,23 @@ const ANNOUNCE_TYPE_EXTRA = BigInt(
 export function announceCardMatches(
   opcodes: readonly OcgOpCode[],
   card: CardDefinition,
+  /**
+   * Dados oficiais da carta. Com eles a avaliação é a MESMA do core
+   * (`announce-filter.ts`); sem eles cai na aproximação abaixo, que só lê o
+   * tipo em texto e libera o resto.
+   */
+  official?: OfficialCardData | null,
 ): boolean {
+  if (official) {
+    return isDeclarable(opcodes as readonly bigint[], {
+      code: card.passcode,
+      alias: official.alias,
+      type: official.type,
+      race: official.race,
+      attribute: official.attribute,
+      setcodes: official.setcodes,
+    });
+  }
   if (opcodes.length === 0) return true;
 
   const isMonster = card.type.includes("Monster");

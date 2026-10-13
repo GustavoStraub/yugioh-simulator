@@ -30,3 +30,60 @@ writeFileSync(
   'export * from "../dist/index.d.ts";\nexport { default } from "../dist/index.d.ts";\n',
 );
 console.log("Patched @n1xx1/ocgcore-wasm mod.d.ts default export");
+
+/*
+ * Resposta de SORT_CARD / SORT_CHAIN: o binding escreve a quantidade antes da
+ * ordem (`[n, o0, o1, …]`), mas o core lê a ordem direto do byte 0 — para cada
+ * uma das `m` cartas, `returns.at<int8_t>(i)` tem de ser uma posição `< m` e
+ * sem repetir (`field::sort_card`). Com o byte a mais, toda ordem explícita
+ * chega deslocada: `[0]` para uma carta só vira `[1, 0]`, posição 1 de 1, e o
+ * core responde RETRY para sempre. Só `order: null` (o `-1` de "manter a
+ * ordem") passava. Na tela, quem reordenava as cartas do topo do deck travava
+ * o duelo; contra o bot, o duelo era interrompido depois de 5 RETRY.
+ *
+ * O conserto tira só a escrita do tamanho. Se a âncora não for encontrada, o
+ * aviso sai alto: ou o binding mudou (conferir se o bug continua — o
+ * `test:prompt-rules` cobre), ou alguém já corrigiu lá.
+ */
+const indexJsPath = join(root, "node_modules/@n1xx1/ocgcore-wasm/dist/index.js");
+const indexJs = readFileSync(indexJsPath, "utf-8");
+const SORT_BUG = "if(!e.order){t.i8(-1);break}t.i8(e.order.length);for(let r of e.order)t.i8(r);break;";
+const SORT_FIX = "if(!e.order){t.i8(-1);break}for(let r of e.order)t.i8(r);break;";
+if (indexJs.includes(SORT_BUG)) {
+  writeFileSync(indexJsPath, indexJs.replace(SORT_BUG, SORT_FIX));
+  console.log("Patched @n1xx1/ocgcore-wasm SORT_CARD response (sem o byte de tamanho)");
+} else if (indexJs.includes(SORT_FIX)) {
+  console.log("@n1xx1/ocgcore-wasm SORT_CARD response já corrigida");
+} else {
+  console.warn(
+    "⚠ @n1xx1/ocgcore-wasm: âncora da resposta SORT_CARD não encontrada — " +
+      "conferir se o binding ainda escreve o tamanho antes da ordem (test:prompt-rules).",
+  );
+}
+
+/*
+ * Mensagem que o binding não sabe desserializar: ele lança ("Error: eof") e
+ * o lote INTEIRO daquele passo do core se perde — junto com as mensagens boas
+ * que vinham no mesmo lote (dano, movimento, dica de carta, log). Visto ~1 vez
+ * a cada 19 duelos TCG (bateria em massa da Fase 9), sempre recuperado pelo
+ * laço, mas com a narração e os eventos daquele passo sumindo.
+ *
+ * Cada mensagem já vem com o próprio tamanho na frente, então a leitura de
+ * fora não desalinha: só o parse de DENTRO falha. O conserto embrulha esse
+ * parse e cai no ramo que o binding já tem para mensagem desconhecida (aviso
+ * no console e segue) — perde-se só a mensagem ruim.
+ */
+const indexJsAtual = readFileSync(indexJsPath, "utf-8");
+const PARSE_BUG = "R=te(T);if(!R){T.reset(),console.warn(";
+const PARSE_FIX = "R=(()=>{try{return te(T)}catch{return null}})();if(!R){T.reset(),console.warn(";
+if (indexJsAtual.includes(PARSE_BUG)) {
+  writeFileSync(indexJsPath, indexJsAtual.replace(PARSE_BUG, PARSE_FIX));
+  console.log("Patched @n1xx1/ocgcore-wasm: mensagem ilegível não derruba mais o lote inteiro");
+} else if (indexJsAtual.includes(PARSE_FIX)) {
+  console.log("@n1xx1/ocgcore-wasm: parse por mensagem já protegido");
+} else {
+  console.warn(
+    "⚠ @n1xx1/ocgcore-wasm: âncora do parse de mensagens não encontrada — " +
+      "um `eof` volta a derrubar o lote inteiro (conferir test:presets em massa).",
+  );
+}

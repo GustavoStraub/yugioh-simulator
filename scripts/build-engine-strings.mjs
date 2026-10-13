@@ -34,14 +34,13 @@ import { mkdirSync, writeFileSync, existsSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { cdbFiles } from "./cdb-manifest.mjs";
+
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const OUT = join(root, "src/data/engine-strings.json");
 const CACHE_DIR = join(root, ".cache");
-const CDB_CACHE = join(CACHE_DIR, "cards.cdb");
 const STRINGS_CACHE = join(CACHE_DIR, "strings.conf");
-
-/** Mesma fonte de `build-card-db.mjs` — reaproveita o cache se ele já rodou. */
-const CDB_URL = "https://github.com/ProjectIgnis/BabelCDB/raw/master/cards.cdb";
+const REFRESH = process.argv.includes("--refresh");
 
 /**
  * `ProjectIgnis/LFLists` (o repo citado originalmente para strings.conf) não
@@ -58,26 +57,33 @@ async function download(url, target) {
 }
 
 async function ensureCached(url, target, label) {
-  if (existsSync(target)) return;
+  if (existsSync(target) && !REFRESH) return;
   process.stdout.write(`Baixando ${label}...\n`);
   await download(url, target);
 }
 
 /**
  * `strings.conf` é linha-a-linha: `!system <id> <texto>`, `!counter`,
- * `!setname`, `!victory`. Só `!system` importa aqui — é a única categoria que
- * `Duel.SelectOption`/`Duel.Hint` referenciam (contadores, nomes de arquétipo
- * e razões de vitória são mensagens diferentes, já tratadas em outro lugar).
+ * `!setname`, `!victory`. Interessam `!system` (o que `Duel.SelectOption`,
+ * `Duel.Hint` e os avisos de carta referenciam) e `!counter` — o nome de cada
+ * tipo de contador, que a mesa mostra no selo ("Spell Counter ×2"). Nomes de
+ * arquétipo e razões de vitória são tratados em outro lugar.
  * Comentários (`#`) e linhas em branco são ignorados.
  */
-function parseSystemStrings(text) {
+function parseStringsConf(text) {
   const system = {};
+  const counters = {};
   for (const line of text.split("\n")) {
-    const match = /^!system\s+(\d+)\s+(.+?)\s*$/.exec(line);
-    if (!match) continue;
-    system[match[1]] = match[2];
+    const sys = /^!system\s+(\d+)\s+(.+?)\s*$/.exec(line);
+    if (sys) {
+      system[sys[1]] = sys[2];
+      continue;
+    }
+    // Tipo em hexadecimal; guardado em decimal, que é como o core manda.
+    const counter = /^!counter\s+0x([0-9a-fA-F]+)\s+(.+?)\s*$/.exec(line);
+    if (counter) counters[String(parseInt(counter[1], 16))] = counter[2];
   }
-  return system;
+  return { system, counters };
 }
 
 /**
@@ -96,9 +102,6 @@ function readCardStrings(path, manter) {
 
   const cards = {};
   for (const row of rows) {
-    // Só as cartas que podem entrar num duelo Goat. Sem o filtro o arquivo
-    // carrega as ~9.700 cartas do banco inteiro (908 KB) para servir um pool
-    // de 1.690 — e ele é baixado pelo navegador a cada duelo.
     if (manter && !manter.has(Number(row.id))) continue;
     const strs = [];
     for (let i = 1; i <= 16; i += 1) {
@@ -111,51 +114,38 @@ function readCardStrings(path, manter) {
   return cards;
 }
 
-/**
- * Passcodes que podem aparecer num duelo: o pool Goat mais os `alias` deles.
- *
- * O alias importa porque `GetID()` devolve o passcode do **arquivo** de script
- * — para uma arte alternativa como Reviver Monstro (83764719), o script é o
- * `c83764718.lua`, e é 83764718 que vai empacotado no `Stringid`. Filtrar só
- * pelo passcode do deck deixaria essas cartas sem texto de opção.
- */
-function passcodesEmJogo() {
-  const poolPath = join(CACHE_DIR, "goat-pool.json");
-  const dbPath = join(root, "src/data/card-db.json");
-  if (!existsSync(poolPath) || !existsSync(dbPath)) {
-    process.stdout.write(
-      "  sem .cache/goat-pool.json ou src/data/card-db.json — gerando sem filtro.\n",
-    );
-    return null;
-  }
-
-  const pool = JSON.parse(readFileSync(poolPath, "utf8")).data;
-  const cardDb = JSON.parse(readFileSync(dbPath, "utf8"));
-  const codes = new Set();
-  for (const card of pool) {
-    codes.add(card.id);
-    const alias = cardDb[String(card.id)]?.[1];
-    if (alias) codes.add(alias);
-  }
-  return codes;
-}
-
 async function main() {
   mkdirSync(CACHE_DIR, { recursive: true });
 
   await ensureCached(STRINGS_CONF_URL, STRINGS_CACHE, "strings.conf");
-  await ensureCached(CDB_URL, CDB_CACHE, "cards.cdb");
+  // Os mesmos .cdb do `card-db.json` (`npm run build:card-db` baixa e grava
+  // o manifesto): sem isso, as cartas de um `release-*.cdb` entravam no duelo
+  // sem as próprias strings — opção de efeito sem rótulo.
+  const fontes = cdbFiles(root);
+  if (fontes.length === 0) {
+    throw new Error("sem .cdb em .cache/ — rode `npm run build:card-db -- --refresh` antes");
+  }
 
-  const system = parseSystemStrings(readFileSync(STRINGS_CACHE, "utf8"));
-  const cards = readCardStrings(CDB_CACHE, passcodesEmJogo());
+  const { system, counters } = parseStringsConf(readFileSync(STRINGS_CACHE, "utf8"));
+  // Todas as cartas, não só o pool Goat: com o TCG no app qualquer carta pode
+  // estar em jogo, e os avisos que ficam na carta ("não pode atacar neste
+  // turno") são strings de carta. O arquivo vai comprimido ao navegador.
+  const cards = {};
+  for (const fonte of fontes) {
+    // O primeiro arquivo (cards.cdb) vence num id repetido, como no card-db.
+    for (const [id, strs] of Object.entries(readCardStrings(fonte, null))) {
+      cards[id] ??= strs;
+    }
+  }
 
-  const payload = { system, cards };
+  const payload = { system, cards, counters };
   writeFileSync(OUT, JSON.stringify(payload));
 
   const bytes = Buffer.byteLength(JSON.stringify(payload));
   process.stdout.write(
     `engine-strings.json: ${Object.keys(system).length} strings de sistema, ` +
-      `${Object.keys(cards).length} cartas com strings próprias ` +
+      `${Object.keys(cards).length} cartas com strings próprias, ` +
+      `${Object.keys(counters).length} tipos de contador ` +
       `(${(bytes / 1024).toFixed(1)} KB)\n`,
   );
 }

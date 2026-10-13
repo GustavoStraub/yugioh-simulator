@@ -12,30 +12,64 @@
  * `alias` é igualmente crítico: "Harpie Lady 1" É "Harpie Lady" pelas regras,
  * e sem o alias o engine trata como cartas diferentes.
  *
- * Uso: node scripts/build-card-db.mjs
+ * Fontes: o `cards.cdb` e todos os `release-*.cdb` de um mesmo commit do
+ * BabelCDB (ver `cdb-manifest.mjs`); os `prerelease-*` ficam de fora.
+ *
+ * Uso:
+ *   npm run build:card-db               # usa os .cdb já baixados
+ *   npm run build:card-db -- --refresh  # baixa tudo do commit mais novo do BabelCDB
  */
 import { DatabaseSync } from "node:sqlite";
-import { mkdirSync, writeFileSync, existsSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync, existsSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+
+import { CDB_MANIFEST_NAME, cdbFiles } from "./cdb-manifest.mjs";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const OUT = join(root, "src/data/card-db.json");
 const CACHE_DIR = join(root, ".cache");
-const CDB_CACHE = join(CACHE_DIR, "cards.cdb");
+const MANIFEST = join(CACHE_DIR, CDB_MANIFEST_NAME);
+const REFRESH = process.argv.includes("--refresh");
 
-/**
- * BabelCDB divide o banco em vários .cdb; `cards.cdb` cobre todo o pool
- * oficial, que é o que o formato Goat usa.
- */
-const CDB_SOURCES = [
-  "https://github.com/ProjectIgnis/BabelCDB/raw/master/cards.cdb",
-];
+const BABEL_API = "https://api.github.com/repos/ProjectIgnis/BabelCDB";
+const rawUrl = (sha, name) =>
+  `https://raw.githubusercontent.com/ProjectIgnis/BabelCDB/${sha}/${name}`;
+
+async function getJson(url) {
+  const response = await fetch(url, { headers: { Accept: "application/vnd.github+json" } });
+  if (!response.ok) throw new Error(`${url} -> HTTP ${response.status}`);
+  return response.json();
+}
 
 async function downloadCdb(url, target) {
   const response = await fetch(url, { redirect: "follow" });
   if (!response.ok) throw new Error(`${url} -> HTTP ${response.status}`);
   writeFileSync(target, Buffer.from(await response.arrayBuffer()));
+}
+
+/**
+ * Baixa o `cards.cdb` e os `release-*.cdb` do commit mais novo do BabelCDB —
+ * todos do MESMO commit, para não misturar um `cards.cdb` novo com um
+ * `release` que já foi fundido nele — e grava o manifesto.
+ */
+async function refreshFromBabel() {
+  const { sha, commit } = await getJson(`${BABEL_API}/commits/master`);
+  const contents = await getJson(`${BABEL_API}/contents?ref=${sha}`);
+  const releases = contents
+    .map((entry) => entry.name)
+    .filter((name) => /^release-.+\.cdb$/.test(name))
+    .sort();
+  const files = ["cards.cdb", ...releases];
+  for (const name of files) {
+    process.stdout.write(`Baixando ${name} (BabelCDB ${sha.slice(0, 8)})...\n`);
+    await downloadCdb(rawUrl(sha, name), join(CACHE_DIR, name));
+  }
+  writeFileSync(
+    MANIFEST,
+    `${JSON.stringify({ commit: sha, date: commit.committer.date, files }, null, 1)}\n`,
+  );
+  return { sha, date: commit.committer.date };
 }
 
 /** Lê uma .cdb e devolve as linhas de `datas` com os 64 bits preservados. */
@@ -79,24 +113,21 @@ function unpackLevel(raw) {
 async function main() {
   mkdirSync(CACHE_DIR, { recursive: true });
 
+  if (REFRESH || cdbFiles(root).length === 0) await refreshFromBabel();
+  const origem = existsSync(MANIFEST)
+    ? JSON.parse(readFileSync(MANIFEST, "utf8"))
+    : { commit: "(desconhecido — .cdb anterior ao manifesto)", files: ["cards.cdb"] };
+
   const entries = new Map();
+  const porArquivo = [];
 
-  for (const [index, url] of CDB_SOURCES.entries()) {
-    const target = index === 0 ? CDB_CACHE : join(CACHE_DIR, `cdb-${index}.cdb`);
-    if (!existsSync(target)) {
-      process.stdout.write(`Baixando ${url}...\n`);
-      try {
-        await downloadCdb(url, target);
-      } catch (error) {
-        process.stdout.write(`  ignorado: ${error.message}\n`);
-        continue;
-      }
-    }
-
+  for (const target of cdbFiles(root)) {
+    let novas = 0;
     for (const row of readCdb(target)) {
       const id = Number(row.id);
       // A primeira fonte (cards.cdb) vence: é a oficial.
       if (entries.has(id)) continue;
+      novas += 1;
       const { level, lscale, rscale } = unpackLevel(row.level);
       entries.set(id, {
         type: Number(row.type),
@@ -111,6 +142,7 @@ async function main() {
         def: Number(row.def),
       });
     }
+    porArquivo.push(`${target.split("/").pop()}: ${novas}`);
   }
 
   const sorted = [...entries.entries()].sort((a, b) => a[0] - b[0]);
@@ -129,7 +161,8 @@ async function main() {
   const withSetcode = sorted.filter(([, d]) => d.setcodes.length > 0).length;
   const withAlias = sorted.filter(([, d]) => d.alias !== 0).length;
   process.stdout.write(
-    `card-db.json: ${sorted.length} cartas (${withSetcode} com setcode, ${withAlias} com alias)\n`,
+    `card-db.json: ${sorted.length} cartas (${withSetcode} com setcode, ${withAlias} com alias)\n` +
+      `  BabelCDB ${String(origem.commit).slice(0, 12)}${origem.date ? ` (${origem.date})` : ""} — ${porArquivo.join(", ")}\n`,
   );
 }
 

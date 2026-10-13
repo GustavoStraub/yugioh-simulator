@@ -10,10 +10,14 @@
  * O que se mede: erro no console, exceção não tratada, e — o mais importante —
  * **travamento**: a tela parar de oferecer qualquer ação com o duelo em aberto.
  *
- * Uso: node tools/harness/test-browser.mjs [--headed] [--url http://...]
+ * `PRESET=<id>` escolhe o deck do jogador entre os prontos; um id `tcg-…`
+ * (ex.: `PRESET=tcg-ys17`) joga o duelo inteiro em regras TCG, contra um deck
+ * TCG do bot — Extra Deck, Zonas Extra, Link e companhia pela tela.
+ *
+ * Uso: [PRESET=tcg-ys17] node tools/harness/test-browser.mjs [--headed] [--url http://...]
  */
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { dirname, join } from "node:path";
 
 import { launchChrome, openPage } from "./browser.mjs";
 import { REPO } from "./env.mjs";
@@ -45,7 +49,14 @@ const LER_ESTADO = `
     // O controle de som está sempre habilitado e não é uma jogada; sem
     // excluí-lo o teste clica nele o duelo inteiro e não exercita nada.
     !b.innerText.includes("\u{1F50A}") &&
-    !b.innerText.includes("\u{1F507}");
+    !b.innerText.includes("\u{1F507}") &&
+    // Nem o seletor de idioma das cartas (PT/EN, na navegação): também está
+    // sempre habilitado, e o teste o clicava em vez de esperar — um duelo
+    // travado virava "250 ações" e nunca era acusado.
+    !b.closest('[aria-label="Idioma das cartas"]') &&
+    // Nem os de "ver" (👁 cartas reveladas, 👁 ver o tabuleiro): ajudam a
+    // ler a mesa, não são jogada — e clicados em laço gastavam as 250 ações.
+    !b.innerText.trim().startsWith("\u{1F441}");
   const botoes = [...document.querySelectorAll("button")].filter(util).map((b) => b.innerText.trim()).filter(Boolean);
   const menu = [...document.querySelectorAll(".tf-menu-item, [data-menu-item]")].map((b) => b.innerText.trim());
   const cartas = [...document.querySelectorAll(".tf-slot-active")].length;
@@ -53,7 +64,12 @@ const LER_ESTADO = `
     botoes,
     menu,
     cartas,
-    processando: /Processando|Preparando duelo/.test(texto),
+    // O motor trabalhando (turno ritmado do bot, resolução de corrente) ou
+    // esperando o outro assento: nada a clicar é o esperado, não trava.
+    processando:
+      mesa.dataset?.processing === "1" ||
+      mesa.dataset?.waitingFoe === "1" ||
+      /Processando|Preparando duelo/.test(texto),
     erro: texto.includes("Erro:") || texto.includes("falhou") || texto.includes("interrompido"),
     acabou: texto.includes("venceu") || texto.includes("empatad"),
     trecho: texto.slice(0, 500),
@@ -172,15 +188,44 @@ async function main() {
         process.exitCode = 1;
         break;
       }
-      if (estado.processando || (estado.botoes.length === 0 && estado.cartas === 0)) {
+      // "Nada para fazer" é também nenhum botão que o `escolherAcao` aceite —
+      // não só a lista vazia: um filtro de botões mal posto já fez o teste
+      // registrar 250 "(nada)" em vez de acusar a mesa parada.
+      const semJogada =
+        estado.botoes.length === 0 || escolherAcao(estado.botoes) === undefined;
+      if (estado.processando || (semJogada && estado.cartas === 0)) {
         paradoSeguidas += 1;
         esperas += 1;
         // Vinte leituras sem nada acionável e sem "processando" é a assinatura
         // do congelamento: o engine espera resposta que a tela não pede.
         if (paradoSeguidas > 20 && !estado.processando) {
+          // O diagnóstico precisa dizer O QUE a tela mostrava: botões (até os
+          // desabilitados), modais, cartas ativas, o texto da mesa e uma foto.
+          const diag = await page.evaluate(`
+            const mesa = document.querySelector(".tf-playmat");
+            return {
+              botoes: [...document.querySelectorAll("button")]
+                .filter((b) => !b.closest("header, nav"))
+                .map((b) => (b.disabled ? "[x]" : "") + b.innerText.trim().replace(/\\s+/g, " "))
+                .filter(Boolean)
+                .slice(0, 30),
+              modais: document.querySelectorAll(".tf-modal-scrim").length,
+              ativos: document.querySelectorAll(".tf-slot-active").length,
+              mesa: mesa ? mesa.innerText.replace(/\\s+/g, " ").slice(0, 1500) : "(sem mesa)",
+            };
+          `);
+          const foto = join(REPO, ".cache/shots", `travou-${process.env.PRESET ?? "goat"}.png`);
+          try {
+            mkdirSync(dirname(foto), { recursive: true });
+            const { data } = await page.screenshot();
+            writeFileSync(foto, Buffer.from(data, "base64"));
+          } catch {
+            // Sem foto, o resto do diagnóstico ainda serve.
+          }
           process.stdout.write(
             `TRAVOU após ${acoes} ações — nada clicável e o engine não está processando.\n` +
-            `estado: ${estado.trecho}\n`,
+            `botões: ${JSON.stringify(diag.botoes)}\nmodais: ${diag.modais} | cartas ativas: ${diag.ativos}\n` +
+            `mesa: ${diag.mesa}\nfoto: ${foto}\n`,
           );
           process.exitCode = 1;
           break;
@@ -200,22 +245,35 @@ async function main() {
         const acao = escolherAcao(depois.botoes);
         if (acao) {
           historico.push(`${zona}:${acao}`);
-          await page.clickText(acao);
+          await page.clickAction(acao);
         } else {
           historico.push(`${zona}:(sem menu)`);
         }
       } else {
         const alvo = escolherAcao(estado.botoes);
         historico.push(alvo ?? "(nada)");
-        if (alvo) await page.clickText(alvo);
+        if (alvo) await page.clickAction(alvo);
       }
 
       acoes += 1;
+      // Saiu da mesa (navegou para outra página): o laço não está mais
+      // testando duelo nenhum — e pode estar mexendo em dado de verdade.
+      if (!(await page.evaluate(`return Boolean(document.querySelector(".tf-playmat"))`))) {
+        process.stdout.write(`SAIU DA MESA após ${acoes} ações (última: ${historico.at(-1)}).\n`);
+        process.exitCode = 1;
+        break;
+      }
       await new Promise((r) => setTimeout(r, 220));
     }
 
     process.stdout.write(`\nações executadas: ${acoes} (esperas: ${esperas})\n`);
     process.stdout.write(`sequência: ${historico.slice(0, 30).join(" > ")}\n`);
+    // O fim importa tanto quanto o começo: 250 ações que terminam em
+    // "Ativar > Confirmar > EP" são um duelo andando; terminando no mesmo
+    // botão repetido, um laço.
+    if (historico.length > 30) {
+      process.stdout.write(`últimas: ${historico.slice(-30).join(" > ")}\n`);
+    }
 
     const erros = page.errors;
     const consoleErros = page.console.filter((c) => c.level === "error");
@@ -267,9 +325,10 @@ async function verificarRendicao(page) {
 const DECK_STORAGE_KEY = "yugioh-goat-deck-v1";
 
 /** Monta o deck do jogador a partir de um preset, no formato do deck builder. */
-function deckDoJogador(presetId = "starter-yugi") {
+function deckDoJogador(presetId = process.env.PRESET ?? "starter-yugi") {
+  const tcg = presetId.startsWith("tcg-");
   const presets = JSON.parse(
-    readFileSync(join(REPO, "src/data/preset-decks.json"), "utf8"),
+    readFileSync(join(REPO, tcg ? "src/data/preset-decks-tcg.json" : "src/data/preset-decks.json"), "utf8"),
   );
   const preset = presets.find((p) => p.id === presetId) ?? presets[0];
 
@@ -282,7 +341,7 @@ function deckDoJogador(presetId = "starter-yugi") {
   return {
     id: "teste-navegador",
     name: preset.namePt ?? preset.name,
-    format: "goat",
+    format: tcg ? "tcg" : "goat",
     main: agrupar(preset.main),
     extra: agrupar(preset.extra ?? []),
     side: agrupar(preset.side ?? []),

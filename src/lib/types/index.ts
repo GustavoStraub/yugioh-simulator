@@ -13,5 +13,17 @@ export type {
   DuelDeckPayload,
 } from "./deck";
 
-export type { CardLocation, DuelSetup, GoatFormatRules } from "./duel";
-export { CARD_LOCATIONS, GOAT_FORMAT_RULES } from "./duel";
+export type {
+  CardLocation,
+  DuelFormat,
+  DuelSetup,
+  FormatRules,
+  GoatFormatRules,
+} from "./duel";
+export {
+  CARD_LOCATIONS,
+  DEFAULT_FORMAT,
+  FORMAT_RULES,
+  GOAT_FORMAT_RULES,
+  formatOf,
+} from "./duel";

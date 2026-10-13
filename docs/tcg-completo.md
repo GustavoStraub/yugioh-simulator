@@ -578,3 +578,579 @@ plano é acionável (mesma regra do `test-ui-prompts.mjs`) e se
 
 **Marcas (§3.4):** os padrões da tabela, procurados nos `official/c<id>.lua`
 do pool Goat (`.cache/goat-pool.json`) e do pool TCG (acima).
+
+## 12. Andamento
+
+Branch `tcg-completo`, um commit por fase. Decisões tomadas antes de começar:
+o **Goat continua** como segundo formato (Fase 6 entra), e o escopo é o plano
+inteiro.
+
+### Fase 0 — feita
+
+- CardScripts fixo no commit `f1522e75` (`src/lib/duel/cardscripts-pin.ts`):
+  rota `/api/scripts`, servidor online e clone do harness leem o mesmo
+  conjunto. `npm run fixtures` leva o clone até ele; o harness avisa se o
+  clone estiver em outro commit.
+- Harness: `createDuel({ mode })` e Extra Deck virado para baixo por padrão.
+  O piloto automático troca de resposta num RETRY (ataca com o monstro
+  obrigado a atacar, declara quantos valores o ANNOUNCE pede, procura soma
+  exata).
+- `npm run test:tcg-pool` (§3.1): 13.318 cartas, 24.589 cenários, **0 erros de
+  Lua**, 9.876 ativadas/invocadas. Os laços de RETRY eram quase todos do
+  piloto (Karakuri e afins "devem atacar"; Earthshaker declara 2 atributos);
+  sobram 2, ambos ANNOUNCE_CARD com filtro — o piloto declara nome fixo
+  (Fase 4). O `eof` do Wandering Mummy não apareceu nesta rodada.
+- `npm run test:modern-summons` (§3.2/§3.3) reproduz as falhas esperadas:
+  zonas 5–6 invisíveis para a tela, plano vazio no SELECT_PLACE do Link, Link
+  invisível na mesa, Invocação-Pêndulo não oferecida, escala direita e setas
+  zeradas no core.
+- Bateria Goat igual à de antes (0 vereditos mudaram em 3.108 cenários). O
+  `test:hidden` falhava já no `main` — a Boneca Chamariz não tinha alvo porque
+  o bot passou a ativar a magia que o teste esperava que ele baixasse; o
+  oponente agora baixa Cilindro Mágico.
+
+### Fase 1 — feita
+
+- Binding 0.1.3 → **0.1.4**. Escala direita e setas Link chegam ao core (a
+  leitura de volta do `test:modern-summons` bate com o banco oficial) e a
+  **Invocação-Pêndulo é oferecida** e resolve com os dois monstros da faixa.
+- `card-adapter.ts` (`linkFields`) e o `toOcgData` do harness mandam a coluna
+  `def` dos Link como setas, com DEF 0.
+- Formato no motor: `DuelSessionConfig.format` escolhe `MODE_GOAT` ou
+  `MODE_MR5`, entra no `DuelSnapshot` (a mesa vai precisar dele) e as regras de
+  construção viraram `FORMAT_RULES` por formato. `npm run test:formats` confere
+  a regra observável de fora: Goat compra no 1º turno (6 cartas), TCG não (5).
+- Bateria Goat no core novo: **0 vereditos mudaram** em 3.108 cenários;
+  gatilhos, arquétipos, UI, bot, multiplayer e afins iguais. Pool TCG: 0 erros
+  de Lua, só as 2 falhas conhecidas do piloto. Duelo no navegador (build de
+  produção) com o wasm novo: 250 ações, 0 erros.
+- A emenda do `chain.lua` ficou desnecessária com o core novo (Charm of Shabti
+  resolve com `SKIP_SCRIPT_PATCHES=1`); continua como rede de segurança.
+- O que sobra no `test:modern-summons` é a mesa (Fase 2): zonas 5–6 invisíveis
+  para a tela, plano vazio no SELECT_PLACE do Link e o Link fora da mesa.
+
+### Fase 5a — catálogo e imagens (adiantada)
+
+Puxada para antes da mesa: para desenhar e testar Link, Xyz e Pêndulo na tela
+é preciso ter as cartas TCG no catálogo (nome, imagem, Rank/Link/Escala).
+
+- `npm run build:catalog` monta `.cache/catalog/catalog.json` a partir de quatro
+  buscas à YGOPRODeck (TCG em inglês e em português, pool Goat, fichas), uma vez
+  só; o servidor monta sozinho na primeira requisição se o arquivo faltar.
+  14.021 cartas, 13.906 com dados oficiais. As 115 restantes são de coleções
+  lançadas depois do snapshot do `cards.cdb` (24/08) — a maioria da coleção de
+  08/10/2026 — e de impressões de Speed Duel: aparecem no catálogo, mas não
+  entram em deck (sem dados nem script, entrariam como monstro qualquer).
+- Indexado pelo passcode **oficial**, com todas as artes alternativas
+  resolvíveis: a YGOPRODeck passou a usar uma arte alternativa como id
+  principal de algumas cartas (o Mago Negro aparece como 46986420), e o feed do
+  Goat lista outras só pela arte alternativa.
+- `/api/cards` serve o catálogo pré-comprimido (1,6 MB em brotli, 2,4 MB em
+  gzip; ~10 MB cru) com ETag — revisita é um 304.
+- Imagens: `/card-images/<small|full|cropped>/<passcode>.jpg` baixa cada imagem
+  da YGOPRODeck uma vez, em fila (~8/s) e sem duplicar downloads simultâneos, e
+  serve do disco (`.cache/card-images/`) com cache de um ano. Fim do hotlink.
+- O construtor continua no pool Goat (1.690 cartas) até a Fase 6 dar formato a
+  cada deck; a declaração de nome (ANNOUNCE_CARD) segue o formato do duelo.
+
+### Fase 2 — feita
+
+- `board-state.ts`: 7 zonas de monstro (5–6 são as Zonas Extra), nível/rank
+  atuais, rating e setas Link, escalas e materiais Xyz por carta em campo — nada
+  disso vaza de carta oculta. Extra Deck do oponente: só os Pêndulos virados
+  para cima (os outros nem entram na lista); `extraFaceUp` dá a contagem.
+- ⚠ O binding não desserializa `OcgQueryFlags.TYPE` (lança `eof`; junto de
+  outras flags desalinha a resposta inteira). O tipo vem do catálogo/banco
+  oficial.
+- `field-places.ts` decodifica monstro 0–6 e magia 0–5 (Zona de Campo). Medido
+  em 20 duelos: no jogo normal o core nunca libera esses bits, nem no Goat nem
+  em MR5 — só as invocações do Extra Deck. O Goat não muda.
+- Mesa TCG (`format: "tcg"` no snapshot): fileira das Zonas Extra com a trilha
+  de fases em grade no meio, alinhada às colunas 2 e 4 para as setas se lerem;
+  ocupante da zona compartilhada desenhado pela ótica de quem olha (o do
+  oponente de cabeça para baixo); setas no slot (giram com a carta); zonas
+  apontadas tracejadas (`link-geometry.ts`, conferida contra o engine para os
+  dois assentos); selo Nível/Rank/LINK; escalas ◂/▸ nas zonas 1 e 5; selo de
+  materiais que abre a lista; ATK/LINK-n no lugar do DEF; Extra Deck com "↑N"
+  e o do oponente abrindo só os públicos. A mesa Goat continua idêntica.
+- Leitura da carta: linha de tipo moderna ([Dragão/Sincro/Regulador/Efeito]),
+  Rank, Link com as setas, escalas e materiais.
+- Modais de pilha passaram a seguir o tabuleiro vivo (antes guardavam a lista do
+  momento do clique).
+- Testes: `test:modern-summons` 8/8 (inclui materiais, geometria contra o
+  engine e o Extra Deck do oponente); `test:board-modern` (navegador, mesa de
+  teste montada pelo `scenario` da sessão) com capturas em 1440×900, 1280×720
+  e 1024×640; `test:viewports`, `test:browser`, `test:browser-online`,
+  `test:hidden`, `test:multiplayer` passando. O `test:multiplayer` tinha uma
+  checagem de sanidade que reprovava ~1 em 6 vezes (lia só a mão do último
+  snapshot); agora usa a maior mão vista.
+- Ainda não dá para invocar do Extra Deck clicando — é a Fase 4.
+
+### Fase 3 — feita
+
+- **Por consulta** a cada leitura do tabuleiro (`board-state.ts`): contadores
+  (`COUNTERS`), equipada a (`EQUIP_CARD`), alvos contínuos (`TARGET_CARD`) e
+  negada (`STATUS_DISABLED`). É a verdade do core e sobrevive a reconexão.
+- **Por mensagem** na sessão: `CARD_HINT` num mapa por zona (turnos, carta /
+  Tipo / Atributo / número declarados, avisos de texto com contagem); anda com
+  a carta no `MOVE` e some quando ela sai do campo. `PLAYER_HINT` por assento e
+  `FIELD_DISABLED` (máscara na ótica do jogador 0) entram no `DuelSnapshot`
+  (`playerHints`, `disabledZones`).
+- As marcas entram no `BoardCard` de cada ótica — carta oculta para quem olha
+  não carrega marca nenhuma — e por isso o online e a reconexão recebem tudo
+  sem mudar a projeção.
+- `engine-strings` agora cobre **todas** as cartas (9.717 com strings) e os
+  134 tipos de contador; os ~75 avisos de sistema (3000–3314: "Não pode ser
+  destruída em batalha", "Não pode atacar"…) e os contadores comuns têm
+  português. As rotas de dados estáticos (catálogo, banco oficial, strings)
+  passaram a sair comprimidas com ETag (`compressed-json.ts`).
+- Mesa: selos no canto direito do slot (✦ contador, ⏱ turnos, 📢 declarado,
+  ⓘ avisos, 🔗 equipada, 🎯 alvo, ⊘ negada), arte em cinza na carta negada,
+  zonas interditadas hachuradas, avisos do jogador sob a barra de LP; a leitura
+  da carta lista tudo por extenso ("Marcador de Magia ×1", "Equipada a Mystical
+  Elf"). Log: contador ganho/perdido, equipamento, alvo e declarações (com o
+  nome só quando a carta é pública).
+- Achado: contador não-permanente **sai** quando a carta é negada (o Skill
+  Drain tira o Marcador de Magia do Breaker) — o core faz isso, a mesa
+  acompanha.
+- `npm run test:marks`: Breaker, Proibição, Chamado do Assombrado, Machado do
+  Desespero, Lança Proibida, Skill Drain, Espadas da Luz Reveladora, Ovelhas
+  Perdidas e Desmoronamento, conferidos nas duas óticas e na projeção por
+  assento (o que chega ao reconectar), mais a invariante "carta oculta não tem
+  marca". `test:board-modern` invoca o Breaker clicando e confere selo e
+  leitura no navegador.
+- O `test:hidden` tinha mais dois roteiros dependentes de o bot NÃO ativar a
+  Remédio Secreto do Goblin (Goblin Larápio e Espião, ~1 em 4 reprovando à
+  toa); o oponente deles agora tem um deck que o bot não consegue jogar
+  (Guardião do Portão), e o descarte do Goblin precisa vir depois de um ataque
+  meu no mesmo turno. 8/8 execuções seguidas passando.
+
+### Fase 4 — feita
+
+- **Jogar de fora da mesa**: quando o prompt oferece jogada numa carta do
+  Extra Deck, do Cemitério ou das banidas, a pilha brilha e abre com as cartas
+  jogáveis em destaque e as jogadas delas; o que não mora numa pilha desenhada
+  (Deck, material Xyz) vai para "⚡ Outras jogadas". A regra de onde cada jogada
+  se alcança é `actionReach` (`prompt-reach.ts`), a mesma para tela e testes.
+- **ANNOUNCE_CARD** avaliado pela mesma conta do core (`announce-filter.ts`,
+  espelho de `is_declarable`: setcode com sub-arquétipo, alias e fichas só com
+  as flags, as exceções do core). A busca recebe o banco oficial sob demanda e,
+  quando o filtro deixa poucos nomes, já os lista. Bot e piloto do harness
+  declaram um nome legal — os dois RETRY que sobravam no pool TCG sumiram (a
+  lista de falhas conhecidas do `test:tcg-pool` ficou vazia).
+- **SELECT_SUM** pelas regras do core: soma exata (de `min` a `max` cartas) ×
+  "igual ou maior sem carta sobrando" (Ritual), e carta de dois valores
+  (`o1 | o2 << 16`) — antes o `amount` cru entrava como 262148.
+- **SELECT_COUNTER** vira distribuição (quantos sai de cada carta, até o que
+  cada uma tem, somando N); a resposta automática só quando é preciso tirar
+  todos.
+- **SORT_CHAIN** reconhecido (app, bot e harness) e respondido com a ordem
+  padrão do core — antes congelava.
+- Seleção em passos (SELECT_UNSELECT_CARD): o material já escolhido aparece
+  marcado; antes parecia igual aos que faltavam, e clicar nele de novo o tirava.
+- A dica `SELECTMSG` do core vira a instrução da seleção ("Selecione o(s)
+  card(s) para usar como Matéria de Sincro") e as ~60 dicas 500–579 estão em
+  português; a linha da dica no log vai só para quem escolhe.
+- Os modais do duelo (pilha, seletor, revelações) passaram a respeitar o idioma
+  das cartas escolhido pelo jogador — usavam sempre o nome em português.
+- `npm run test:modern-play` (navegador): Sincro, Xyz, Link, efeito de
+  Cemitério, escalas + Invocação-Pêndulo e declaração de um nome "Gadget", **só
+  com cliques**, com fotos de cada passo. Dois achados que eram do roteiro, não
+  do app: Timegazer Magician exige não controlar monstros para ativar (o engine
+  estava certo), e o gatilho de Invocação do Ancient Gear Gadget declara um
+  TIPO — o nome "Gadget" é o efeito de Ignição.
+- `npm run test:prompt-rules`: a conta do ANNOUNCE_CARD, do SELECT_SUM e do
+  SELECT_COUNTER caso a caso (29 casos), sem engine.
+- Três testes de navegador antigos (`test-browser-cancel`, `test-attack-
+  rotation`, `test-draw-landing`) não passavam nem no `main`: não gravavam o
+  perfil do jogador (a portaria do nome segurava o lobby) e clicavam em
+  "Iniciar duelo" antes de ele existir. O de cancelar o Tributo também
+  procurava "tributo" na mesa inteira — e o histórico, agora em português,
+  também diz "Tributo". Os três passam.
+
+### Fases 5 (resto) e 6 — feitas juntas
+
+O construtor TCG e os formatos lado a lado dependem um do outro (o pool, os
+limites e a banlist que aparecem vêm do formato do deck), então entraram
+juntos.
+
+- **Formato por deck** (`DeckList.format`): deck salvo antes do TCG não tem o
+  campo e abre como Goat (`normalizeDeck`), igual a antes. O formato viaja no
+  próprio `DuelDeckPayload` — duelo local, entrada na sala e troca de deck —,
+  sem campo novo em cada mensagem.
+- **Regras por formato** (`deck-rules.ts`): Main 40–60 nos dois; Extra até 60
+  no Goat e 15 no TCG; Side "0 ou 15" no Goat e até 15 no TCG; 3 cópias é a
+  única trava; carta fora do pool do formato não entra (Goat = pool de 2005;
+  TCG = toda carta com dados oficiais).
+- **Banlist só como informação**, cada formato com a sua lista: selo na carta,
+  filtro e resumo do deck ("Legal na banlist TCG" / "1 aviso: 1 Proibida").
+  Acabou o bug do Goat cair no `ban_tcg` de hoje (Cyber-Stein aparecia
+  "Proibida em abril/2005"). Conferido contra `banlist=tcg` da API: 222 de 222
+  — depois de corrigir o catálogo (abaixo).
+- **Catálogo**: a lista `format=tcg` da YGOPRODeck deixa de fora 97 cartas TCG
+  com script (Chaos Ruler, Bystial Druiswurm, Mudora…). A montagem agora
+  completa pelo `cards.cdb` (`ot & 2`), buscando por id o que faltou: 14.118
+  cartas, 14.003 jogáveis.
+- **Construtor**: troca de formato no próprio deck (as cartas ficam; o que sai
+  do pool aparece em vermelho e o deck não duela até sair), deck novo nasce no
+  formato do aberto, catálogo **virtualizado** (13.800 cartas no TCG sem travar
+  a busca), filtros de subtipo (Normal, Efeito, Ritual, Fusão, Sincro, Xyz,
+  Link, Pêndulo, Regulador…), Nível, Rank, Link e Escala, busca também no texto
+  em inglês, leitura da carta com Rank/Link/Escala.
+- **Duelo local**: o bot usa um deck do mesmo formato — um pronto, ou um da
+  sua biblioteca (o único adversário TCG até a Fase 7 trazer os decks prontos).
+- **Online**: cada assento mostra o formato do deck; Goat × TCG não começa (a
+  sala avisa), e a sessão nasce no formato dos dois.
+- **Imagens**: fila de ~14/s para a YGOPRODeck e `npm run sync:images` para
+  baixar tudo de antemão.
+- **Carga**: o catálogo inteiro (14 mil cartas, texto PT+EN) sai em 1,6 MB
+  (brotli). Antes eram ~5,6 MB sem compressão para as 1.690 cartas do Goat
+  (2,8 MB por idioma, §3.5).
+- Testes: `test:formats` (regras de deck dos dois formatos, banlist por
+  formato, validação online, sala Goat × TCG); `test:browser-decks` com uma
+  parte TCG (pool inteiro, Link no Extra com limite 15, resumo da banlist, a
+  volta ao Goat marcando a carta fora do pool) — e ele agora apaga o perfil de
+  teste que deixava em `.data/decks` a cada rodada.
+
+### Fase 7 — feita
+
+**107 decks pré-montados do TCG**, gerados por `npm run build:presets`
+(`scripts/build-preset-decks.mjs`) em `src/data/preset-decks-tcg.json`:
+
+| Linha | Decks |
+|---|---:|
+| Decks Iniciais (2002–2018, inclui Saber Force e Dark Legion) | 23 |
+| Decks Estruturais (SD1 a SDWD) | 59 |
+| Decks dos Deuses Egípcios | 2 |
+| Kit para 2 jogadores (Synchro e Xyz) | 2 |
+| Decks Lendários (YGLD, LDK2, LEDD, LEHD, L5DD, L26D — 3 por caixa) | 18 |
+| Edições especiais (NKRT, CH01, CH02) | 3 |
+
+- **Fonte**: as listas `Set Card Lists:<produto> (TCG-EN|NA)` da Yugipedia
+  (quantidade por linha e um `== X Deck ==` por deck nas caixas), resolvidas
+  para passcode pelo set code do `card_sets` da YGOPRODeck — com o nome como
+  reserva para os 8 códigos que a YGOPRODeck não tem. As páginas ficam em
+  `.cache/yugipedia/` (o build inteiro são ~10 requisições na primeira vez,
+  User-Agent próprio, 1,2 s entre elas; zero depois). Texto CC BY-SA 4.0: a
+  fonte vai em cada deck (`sourceUrl`) e no rodapé do seletor.
+- **Armadilhas do formato** (todas cobertas no script, com o porquê): as
+  colunas andam conforme o cabeçalho declara `print=`/`qty=`; sem `qty=`, três
+  cópias são três linhas — nada pode deduplicar por código; seções "Bonus",
+  "Promotional", "Tokens" e "Variant art cards" repetem códigos do deck (o
+  SDCH contava os 4 Familiar-Possessed duas vezes); o Extra Deck não é marcado
+  (sai do tipo da carta); os três Deuses do LDK2 aparecem na seção do Yugi mas
+  são brinde da caixa.
+- **Validação** (o build falha): Main 40–60, Extra ≤ 15, carta com dados
+  oficiais e script (ou Normal), e a conta do produto — as cartas dos decks
+  não passam do tamanho da caixa, e todas as linhas da lista não ficam abaixo
+  dele (a igualdade exata não serve: a lista mostra todos os "1 de 6 bônus").
+- **Fora**: os 3 decks do Legendary Arc-V Decks (2026) — cada um tem uma carta
+  lançada depois do snapshot dos dados oficiais (Odd-Eyes Override Dragon,
+  Lunalight Scarlet Tiger, Speedroid Darumaknocker). Voltam sozinhos quando o
+  `card-db.json` for regenerado com elas.
+- **Prova cruzada**: os 10 decks Goat, montados à mão anos antes de outra
+  fonte, batem carta a carta com os mesmos produtos gerados (só muda a arte de
+  algumas cartas).
+- **Lacuna da fonte**: o Sky Striker do L26D soma 54 na Yugipedia (a caixa diz
+  55: 1 Secreta + 6 Ultra + 48 Comuns; a lista tem 47 Comuns). Fica como está.
+- **Seletor**: busca (PT, EN, set code, ano, sem acento), filtro por linha e a
+  lista agrupada por linha em ordem de lançamento; os `<select>` do bot e da
+  sala online agrupam por formato e linha.
+- **Achados no caminho** (consertados, com teste):
+  - **Ordenar cartas do topo do Deck travava o duelo** (SORT_CARD). O binding
+    escrevia a quantidade antes da ordem; o core lê a ordem do byte 0 e
+    respondia RETRY para sempre — na tela o duelo congelava, contra o bot era
+    interrompido. Consertado no `postinstall` (`copy-ocgcore-wasm.mjs`, com
+    aviso alto se a âncora sumir). Valia para o Goat também.
+  - **E a ordem saía trocada**: a tela mandava "a carta de cada posição" e o
+    core lê "a posição de cada carta" — com 3 cartas, a escolhida para o topo
+    não ficava no topo. `sortOrderForCore`. Teste: `test:sort-card`.
+  - **Red-Eyes Darkness Metal Dragon** entrava sem efeito no navegador: no
+    commit fixado, o script só existe em `pre-errata/`, que o servidor online
+    lia e o navegador não. `script-source.ts` agora tenta `pre-errata/` por
+    último (só cartas sem script em `official/` chegam lá — é a única).
+  - **Deck apagado voltava**: apagar logo depois de mexer (menos de 600 ms)
+    deixava a gravação pendente chegar ao servidor depois do "apagar".
+    Gravações e remoções agora vão em fila, e o apagar descarta a pendente.
+    Coberto no `test:browser-decks` (falha sem o conserto).
+- Testes: `test:presets` (validação de todos + **uma partida bot × bot por
+  deck em MR5**, com cada prompt do assento 0 passando pela régua do
+  `test:ui`) — 107 de 107 terminam, 19 tipos de prompt exercitados, nenhum
+  sem resposta na tela; `test:sort-card`; `test:browser-decks` com o seletor
+  (107 decks, grupos, busca por set code, Blue-Eyes White Destiny carregando
+  40 + 10).
+- Testes antigos acertados: `test:connection` nunca jogava o jokenpô (falhava
+  em "o duelo começa" desde o primeiro commit) e apontava por padrão para a
+  porta 3000 — o dev server de quem desenvolve; agora joga o jokenpô e usa a
+  3210 do próprio roteiro. `test:browser-online` trocava para "o último deck
+  da lista", que passou a ser um deck TCG — a sala, com razão, não abria
+  Goat × TCG; agora pega o último dos grupos Goat.
+
+### Fase 8 — feita (o "pronto quando" passou; ganho de força não comprovado)
+
+O que o bot passou a fazer, cada coisa com um cenário dirigido no
+`test:bot` (os quatro primeiros falham no bot anterior):
+
+- **Extra Deck com conta**: invoca Sincro/Xyz/Link só se o resultado valer
+  pelo menos 300 a mais que os materiais mais baratos do campo (Link: tantos
+  quanto o Link Rating; Sincro/Xyz: 2; materiais de Xyz pesam 75%, ficam
+  presos ao monstro). O bot anterior fazia toda Invocação do Extra Deck
+  oferecida — trocava um Battle Ox de 1700 por um Link Spider de 1000.
+- **Pêndulo**: põe a escala só se ela abre, com a outra escala (no campo ou
+  outro Pêndulo da mão), um monstro da mão de Nível entre as duas; a
+  Invocação-Pêndulo oferecida vale 112 (acima da Normal). Antes, Pêndulo na
+  mão era "monstro com efeito" e ia para a escala sem faixa nenhuma — ou era
+  invocado no lugar de abrir a faixa.
+- **Hand trap**: nunca contra o próprio elo (a Ash Blossom negava a busca do
+  próprio bot); vale contra elo do adversário, no turno dele ou na batalha. A
+  sessão passa `chainPlayer` (quem ativou o último elo) ao bot.
+- **Main Phase 1 antes da batalha**: magia não rápida, equipamento e efeito
+  de ignição legais vão antes da Battle Phase quando há ataque que valha
+  (antes ficavam abaixo dos 76 de "atacar" e só saíam na Main 2, depois dos
+  ataques que mudariam).
+- **Bot travava o duelo** numa Battle Phase sem saída (nem Main 2 nem End
+  Phase oferecidas — um efeito obrigando a atacar, visto no SD6): pedia End
+  Phase e o core respondia RETRY até a sessão interromper o duelo. Agora
+  ataca; o respondedor de reserva também passou a pedir só o que foi
+  oferecido. (O defeito era anterior à Fase 8.)
+- Menores: declarar nome prefere as cartas que o adversário já mostrou;
+  materiais por soma (Sincro, Ritual) pela combinação válida mais barata;
+  seleção "até N" para no mínimo quando o que sobra é custo; `card-intel`
+  conhece Link/Xyz/Pêndulo/Regulador (e não lê mais as setas de um Link como
+  DEF).
+- "Uma vez por turno" é do core: ele não oferece de novo o que já foi usado.
+  O teto anti-laço do bot (2 ativações por carta por turno) continua.
+
+**Medição** (`test:bot`, mesmos decks e sementes; o A/B carrega o bot
+anterior com `BOT_RIVAL` e o rival `cerebro`):
+
+| Confronto | Placar | Bot atual |
+|---|---|---:|
+| atual × anterior, 44 decks TCG com ≥ 3 no Extra (264) | 130 × 134 | 49,2% |
+| atual × anterior, os 107 decks TCG (214) | 112 × 101 | 52,6% |
+| atual × anterior, Goat (120) | 61 × 59 | 50,8% |
+| atual × guloso, TCG (214) | 167 × 47 | 78,0% (anterior: 79,4%) |
+| atual × guloso, Goat (120) | 85 × 35 | 70,8% |
+| atual × passivo, Goat (60) | 45 × 15 | 75,0% |
+
+Leitura honesta: **empate com o bot anterior**. As regras novas consertam
+jogadas ruins específicas (os cenários provam), mas não movem o placar além
+do ruído (±4–5 pontos nessas amostras). Uma ablação (cada regra desligada,
+264 partidas cada) também ficou toda entre 46% e 49%: nenhuma regra sozinha
+atrapalha nem ajuda de forma mensurável. O "pronto quando" do plano passou —
+bot × bot roda os 107 decks sem travar (107/107) e vence o guloso em 78% —,
+mas isso já era verdade antes da fase. Força de verdade em deck moderno pede
+o que heurística por carta não dá: planejar combo (a ordem de invocações que
+abre o Extra Deck), saber o que cada efeito busca. Fica como próximo passo,
+fora deste plano.
+
+Também no harness: o guloso de referência travava duelos sozinho (declarava
+nome sem o banco oficial; tirava 0 marcadores quando o core pedia N) — isso
+contava contra o bot no placar; `test:bot -- --partidas 59,100` repete uma
+partida e o relatório mostra a resposta recusada e de quem era; partida que
+bate o teto de passos com o jogo andando (SD7 × SD7, 67 turnos de muralha)
+conta como longa, não como travada.
+
+### Fase 9 — feita
+
+**Bot × bot em massa** (`test:presets -- --rodadas 20`, 12 processos): 2.140
+duelos TCG (os 107 decks, 20 adversários e sementes cada), **2.140
+terminados**, 0 RETRY (nem recuperado, nem em laço), **0 plano vazio nos dois
+assentos**, 0 erro de script, 19 tipos de prompt exercitados.
+
+- **`eof` do binding**: 112 nesses duelos (~1 a cada 19), **todos
+  `SHUFFLE_SET_CARD`** (mensagem 36, embaralhar cartas baixadas) — o mesmo
+  defeito do Wandering Mummy da §3.1. O binding lançava e o lote inteiro
+  daquele passo se perdia (dano, movimento, dica de carta, log). Novo conserto
+  no `postinstall`: cada mensagem é lida à parte e só a ilegível cai (com
+  aviso no console). Rodada de novo: **0 lote perdido**. A mensagem em si
+  continua ilegível; a mesa não depende dela (é relida do core), e o
+  `revealedTo` não é zerado por ela — resíduo pequeno de informação oculta,
+  coberto pelo `CHAIN_SOLVED` logo em seguida na prática.
+- **Os 3 RETRY da §3.1** (Earthshaker, Ancient Gear Gadget, Crossout
+  Designator) eram do piloto do harness e já tinham caído na Fase 4.
+
+**Baterias de carta, antes × depois**: as duas, rodadas no código atual e no
+commit da Fase 7 (worktree), deram relatórios **idênticos byte a byte** — Goat:
+1.690 cartas, 3.108 cenários (1.748 ativaram, 1.360 não oferecidas); TCG:
+13.318 cartas, 24.589 cenários, **0 erro de Lua**, 9.879 ativadas/invocadas.
+As mudanças de harness e binding desta fase não mudaram veredito nenhum.
+
+**Partidas pela tela**: `test-browser` ganhou `PRESET=tcg-…` e o online
+`FORMATO=tcg`. Duelos completos clicando, com 20 decks diferentes (Goat e TCG:
+Link Strike, Codebreaker, Master of Pendulum, Pendulum Domination, Cyberse
+Link, Powercode Link, HERO Strike, Synchron Extreme, Albaz, Crimson King,
+Blue-Eyes White Destiny, Rokket Revolt, Dimensional Dragons, Sky Striker,
+Yusei, os dois kits de 2 jogadores…): todos terminam, 0 exceção, 0 erro de
+console; online Goat e TCG passam. Mais as suítes de mesa moderna, mecânicas
+por clique, declaração, cancelamento, compra, rotação e construtor.
+
+**Os testes de navegador escondiam travamentos** — consertados antes de valer
+qualquer número acima:
+
+1. O seletor de idioma das cartas (PT/EN) está sempre habilitado e o teste o
+   clicava em vez de esperar: uma mesa parada virava "250 ações" e nunca era
+   acusada. Idem os botões de "ver" (👁 reveladas, 👁 ver o tabuleiro).
+2. `clickText` clica o primeiro elemento da PÁGINA que contém o texto: um
+   "Deck" escolhido na mesa (candidato de busca no Deck) casava com o link
+   "Deck Builder" da navegação — o teste saía do duelo e clicava "Novo" no
+   construtor ~245 vezes (não gravou por sorte: o debounce não chegou a
+   disparar). Agora as jogadas usam `clickAction` (só botões fora do
+   cabeçalho, texto exato primeiro), e sair da mesa reprova o teste.
+3. O diagnóstico de travamento passou a mostrar botões (até os
+   desabilitados), modais, cartas ativas, a mesa e uma foto
+   (`.cache/shots/travou-*.png`), e o fim da sequência de ações.
+4. O `test-browser-announce` deixava um `locutor.json` em `.data/decks` (dado
+   real) a cada rodada: agora apaga o próprio perfil; o resíduo foi removido.
+5. O online testava a queda de conexão depois do fim do duelo (deck TCG acaba
+   em ~50 ações): joga 24 antes da queda.
+6. `test:connection` (Fase 7 já registrou): jogava o jokenpô nunca e mirava a
+   porta 3000.
+7. `test-draw-landing` só mede o caso que importa (compra de turno sobre mão
+   com mais de 5 cartas), mas jogava cartas e mantinha a mão em 5: duas
+   rodadas em três terminavam "sem medição". Agora passa o turno (carta só
+   quando o jogo obriga) — 3 de 3 rodadas medem o caso.
+
+**Registrado sem causa provada**: um "TRAVOU" no Yusei (L5DD) com o harness
+antigo — botões de "ver" ainda clicáveis na época. Não se repetiu em 5
+rodadas seguintes do mesmo deck com o diagnóstico novo nem nos outros 19
+decks. A suspeita é o próprio harness, mas não ficou provado. *(Depois: a
+causa provável apareceu — ver "Dados atualizados e fichas", abaixo: turno
+ritmado do bot lido como mesa parada.)*
+
+**Pronto quando**: zero plano vazio e zero travamento na bateria (2.140/2.140)
+— sim; cartas problemáticas resolvidas ou registradas — sim (acima).
+
+### Dados atualizados e fichas (depois da Fase 9)
+
+**Atualização dos dados** — `card-db.json`, scripts, strings, catálogo e
+decks prontos, tudo de novo a partir das fontes:
+
+- **BabelCDB** (commit `01a32349`, 2026-10-12): `npm run build:card-db --
+  --refresh` agora baixa o `cards.cdb` **e todos os `release-*.cdb`** do mesmo
+  commit (set lançado, ainda não fundido no `cards.cdb`) e grava
+  `.cache/cdb-manifest.json`; as strings do engine, o preenchimento TCG do
+  catálogo e o `test:tcg-pool` leem a mesma lista. Os `prerelease-*` ficam de
+  fora (passcode provisório). Resultado: **+121 cartas** (35 do `cards.cdb`,
+  86 do `release-betb.cdb`), nenhuma removida, nenhuma linha antiga mudada.
+- **CardScripts**: o commit fixo passou de `f1522e75` (24/08) para `a30bd15c`
+  (12/10) — 162 commits, ~270 scripts de carta. As 119 cartas novas que não
+  são ficha têm script (próprio ou o da arte original). O binding continua o
+  0.1.4 (o mais novo publicado).
+- **Strings do engine**: +119 cartas com strings próprias; 4 com texto
+  corrigido no upstream.
+- **Catálogo**: 14.086 cartas jogáveis (eram 14.003). As 3 cartas que
+  barravam os decks do **Legendary Arc-V Decks** entraram — os decks prontos
+  passam a **110** (os outros 107 iguais, deck por deck).
+- **Ainda sem dados (32)**: 19 anunciadas e ainda em *prerelease* no
+  BabelCDB (as do BETB em inglês, com passcode provisório — os scripts delas
+  citam umas às outras pelo provisório, então ligá-las pelo nome deixaria as
+  interações quebradas); 13 que nem estão no BabelCDB (os 501000000+ de
+  videogame, "???", e quatro Link novíssimos). Entram sozinhas numa próxima
+  atualização, quando o ProjectIgnis as lançar.
+
+**Bateria depois da atualização**: `test:tcg-pool` 13.324 cartas, 24.601
+cenários, **0 erro de Lua**, e **0 veredito mudado** nos 24.589 cenários que
+já existiam (os 12 novos são as 6 cartas TCG novas com script); Goat: 3.108
+cenários, **0 veredito mudado**. Suíte headless inteira passando
+(`patches`, `modern-summons`, `ui`, `ui-rare`, `archetypes`, `triggers`,
+`remaining`…).
+
+**Fichas**: das 243 que o engine pode criar, **123 não estavam no catálogo**
+(a lista da YGOPRODeck tem ~110) — entravam na mesa como imagem quebrada com o
+nome "Carta" — e 30 não têm arte na YGOPRODeck. Agora:
+
+- o catálogo completa as fichas pelo próprio `.cdb` (nome, texto, ATK/DEF,
+  Nível, Tipo, Atributo): **243 de 243 com nome**;
+- a rota de imagem, quando a YGOPRODeck não tem a arte, desenha uma **face de
+  carta** (moldura cinza de ficha, nome, estrelas, ATK/DEF) em vez do 404 — e
+  lembra o "não tem" por 7 dias, para não ir à origem a cada vez; vale para
+  qualquer carta sem arte, não só ficha;
+- `sync:images` baixa também as variações de ficha (as cores do Ojama, das
+  Ovelhas…): **213 com a arte da YGOPRODeck, 30 com a face desenhada, 0 sem
+  imagem**;
+- `test:token-images` confere as 243 (e, com `APP_URL`, carrega as duas pela
+  rota num Chrome); o `test:board-modern` põe uma ficha sem arte na mesa.
+
+**Achados da bateria com os decks novos** (consertados, com teste):
+
+- **SELECT_SUM com mais de 16 candidatos travava o bot.** Speedroid Wheel
+  ("1 ou 2 Speedroid cujos Níveis somem o dado") olha a mão e o Deck — no
+  deck Speedroid do Legendary Arc-V são 19 candidatos. Acima de 16 a busca
+  caía numa gulosa "os maiores primeiro" que ignora a soma EXATA: com o dado
+  em 1 ela mandava um Nível 5, o core recusava e a mesma resposta voltava
+  (no app, o duelo seria interrompido). Agora uma busca pela regra de cada
+  modo (exata: de `min` a `max` cartas, cada uma com um dos seus dois
+  valores; igual ou maior: a menor quantidade que chega lá). Casos novos no
+  `test:prompt-rules` (19 e 20 candidatos; falham sem o conserto) e a
+  partida repetida termina. Valia para o bot, para o piloto do harness e
+  para qualquer efeito que olhe o Deck inteiro.
+- **"TRAVOU" falso no navegador**: o turno do bot é ritmado (cada ataque
+  espera a investida inteira), e um turno com quatro ataques diretos passa
+  dos 8 s em que o teste via "nada clicável". O teste procurava o texto
+  "Processando" para saber que o motor trabalhava — texto que a tela não
+  mostra mais. A mesa agora expõe `data-processing` e `data-waiting-foe`, e
+  os testes leem isso. Era, muito provavelmente, o "TRAVOU" do Yusei acima.
+
+Depois dos dois consertos: `test:presets` em massa com os **110** decks (5
+rodadas, 550 duelos) — **550 terminados**, 0 RETRY, 0 `eof`, 0 plano vazio;
+pela tela, 8 duelos completos (os três Arc-V novos, Yusei, Synchron Extreme,
+Starter Kaiba), mesa moderna, declaração e online Goat e TCG passando.
+
+### A corrente na tela (depois da Fase 9)
+
+**O problema** (relato do Gustavo): "quando tomo uma Ash, apenas vai pro
+cemitério e simplesmente acontece, o chain é difícil de entender". A sessão
+registrava a corrente numa linha de histórico por elo; na mesa, a Ash ia da
+mão para o Cemitério e a busca do Reforço do Exército simplesmente não
+acontecia, sem nada dizendo por quê. O "negado" só existia no texto.
+
+**O que o engine conta** (medido no core, caso Reforço × Ash):
+`CHAINING` (elo 1) → `CHAINING` (elo 2, `triggering_location` = mão) →
+`CHAIN_SOLVING 2` → **`CHAIN_DISABLED 1`** (chega *durante* a resolução do
+elo que nega, antes de o elo 1 resolver) → `CHAIN_SOLVED 2` →
+`CHAIN_SOLVING 1` → `CHAIN_SOLVED 1` → `CHAIN_END`. `CHAIN_NEGATED` é o
+mesmo para a ativação inteira (Solemn, Magic Jammer).
+
+**Como ficou** (no estilo do Master Duel):
+
+- **Destaque no centro** (`ChainSpotlight`): cada ativação aparece grande
+  por ~1 s, com "Você ativou" / "Oponente ativou" (dourado / vermelho), o
+  número do elo e de onde veio ("da mão", "do Cemitério"…), a mesa
+  escurecida atrás. Quando um elo é negado, a mesma carta volta em cinza com
+  o carimbo **NEGADO** e "Efeito negado" / "Ativação negada". Não captura o
+  mouse — a pergunta "responder?" continua clicável por baixo.
+- **Pilha da corrente** (`ChainStack`, no trilho esquerdo, acima da
+  leitura da carta): todos os elos, o último em cima, cada um com quem
+  ativou, de onde e o estado — na corrente, resolvendo…, resolvido ✓,
+  efeito negado, ativação negada (riscado). Fica 1,6 s depois do fim, para o
+  desfecho ser lido.
+- **Número do elo no slot**: carta do campo (monstro, Magia/Armadilha,
+  Zona Extra, Magia de Campo) que está na corrente ganha o número no canto,
+  pulsando enquanto resolve e cinza se foi negada.
+- **Histórico**: "⛓ Elo 2 — O oponente ativou Ash Blossom (da mão)" e
+  "✖ Elo 1 — efeito de Reforço do Exército negado".
+- **Ritmo**: a ativação passou de 480 para 950 ms e a negação ganhou 900 ms
+  — o tempo de o destaque ser visto antes da próxima coisa acontecer.
+
+Por baixo: `snapshot.chainLinks` (um `DuelChainLink` por elo, com
+`state`), limpo no `CHAIN_END` e no `NEW_TURN`, e os eventos `chainLink` e
+`chainNegated` (o "resolvendo" vai no próprio snapshot). Online, a projeção por assento leva os elos
+como estão (uma ativação é pública), e os eventos vão para os dois lados.
+
+**Teste**: `npm run test:browser-chain` (com o app no ar) monta a mesa —
+Reforço na minha mão, Ash na do bot —, ativa pela tela e confere o
+destaque dos dois elos, a pilha (elo 2 resolvendo, elo 1 com efeito
+negado), o carimbo e o histórico; as fotos ficam em
+`.cache/shots/corrente-*.png`.
+
+**Efeito colateral do ritmo novo**: o `test:modern-play` clicava a zona do
+Glow-Up Bulb 600 ms depois de "Ativar" — a ativação agora fica ~1 s em
+destaque antes de o efeito resolver e perguntar a zona, e o clique caía no
+vazio. O teste passou a esperar a zona acender como escolhível
+(`tf-slot-place`). Bateria depois disso: `marks`, `formats`, `multiplayer`,
+`hidden`, `endgame`, `ui`, `ui-rare`, `prompt-rules`, `sort-card`; pela tela,
+duelo Goat e TCG completos, mesa moderna, jogadas modernas, declaração,
+cancelar, ataque, compra, telas menores, online Goat e TCG e a corrente —
+todos passando. (`test:connection` pede o servidor de produção na porta
+3210 e não rodou.)

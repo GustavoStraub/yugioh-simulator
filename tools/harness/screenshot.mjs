@@ -57,7 +57,7 @@ try {
   while (tiradas < quantas && acoes < 150) {
     const estado = await page.evaluate(`
       const mesa = document.querySelector(".tf-playmat") ?? document.body;
-      const util = (b) => !b.disabled && b.offsetParent !== null && !b.innerText.includes("\\u{1F50A}");
+      const util = (b) => !b.disabled && b.offsetParent !== null && !b.innerText.includes("\\u{1F50A}") && !b.closest('[aria-label="Idioma das cartas"]');
       return {
         botoes: [...document.querySelectorAll("button")].filter(util).map((b) => b.innerText.trim()).filter(Boolean),
         cartas: document.querySelectorAll(".tf-slot-active").length,
@@ -79,11 +79,11 @@ try {
       await new Promise((r) => setTimeout(r, 200));
       const depois = await page.evaluate(`return [...document.querySelectorAll("button")].filter(b=>!b.disabled&&b.offsetParent).map(b=>b.innerText.trim()).filter(Boolean)`);
       const alvo = depois.find((b) => /^(Invocar|Ativar|Atacar|Baixar|Confirmar)/.test(b));
-      if (alvo) await page.clickText(alvo);
+      if (alvo) await page.clickAction(alvo);
     } else {
       const alvo = estado.botoes.find((b) => /^(Invocar|Ativar|Atacar|Confirmar)/.test(b))
         ?? estado.botoes.find((b) => b === "BP" || b === "EP");
-      if (alvo) await page.clickText(alvo);
+      if (alvo) await page.clickAction(alvo);
     }
     acoes += 1;
     await new Promise((r) => setTimeout(r, 400));

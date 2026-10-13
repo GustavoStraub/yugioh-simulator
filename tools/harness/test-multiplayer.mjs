@@ -79,6 +79,14 @@ function criarCliente(nome) {
     eventos: [],
     erros: [],
     falhasDeCodec: [],
+    /**
+     * A maior mão própria vista em algum snapshot, e se alguma vez ela veio
+     * com carta ilegível. A checagem de sanidade lia só o ÚLTIMO snapshot, e
+     * num duelo que acaba com a mão vazia (acontece, ~1 em 6) o teste
+     * reprovava sem ter visto bug nenhum.
+     */
+    maiorMao: 0,
+    maoIlegivel: false,
   };
 
   cliente.send = (message) => {
@@ -97,7 +105,13 @@ function criarCliente(nome) {
     switch (recebido.t) {
       case "joined": cliente.me = recebido.me; break;
       case "lobby": cliente.lobby = recebido; break;
-      case "snapshot": cliente.snapshot = recebido.snapshot; break;
+      case "snapshot": {
+        cliente.snapshot = recebido.snapshot;
+        const mao = cliente.me === null ? [] : (recebido.snapshot.boards[cliente.me]?.players[cliente.me].hand ?? []);
+        cliente.maiorMao = Math.max(cliente.maiorMao, mao.length);
+        if (mao.some((carta) => carta.code === null)) cliente.maoIlegivel = true;
+        break;
+      }
       case "event": cliente.eventos.push(recebido.event); break;
       case "error": cliente.erros.push(recebido.message); break;
     }
@@ -142,6 +156,7 @@ function planoRespondivel(prompt, assento) {
     plan.byCard.size > 0 ||
     plan.places.length > 0 ||
     plan.placeSelection !== null ||
+    plan.counters !== null ||
     plan.sorting !== null ||
     plan.announce !== null ||
     plan.announceCard !== null;
@@ -157,11 +172,17 @@ function vazouMaoDoOponente(snapshot, me) {
   return oponente.hand.some((carta) => carta.code !== null);
 }
 
-/** Alguma pilha oculta do oponente (Deck/Extra) veio listada? */
+/**
+ * Alguma carta oculta do Extra Deck do oponente veio listada?
+ *
+ * O Extra Deck dele é secreto — com uma exceção da regra: Pêndulo que volta
+ * para lá fica virado para cima e é público. Esses podem vir (com código); uma
+ * carta virada para baixo, ou sem código, na lista é vazamento.
+ */
 function vazouDeckDoOponente(snapshot, me) {
   const board = snapshot?.boards?.[me];
   if (!board) return false;
-  return board.players[1 - me].extra.length > 0;
+  return board.players[1 - me].extra.some((carta) => carta.faceDown || carta.code === null);
 }
 
 console.log("Validando decks de entrada...");
@@ -376,12 +397,8 @@ conferir(a.erros.length === 0 && b.erros.length === 0, "nenhum erro reportado pe
 
 // Uma checagem de sanidade do próprio teste: sem ela um bug que zerasse o
 // tabuleiro passaria como "não vazou nada".
-const minhaMao = a.snapshot?.boards[a.me]?.players[a.me].hand ?? [];
-conferir(minhaMao.length > 0, "o teste realmente olhou um tabuleiro com cartas");
-conferir(
-  minhaMao.every((carta) => carta.code !== null),
-  "a própria mão continua visível para o dono",
-);
+conferir(a.maiorMao > 0, `o teste realmente olhou um tabuleiro com cartas (mão de até ${a.maiorMao})`);
+conferir(!a.maoIlegivel, "a própria mão continua visível para o dono");
 conferir(
   (a.snapshot?.boards[a.me]?.players[a.me].deckSize ?? 0) > 0 ||
     a.snapshot?.winner != null,
