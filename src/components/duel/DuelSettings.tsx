@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 
 import { usePlayer } from "@/context/PlayerProvider";
-import { getSfxSettings, playSfx, setSfxSettings } from "@/lib/audio/sfx";
+import { getSfxSettings, playSfx, setSfxSettings, SFX_PREVIEW } from "@/lib/audio/sfx";
 import { CHAIN_RESPONSE_MODES, type ChainResponseMode } from "@/lib/duel/chain-mode";
 import {
   CHAIN_MODE_HINT,
@@ -205,6 +205,24 @@ export function DuelSettings({
                     {som.muted ? "—" : `${Math.round(som.volume * 100)}%`}
                   </span>
                 </div>
+                {/* Ouvir cada som, um a um — é como se diz o que ajustar. */}
+                <details className="md-sfx-preview">
+                  <summary>Ouvir os sons</summary>
+                  <div className="mt-1.5 flex flex-wrap gap-1">
+                    {SFX_PREVIEW.map(({ name, label }) => (
+                      <button
+                        key={name}
+                        type="button"
+                        data-sfx-preview={name}
+                        disabled={som.muted}
+                        onClick={() => playSfx(name)}
+                        className="md-seg px-2 py-1 text-[11px] disabled:opacity-40"
+                      >
+                        ▶ {label}
+                      </button>
+                    ))}
+                  </div>
+                </details>
               </Section>
 
               <Section title="Idioma das cartas">

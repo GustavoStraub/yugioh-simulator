@@ -294,8 +294,24 @@ depois do `globals.css`).
 23. **Dano** em número grande vermelho (cura verde) junto da placa; **fim de
     duelo** com VICTORY / LOSE / DRAW (FINISHED para quem só assiste), o
     motivo, as placas com a coroa e os botões do MD.
-24. **Sons** sintetizados novos (sem áudio do jogo): o corte, a faixa, a
-    corrente e o golpe final.
+24. **Sons** refeitos no caráter do MD (pedido do Gustavo no meio da entrega;
+    ele escolheu síntese em vez de arquivos de banco livre — o áudio do jogo é
+    da Konami). O motor (`sfx.ts`) ganhou uma mesa de mixagem: cada som vai
+    seco e em parte para uma reverberação gerada (ruído caindo em curva — a
+    "sala" do MD), e tudo passa por um compressor (cinco cartas destruídas ao
+    mesmo tempo não estouram). Sons em camadas: o "whoosh" com o baque e o
+    brilho de cristal na invocação; a subida, o estrondo e o arpejo na
+    Invocação-Especial; o ar sendo puxado, o estrondo e o acorde de serras no
+    corte; o cristal inarmônico na ativação; os elos de metal (FM) na corrente;
+    o vidro estilhaçando em cacos espalhados no estéreo; o estrondo do dano
+    com o LP escorrendo em tique-tique (e subindo na cura); a faixa passando;
+    a moeda tremulando e o dado chacoalhando; a fanfarra e a derrota. Cada
+    toque varia um pouco a afinação. Os impactos têm uma camada no meio do
+    espectro — o grave puro some em caixa de notebook. A engrenagem tem
+    "Ouvir os sons", com um botão por som; e `test:sfx` renderiza cada um num
+    `OfflineAudioContext` e confere que soa, não estoura e acaba a tempo (eu
+    não consigo ouvir — os níveis foram acertados pela medida, o ouvido do
+    Gustavo dá a palavra final).
 
 ## 7. Desvios deliberados do Master Duel
 

@@ -113,8 +113,8 @@ const SFX_BY_EVENT: Partial<Record<DuelEvent["kind"], SfxName>> = {
   chainLink: "chain",
   draw: "draw",
   position: "flip",
-  coin: "flip",
-  dice: "flip",
+  coin: "coin",
+  dice: "dice",
   reveal: "draw",
 };
 

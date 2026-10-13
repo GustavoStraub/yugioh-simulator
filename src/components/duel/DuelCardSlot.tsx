@@ -1,6 +1,6 @@
 "use client";
 
-import { useLayoutEffect, useRef, useState, type RefObject } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type RefObject } from "react";
 import { createPortal } from "react-dom";
 
 import { OcgLocation } from "@n1xx1/ocgcore-wasm";
@@ -8,6 +8,7 @@ import { OcgLocation } from "@n1xx1/ocgcore-wasm";
 import type { BoardCard } from "@/lib/duel/board-state";
 import type { CardMark } from "@/lib/duel/card-marks";
 import { useCardText } from "@/hooks/useCardText";
+import { playSfx } from "@/lib/audio/sfx";
 import type { CardAction } from "@/lib/duel/duel-actions";
 import type { CardRegistry } from "@/lib/domain/card-registry";
 
@@ -612,6 +613,11 @@ function CardActionMenu({
 }) {
   const menuRef = useRef<HTMLDivElement | null>(null);
   const [pos, setPos] = useState<{ left: number; top: number; below: boolean } | null>(null);
+
+  // O "pop" dos comandos aparecendo, uma vez por abertura.
+  useEffect(() => {
+    playSfx("open");
+  }, []);
 
   // Mede depois de montar (precisa da largura do próprio menu para não sair
   // pela borda) e de novo quando a janela muda. A carta não anda com o menu

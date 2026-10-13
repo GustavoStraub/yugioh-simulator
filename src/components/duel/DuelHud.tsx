@@ -225,7 +225,7 @@ export function PhaseButton({
         aria-haspopup="menu"
         disabled={!pode}
         onClick={() => {
-          playSfx("click");
+          playSfx(aberto ? "click" : "open");
           setAberto((atual) => !atual);
         }}
         title={
