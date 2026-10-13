@@ -13,7 +13,7 @@ Code comments, UI text, docs and commit messages are in Portuguese (pt-BR), and 
 ## Commands
 
 ```bash
-npm install                # postinstall copies the engine wasm to public/ocgcore/ (git-ignored) and patches the binding (mod.js default export; SORT_CARD response encoding)
+npm install                # postinstall copies the engine wasm to public/ocgcore/ (git-ignored) and patches the binding (mod.js default export; SORT_CARD response encoding; per-message parse guard)
 npm run dev                # custom server (server.mjs) + WebSocket on :3000 — the normal way to develop
 npm run dev:next           # plain `next dev`, without the online duel
 npm run build && npm start # production mode, same custom server
@@ -40,7 +40,7 @@ Full TCG pool and modern mechanics: `npm run test:tcg-pool` (every TCG card with
 
 Also: `test:archetypes`, `test:triggers`, `test:remaining`, `test:patches`, `test:ui-rare`, `test:hidden`, `test:endgame`, `test:cancel`, `test:bot`, `test:deck-library`, `test:connection`.
 
-Browser tests (`test:browser*`, `test:attack`, `test:draw`, `test:viewports`, `shots`) drive a real Chrome over CDP and need the app running at `APP_URL` (default `http://127.0.0.1:3000`). `test:browser-online` needs the custom server (`npm run dev` / `npm start`); `test:browser` can use `npx next build && npx next start -p 3100` with `APP_URL=http://127.0.0.1:3100`.
+Browser tests (`test:browser*`, `test:attack`, `test:draw`, `test:viewports`, `shots`) drive a real Chrome over CDP and need the app running at `APP_URL` (default `http://127.0.0.1:3000`). In-duel clicks go through `page.clickAction` (game buttons only — `clickText` matches the first element on the page containing the text, nav links included); `PRESET=tcg-…` makes `test-browser` play a TCG deck, `FORMATO=tcg` does the same for `test-browser-online`. Tests that create a profile must delete its file from `.data/decks` (real user data) when done. `test:browser-online` needs the custom server (`npm run dev` / `npm start`); `test:browser` can use `npx next build && npx next start -p 3100` with `APP_URL=http://127.0.0.1:3100`.
 
 Diagnostic env flags: `SKIP_SCRIPT_PATCHES=1` shows the original error a script patch hides; `LEGACY_CARD_DATA=1` drops setcode/alias to measure their effect.
 
@@ -97,6 +97,7 @@ Each `DeckList` has `format: "goat" | "tcg"` (missing = Goat via `formatOf`/`nor
 - `@n1xx1/ocgcore-wasm` must stay ≥ 0.1.4: 0.1.3 wrote the Pendulum right scale and Link markers at the wrong struct offsets (both reached the core as 0, so Pendulum Summon was never offered). On our side, a Link monster's `def` column in `cards.cdb` holds its **arrows** — `card-adapter.ts` (`linkFields`) and the harness `toOcgData` send it as `link_marker` with `defense: 0`. `test:modern-summons` reads both back from the core.
 - Duel rules come from the format: `DuelSessionConfig.format` (`"goat"` default → `MODE_GOAT`, `"tcg"` → `MODE_MR5`); per-format deck rules live in `FORMAT_RULES` (`types/duel.ts`). `test:formats` checks the session really runs each ruleset.
 - The binding sometimes throws `Error: eof` while deserializing a message (e.g. `SHUFFLE_SET_CARD`); both loops treat it as recoverable, with a cap — keep that.
+- The binding throws on a message it can't parse (always `SHUFFLE_SET_CARD`, ~1 per 19 TCG duels) and used to drop the whole batch with it; `copy-ocgcore-wasm.mjs` also patches `duelGetMessage` to skip just that message (it warns `failed to parse a message: 36`). The loops' `eof` cap stays as a safety net.
 - The binding (0.1.4) prefixes the SORT_CARD/SORT_CHAIN response with a length byte the core doesn't read, so every explicit order got RETRY forever; `scripts/copy-ocgcore-wasm.mjs` patches `dist/index.js` at postinstall (a running dev server needs a restart to pick it up). The core reads the order as "position of each card", not "card at each position" — build UI orders through `sortOrderForCore`. `test:sort-card` covers both.
 - To stop a server you started, kill it by port or PID — never `pkill -f server.mjs`, which also kills the user's dev server.
 - `.env.github` (git-ignored) may hold a GitHub token used for pushes — never print it.

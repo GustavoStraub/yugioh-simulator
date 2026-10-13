@@ -950,3 +950,71 @@ contava contra o bot no placar; `test:bot -- --partidas 59,100` repete uma
 partida e o relatório mostra a resposta recusada e de quem era; partida que
 bate o teto de passos com o jogo andando (SD7 × SD7, 67 turnos de muralha)
 conta como longa, não como travada.
+
+### Fase 9 — feita
+
+**Bot × bot em massa** (`test:presets -- --rodadas 20`, 12 processos): 2.140
+duelos TCG (os 107 decks, 20 adversários e sementes cada), **2.140
+terminados**, 0 RETRY (nem recuperado, nem em laço), **0 plano vazio nos dois
+assentos**, 0 erro de script, 19 tipos de prompt exercitados.
+
+- **`eof` do binding**: 112 nesses duelos (~1 a cada 19), **todos
+  `SHUFFLE_SET_CARD`** (mensagem 36, embaralhar cartas baixadas) — o mesmo
+  defeito do Wandering Mummy da §3.1. O binding lançava e o lote inteiro
+  daquele passo se perdia (dano, movimento, dica de carta, log). Novo conserto
+  no `postinstall`: cada mensagem é lida à parte e só a ilegível cai (com
+  aviso no console). Rodada de novo: **0 lote perdido**. A mensagem em si
+  continua ilegível; a mesa não depende dela (é relida do core), e o
+  `revealedTo` não é zerado por ela — resíduo pequeno de informação oculta,
+  coberto pelo `CHAIN_SOLVED` logo em seguida na prática.
+- **Os 3 RETRY da §3.1** (Earthshaker, Ancient Gear Gadget, Crossout
+  Designator) eram do piloto do harness e já tinham caído na Fase 4.
+
+**Baterias de carta, antes × depois**: as duas, rodadas no código atual e no
+commit da Fase 7 (worktree), deram relatórios **idênticos byte a byte** — Goat:
+1.690 cartas, 3.108 cenários (1.748 ativaram, 1.360 não oferecidas); TCG:
+13.318 cartas, 24.589 cenários, **0 erro de Lua**, 9.879 ativadas/invocadas.
+As mudanças de harness e binding desta fase não mudaram veredito nenhum.
+
+**Partidas pela tela**: `test-browser` ganhou `PRESET=tcg-…` e o online
+`FORMATO=tcg`. Duelos completos clicando, com 20 decks diferentes (Goat e TCG:
+Link Strike, Codebreaker, Master of Pendulum, Pendulum Domination, Cyberse
+Link, Powercode Link, HERO Strike, Synchron Extreme, Albaz, Crimson King,
+Blue-Eyes White Destiny, Rokket Revolt, Dimensional Dragons, Sky Striker,
+Yusei, os dois kits de 2 jogadores…): todos terminam, 0 exceção, 0 erro de
+console; online Goat e TCG passam. Mais as suítes de mesa moderna, mecânicas
+por clique, declaração, cancelamento, compra, rotação e construtor.
+
+**Os testes de navegador escondiam travamentos** — consertados antes de valer
+qualquer número acima:
+
+1. O seletor de idioma das cartas (PT/EN) está sempre habilitado e o teste o
+   clicava em vez de esperar: uma mesa parada virava "250 ações" e nunca era
+   acusada. Idem os botões de "ver" (👁 reveladas, 👁 ver o tabuleiro).
+2. `clickText` clica o primeiro elemento da PÁGINA que contém o texto: um
+   "Deck" escolhido na mesa (candidato de busca no Deck) casava com o link
+   "Deck Builder" da navegação — o teste saía do duelo e clicava "Novo" no
+   construtor ~245 vezes (não gravou por sorte: o debounce não chegou a
+   disparar). Agora as jogadas usam `clickAction` (só botões fora do
+   cabeçalho, texto exato primeiro), e sair da mesa reprova o teste.
+3. O diagnóstico de travamento passou a mostrar botões (até os
+   desabilitados), modais, cartas ativas, a mesa e uma foto
+   (`.cache/shots/travou-*.png`), e o fim da sequência de ações.
+4. O `test-browser-announce` deixava um `locutor.json` em `.data/decks` (dado
+   real) a cada rodada: agora apaga o próprio perfil; o resíduo foi removido.
+5. O online testava a queda de conexão depois do fim do duelo (deck TCG acaba
+   em ~50 ações): joga 24 antes da queda.
+6. `test:connection` (Fase 7 já registrou): jogava o jokenpô nunca e mirava a
+   porta 3000.
+7. `test-draw-landing` só mede o caso que importa (compra de turno sobre mão
+   com mais de 5 cartas), mas jogava cartas e mantinha a mão em 5: duas
+   rodadas em três terminavam "sem medição". Agora passa o turno (carta só
+   quando o jogo obriga) — 3 de 3 rodadas medem o caso.
+
+**Registrado sem causa provada**: um "TRAVOU" no Yusei (L5DD) com o harness
+antigo — botões de "ver" ainda clicáveis na época. Não se repetiu em 5
+rodadas seguintes do mesmo deck com o diagnóstico novo nem nos outros 19
+decks. A suspeita é o próprio harness, mas não ficou provado.
+
+**Pronto quando**: zero plano vazio e zero travamento na bateria (2.140/2.140)
+— sim; cartas problemáticas resolvidas ou registradas — sim (acima).

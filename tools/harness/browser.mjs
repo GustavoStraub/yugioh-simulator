@@ -147,6 +147,31 @@ export class Page {
     `);
   }
 
+  /**
+   * Clica num BOTÃO DE JOGO pelo texto — o que os laços de jogada usam.
+   *
+   * Diferente do `clickText`, ignora o cabeçalho do site (navegação, seletor
+   * de idioma) e prefere o texto exato. O `clickText` pega o primeiro
+   * elemento da página que CONTÉM o texto: um "Deck" escolhido na mesa casava
+   * antes com o link "Deck Builder" da navegação, o teste saía do duelo e
+   * passava o resto da rodada clicando "Novo" no construtor — criando decks
+   * no perfil de teste.
+   */
+  clickAction(text) {
+    return this.evaluate(`
+      const botoes = [...document.querySelectorAll("button")].filter(
+        (b) => !b.disabled && b.offsetParent !== null && !b.closest("header, nav"),
+      );
+      const texto = (b) => b.innerText.trim();
+      const alvo =
+        botoes.find((b) => texto(b) === ${JSON.stringify(text)}) ??
+        botoes.find((b) => texto(b).startsWith(${JSON.stringify(text)}));
+      if (!alvo) return false;
+      alvo.click();
+      return true;
+    `);
+  }
+
   screenshot() {
     return this.send("Page.captureScreenshot", { format: "png" });
   }

@@ -38,7 +38,7 @@ function deck() {
 
 const LER = `
   const mesa = document.querySelector(".tf-playmat") ?? document.body;
-  const util = (b) => !b.disabled && b.offsetParent !== null && !b.innerText.includes("\\u{1F50A}");
+  const util = (b) => !b.disabled && b.offsetParent !== null && !b.innerText.includes("\\u{1F50A}") && !b.closest('[aria-label="Idioma das cartas"]');
   return {
     texto: mesa.innerText,
     botoes: [...document.querySelectorAll("button")].filter(util).map((b) => b.innerText.trim()).filter(Boolean),
@@ -92,7 +92,7 @@ async function main() {
         viuBotaoCancelar = Boolean(cancelar);
         if (cancelar) {
           monstrosAntes = e.monstrosEmCampo;
-          await page.clickText(cancelar);
+          await page.clickAction(cancelar);
           await new Promise((r) => setTimeout(r, 700));
           const depois = await page.evaluate(LER);
           monstrosDepois = depois.monstrosEmCampo;
@@ -120,7 +120,7 @@ async function main() {
           const depois = await page.evaluate(LER);
           const invocar = depois.botoes.find((b) => b.startsWith("Invocar"));
           if (invocar) {
-            await page.clickText(invocar);
+            await page.clickAction(invocar);
             agiu = true;
           }
         }
@@ -130,17 +130,17 @@ async function main() {
           await new Promise((r) => setTimeout(r, 160));
           const depois = await page.evaluate(LER);
           const acao = depois.botoes.find((b) => /^(Baixar|Ativar|Confirmar)/.test(b));
-          if (acao) await page.clickText(acao);
+          if (acao) await page.clickAction(acao);
           else {
             const passar = e.botoes.find((b) => b.includes("Encerrar turno")) ?? e.botoes.find((b) => b === "EP");
-            if (passar) await page.clickText(passar);
+            if (passar) await page.clickAction(passar);
           }
         }
       } else {
         const acao =
           e.botoes.find((b) => b.includes("Encerrar turno")) ??
           e.botoes.find((b) => b === "EP") ?? e.botoes[0];
-        if (acao) await page.clickText(acao);
+        if (acao) await page.clickAction(acao);
       }
       await new Promise((r) => setTimeout(r, 220));
     }

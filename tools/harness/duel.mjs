@@ -146,6 +146,9 @@ export class HarnessDuel {
     this.unanswered = [];
     this.steps = 0;
     this.retries = 0;
+    /** Totais do duelo inteiro — a bateria em massa conta o que foi recuperado. */
+    this.retriesTotal = 0;
+    this.bindingErrorsTotal = 0;
     /** Falhas seguidas de desserialização do binding (ver `run()`). */
     this.consecutiveBindingErrors = 0;
   }
@@ -183,6 +186,7 @@ export class HarnessDuel {
         // para sempre se a causa for outra (aí sim é uma falha de verdade).
         this.bindingError = String(error?.message ?? error);
         this.consecutiveBindingErrors += 1;
+        this.bindingErrorsTotal += 1;
         if (this.consecutiveBindingErrors > MAX_CONSECUTIVE_BINDING_ERRORS) return "BINDING_ERROR";
         continue;
       }
@@ -195,6 +199,7 @@ export class HarnessDuel {
 
       const retried = batch.some((m) => m.type === OcgMessageType.RETRY);
       this.retries = retried ? this.retries + 1 : 0;
+      if (retried) this.retriesTotal += 1;
       if (this.retries > 8) return "RETRY_LOOP";
 
       const prompt = findPrompt(batch) ?? (retried ? this.lastPrompt : null);

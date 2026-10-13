@@ -174,22 +174,31 @@ async function main() {
 
       // Toca o jogo para o turno passar e novas compras acontecerem.
       const estado = await page.evaluate(`
-        const util = (b) => !b.disabled && b.offsetParent !== null && !b.innerText.includes("\\u{1F50A}");
+        const util = (b) => !b.disabled && b.offsetParent !== null && !b.innerText.includes("\\u{1F50A}") && !b.closest('[aria-label="Idioma das cartas"]');
         return {
           botoes: [...document.querySelectorAll("button")].filter(util).map((b) => b.innerText.trim()).filter(Boolean),
           cartas: document.querySelectorAll(".tf-slot-active").length,
         };
       `);
-      if (estado.cartas > 0) {
+      // PASSAR o turno, não jogar: o caso que importa é a compra de turno
+      // chegando numa mão que já tem mais de 5 cartas. Jogando cartas (como
+      // o teste fazia), a mão ficava em 5 ou menos e o caso dependia de
+      // sorte — duas rodadas em três terminavam sem medi-lo. Carta só quando
+      // o jogo obriga (descarte no limite de mão, escolha forçada).
+      const passar =
+        estado.botoes.find((b) => b.includes("Encerrar turno")) ??
+        estado.botoes.find((b) => b === "EP") ??
+        estado.botoes.find((b) => b.startsWith("Não"));
+      if (passar) {
+        await page.clickAction(passar);
+      } else if (estado.cartas > 0) {
         await page.evaluate(`const c=[...document.querySelectorAll(".tf-slot-active")]; if(c.length)c[0].click(); return true;`);
         await new Promise((r) => setTimeout(r, 150));
-        const depois = await page.evaluate(`return [...document.querySelectorAll("button")].filter(b=>!b.disabled&&b.offsetParent).map(b=>b.innerText.trim()).filter(Boolean)`);
-        const acao = depois.find((b) => /^(Invocar|Baixar|Ativar|Confirmar)/.test(b));
-        if (acao) await page.clickText(acao);
-      } else {
-        const alvo = estado.botoes.find((b) => b.includes("Encerrar turno"))
-          ?? estado.botoes.find((b) => b === "EP") ?? estado.botoes[0];
-        if (alvo) await page.clickText(alvo);
+        const depois = await page.evaluate(`return [...document.querySelectorAll("button")].filter(b=>!b.disabled&&b.offsetParent&&!b.closest("header, nav")).map(b=>b.innerText.trim()).filter(Boolean)`);
+        const acao = depois.find((b) => /^(Confirmar|Descartar|Baixar|Invocar|Ativar)/.test(b));
+        if (acao) await page.clickAction(acao);
+      } else if (estado.botoes[0]) {
+        await page.clickAction(estado.botoes[0]);
       }
       await new Promise((r) => setTimeout(r, 220));
     }

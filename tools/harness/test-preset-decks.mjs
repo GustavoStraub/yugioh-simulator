@@ -23,12 +23,19 @@
  *    duelos exercitam prompts modernos (Link, Xyz, Pêndulo) que os decks Goat
  *    nunca mostram.
  *
+ * Em massa (Fase 9): `--rodadas N` joga N partidas por deck, cada rodada
+ * contra outro adversário e com outra semente; `--fatia i/n` divide as
+ * partidas entre processos (rodar n deles em paralelo); `--json arquivo`
+ * grava o resumo da fatia para somar depois. Na bateria em massa os DOIS
+ * assentos passam pela régua da tela.
+ *
  * Uso:
  *   npm run test:presets
  *   npm run test:presets -- --only tcg-sdwd,tcg-l5dd-yusei
  *   npm run test:presets -- --skip-duels
+ *   npm run test:presets -- --rodadas 20 --fatia 0/10 --json .cache/bench/massa-0.json
  */
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { OcgDuelMode, OcgMessageType } from "@n1xx1/ocgcore-wasm";
@@ -49,11 +56,36 @@ const argv = process.argv.slice(2);
 const onlyAt = argv.indexOf("--only");
 const ONLY = onlyAt >= 0 ? new Set(argv[onlyAt + 1].split(",")) : null;
 const SKIP_DUELS = argv.includes("--skip-duels");
+const valorDe = (flag) => {
+  const at = argv.indexOf(flag);
+  return at >= 0 ? argv[at + 1] : null;
+};
+const RODADAS = Number(valorDe("--rodadas") ?? 1);
+const [FATIA, FATIAS] = (valorDe("--fatia") ?? "0/1").split("/").map(Number);
+const JSON_OUT = valorDe("--json");
+/** Em massa, as linhas por partida só aparecem quando algo falha. */
+const MASSA = RODADAS > 1 || FATIAS > 1;
 
 const lerJson = (path) => JSON.parse(readFileSync(join(REPO, path), "utf8"));
 const GOAT = lerJson("src/data/preset-decks.json");
 const TCG = lerJson("src/data/preset-decks-tcg.json");
 const cardDb = new OfficialCardDb(lerJson("src/data/card-db.json"));
+
+/**
+ * Mensagens que o binding não conseguiu ler, por tipo. Com o conserto do
+ * `postinstall` elas não derrubam mais o lote: o binding avisa no console e
+ * segue. A contagem diz QUAIS são — para saber se alguma importa à tela.
+ */
+const ilegiveis = {};
+const avisoOriginal = console.warn;
+console.warn = (...args) => {
+  const match = /failed to parse a message: (\d+)/.exec(String(args[0]));
+  if (match) {
+    ilegiveis[match[1]] = (ilegiveis[match[1]] ?? 0) + 1;
+    return;
+  }
+  avisoOriginal(...args);
+};
 
 const falhas = [];
 function conferir(condicao, descricao, detalhe = "") {
@@ -256,7 +288,7 @@ async function partida(a, b, seed) {
 
   function responder(message) {
     const seat = "player" in message && message.player === 1 ? 1 : 0;
-    if (seat === 0) {
+    if (seat === 0 || MASSA) {
       tipos.add(message.type);
       auditarTela(message, achados);
     }
@@ -289,23 +321,40 @@ async function partida(a, b, seed) {
     tipos,
     naoRespondidos: duel.unanswered ?? [],
     ultimas: desfecho === "RETRY_LOOP" ? ultimas : [],
+    retries: duel.retriesTotal,
+    eof: duel.bindingErrorsTotal,
   };
   duel.destroy();
   return resultado;
 }
 
 if (!SKIP_DUELS) {
-  console.log("\n─── Uma partida por deck (bot × bot, MR5) ───");
+  console.log(
+    MASSA
+      ? `\n─── Bot × bot em massa (MR5): ${RODADAS} rodada(s), fatia ${FATIA}/${FATIAS} ───`
+      : "\n─── Uma partida por deck (bot × bot, MR5) ───",
+  );
   const decks = ONLY ? TCG.filter((p) => ONLY.has(p.id)) : TCG;
   const desfechos = {};
   const tiposVistos = new Set();
   const OK = new Set(["WIN", "END", "MAX_STEPS"]);
+  const resumo = { partidas: 0, retries: 0, eof: 0, longas: 0, falhas: [] };
 
-  for (const [i, a] of decks.entries()) {
-    // O adversário é o próximo da lista TCG inteira (não só do filtro), para
-    // `--only` repetir exatamente a partida da bateria completa.
-    const b = TCG[(TCG.indexOf(a) + 1) % TCG.length];
-    const seed = BigInt(7000 + TCG.indexOf(a) * 13);
+  // Todas as partidas (rodada × deck), na mesma ordem em todo processo — a
+  // fatia pega uma a cada `FATIAS`.
+  const fila = [];
+  for (let rodada = 0; rodada < RODADAS; rodada += 1) {
+    for (const a of decks) fila.push({ rodada, a });
+  }
+
+  for (const [n, { rodada, a }] of fila.entries()) {
+    if (n % FATIAS !== FATIA) continue;
+    const i = TCG.indexOf(a);
+    // Rodada 0: o adversário é o próximo da lista TCG inteira (não só do
+    // filtro), para `--only` repetir exatamente a partida da bateria
+    // completa. Cada rodada seguinte anda 7 decks e troca a semente.
+    const b = TCG[(i + 1 + rodada * 7) % TCG.length];
+    const seed = BigInt(7000 + i * 13 + rodada * 100003);
     let r;
     try {
       r = await partida(a, b, seed);
@@ -313,13 +362,22 @@ if (!SKIP_DUELS) {
       conferir(false, `${a.id}: o duelo não começou`, String(error?.message ?? error));
       continue;
     }
+    resumo.partidas += 1;
+    resumo.retries += r.retries;
+    resumo.eof += r.eof;
     desfechos[r.desfecho] = (desfechos[r.desfecho] ?? 0) + 1;
     for (const tipo of r.tipos) tiposVistos.add(tipo);
-    const linha = `${String(i + 1).padStart(3)}/${decks.length} ${a.id} × ${b.id}: ${r.desfecho}, ${r.turnos} turnos, ${r.passos} passos`;
-    console.log(`  ${OK.has(r.desfecho) && !r.erros.length && !r.achados.length ? "✓" : "✗"} ${linha}`);
+
+    // Teto de passos com poucos turnos é laço, não partida longa.
+    const travou = !OK.has(r.desfecho) || (r.desfecho === "MAX_STEPS" && r.turnos < 30);
+    if (r.desfecho === "MAX_STEPS" && !travou) resumo.longas += 1;
+    const bom = !travou && !r.erros.length && !r.achados.length;
+    const linha = `${a.id} × ${b.id} (rodada ${rodada}, semente ${seed}): ${r.desfecho}, ${r.turnos} turnos, ${r.passos} passos`;
+    if (!MASSA || !bom) console.log(`  ${bom ? "✓" : "✗"} ${linha}`);
+    if (!bom) resumo.falhas.push(linha);
     conferir(
-      OK.has(r.desfecho),
-      `${a.id} × ${b.id}: duelo sem travar`,
+      !travou,
+      `${a.id} × ${b.id} (rodada ${rodada}): duelo sem travar`,
       `${r.desfecho}${r.naoRespondidos.length ? ` (${r.naoRespondidos.map((t) => MESSAGE_NAMES[t] ?? t).join(", ")})` : ""}`,
     );
     for (const { message, resposta } of r.ultimas.slice(-1)) {
@@ -327,17 +385,26 @@ if (!SKIP_DUELS) {
       console.log(`      recusado: ${MESSAGE_NAMES[message.type]} ${json(message).slice(0, 700)}`);
       console.log(`      resposta: ${json(resposta)}`);
     }
-    conferir(r.erros.length === 0, `${a.id} × ${b.id}: sem erro de script`, r.erros.slice(0, 3).join(" | "));
-    conferir(r.achados.length === 0, `${a.id} × ${b.id}: todo prompt tem resposta na tela`, r.achados.join(", "));
+    conferir(r.erros.length === 0, `${a.id} × ${b.id} (rodada ${rodada}): sem erro de script`, r.erros.slice(0, 3).join(" | "));
+    conferir(r.achados.length === 0, `${a.id} × ${b.id} (rodada ${rodada}): todo prompt tem resposta na tela`, r.achados.join(", "));
   }
 
-  console.log(`\n  desfechos: ${Object.entries(desfechos).map(([k, v]) => `${k} ${v}`).join(", ")}`);
+  console.log(`\n  partidas: ${resumo.partidas} | desfechos: ${Object.entries(desfechos).map(([k, v]) => `${k} ${v}`).join(", ")}`);
+  console.log(`  RETRY recuperados: ${resumo.retries} | eof do binding recuperados: ${resumo.eof} | longas (teto de passos, jogo andando): ${resumo.longas}`);
+  const nomesIlegiveis = Object.entries(ilegiveis).map(([tipo, n]) => `${MESSAGE_NAMES[tipo] ?? tipo} ×${n}`);
+  console.log(`  mensagens que o binding não leu (descartadas uma a uma): ${nomesIlegiveis.join(", ") || "nenhuma"}`);
   console.log(
-    `  prompts vistos no assento 0 (${tiposVistos.size}): ${[...tiposVistos]
+    `  prompts vistos${MASSA ? "" : " no assento 0"} (${tiposVistos.size}): ${[...tiposVistos]
       .map((t) => MESSAGE_NAMES[t] ?? t)
       .sort()
       .join(", ")}`,
   );
+  if (JSON_OUT) {
+    writeFileSync(
+      JSON_OUT,
+      JSON.stringify({ ...resumo, ilegiveis, desfechos, tipos: [...tiposVistos].map((t) => MESSAGE_NAMES[t] ?? t), falhasConferidas: falhas }, null, 1),
+    );
+  }
 }
 
 if (falhas.length) {

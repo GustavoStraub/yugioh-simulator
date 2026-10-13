@@ -60,3 +60,30 @@ if (indexJs.includes(SORT_BUG)) {
       "conferir se o binding ainda escreve o tamanho antes da ordem (test:prompt-rules).",
   );
 }
+
+/*
+ * Mensagem que o binding não sabe desserializar: ele lança ("Error: eof") e
+ * o lote INTEIRO daquele passo do core se perde — junto com as mensagens boas
+ * que vinham no mesmo lote (dano, movimento, dica de carta, log). Visto ~1 vez
+ * a cada 19 duelos TCG (bateria em massa da Fase 9), sempre recuperado pelo
+ * laço, mas com a narração e os eventos daquele passo sumindo.
+ *
+ * Cada mensagem já vem com o próprio tamanho na frente, então a leitura de
+ * fora não desalinha: só o parse de DENTRO falha. O conserto embrulha esse
+ * parse e cai no ramo que o binding já tem para mensagem desconhecida (aviso
+ * no console e segue) — perde-se só a mensagem ruim.
+ */
+const indexJsAtual = readFileSync(indexJsPath, "utf-8");
+const PARSE_BUG = "R=te(T);if(!R){T.reset(),console.warn(";
+const PARSE_FIX = "R=(()=>{try{return te(T)}catch{return null}})();if(!R){T.reset(),console.warn(";
+if (indexJsAtual.includes(PARSE_BUG)) {
+  writeFileSync(indexJsPath, indexJsAtual.replace(PARSE_BUG, PARSE_FIX));
+  console.log("Patched @n1xx1/ocgcore-wasm: mensagem ilegível não derruba mais o lote inteiro");
+} else if (indexJsAtual.includes(PARSE_FIX)) {
+  console.log("@n1xx1/ocgcore-wasm: parse por mensagem já protegido");
+} else {
+  console.warn(
+    "⚠ @n1xx1/ocgcore-wasm: âncora do parse de mensagens não encontrada — " +
+      "um `eof` volta a derrubar o lote inteiro (conferir test:presets em massa).",
+  );
+}

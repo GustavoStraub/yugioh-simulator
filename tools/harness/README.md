@@ -32,12 +32,12 @@ Há atalhos no `package.json` para todos eles (`npm run test:cards`,
 | `npm run test:modern-play` | Navegador, só cliques: Sincro, Xyz e Link pelo Extra Deck que brilha, efeito de Cemitério, escalas + Invocação-Pêndulo e declaração de nome de arquétipo. Fotos de cada passo em `.cache/shots/jogo-*.png`. Precisa da app no ar (`APP_URL`). |
 | `npm run test:marks` | Marcas das cartas (contador, turnos, declaração, aviso, equipamento, alvo, negação, aviso de jogador, zona interditada) na `DuelSession` real, nas duas óticas e na projeção por assento. |
 | `npm run test:formats` | A `DuelSession` roda as regras do formato pedido (Goat compra no 1º turno, TCG não). |
-| `npm run test:presets` | Os decks pré-montados: validação de todos (Main/Extra, zona certa, dados oficiais e script, prova cruzada Goat × Yugipedia) e **uma partida bot × bot por deck TCG** em MR5, com cada prompt do assento 0 passando pela régua do `test:ui`. `--only id1,id2` repete partidas; `--skip-duels` só valida. |
+| `npm run test:presets` | Os decks pré-montados: validação de todos (Main/Extra, zona certa, dados oficiais e script, prova cruzada Goat × Yugipedia) e **uma partida bot × bot por deck TCG** em MR5, com cada prompt do assento 0 passando pela régua do `test:ui`. `--only id1,id2` repete partidas; `--skip-duels` só valida. Em massa: `--rodadas N --fatia i/n --json saída` (rode n processos; os dois assentos passam pela régua, e o resumo conta RETRY e `eof` recuperados, partidas longas e as mensagens que o binding não leu). |
 | `npm run test:sort-card` | "Recoloque as cartas do topo na ordem que quiser": a resposta é aceita (conserto do binding no `postinstall`) e a ordem escolhida na tela é a que fica no Deck. |
 | `node tools/harness/test-archetypes.mjs` | Cartas de arquétipo, com companheiros do mesmo `setcode` em campo/mão/deck: o efeito **enxerga** os parceiros? |
 | `node tools/harness/test-ui-prompts.mjs` | Joga duelos inteiros e submete cada pergunta do engine ao mesmo código que a tela usa. Acha prompts que a UI não sabe responder — a causa de duelo congelado. |
 | `node tools/harness/test-ui-rare-prompts.mjs` | Força os prompts raros (ANNOUNCE_*, SELECT_SUM, SORT_CARD, SELECT_DISFIELD) pondo na mão a carta que produz cada um. São justamente os que passam despercebidos num duelo comum. |
-| `node tools/harness/test-browser.mjs` | Ponta a ponta num Chrome real: abre o lobby, começa o duelo e joga clicando. |
+| `node tools/harness/test-browser.mjs` | Ponta a ponta num Chrome real: abre o lobby, começa o duelo e joga clicando. `PRESET=tcg-ys17` joga um deck TCG (contra um deck TCG do bot). Ao travar, mostra botões, modais, a mesa e grava uma foto em `.cache/shots/travou-*.png`; sair da mesa também reprova. |
 | `node tools/harness/test-browser-announce.mjs` | Igual, mas com um deck montado só com as cartas dos prompts raros — é o que faz o modal de declarar raça/carta e o texto real das opções aparecerem na tela de verdade. |
 | `node tools/harness/screenshot.mjs [n]` | Fotos do duelo em `.cache/shots/`. Ler o DOM diz se a tela funciona; só olhando dá para dizer se está boa. |
 | `node tools/harness/test-triggers.mjs` | Cartas reativas: constrói o EVENTO (ataque, invocação, ativação do oponente) em vez de só o tabuleiro. |
@@ -143,7 +143,7 @@ custa caro de achar de outro jeito:
 | Comando | O que prova |
 |---|---|
 | `npm run test:multiplayer` | O **servidor**: sala, jokenpô do primeiro turno (inclusive que a jogada do outro não atravessa a rede antes da hora), `promptId` contra resposta atrasada, codec de BigInt e — o mais importante — que a projeção de um assento nunca carrega a mão, o Extra Deck, o prompt nem o log do outro. Não abre navegador nem socket. |
-| `npm run test:browser-online` | O **resto do caminho**: lobby, `sessionStorage` por aba, WebSocket do navegador e a mesa desenhada na ótica do assento **1**. Precisa do app rodando (`APP_URL=http://127.0.0.1:3000`). |
+| `npm run test:browser-online` | O **resto do caminho**: lobby, `sessionStorage` por aba, WebSocket do navegador e a mesa desenhada na ótica do assento **1**. Precisa do app rodando (`APP_URL=http://127.0.0.1:3000`). `FORMATO=tcg` joga a sala inteira com decks TCG. |
 
 Um terceiro cobre o construtor:
 
