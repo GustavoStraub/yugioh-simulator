@@ -192,15 +192,20 @@ async function jogar({ scenario, jogadas, pararSe = () => false, antesDaJogada =
 /**
  * Invariante de informação oculta: carta que quem olha não vê (código `null`)
  * não carrega marca nenhuma — um contador ou um "declarado" num monstro
- * baixado diria qual monstro ele é.
+ * baixado diria qual monstro ele é. Nem número: o core responde o ATK/DEF de
+ * um monstro baixado, e online o tabuleiro vai inteiro pelo WebSocket.
  */
 function marcasEmCartaOculta(snap) {
   const problemas = [];
   for (const quem of [0, 1]) {
     for (const lado of snap.boards[quem]?.players ?? []) {
-      for (const carta of [...lado.monsters, ...lado.spells, lado.field]) {
+      for (const carta of [...lado.monsters, ...lado.spells, lado.field, ...lado.banished]) {
         if (!carta || carta.code !== null) continue;
-        if (carta.counters.length || carta.hints.length || carta.targets.length || carta.equippedTo || carta.negated) {
+        const numeros = [carta.attack, carta.defenseValue, carta.baseAttack, carta.baseDefense];
+        if (
+          carta.counters.length || carta.hints.length || carta.targets.length || carta.equippedTo || carta.negated ||
+          numeros.some((n) => n !== null)
+        ) {
           problemas.push(`${quem}: ${carta.controller}:${carta.location}:${carta.sequence}`);
         }
       }
@@ -385,6 +390,48 @@ console.log("\nContador cujo tipo não é 1: Clock Tower Prison");
   conferir(
     /recebeu 1 Marcador de Relógio/.test(snap.log.map((l) => l.text).join("\n")),
     "o log narra o Marcador de Relógio",
+  );
+}
+
+// ---------------------------------------------------------------------------
+console.log("\nCarta oculta não leva ATK/DEF: monstro baixado e banida virada");
+{
+  const { snap } = await jogar({
+    scenario: [
+      { player: 1, location: M, sequence: 2, position: OcgPosition.FACEDOWN_DEFENSE, code: C.ox },
+      { player: 1, location: OcgLocation.REMOVED, position: OcgPosition.FACEDOWN, code: C.elf },
+      { player: 0, location: M, sequence: 1, position: OcgPosition.FACEDOWN_DEFENSE, code: C.elf },
+    ],
+    jogadas: [],
+  });
+  const projecoes = [0, 1].map((assento) => projectSnapshot(snap, assento));
+  const ocultas = [snap, ...projecoes].flatMap(marcasEmCartaOculta);
+  conferir(ocultas.length === 0, "nenhuma carta oculta carrega ATK/DEF, em nenhuma ótica nem projeção", ocultas.join(", "));
+
+  const baixadoDele = snap.boards[0].players[1].monsters[2];
+  conferir(
+    baixadoDele?.faceDown && baixadoDele.code === null && baixadoDele.attack === null && baixadoDele.defenseValue === null,
+    "o monstro baixado do oponente chega sem código e sem ATK/DEF",
+    JSON.stringify(baixadoDele && [baixadoDele.code, baixadoDele.attack, baixadoDele.defenseValue]),
+  );
+  const banidaDele = snap.boards[0].players[1].banished[0];
+  conferir(
+    banidaDele?.faceDown && banidaDele.code === null && banidaDele.attack === null,
+    "a banida virada do oponente chega sem código e sem ATK",
+    JSON.stringify(banidaDele && [banidaDele.code, banidaDele.attack]),
+  );
+  // O outro lado da moeda: o dono continua vendo os números da própria carta.
+  const meuBaixado = snap.boards[0].players[0].monsters[1];
+  conferir(
+    meuBaixado?.code === C.elf && meuBaixado.attack === 800 && meuBaixado.defenseValue === 2000,
+    "o dono vê o ATK/DEF do próprio monstro baixado",
+    JSON.stringify(meuBaixado && [meuBaixado.code, meuBaixado.attack, meuBaixado.defenseValue]),
+  );
+  const doDono = snap.boards[1].players[1].monsters[2];
+  conferir(
+    doDono?.code === C.ox && doDono.attack === 1700,
+    "e o oponente vê o do dele, na própria ótica",
+    JSON.stringify(doDono && [doDono.code, doDono.attack]),
   );
 }
 

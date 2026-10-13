@@ -7,12 +7,13 @@ import { readIntel } from "@/lib/duel/bot/card-intel";
 /**
  * ATK/DEF de uma carta **como o bot tem direito de saber**.
  *
- * O detalhe que faz toda a diferença: `readBoardState` esconde o `code` de uma
- * carta virada para baixo do oponente, mas **não** esconde `attack`/`defense` —
- * a query do core devolve os dois de qualquer jeito. Ler esses números seria o
- * bot enxergando através do verso da carta, e um oponente que sabe o ATK de
- * todo monstro setado não é difícil, é trapaceiro: ele nunca erra um ataque, e
- * a partida deixa de ter blefe.
+ * O detalhe que faz toda a diferença: a query do core devolve `attack`/`defense`
+ * de uma carta virada para baixo do oponente de qualquer jeito. Ler esses
+ * números seria o bot enxergando através do verso da carta, e um oponente que
+ * sabe o ATK de todo monstro setado não é difícil, é trapaceiro: ele nunca erra
+ * um ataque, e a partida deixa de ter blefe. Hoje o `readBoardState` já zera os
+ * números de carta oculta (vazavam pelo WebSocket no online); esta checagem
+ * fica como segunda trava, para o bot não depender de quem montou o tabuleiro.
  *
  * Por isso: sem `code` visível, sem números. Quem chama recebe `null` e decide
  * sob incerteza, exatamente como um humano decide.

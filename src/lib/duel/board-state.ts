@@ -219,7 +219,13 @@ function toBoardCard(
   // Armadilha — que a mesa pintava como "0/0" em toda carta virada para cima
   // ali, Magia de Campo inclusive. Sem número do engine, a casa cai no
   // catálogo, que não tem ATK/DEF para Magia/Armadilha.
-  const inSpellZone = location === OcgLocation.SZONE;
+  //
+  // E carta oculta para quem olha não leva número nenhum: o core responde o
+  // ATK/DEF de um monstro baixado do mesmo jeito, e esconder só o `code` não
+  // adiantava — online, o tabuleiro de cada assento vai inteiro pelo
+  // WebSocket, e 1200/1400 num monstro setado já diz que é o Dekoichi. A tela
+  // não mostrava (desenha o verso), mas bastava abrir as mensagens.
+  const stats = visible && location !== OcgLocation.SZONE;
 
   return {
     code: visible ? code : null,
@@ -229,13 +235,13 @@ function toBoardCard(
     location,
     faceDown,
     defense,
-    attack: inSpellZone ? null : num(raw, "attack"),
-    defenseValue: inSpellZone ? null : num(raw, "defense"),
+    attack: stats ? num(raw, "attack") : null,
+    defenseValue: stats ? num(raw, "defense") : null,
     // camelCase: é assim que o wrapper do ocgcore nomeia estes dois campos
     // (`baseAttack`/`baseDefense`). Em snake_case a leitura vinha sempre null
     // e o ATK/DEF impresso caía no catálogo, mascarando o erro.
-    baseAttack: inSpellZone ? null : num(raw, "baseAttack"),
-    baseDefense: inSpellZone ? null : num(raw, "baseDefense"),
+    baseAttack: stats ? num(raw, "baseAttack") : null,
+    baseDefense: stats ? num(raw, "baseDefense") : null,
     // Nada disto vaza de carta oculta: o nível ou as setas de um monstro
     // baixado já dizem que carta ele é.
     level: visible ? num(raw, "level") : null,
