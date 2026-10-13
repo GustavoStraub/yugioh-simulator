@@ -344,26 +344,26 @@ a primeira entrega; 9–12 ficam para depois.
 - "Ver a mesa" (Fase 1), **Revanche** contra o bot com os mesmos decks, e um
   resumo curto: turnos, LP final dos dois, motivo do fim.
 
-### Fase 9 — Lobby contra o bot  (D18) — depois
+### Fase 9 — Lobby contra o bot  (D18) — feita (§12)
 
 - Quem começa: primeiro / segundo / moeda. Hoje o engine dá o primeiro turno
   ao assento 0, que é sempre o humano no duelo local — trocar exige montar o
   duelo com o humano no assento 1 (a mesa já sabe desenhar `me = 1`, é o que o
   online faz). Prévia do deck do bot.
 
-### Fase 10 — Construtor de deck  (D19) — depois
+### Fase 10 — Construtor de deck  (D19) — feita (§12)
 
 - Confirmar "Limpar"; desfazer; **mão de teste** (compra 5, +1), como o MD;
   importar/exportar `.ydk` e `ydke://` (o formato do EDOPro/YGOPRODeck);
   estatísticas (monstros/magias/armadilhas, curva de nível); arrastar para
   adicionar/remover.
 
-### Fase 11 — Toque e telas pequenas — depois
+### Fase 11 — Toque e telas pequenas — feita (§12)
 
 - Toque longo = ler a carta; menu de ação maior; layout retrato (o MD nunca
   fez — só paisagem). A mesa hoje não tem nenhum tratamento de toque.
 
-### Fase 12 — Aprender jogando — depois
+### Fase 12 — Aprender jogando — feita (§12)
 
 - Dicas de primeira vez (como os "Duel Academy" do Tag Force e os portões do
   MD), puzzles de duelo, glossário de termos na leitura da carta.
@@ -422,14 +422,14 @@ implementação.
 
 ## 10. Fora do escopo desta rodada
 
-Relógio de partida, espectadores, replays, ranking, música, tutoriais
-roteirizados, layout para celular — registrados nas Fases 9–12 ou aqui, não
-esquecidos.
+Relógio de partida, espectadores no online, replays, ranking, música,
+tutoriais roteirizados — registrados aqui, não esquecidos. (O layout para
+celular e o bot × bot para assistir entraram nas Fases 11 e 12.)
 
 ## 11. Implementação — primeira entrega (Fases 1–8)
 
-Branch `ui-ux-partida`, a partir da `main`. Fases 9–12 continuam como estão
-acima, para depois.
+Branch `ui-ux-partida`, a partir da `main`. As Fases 9–12 e o D17 vieram
+na segunda entrega, no mesmo PR (§12).
 
 ### Fase 1 — nenhum popup prende a mesa
 
@@ -504,9 +504,9 @@ acima, para depois.
   escondia um defeito antigo: desanexar uma matéria apagava as marcas do
   próprio monstro Xyz (contadores, avisos), porque a matéria "saía" da zona
   dele. Também corrigido.
-- **Ficou de fora (D17):** o histórico continua em PT mesmo com as cartas em
-  EN — o texto é montado na sessão (no online, no servidor). As linhas já
-  levam `codes`, que é o que falta para a tela renomear; fica para depois.
+- **D17 ficou para a segunda entrega:** o histórico continuava em PT com as
+  cartas em EN — o texto é montado na sessão (no online, no servidor). Feito
+  em §12, pelos `codes` das linhas.
 
 ### Fase 5 — ritmo
 
@@ -571,6 +571,135 @@ consulta ("👁", "Ver a mesa") em vez de jogar — esses controles agora têm
 durações da velocidade "Muito rápida" ainda deixam ler o destaque, se o
 fantasma de saída pesa demais num Raigeki, se o zoom da mão incomoda. Isso
 pede uma partida jogada por gente.
+
+## 12. Implementação — segunda entrega (Fases 9–12 e D17)
+
+Mesma branch e mesmo PR. O que cada fase virou, e o que ficou de fora.
+
+### Fase 9 — quem começa e a prévia do deck do bot
+
+- No lobby, **Quem começa: Eu / O bot / Moeda**. O core sempre dá o turno 1
+  ao assento 0; "o bot começa" põe o humano no assento 1 (`humanSeat`), e a
+  mesa — que já sabia desenhar `me = 1` por causa do online — vira junto. A
+  moeda é sorteada a cada partida (a revanche sorteia de novo) e o resultado
+  abre o histórico.
+- **Prévia do deck do bot** (`DeckPreview`): os tipos (monstros, magias,
+  armadilhas) e as cartas principais, com "ver a lista completa".
+- Achado no caminho: com o humano no assento 1, as Magias de Campo eram
+  desenhadas trocadas (a minha de cabeça para baixo, a do oponente de pé) —
+  a regra era "dono = 1", não "dono = oponente". Corrigido.
+
+### Fase 10 — construtor de deck
+
+- **Desfazer** (botão e Ctrl+Z), por deck, até 50 passos; renomear não conta.
+- **"Limpar" em dois cliques** (o segundo, em até 3 s, confirma — e o
+  Desfazer ainda traz o deck de volta).
+- **Mão de teste**: embaralha e compra 5, com "+1" para ver o turno seguinte.
+- **Estatísticas**: monstros/magias/armadilhas e a curva de nível (a cor das
+  barras passou no validador de paleta sobre o painel escuro).
+- **Importar/exportar** `.ydk` e `ydke://` (`deck-codec.ts`). Importar abre um
+  deck **novo**, nunca escreve por cima do aberto.
+- **Arrastar** do catálogo para o deck e do deck de volta para remover.
+
+### Fase 11 — toque e telas pequenas
+
+- **Toque longo** (450 ms) numa carta abre a leitura; toque simples continua
+  sendo "clicar".
+- **Mesa estreita** (≤ 900 px): a leitura vira uma folha que sobe de baixo e
+  o histórico um painel aberto por botão (os dois botões ficam no fim da
+  trilha de fases), deixando a largura para as cartas.
+- **Mesa baixa** (celular deitado): a trilha de fases rola em vez de cortar o
+  turno e o EP; navegação e cabeçalho compactos.
+- Alvos de toque maiores em `pointer: coarse`.
+- `test:viewports` passou a medir 768×1024, 844×390 e 390×844 (além das
+  anteriores) e o toque longo.
+
+### Fase 12 — aprender jogando
+
+- **Dicas de primeira vez** (`tips.ts`): uma por vez, no momento em que
+  servem (responder a uma corrente, esconder um diálogo, selecionar na mesa,
+  Battle Phase, como jogar, como ler). "Entendi" some com ela para sempre;
+  "Desligar dicas" (também na engrenagem) cala todas; "Rever todas" recomeça.
+  A dica não aparece para quem só assiste, nem enquanto a decisão está
+  escondida para ver a mesa.
+- **Duelos-problema** (`/duel/puzzles`, `puzzles.ts`): a mesa vem montada e
+  é preciso vencer **neste turno** — "Raio final" (Raigeki), "Abra caminho"
+  (Tufão na Força do Espelho) e "Mudança de opinião". O objetivo fica num
+  painel minimizável (no celular começa fechado num selo), com uma dica a um
+  clique; passar o turno sem vencer encerra o problema, e só então a
+  solução fica disponível. Resolvidos ganham ✓ na lista. No core: sem mão
+  inicial, LP do problema e `ATTACK_FIRST_TURN` (atacar no turno 1).
+- **Glossário** (`glossary.ts`): 30 termos (Invocação-Tributo, alvo, Corrente,
+  Cemitério, banir…), em PT e EN, sublinhados na leitura da carta (mesa e
+  construtor); um clique abre a definição. Só a primeira ocorrência de cada
+  termo, a grafia mais longa ganha, e nunca dentro de outra palavra
+  ("Settle" não acha "Set").
+- **Assistir bot × bot**: o seu deck, pilotado pelo bot, contra o deck
+  escolhido. A mesa é a do assento 0 (`watchSeat`), sem perguntas, sem
+  rendição, e os avisos dizem "VEZ DE …" em vez de "SEU TURNO".
+
+### D17 — histórico no idioma das cartas
+
+As linhas do histórico que citam cartas carregam os `codes` delas (ataque,
+efeito, compra revelada, aviso de carta inerte, contadores, equipamento,
+alvo, carta/tipo/atributo/número declarado, revelações). A tela troca o nome
+em PT pelo do idioma escolhido (`localizeLogText`, nomes mais longos
+primeiro, para "Dragão Branco" não comer o começo de "Dragão Branco de Olhos
+Azuis"). No online a sessão do servidor continua escrevendo em PT, e cada
+cliente traduz para si.
+
+### Achados da verificação
+
+- **O glossário enganava os testes de navegador.** Os termos sublinhados são
+  botões; com Libertar Almas na leitura, o "Cemitério" do texto vinha antes,
+  no DOM, da carta "Cemitério" do seletor, e o laço do `test:browser` clicou
+  no termo 240 vezes — e passou, porque o teste só imprimia as últimas ações
+  para alguém ler. Os termos agora são `data-table-control` (ajuda de
+  leitura, como o "👁 Ver a mesa"), o `clickAction` prefere botões de jogo e
+  só recorre aos controles da mesa quando nenhum casa, e o `test:browser`
+  reprova 25 cliques iguais seguidos (acusou o laço na versão anterior).
+- **Celular:** o selo "Sua vez" vazava da barra de LP sobre a do oponente; o
+  item novo "Puzzles" empurrava o PT/EN para fora da janela de 390 px, e no
+  cabeçalho fora da mesa "Puzzles" e "Online" ficavam escondidos na parte
+  que rola. A navegação rola sem levar o idioma, encurta "Deck Builder" para
+  "Deck", e o cabeçalho empilha. O `test:viewports` mede as três coisas (e
+  acusa a versão anterior de cada uma).
+- **Dica e objetivo se tapavam** no celular (a dica de 80% cobria o objetivo
+  inteiro e metade do campo): o objetivo começa fechado num selo e a dica para
+  antes dele.
+- **Bot × bot dizia "SEU TURNO"** a quem só assiste: o aviso agora diz "VEZ DE
+  …" com o nome.
+
+### O que ficou de fora
+
+- Espectador no online (assistir a sala de outros) e replays.
+- Mais duelos-problema: três ensinam as ideias básicas; o formato
+  (`DuelPuzzle`) aceita mais sem código novo.
+- Tutoriais roteirizados (aulas passo a passo).
+
+### Verificação executada
+
+Na branch final, com a app em produção (`npm run build` + `server.mjs`):
+
+| Camada | Teste | Resultado |
+|---|---|---|
+| Tipos e lint | `tsc --noEmit`, `eslint src tools/harness` | limpos |
+| Sessão e dados | `test:learning`, `test:puzzles`, `test:deck-codec` (novos) | 20, 13 e 12 checagens; cada puzzle vence só pela solução |
+| | `test:duel-log` | 35 checagens: `codes` em toda linha que cita carta, nomes em inglês, bot começando (assento 1) |
+| | `test:ui` (10 duelos), `test:ui-rare`, `test:presets` (110 partidas bot × bot em MR5) | 0 prompt sem resposta; 110 vitórias, 0 RETRY |
+| | `test:chain-mode`, `test:prompt-rules`, `test:hidden`, `test:marks`, `test:endgame`, `test:formats`, `test:multiplayer`, `test:modern-summons`, `test:sort-card`, `test:cancel`, `test:patches`, `test:deck-library`, `test:triggers`, `test:remaining`, `test:archetypes`, `test:token-images`, `test:tcg-pool`, `test:cards`, `test:connection` | verdes |
+| Navegador | `test:browser-learning` (novo) | 26 checagens: puzzle resolvido por cliques, erro → solução → tentar de novo, objetivo minimizável, glossário, dicas, celular, bot × bot |
+| | `test:browser-builder` (novo) | 26 checagens: construtor e lobby (Fases 9 e 10) |
+| | `test:viewports` | 12 telas (Goat e TCG, de 1440×900 a 390×844), toque longo, cabeçalho fora da mesa e movimento reduzido |
+| | `test:browser` Goat (5 partidas) e `PRESET=tcg-ys17` (2), `test:browser-online` Goat e `FORMATO=tcg` | duelos até o fim, sem laço, sem exceção nem erro de console |
+| | `test:browser-peek`, `-chain`, `-cancel`, `-announce`, `-decks`, `test:modern-play`, `test:board-modern`, `test:draw`, `test:attack` | verdes |
+
+Nenhum teste deixou arquivo em `.data/decks`.
+
+**O que não foi verificado por ninguém além de mim:** se as dicas ajudam ou
+cansam quem está aprendendo, se os três problemas têm a dificuldade certa, e
+como a mesa se sente num celular de verdade (a medição é com toque emulado
+no Chrome). Isso pede gente jogando.
 
 ## Fontes
 
