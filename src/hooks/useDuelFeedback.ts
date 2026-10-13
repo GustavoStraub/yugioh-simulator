@@ -4,13 +4,16 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 import { playSfx, type SfxName } from "@/lib/audio/sfx";
 import type { ChainSpotlightState } from "@/components/duel/ChainSpotlight";
+import type { DuelBanner } from "@/components/duel/MdBanners";
 import type {
+  CutInKind,
   DuelEvent,
   DuelEventListener,
   DuelZoneRef,
   LeaveReason,
 } from "@/lib/duel/duel-events";
-import { LEAVE_MS, TOSS_MS } from "@/lib/duel/pacing";
+import { CUT_IN_MS, LEAVE_MS, TOSS_MS, TURN_BEAT } from "@/lib/duel/pacing";
+import { mdPhaseBanner } from "@/lib/duel/phase-labels";
 
 /** Quanto o destaque de uma ativação fica no centro. */
 const SPOTLIGHT_ACTIVATE_MS = 1000;
@@ -69,6 +72,17 @@ export function prefersReducedMotion(): boolean {
   return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 }
 
+/** O corte de invocação em curso (ver `SummonCutIn`). */
+export interface SummonCutInState {
+  token: number;
+  code: number;
+  kind: CutInKind;
+  /** Quem invocou é quem olha a mesa? */
+  mine: boolean;
+  /** Já na velocidade escolhida. */
+  duration: number;
+}
+
 /** Um ataque a ser animado; `token` muda a cada evento para reanimar. */
 export interface AttackFlight {
   token: number;
@@ -94,8 +108,9 @@ const SFX_BY_EVENT: Partial<Record<DuelEvent["kind"], SfxName>> = {
   attack: "attack",
   damage: "damage",
   recover: "recover",
-  phase: "phase",
+  phase: "banner",
   turn: "turn",
+  chainLink: "chain",
   draw: "draw",
   position: "flip",
   coin: "flip",
@@ -114,6 +129,56 @@ const SFX_BY_LEAVE: Record<LeaveReason, SfxName> = {
   hand: "draw",
   deck: "draw",
 };
+
+/**
+ * A fila das faixas do MD ("TURN CHANGE", "DRAW PHASE"…).
+ *
+ * Cada faixa fica pelo menos 55% do tempo dela antes de a seguinte entrar — a
+ * virada de turno puxa três ou quatro fases em sequência; sem fila, ela
+ * termina e some. Fila curta: se as fases correram na frente (turno do bot sem
+ * nada a fazer), as faixas de fase que ficaram para trás saem — melhor pular
+ * "STANDBY PHASE" do que mostrá-la com a mesa já na Main Phase.
+ *
+ * Um objeto com estado próprio, e não estado do React: é um relógio, não algo
+ * que a tela desenha (quem desenha é a faixa que ela põe no ar).
+ */
+function criarFilaDeFaixas(
+  mostrar: (faixa: DuelBanner | null | ((atual: DuelBanner | null) => DuelBanner | null)) => void,
+) {
+  let fila: DuelBanner[] = [];
+  let relogio: ReturnType<typeof setTimeout> | null = null;
+  let proximoId = 0;
+  const tocar = () => {
+    if (relogio) return;
+    const proxima = fila.shift();
+    if (!proxima) return;
+    mostrar(proxima);
+    relogio = setTimeout(() => {
+      relogio = null;
+      if (fila.length > 0) {
+        tocar();
+        return;
+      }
+      relogio = setTimeout(() => {
+        relogio = null;
+        mostrar((atual) => (atual?.id === proxima.id ? null : atual));
+        tocar();
+      }, Math.round(proxima.duration * 0.45));
+    }, Math.round(proxima.duration * 0.55));
+  };
+  return {
+    enfileirar(faixa: Omit<DuelBanner, "id">) {
+      if (!faixa.big) fila = fila.filter((f) => f.big);
+      fila.push({ ...faixa, id: proximoId++ });
+      tocar();
+    },
+    parar() {
+      if (relogio) clearTimeout(relogio);
+      relogio = null;
+      fila = [];
+    },
+  };
+}
 
 /**
  * Traduz os eventos do duelo em som e em feedback visual.
@@ -135,12 +200,13 @@ export function useDuelFeedback(
    */
   scale = 1,
   /**
-   * Os avisos de turno. Quem joga lê "SEU TURNO"; quem só assiste bot × bot
-   * não tem turno — ali o aviso diz de quem é a vez, pelo nome.
+   * Quem só assiste bot × bot não tem turno: a faixa "TURN CHANGE" ganha uma
+   * linha dizendo de quem é a vez, pelo nome ("VEZ DE FULANO").
    */
-  turnText: { mine: string; foe: string } = { mine: "SEU TURNO", foe: "TURNO DO OPONENTE" },
+  spectateText?: { mine: string; foe: string },
 ) {
-  const { mine: meuTurno, foe: turnoDoOutro } = turnText;
+  const vezDeMim = spectateText?.mine;
+  const vezDoOutro = spectateText?.foe;
   const [flashes, setFlashes] = useState<DuelFlash[]>([]);
   /** Que metade da tela treme — já em coordenadas de quem assiste. */
   const [shake, setShake] = useState<"mine" | "theirs" | null>(null);
@@ -162,6 +228,13 @@ export function useDuelFeedback(
   const [spotlight, setSpotlight] = useState<ChainSpotlightState | null>(null);
   /** Cartas saindo do campo agora — várias de uma vez num Raigeki. */
   const [leaves, setLeaves] = useState<LeaveGhost[]>([]);
+  /** A faixa do MD atravessando a tela ("TURN CHANGE", "BATTLE PHASE"). */
+  const [banner, setBanner] = useState<DuelBanner | null>(null);
+  /** O corte de invocação no ar. */
+  const [cutIn, setCutIn] = useState<SummonCutInState | null>(null);
+  const cutInTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  /** De quem é o turno — a cor das faixas de fase. */
+  const ladoDoTurno = useRef<"me" | "foe">("me");
   const nextId = useRef(0);
   const lastLeaveSfx = useRef<{ name: SfxName | null; at: number }>({ name: null, at: 0 });
   const spotlightTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -177,6 +250,15 @@ export function useDuelFeedback(
     if (spotlightTimer.current) clearTimeout(spotlightTimer.current);
     setSpotlight(null);
   }, []);
+
+  /** O clique que pula o corte de invocação. */
+  const dismissCutIn = useCallback(() => {
+    if (cutInTimer.current) clearTimeout(cutInTimer.current);
+    setCutIn(null);
+  }, []);
+
+  /** A fila das faixas — um objeto só para a vida da mesa (ver `criarFilaDeFaixas`). */
+  const [faixas] = useState(() => criarFilaDeFaixas(setBanner));
 
   const pushFlash = useCallback(
     (
@@ -207,7 +289,16 @@ export function useDuelFeedback(
       const dur = (ms: number) => Math.max(1, Math.round(ms * veloc));
       // Som: invocação tem variantes; o resto é mapeamento direto.
       if (event.kind === "summon") {
-        playSfx(event.special ? "specialSummon" : "summon");
+        playSfx(event.cutIn ? "cutIn" : event.special ? "specialSummon" : "summon");
+        if (event.cutIn) {
+          const duration = dur(CUT_IN_MS);
+          const token = nextId.current++;
+          setCutIn({ token, code: event.code, kind: event.cutIn, mine: event.player === me, duration });
+          if (cutInTimer.current) clearTimeout(cutInTimer.current);
+          cutInTimer.current = setTimeout(() => {
+            setCutIn((atual) => (atual?.token === token ? null : atual));
+          }, duration);
+        }
       } else if (event.kind === "win") {
         playSfx(event.player === me ? "victory" : "defeat");
       } else if (event.kind === "leave") {
@@ -285,18 +376,33 @@ export function useDuelFeedback(
           }, duration + 40);
           break;
         }
-        case "turn":
-          pushFlash(
-            event.player === me ? meuTurno : turnoDoOutro,
-            "neutral",
-            dur(1200),
-            "center",
-            event.player === me ? "mine" : "foe",
-          );
+        case "turn": {
+          const lado = event.player === me ? "me" : "foe";
+          ladoDoTurno.current = lado;
+          faixas.enfileirar({
+            text: event.count === 1 ? "DUEL START" : "TURN CHANGE",
+            side: lado,
+            sub: lado === "me" ? vezDeMim : vezDoOutro,
+            duration: dur(TURN_BEAT + 520),
+            big: true,
+          });
           break;
+        }
+        case "phase": {
+          const texto = mdPhaseBanner(event.phase);
+          if (texto) {
+            faixas.enfileirar({
+              text: texto,
+              side: ladoDoTurno.current,
+              duration: dur(texto === "BATTLE PHASE" ? 1100 : 820),
+              big: texto === "BATTLE PHASE",
+            });
+          }
+          break;
+        }
         case "damage":
           pushFlash(
-            `-${event.amount}`,
+            `${event.amount}`,
             event.player === me ? "bad" : "good",
             dur(900),
             event.player === me ? "player" : "opponent",
@@ -329,7 +435,29 @@ export function useDuelFeedback(
           break;
       }
     });
-  }, [subscribe, pushFlash, me, meuTurno, turnoDoOutro]);
+  }, [subscribe, pushFlash, faixas, me, vezDeMim, vezDoOutro]);
 
-  return { flashes, shake, toss, flight, reveal, draw, spotlight, leaves, dismissSpotlight };
+  // Os relógios das faixas e do corte morrem com a mesa.
+  useEffect(
+    () => () => {
+      faixas.parar();
+      if (cutInTimer.current) clearTimeout(cutInTimer.current);
+    },
+    [faixas],
+  );
+
+  return {
+    flashes,
+    shake,
+    toss,
+    flight,
+    reveal,
+    draw,
+    spotlight,
+    leaves,
+    banner,
+    cutIn,
+    dismissSpotlight,
+    dismissCutIn,
+  };
 }

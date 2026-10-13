@@ -14,7 +14,7 @@
 import { existsSync, readdirSync, readFileSync, rmSync } from "node:fs";
 import { join } from "node:path";
 
-import { launchChrome, openPage } from "./browser.mjs";
+import { FASES_DISPONIVEIS, launchChrome, openPage } from "./browser.mjs";
 import { REPO, loadGoatPool } from "./env.mjs";
 
 const BASE = process.env.APP_URL ?? "http://127.0.0.1:3000";
@@ -104,7 +104,7 @@ const LER = `
     !b.closest('[aria-label="Idioma das cartas"]');
   return {
     texto,
-    botoes: [...document.querySelectorAll("button")].filter(util).map((b) => b.innerText.trim()).filter(Boolean),
+    botoes: [...document.querySelectorAll("button")].filter(util).map((b) => b.innerText.trim()).filter(Boolean).concat(${FASES_DISPONIVEIS}),
     cartas: document.querySelectorAll(".tf-slot-active").length,
     // Precisa ser o campo de texto do modal — o controle de som tem um
     // \`input[type=range]\` sempre presente, e um seletor genérico \`input\`

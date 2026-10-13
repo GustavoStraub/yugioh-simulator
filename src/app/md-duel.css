@@ -187,7 +187,9 @@
   display: flex;
   flex-direction: column;
   justify-content: flex-end;
-  perspective: var(--md-persp, 2400px);
+  /* Em `vh`: a perspectiva acompanha o tamanho da tela, e a conta da altura
+     da mesa (abaixo) vale igual num notebook e num monitor grande. */
+  perspective: var(--md-persp, 240vh);
   perspective-origin: 50% -30%;
 }
 
@@ -199,8 +201,10 @@
      inclinação — `cos`). As fileiras têm exatamente a altura da carta. */
   --md-gap: 0.8cqh;
   --md-wcap: calc((100cqw - 40px - 6 * 0.9cqw) / 7.05 * 86 / 59);
+  /* 0,9: a fileira de longe também encolhe e sobe na direção do ponto de
+     fuga (a perspectiva) — sem a folga a borda de cima passava da câmera. */
   --md-hcap: calc(
-    (100cqh / cos(var(--md-tilt)) - (var(--md-rows) - 1) * var(--md-gap) - 26px) / var(--md-rows)
+    (100cqh / cos(var(--md-tilt)) * 0.9 - (var(--md-rows) - 1) * var(--md-gap) - 26px) / var(--md-rows)
   );
   --md-card-h: min(var(--md-wcap), var(--md-hcap));
   --tf-card-max-h: var(--md-card-h);
@@ -1988,6 +1992,345 @@
 }
 
 /* ---------------------------------------------------------------------------
+   A lista de cartas do MD — o painel de baixo das escolhas.
+--------------------------------------------------------------------------- */
+.md-sheet-area {
+  padding: 0 12px 14px;
+}
+
+.md-sheet-scrim {
+  background: linear-gradient(180deg, rgba(1, 5, 12, 0) 30%, rgba(1, 5, 12, 0.45) 100%);
+}
+
+.md-sheet {
+  position: relative;
+  display: flex;
+  max-height: min(78%, 620px);
+  width: min(980px, 100%);
+  flex-direction: column;
+  border-radius: 4px 4px 10px 10px;
+  background: linear-gradient(180deg, rgba(6, 12, 26, 0.97), rgba(2, 6, 14, 0.98));
+  box-shadow:
+    0 0 0 1px rgba(150, 205, 255, 0.4),
+    0 -8px 30px rgba(0, 0, 0, 0.5),
+    0 18px 40px rgba(0, 0, 0, 0.7);
+  animation: md-sheet-in 180ms cubic-bezier(0.2, 0.9, 0.3, 1);
+}
+
+/* O fio de cima, na cor de a quem se responde. */
+.md-sheet::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 3px;
+  border-radius: 4px 4px 0 0;
+  background: linear-gradient(90deg, rgba(60, 170, 255, 0), #4fc4ff 30%, #b8ecff 50%, #4fc4ff 70%, rgba(60, 170, 255, 0));
+}
+
+.md-sheet-foe::before {
+  background: linear-gradient(90deg, rgba(255, 60, 90, 0), #ff4d64 30%, #ffc2cb 50%, #ff4d64 70%, rgba(255, 60, 90, 0));
+}
+
+@keyframes md-sheet-in {
+  0% { opacity: 0; transform: translateY(24px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+.md-duel .tf-panel.md-sheet {
+  border: 0;
+  background: linear-gradient(180deg, rgba(6, 12, 26, 0.97), rgba(2, 6, 14, 0.98));
+}
+
+/* As abas do canto de cima à direita (grade, seta para baixo, fechar). */
+.md-sheet-tabs {
+  position: absolute;
+  right: 10px;
+  bottom: 100%;
+  display: flex;
+  gap: 4px;
+}
+
+.md-sheet-tab {
+  display: flex;
+  height: 34px;
+  min-width: 42px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px 6px 0 0;
+  padding: 0 10px;
+  font-size: 15px;
+  font-weight: 800;
+  color: #7fd0ff;
+  background: linear-gradient(180deg, rgba(14, 30, 58, 0.98), rgba(6, 12, 26, 0.98));
+  box-shadow: 0 0 0 1px rgba(150, 205, 255, 0.4);
+}
+
+.md-sheet-tab:hover,
+.md-sheet-tab-on {
+  color: #ffffff;
+  background: linear-gradient(180deg, #1d5fb3, #0d2f63);
+}
+
+.md-sheet-head {
+  flex-shrink: 0;
+  padding: 14px 18px 8px;
+  text-align: center;
+}
+
+.md-sheet-title {
+  font-size: clamp(14px, 1.05vw, 18px);
+  font-weight: 700;
+  line-height: 1.3;
+  color: #ffffff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.9);
+}
+
+.md-sheet-sub {
+  margin-top: 2px;
+  font-size: 12px;
+  color: var(--md-text-dim);
+}
+
+.md-sheet-count {
+  margin-right: 8px;
+  border-radius: 999px;
+  padding: 1px 9px;
+  font-family: var(--font-md-digits), var(--font-geist-mono), monospace;
+  font-size: 13px;
+  font-weight: 800;
+  color: #ffffff;
+  background: rgba(60, 150, 255, 0.25);
+  box-shadow: inset 0 0 0 1px rgba(120, 200, 255, 0.5);
+}
+
+.md-sheet-body {
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.md-sheet-foot {
+  display: flex;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 10px 16px 14px;
+}
+
+.md-sheet-chain {
+  width: min(880px, 100%);
+}
+
+.md-sheet-chain .md-sheet-head {
+  text-align: left;
+}
+
+.md-sheet-chain-thumb {
+  height: 64px;
+  width: auto;
+  flex-shrink: 0;
+  border-radius: 3px;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.7), 0 0 12px rgba(255, 80, 100, 0.35);
+}
+
+.md-sheet-prompt {
+  width: min(720px, 100%);
+}
+
+/* A faixa de cartas: a tira azul do MD, com as cartas em pé. */
+.md-strip-wrap {
+  position: relative;
+  margin: 2px 0 4px;
+}
+
+.md-strip {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 12px 18px 14px;
+  scroll-snap-type: x proximity;
+  background:
+    linear-gradient(180deg, rgba(30, 90, 190, 0.38), rgba(16, 50, 120, 0.3));
+  border-top: 1px solid rgba(120, 200, 255, 0.35);
+  border-bottom: 1px solid rgba(120, 200, 255, 0.35);
+  scrollbar-width: thin;
+  scrollbar-color: rgba(120, 200, 255, 0.7) rgba(0, 0, 0, 0.3);
+}
+
+.md-strip-grid {
+  flex-wrap: wrap;
+  justify-content: center;
+  overflow-x: hidden;
+  overflow-y: auto;
+  max-height: 46vh;
+}
+
+.md-strip-arrow {
+  position: absolute;
+  top: 50%;
+  z-index: 2;
+  display: flex;
+  height: 54px;
+  width: 30px;
+  transform: translateY(-50%);
+  align-items: center;
+  justify-content: center;
+  font-size: 34px;
+  font-weight: 300;
+  line-height: 1;
+  color: #ffffff;
+  text-shadow: 0 0 8px rgba(80, 180, 255, 0.9);
+  background: rgba(2, 8, 18, 0.7);
+}
+
+.md-strip-arrow-left {
+  left: 0;
+  border-radius: 0 8px 8px 0;
+}
+
+.md-strip-arrow-right {
+  right: 0;
+  border-radius: 8px 0 0 8px;
+}
+
+.md-tile {
+  position: relative;
+  display: flex;
+  flex-shrink: 0;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  scroll-snap-align: start;
+  transition: transform 120ms ease-out;
+}
+
+.md-tile-card {
+  position: relative;
+  display: block;
+  height: clamp(118px, 15vh, 176px);
+  aspect-ratio: 59 / 86;
+  overflow: hidden;
+  border-radius: 4px;
+  box-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.7),
+    0 6px 14px rgba(0, 0, 0, 0.55);
+  transition: box-shadow 120ms ease-out, transform 120ms ease-out;
+}
+
+button.md-tile:hover .md-tile-card {
+  transform: translateY(-4px);
+  box-shadow:
+    0 0 0 2px #bfe8ff,
+    0 10px 20px rgba(0, 0, 0, 0.6);
+}
+
+.md-tile-actionable .md-tile-card {
+  animation: md-glow-yellow 1.4s ease-in-out infinite;
+}
+
+.md-tile-picked .md-tile-card {
+  transform: translateY(-6px);
+  animation: none;
+  box-shadow:
+    0 0 0 2px #fff3a6,
+    0 0 0 4px var(--md-yellow),
+    0 0 20px 4px rgba(255, 210, 60, 0.7);
+}
+
+.md-tile-dim {
+  opacity: 0.5;
+}
+
+.md-tile-check {
+  position: absolute;
+  right: 4px;
+  top: 4px;
+  display: flex;
+  height: 24px;
+  width: 24px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  font-size: 14px;
+  font-weight: 900;
+  color: #2a1d00;
+  background: radial-gradient(circle at 40% 35%, #fff6c4, #ffcf3a 70%);
+  box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.5);
+}
+
+.md-tile-place {
+  max-width: clamp(118px, 15vh, 176px);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  border-radius: 999px;
+  padding: 1px 8px;
+  font-size: 10.5px;
+  font-weight: 700;
+  color: #d8ecff;
+  background: rgba(4, 12, 28, 0.9);
+  box-shadow: inset 0 0 0 1px rgba(120, 200, 255, 0.4);
+}
+
+.md-tile-me .md-tile-place {
+  color: #cfe8ff;
+  background: rgba(20, 70, 150, 0.85);
+}
+
+.md-tile-foe .md-tile-place {
+  color: #ffd8de;
+  background: rgba(140, 20, 40, 0.85);
+  box-shadow: inset 0 0 0 1px rgba(255, 140, 160, 0.5);
+}
+
+/* Opções abstratas (atributo, tipo) e as cartas-opção do painel. */
+.md-option {
+  border-radius: 8px;
+  padding: 9px 12px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #dbeeff;
+  background: rgba(10, 26, 54, 0.9);
+  box-shadow: inset 0 0 0 1px rgba(120, 200, 255, 0.35);
+  transition: background 100ms ease-out;
+}
+
+.md-option:hover {
+  background: rgba(24, 60, 120, 0.9);
+}
+
+.md-option-on {
+  color: #2a1d00;
+  background: linear-gradient(180deg, #ffe680, #f0b820);
+  box-shadow: 0 0 0 1px #fff3a6, 0 0 14px rgba(255, 210, 60, 0.6);
+}
+
+.md-pill-effect {
+  color: #2a1d00;
+  background: linear-gradient(180deg, #ffe680, #e9a915);
+  box-shadow: 0 0 0 1px #fff3a6, 0 0 12px rgba(255, 210, 60, 0.55), 0 4px 12px rgba(0, 0, 0, 0.5);
+}
+
+/* A faixa de instrução sobre a mesa (seleção no campo, zona, decisão
+   escondida): a barra translúcida que atravessa o campo, como no MD. */
+.md-duel .md-banner.tf-panel {
+  border: 0;
+  border-top: 1px solid rgba(120, 200, 255, 0.45);
+  border-bottom: 1px solid rgba(120, 200, 255, 0.45);
+  border-radius: 0;
+  background: linear-gradient(90deg, rgba(2, 8, 20, 0) 0%, rgba(2, 8, 20, 0.9) 8%, rgba(4, 12, 28, 0.92) 50%, rgba(2, 8, 20, 0.9) 92%, rgba(2, 8, 20, 0) 100%);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+}
+
+.md-banner {
+  border-radius: 0;
+}
+
+/* ---------------------------------------------------------------------------
    Registro do duelo (o "Duel Log" do MD), à direita.
 --------------------------------------------------------------------------- */
 .md-log-drawer {
@@ -2556,5 +2899,363 @@
 
   .md-crack-new path {
     stroke-dashoffset: 0;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   Faixas de fase e de turno ("TURN CHANGE", "BATTLE PHASE").
+--------------------------------------------------------------------------- */
+.md-phase-banner {
+  --md-band-a: rgba(16, 70, 170, 0.0);
+  --md-band-b: rgba(20, 90, 210, 0.88);
+  --md-band-c: rgba(10, 40, 110, 0.92);
+  --md-band-line: rgba(160, 220, 255, 0.95);
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 40%;
+  z-index: 49;
+  height: clamp(70px, 12vh, 150px);
+  pointer-events: none;
+  transform: translateY(-50%);
+}
+
+.md-phase-banner-foe {
+  --md-band-b: rgba(190, 26, 44, 0.86);
+  --md-band-c: rgba(110, 10, 24, 0.92);
+  --md-band-line: rgba(255, 190, 200, 0.95);
+}
+
+.md-phase-banner-band {
+  position: absolute;
+  inset: 0;
+  background:
+    repeating-linear-gradient(-60deg, rgba(255, 255, 255, 0.05) 0 2px, rgba(255, 255, 255, 0) 2px 12px),
+    linear-gradient(90deg, var(--md-band-a) 0%, var(--md-band-b) 14%, var(--md-band-c) 50%, var(--md-band-b) 86%, var(--md-band-a) 100%);
+  box-shadow:
+    inset 0 2px 0 var(--md-band-line),
+    inset 0 -2px 0 var(--md-band-line),
+    0 0 50px rgba(0, 0, 0, 0.5);
+  /* As pontas somem, como a faixa do MD. */
+  -webkit-mask: linear-gradient(90deg, transparent 0%, black 12%, black 88%, transparent 100%);
+  mask: linear-gradient(90deg, transparent 0%, black 12%, black 88%, transparent 100%);
+  animation: md-band var(--md-banner-ms, 900ms) cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+@keyframes md-band {
+  0% { opacity: 0; transform: scaleY(0.05) scaleX(0.6); }
+  14% { opacity: 1; transform: scaleY(1) scaleX(1); }
+  82% { opacity: 1; transform: scaleY(1) scaleX(1); }
+  100% { opacity: 0; transform: scaleY(0.2) scaleX(1.05); }
+}
+
+/* O brilho correndo pela faixa. */
+.md-phase-banner-shine {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  -webkit-mask: linear-gradient(90deg, transparent, black 15%, black 85%, transparent);
+  mask: linear-gradient(90deg, transparent, black 15%, black 85%, transparent);
+}
+
+.md-phase-banner-shine::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 18%;
+  left: -20%;
+  transform: skewX(-24deg);
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0), rgba(255, 255, 255, 0.45), rgba(255, 255, 255, 0));
+  animation: md-shine var(--md-banner-ms, 900ms) ease-out both;
+}
+
+@keyframes md-shine {
+  0%, 12% { left: -20%; }
+  60%, 100% { left: 110%; }
+}
+
+.md-phase-banner-text {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-md-display), var(--font-geist-sans), sans-serif;
+  font-size: clamp(34px, 7vh, 92px);
+  font-weight: 900;
+  font-style: italic;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  color: transparent;
+  background: linear-gradient(180deg, #ffffff 0%, #eef3f8 38%, #b9c4d2 52%, #f6f9fc 66%, #d7dee8 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  filter:
+    drop-shadow(0 2px 0 rgba(0, 0, 0, 0.85))
+    drop-shadow(0 0 10px rgba(0, 0, 0, 0.45));
+  animation: md-band-text var(--md-banner-ms, 900ms) cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+.md-phase-banner-big .md-phase-banner-text {
+  font-size: clamp(40px, 8.6vh, 112px);
+}
+
+@keyframes md-band-text {
+  0% { opacity: 0; transform: translateX(26%) skewX(-12deg); }
+  16% { opacity: 1; transform: translateX(0) skewX(0deg); }
+  80% { opacity: 1; transform: translateX(-2%) skewX(0deg); }
+  100% { opacity: 0; transform: translateX(-24%) skewX(-10deg); }
+}
+
+.md-phase-banner-sub {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -26px;
+  text-align: center;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  color: #ffffff;
+  text-shadow: 0 1px 2px #000;
+  animation: md-band-text var(--md-banner-ms, 900ms) ease-out both;
+}
+
+/* ---------------------------------------------------------------------------
+   O corte de invocação.
+--------------------------------------------------------------------------- */
+.md-cutin {
+  --md-ray-a: #9fd3ff;
+  --md-ray-b: #2f7fd8;
+  position: absolute;
+  inset: 0;
+  z-index: 58;
+  overflow: hidden;
+  cursor: pointer;
+  animation: md-cutin-life var(--md-cutin-ms, 1700ms) linear both;
+}
+
+.md-cutin-light { --md-ray-a: #fff3b0; --md-ray-b: #f0b81a; }
+.md-cutin-dark { --md-ray-a: #d4a6ff; --md-ray-b: #5a1fb0; }
+.md-cutin-fire { --md-ray-a: #ffb08a; --md-ray-b: #e0301a; }
+.md-cutin-water { --md-ray-a: #a6e0ff; --md-ray-b: #1f74e0; }
+.md-cutin-wind { --md-ray-a: #b8ffcb; --md-ray-b: #1fa850; }
+.md-cutin-earth { --md-ray-a: #f2d0a0; --md-ray-b: #9a6420; }
+.md-cutin-divine { --md-ray-a: #fff1c2; --md-ray-b: #d9a520; }
+
+@keyframes md-cutin-life {
+  0% { opacity: 0; }
+  8% { opacity: 1; }
+  88% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+.md-cutin-bg {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 55% 50% at 50% 42%, color-mix(in srgb, var(--md-ray-b) 45%, transparent), rgba(0, 0, 0, 0) 70%),
+    radial-gradient(ellipse at center, rgba(2, 4, 10, 0.72) 0%, rgba(1, 2, 6, 0.94) 100%);
+}
+
+.md-cutin-rays {
+  position: absolute;
+  left: 50%;
+  top: 42%;
+  height: 220vmax;
+  width: 220vmax;
+  transform: translate(-50%, -50%);
+  background: repeating-conic-gradient(
+    from 0deg,
+    color-mix(in srgb, var(--md-ray-a) 55%, transparent) 0deg 4deg,
+    rgba(0, 0, 0, 0) 4deg 14deg
+  );
+  -webkit-mask: radial-gradient(circle, black 0%, rgba(0, 0, 0, 0.55) 18%, transparent 46%);
+  mask: radial-gradient(circle, black 0%, rgba(0, 0, 0, 0.55) 18%, transparent 46%);
+  animation: md-rays var(--md-cutin-ms, 1700ms) linear both;
+}
+
+@keyframes md-rays {
+  0% { transform: translate(-50%, -50%) rotate(0deg) scale(0.6); opacity: 0; }
+  15% { opacity: 1; }
+  100% { transform: translate(-50%, -50%) rotate(24deg) scale(1.05); opacity: 0.9; }
+}
+
+/* Faíscas: pontos de luz subindo. */
+.md-cutin-sparks {
+  position: absolute;
+  inset: 0;
+  background-image:
+    radial-gradient(2px 2px at 20% 70%, var(--md-ray-a), transparent 60%),
+    radial-gradient(3px 3px at 32% 30%, #ffffff, transparent 60%),
+    radial-gradient(2px 2px at 45% 82%, var(--md-ray-a), transparent 60%),
+    radial-gradient(3px 3px at 62% 24%, #ffffff, transparent 60%),
+    radial-gradient(2px 2px at 74% 66%, var(--md-ray-a), transparent 60%),
+    radial-gradient(3px 3px at 86% 38%, #ffffff, transparent 60%),
+    radial-gradient(2px 2px at 12% 40%, #ffffff, transparent 60%),
+    radial-gradient(2px 2px at 90% 80%, var(--md-ray-a), transparent 60%);
+  animation: md-sparks var(--md-cutin-ms, 1700ms) ease-out both;
+}
+
+@keyframes md-sparks {
+  0% { transform: translateY(6%) scale(0.95); opacity: 0; }
+  20% { opacity: 1; }
+  100% { transform: translateY(-8%) scale(1.05); opacity: 0.6; }
+}
+
+.md-cutin-art-wrap {
+  position: absolute;
+  left: 50%;
+  top: 40%;
+  height: min(64vh, 70vw);
+  aspect-ratio: 1;
+  transform: translate(-50%, -50%);
+}
+
+.md-cutin-art {
+  position: absolute;
+  inset: 0;
+  height: 100%;
+  width: 100%;
+  object-fit: cover;
+  -webkit-mask: radial-gradient(ellipse 50% 50% at 50% 50%, black 62%, transparent 100%);
+  mask: radial-gradient(ellipse 50% 50% at 50% 50%, black 62%, transparent 100%);
+  animation: md-cutin-art var(--md-cutin-ms, 1700ms) cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+@keyframes md-cutin-art {
+  0% { transform: scale(1.35); filter: brightness(2.6) saturate(0.4); opacity: 0; }
+  14% { opacity: 1; }
+  30% { transform: scale(1.04); filter: brightness(1.15) saturate(1); }
+  100% { transform: scale(1); filter: brightness(1) saturate(1.05); }
+}
+
+/* A carta inteira só aparece se a arte recortada não vier (`onError`). */
+.md-cutin-card {
+  display: none;
+}
+
+.md-cutin-noart .md-cutin-art {
+  display: none;
+}
+
+.md-cutin-noart .md-cutin-card {
+  position: absolute;
+  inset: 4% 22%;
+  display: block;
+  height: 92%;
+  width: auto;
+  border-radius: 8px;
+  box-shadow: 0 0 40px color-mix(in srgb, var(--md-ray-a) 70%, transparent);
+  animation: md-cutin-art var(--md-cutin-ms, 1700ms) cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+.md-cutin-band {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 9%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 14px 0 0;
+  background: linear-gradient(90deg, rgba(4, 12, 30, 0) 0%, rgba(4, 12, 30, 0.88) 18%, rgba(6, 18, 44, 0.92) 50%, rgba(4, 12, 30, 0.88) 82%, rgba(4, 12, 30, 0) 100%);
+  border-top: 1px solid rgba(160, 220, 255, 0.4);
+  animation: md-cutin-band var(--md-cutin-ms, 1700ms) cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+@keyframes md-cutin-band {
+  0%, 10% { opacity: 0; transform: translateY(30px); }
+  28% { opacity: 1; transform: translateY(0); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+.md-cutin-kind {
+  font-family: var(--font-md-display), var(--font-geist-sans), sans-serif;
+  font-size: clamp(11px, 1.6vh, 16px);
+  font-weight: 800;
+  font-style: italic;
+  letter-spacing: 0.32em;
+  color: var(--md-ray-a);
+  text-shadow: 0 0 10px color-mix(in srgb, var(--md-ray-b) 80%, transparent);
+}
+
+.md-cutin-level {
+  display: flex;
+  gap: 4px;
+}
+
+.md-cutin-star {
+  height: clamp(16px, 2.6vh, 28px);
+  width: clamp(16px, 2.6vh, 28px);
+  background: radial-gradient(circle at 40% 35%, #fff7c4, #f2b21c 60%, #9c6a06);
+  clip-path: polygon(50% 2%, 62% 36%, 98% 38%, 69% 59%, 79% 95%, 50% 74%, 21% 95%, 31% 59%, 2% 38%, 38% 36%);
+  filter: drop-shadow(0 0 4px rgba(255, 200, 60, 0.9));
+  animation: md-star-pop 380ms cubic-bezier(0.2, 1.4, 0.4, 1) both;
+}
+
+.md-cutin-rank .md-cutin-star {
+  background: radial-gradient(circle at 40% 35%, #f3f3f8, #444452 60%, #121218);
+  filter: drop-shadow(0 0 4px rgba(255, 220, 140, 0.8));
+}
+
+@keyframes md-star-pop {
+  0% { transform: scale(0); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.md-cutin-level-text {
+  font-family: var(--font-md-display), var(--font-geist-sans), sans-serif;
+  font-size: clamp(16px, 2.6vh, 28px);
+  font-weight: 900;
+  font-style: italic;
+  color: #9fe0ff;
+  text-shadow: 0 0 10px rgba(60, 160, 255, 0.9);
+}
+
+.md-cutin-name {
+  max-width: 92vw;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--font-md-display), var(--font-geist-sans), sans-serif;
+  font-size: clamp(22px, 5vh, 58px);
+  font-weight: 800;
+  font-style: italic;
+  line-height: 1.15;
+  color: #ffffff;
+  text-shadow:
+    0 2px 0 rgba(0, 0, 0, 0.9),
+    0 0 18px rgba(0, 0, 0, 0.6);
+}
+
+.md-cutin-stats {
+  margin-top: 6px;
+  width: min(560px, 80vw);
+  padding: 6px 0 7px;
+  text-align: center;
+  font-family: var(--font-md-digits), var(--font-geist-mono), monospace;
+  font-size: clamp(14px, 2.4vh, 26px);
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  color: #ffffff;
+  background: linear-gradient(180deg, rgba(20, 50, 110, 0.95), rgba(10, 26, 64, 0.95));
+  box-shadow: 0 0 0 1px rgba(150, 210, 255, 0.45);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .md-phase-banner-band,
+  .md-phase-banner-text,
+  .md-phase-banner-sub,
+  .md-phase-banner-shine::after,
+  .md-cutin,
+  .md-cutin-rays,
+  .md-cutin-sparks,
+  .md-cutin-art,
+  .md-cutin-band,
+  .md-cutin-star {
+    animation: none !important;
   }
 }

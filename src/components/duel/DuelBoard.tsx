@@ -73,7 +73,10 @@ import type { ChainBadge } from "@/components/duel/DuelCardSlot";
 import { DrawFlightLayer } from "@/components/duel/DrawFlight";
 import { SortCardModal } from "@/components/duel/SortCardModal";
 import { AnnounceCardModal } from "@/components/duel/AnnounceCardModal";
-import { DecisionShell, PeekButton } from "@/components/duel/DecisionShell";
+import { DecisionSheet, DecisionShell, PeekButton } from "@/components/duel/DecisionShell";
+import { CardStrip, CardTile, GridTab } from "@/components/duel/MdCardList";
+import { PhaseBanner } from "@/components/duel/MdBanners";
+import { SummonCutIn } from "@/components/duel/SummonCutIn";
 import { GlossaryText } from "@/components/duel/GlossaryText";
 import { LeaveFlightLayer } from "@/components/duel/LeaveFlight";
 import { DuelSettings } from "@/components/duel/DuelSettings";
@@ -256,8 +259,20 @@ export function DuelBoard({
    * muda. No online as pausas são da sala, em ritmo normal.
    */
   const animationScale = pacing === "local" ? SPEED_SCALE[prefs.speed] : 1;
-  const { flashes, shake, toss, flight, reveal, draw, spotlight, leaves, dismissSpotlight } =
-    useDuelFeedback(
+  const {
+    flashes,
+    shake,
+    toss,
+    flight,
+    reveal,
+    draw,
+    spotlight,
+    leaves,
+    banner,
+    cutIn,
+    dismissSpotlight,
+    dismissCutIn,
+  } = useDuelFeedback(
       subscribeEvents,
       me,
       animationScale,
@@ -1338,6 +1353,19 @@ export function DuelBoard({
       {/* O cenário: o fundo que no MD é o ambiente 3D em volta da mesa. */}
       <div aria-hidden className="md-arena" />
 
+      {/* As faixas do MD atravessando a tela inteira ("TURN CHANGE", "BATTLE
+          PHASE") e o corte de invocação — por cima do HUD, por baixo das
+          decisões. */}
+      <PhaseBanner banner={banner} />
+      <SummonCutIn
+        cutIn={pacing === "room" || prefs.cutIns ? cutIn : null}
+        registry={registry}
+        onSkip={() => {
+          dismissCutIn();
+          onHurry?.();
+        }}
+      />
+
       {/* Mesa estreita (celular, tablet em pé): as placas numa faixa no
           topo — nos cantos elas cobririam a mesa. */}
       {estreita && (
@@ -1626,6 +1654,8 @@ export function DuelBoard({
             snapshot.promptPlayer === me &&
             !busy && (
               <ChainResponseBar
+                // Uma pergunta nova zera a escolha e o painel recolhido.
+                key={snapshot.promptId}
                 plan={plan}
                 chain={snapshot.chain}
                 registry={registry}
@@ -1686,6 +1716,17 @@ export function DuelBoard({
               registry={registry}
               onBack={() => setModalEspiado(false)}
             />
+          )}
+
+          {/* A pergunta de uma zona só (SELECT_PLACE): as zonas brilham na mesa
+              e a faixa diz o que se escolhe — antes não havia instrução
+              nenhuma, só as zonas acesas. */}
+          {plan && plan.places.length > 0 && !placeSelection && !zonaAntes && !busy && (
+            <div className="md-banner-wrap pointer-events-none absolute inset-x-0 z-40 flex justify-center">
+              <div data-place-banner data-menu-avoid className="md-banner pointer-events-auto">
+                <span className="md-banner-text">{selectionInstruction || "Escolha uma zona"}</span>
+              </div>
+            </div>
           )}
 
           {/* SELECT_PLACE/SELECT_DISFIELD com mais de 1 zona: todo candidato é
@@ -2368,6 +2409,7 @@ function CardPickerModal({
   onPeek: () => void;
 }) {
   const texto = useCardText();
+  const [grade, setGrade] = useState(false);
   const canConfirm =
     picked.length >= selection.min &&
     picked.length <= selection.max &&
@@ -2409,170 +2451,120 @@ function CardPickerModal({
   const misturado =
     selection.candidates.some((candidate) => candidate.controller === me) &&
     selection.candidates.some((candidate) => candidate.controller !== me);
+  const temVerso = selection.candidates.some((candidate) => candidate.code === 0);
 
   return (
-    <DecisionShell
+    <DecisionSheet
       label={instruction}
       hidden={hidden}
-      className="flex max-h-full w-[min(860px,95%)] flex-col overflow-hidden"
-    >
-        <header className="tf-modal-head shrink-0 px-5 py-2.5">
-          <p className="text-center text-base font-semibold text-[color:var(--tf-gold-bright)]">
-            {instruction}
-          </p>
-          <p className="mt-0.5 text-center text-[11px] text-[color:var(--tf-gold-dim)]">
-            {selection.candidates.some((candidate) => candidate.code === 0)
+      onPeek={onPeek}
+      tabs={<GridTab grid={grade} onToggle={() => setGrade((g) => !g)} />}
+      head={
+        <>
+          <p className="md-sheet-title">{instruction}</p>
+          <p className="md-sheet-sub">
+            <span className="md-sheet-count">{progress}</span>
+            {temVerso
               ? "Cartas de verso são as que você ainda não pode ver — escolha e a face aparece."
-              : "Apenas as cartas elegíveis são mostradas. O deck é reembaralhado depois da escolha."}
-            {umaSo ? " Clique de novo na carta marcada para confirmar." : ""}
+              : `${selection.candidates.length} carta${selection.candidates.length === 1 ? "" : "s"}`}
+            {umaSo ? " · clique de novo na marcada para confirmar" : ""}
           </p>
-        </header>
-
-        <div className="min-h-0 flex-1 overflow-y-auto p-4">
-          {/* Obrigatórias (SELECT_SUM: `selects_must`) — já contam para o alvo
-              sem o jogador marcar, então aparecem à parte e não são clicáveis. */}
-          {selection.locked && selection.locked.length > 0 && (
-            <div className="mb-3">
-              <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-[color:var(--tf-gold-dim)]">
-                Já incluídas (obrigatórias)
-              </p>
-              <div className="flex flex-wrap gap-2">
-                {selection.locked.map((candidate, index) => {
-                  const definition = registry?.get(candidate.code);
-                  const image = definition?.images[0]?.image_url_small;
-                  return (
-                    <div
-                      key={`locked-${candidate.code}-${index}`}
-                      onMouseEnter={() => onHover({ code: candidate.code })}
-                      title={definition ? texto.name(definition) : undefined}
-                      className="relative w-[72px] shrink-0 overflow-hidden rounded border-2 border-emerald-400/80 brightness-90"
-                    >
-                      {image ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img
-                          src={image}
-                          alt={(definition ? texto.name(definition) : "Carta")}
-                          className="aspect-[59/86] w-full object-cover"
-                        />
-                      ) : (
-                        <div className="tf-card-back aspect-[59/86] w-full" />
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
+        </>
+      }
+      foot={
+        <>
+          {extras.map((action, index) => (
+            <button
+              key={index}
+              type="button"
+              onClick={() => onRespond(action.response)}
+              className="md-pill md-pill-ghost px-5 py-2 text-[13px]"
+            >
+              {action.label}
+            </button>
+          ))}
+          {!imediata && (
+            <button
+              type="button"
+              disabled={!canConfirm}
+              onClick={() => {
+                playSfx("click");
+                onConfirm();
+              }}
+              className="md-pill md-pill-ok min-w-[180px] px-6 py-2 text-[13px]"
+            >
+              Confirmar
+            </button>
           )}
-
-          <div className="grid grid-cols-[repeat(auto-fill,minmax(104px,1fr))] gap-2.5">
-            {ordem.map(({ candidate, index }) => {
-              // `code: 0` é o candidato que este assento não tem direito de ver
-              // (`maskHiddenCards`) — carta na mão do adversário, virada para
-              // baixo no campo dele. Escolhe-se pelo verso, e a face aparece
-              // depois, quando o efeito revelar.
-              const oculta = candidate.code === 0;
-              const definition = oculta ? undefined : registry?.get(candidate.code);
-              const image = definition?.images[0]?.image_url_small;
-              const jaEscolhida = selection.alreadyChosen?.includes(index) ?? false;
-              // Clicar numa já escolhida desfaz: a marca inverte.
-              const isPicked = imediata ? jaEscolhida : picked.includes(index) !== jaEscolhida;
-              const doOponente = candidate.controller !== me;
+        </>
+      }
+    >
+      {/* Obrigatórias (SELECT_SUM: `selects_must`) — já contam para o alvo
+          sem o jogador marcar, então aparecem à parte e não são clicáveis. */}
+      {selection.locked && selection.locked.length > 0 && (
+        <div className="mb-2 flex items-center gap-2 px-3">
+          <span className="text-[11px] font-semibold uppercase tracking-wide text-[color:var(--md-text-dim)]">
+            Já incluídas
+          </span>
+          <div className="flex gap-1.5">
+            {selection.locked.map((candidate, index) => {
+              const definition = registry?.get(candidate.code);
               return (
-                <button
-                  key={`${candidate.code}-${index}`}
-                  type="button"
-                  data-picker-card={index}
-                  data-picker-owner={doOponente ? "foe" : "me"}
-                  onClick={() => {
-                    playSfx("click");
-                    if (imediata) {
-                      onRespond(selection.build([index]));
-                      return;
-                    }
-                    if (umaSo && canConfirm && picked.length === 1 && picked[0] === index) {
-                      onConfirm();
-                      return;
-                    }
-                    onToggle(index);
-                  }}
-                  onMouseEnter={() =>
-                    onHover(oculta ? null : { code: candidate.code })
-                  }
-                  title={(definition ? texto.name(definition) : oculta ? "Carta oculta" : undefined)}
-                  className={`relative aspect-[59/86] overflow-hidden rounded border-2 transition ${
-                    isPicked
-                      ? "border-emerald-400 brightness-110"
-                      : misturado && doOponente
-                        ? "border-red-500/60 hover:border-[color:var(--tf-gold)]"
-                        : "border-[color:var(--tf-slot-border)] hover:border-[color:var(--tf-gold)]"
-                  }`}
-                >
-                  {image ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={image}
-                      alt={(definition ? texto.name(definition) : "Carta")}
-                      loading="lazy"
-                      className="h-full w-full object-cover"
-                    />
-                  ) : oculta ? (
-                    <div className="tf-card-back h-full w-full" />
-                  ) : (
-                    <span className="flex h-full items-center justify-center bg-black/60 p-1 text-[9px] text-zinc-300">
-                      {definition ? texto.name(definition) : candidate.code}
-                    </span>
-                  )}
-
-                  <span className="absolute inset-x-0 bottom-0 bg-black/80 px-1 py-0.5 text-[9px] font-semibold text-[color:var(--tf-gold-bright)]">
-                    {locationLabel(candidate.location)}
-                    {misturado ? (doOponente ? " · oponente" : " · sua") : ""}
-                  </span>
-
-                  {isPicked && (
-                    <span className="absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-full bg-emerald-400 text-[11px] font-bold text-black">
-                      ✓
-                    </span>
-                  )}
-                </button>
+                <CardTile
+                  key={`locked-${candidate.code}-${index}`}
+                  image={definition?.images[0]?.image_url_small}
+                  alt={definition ? texto.name(definition) : "Carta"}
+                  picked
+                  onHover={() => onHover({ code: candidate.code })}
+                  title={definition ? texto.name(definition) : undefined}
+                />
               );
             })}
           </div>
         </div>
+      )}
 
-        <footer className="flex shrink-0 items-center justify-between gap-3 border-t border-[color:var(--tf-slot-border)] px-5 py-3">
-          <div className="flex items-center gap-3">
-            <span className="font-mono text-[13px] text-[color:var(--tf-gold-dim)]">
-              {progress}
-            </span>
-            <PeekButton onPeek={onPeek} />
-          </div>
-          <div className="flex gap-2">
-            {extras.map((action, index) => (
-              <button
-                key={index}
-                type="button"
-                onClick={() => onRespond(action.response)}
-                className="rounded border border-[color:var(--tf-slot-border)] px-4 py-2 text-[13px] text-[color:var(--tf-gold-bright)] hover:bg-black/50"
-              >
-                {action.label}
-              </button>
-            ))}
-            {!imediata && (
-              <button
-                type="button"
-                disabled={!canConfirm}
-                onClick={() => {
-                  playSfx("click");
+      <CardStrip grid={grade}>
+        {ordem.map(({ candidate, index }) => {
+          // `code: 0` é o candidato que este assento não tem direito de ver
+          // (`maskHiddenCards`) — carta na mão do adversário, virada para
+          // baixo no campo dele. Escolhe-se pelo verso, e a face aparece
+          // depois, quando o efeito revelar.
+          const oculta = candidate.code === 0;
+          const definition = oculta ? undefined : registry?.get(candidate.code);
+          const jaEscolhida = selection.alreadyChosen?.includes(index) ?? false;
+          // Clicar numa já escolhida desfaz: a marca inverte.
+          const isPicked = imediata ? jaEscolhida : picked.includes(index) !== jaEscolhida;
+          const doOponente = candidate.controller !== me;
+          return (
+            <CardTile
+              key={`${candidate.code}-${index}`}
+              data={{ "data-picker-card": index, "data-picker-owner": doOponente ? "foe" : "me" }}
+              image={definition?.images[0]?.image_url_small}
+              alt={definition ? texto.name(definition) : oculta ? "Carta oculta" : "Carta"}
+              faceDown={oculta}
+              place={`${locationLabel(candidate.location)}${misturado ? (doOponente ? " · oponente" : " · sua") : ""}`}
+              owner={misturado ? (doOponente ? "foe" : "me") : null}
+              picked={isPicked}
+              title={definition ? texto.name(definition) : oculta ? "Carta oculta" : undefined}
+              onHover={() => onHover(oculta ? null : { code: candidate.code })}
+              onClick={() => {
+                playSfx("click");
+                if (imediata) {
+                  onRespond(selection.build([index]));
+                  return;
+                }
+                if (umaSo && canConfirm && picked.length === 1 && picked[0] === index) {
                   onConfirm();
-                }}
-                className="rounded bg-[color:var(--tf-gold)] px-5 py-2 text-[13px] font-bold text-black transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-40"
-              >
-                Confirmar
-              </button>
-            )}
-          </div>
-        </footer>
-    </DecisionShell>
+                  return;
+                }
+                onToggle(index);
+              }}
+            />
+          );
+        })}
+      </CardStrip>
+    </DecisionSheet>
   );
 }
 
@@ -2824,95 +2816,72 @@ function PileModal({
 }) {
   const texto = useCardText();
   const [escolhida, setEscolhida] = useState<string | null>(null);
+  const [grade, setGrade] = useState(false);
   const jogadas = escolhida ? (actions?.get(escolhida) ?? []) : [];
   const temJogada = (card: BoardCard) =>
     Boolean(actions?.get(cardKey(card.controller, card.location, card.sequence))?.length);
   const quantasComJogada = cards.filter(temJogada).length;
 
   return (
-    <div
-      className="tf-modal-scrim tf-modal-area z-50 flex items-center justify-center p-6"
-      onClick={onClose}
-    >
+    // A lista de cartas do MD, aberta sobre a parte de baixo do campo. Fecha
+    // no X, no clique fora e no Esc.
+    <div className="md-sheet-area md-sheet-scrim tf-modal-area z-50 flex items-end justify-center" onClick={onClose}>
       <div
         data-pile-modal
-        className="tf-panel flex max-h-full w-[min(720px,92%)] flex-col overflow-hidden rounded-lg"
+        role="dialog"
+        aria-label={title}
+        className="tf-panel md-sheet md-sheet-neutral pointer-events-auto"
         onClick={(event) => event.stopPropagation()}
       >
-        <header className="tf-modal-head flex shrink-0 items-center justify-between px-4 py-2">
-          <h3 className="text-base font-bold text-[color:var(--tf-gold-bright)]">
-            {title}{" "}
-            <span className="text-[color:var(--tf-gold-dim)]">({cards.length})</span>
-            {quantasComJogada > 0 && (
-              <span className="ml-2 text-[12px] font-semibold text-amber-300">
-                · {quantasComJogada} com jogada agora
-              </span>
-            )}
-          </h3>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Fechar"
-            className="rounded px-2 py-1 text-sm text-zinc-400 hover:bg-black/50 hover:text-zinc-100"
-          >
+        <div className="md-sheet-tabs">
+          <GridTab grid={grade} onToggle={() => setGrade((g) => !g)} />
+          <button type="button" onClick={onClose} aria-label="Fechar" className="md-sheet-tab">
             ✕
           </button>
+        </div>
+        <header className="md-sheet-head">
+          <h3 className="md-sheet-title">
+            {title} <span className="md-sheet-count">({cards.length})</span>
+          </h3>
+          {quantasComJogada > 0 && (
+            <p className="md-sheet-sub">
+              {quantasComJogada} com jogada agora — clique numa que brilha
+            </p>
+          )}
         </header>
 
-        <div className="min-h-0 flex-1 overflow-y-auto p-3">
+        <div className="md-sheet-body">
           {cards.length === 0 ? (
             <p className="py-8 text-center text-[13px] text-zinc-500">Vazio.</p>
           ) : (
-            <div className="grid grid-cols-[repeat(auto-fill,minmax(88px,1fr))] gap-2">
+            <CardStrip grid={grade}>
               {cards.map((card, index) => {
                 const definition = card.code ? registry?.get(card.code) : undefined;
-                const image = definition?.images[0]?.image_url_small;
                 const key = cardKey(card.controller, card.location, card.sequence);
                 const acionavel = temJogada(card);
                 return (
-                  <div
+                  <CardTile
                     key={`${card.sequence}-${index}`}
-                    data-pile-card={key}
-                    data-actionable={acionavel || undefined}
-                    onMouseEnter={() => onHover(card)}
-                    onClick={acionavel ? () => setEscolhida(key) : undefined}
-                    role={acionavel ? "button" : undefined}
+                    data={{ "data-pile-card": key, "data-actionable": acionavel || undefined, role: acionavel ? "button" : undefined }}
+                    image={definition?.images[0]?.image_url_small}
+                    alt={definition ? texto.name(definition) : "Carta"}
+                    faceDown={!definition}
                     title={definition ? texto.name(definition) : undefined}
-                    className={`relative aspect-[59/86] overflow-hidden rounded-[3px] border ${
-                      escolhida === key
-                        ? "border-emerald-400 ring-2 ring-emerald-400"
-                        : acionavel
-                          ? "tf-slot-active tf-slot-activate cursor-pointer border-[color:var(--tf-gold-bright)]"
-                          : quantasComJogada > 0
-                            ? "border-[color:var(--tf-slot-border)] opacity-60"
-                            : "border-[color:var(--tf-slot-border)]"
-                    }`}
-                  >
-                    {image ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={image}
-                        alt={(definition ? texto.name(definition) : "Carta")}
-                        loading="lazy"
-                        className="h-full w-full object-cover"
-                      />
-                    ) : (
-                      <div className="tf-card-back h-full w-full" />
-                    )}
-                    {card.location === OcgLocation.EXTRA && !card.faceDown && (
-                      <span className="absolute left-0.5 top-0.5 rounded bg-emerald-900/90 px-1 text-[9px] font-bold text-emerald-200">
-                        ↑ face para cima
-                      </span>
-                    )}
-                  </div>
+                    picked={escolhida === key}
+                    actionable={acionavel && escolhida !== key}
+                    dimmed={quantasComJogada > 0 && !acionavel}
+                    place={card.location === OcgLocation.EXTRA && !card.faceDown ? "↑ face para cima" : undefined}
+                    onHover={() => onHover(card)}
+                    onClick={acionavel ? () => setEscolhida(key) : undefined}
+                  />
                 );
               })}
-            </div>
+            </CardStrip>
           )}
         </div>
 
         {jogadas.length > 0 && (
-          <footer className="flex shrink-0 flex-wrap items-center justify-end gap-2 border-t border-[color:var(--tf-slot-border)] px-4 py-3">
+          <footer className="md-sheet-foot">
             {jogadas.map((action, index) => (
               <button
                 key={index}
@@ -2921,11 +2890,13 @@ function PileModal({
                   playSfx("click");
                   onChoose?.(action);
                 }}
-                className="rounded bg-[color:var(--tf-gold)] px-4 py-2 text-left text-[13px] font-bold text-black transition hover:brightness-110"
+                className={`md-pill px-5 py-2 text-left text-[13px] ${
+                  commandKind(action.label) === "activate" ? "md-pill-effect" : "md-pill-primary"
+                }`}
               >
                 {action.label}
                 {action.detail && (
-                  <span className="block max-w-[260px] text-[11px] font-semibold opacity-75">
+                  <span className="block max-w-[260px] text-[11px] font-semibold opacity-80">
                     {action.detail}
                   </span>
                 )}
@@ -3085,23 +3056,52 @@ function PromptModal({
   // idênticos empilhados só empurram as opções para fora da tela.
   const subjectCode = plan.subject?.code ?? promptCard;
   const subject = subjectCode === chain?.code ? null : subjectCode;
+  const temCorpo = Boolean(announce) || Boolean(chain) || subject !== null || cardChoices.length > 0;
 
   return (
-    <DecisionShell
+    <DecisionSheet
       label={plan.instruction}
       hidden={hidden}
-      className="flex max-h-full w-[min(520px,94%)] flex-col overflow-hidden"
+      onPeek={onPeek}
+      className="md-sheet-prompt"
+      head={<p className="md-sheet-title">{plan.instruction}</p>}
+      foot={
+        announce ? (
+          <>
+            <span className="md-sheet-count">
+              {picked.length}/{announce.count} marcado(s)
+            </span>
+            <button
+              type="button"
+              disabled={picked.length !== announce.count}
+              onClick={() => {
+                playSfx("click");
+                onRespond(announce.build(picked.map((index) => announce.options[index].value)));
+              }}
+              className="md-pill md-pill-ok min-w-[180px] px-6 py-2 text-[13px]"
+            >
+              Confirmar
+            </button>
+          </>
+        ) : (
+          plan.global.map((action, index) => (
+            <ModalButton
+              key={`global-${index}`}
+              tone={cardChoices.length === 0 ? action.tone : "default"}
+              label={action.label}
+              onClick={() => onRespond(action.response)}
+            />
+          ))
+        )
+      }
     >
-        <p className="tf-modal-head shrink-0 px-5 py-2.5 text-center text-[15px] font-semibold text-[color:var(--tf-gold-bright)]">
-          {plan.instruction}
-        </p>
-
-        <div className="min-h-0 flex-1 space-y-1.5 overflow-y-auto p-3.5">
+      {temCorpo ? (
+        <div className="max-h-[38vh] space-y-1.5 overflow-y-auto px-3 pb-1">
           {announce ? (
             // ANNOUNCE_RACE / ANNOUNCE_ATTRIB: não são cartas, são valores
             // abstratos — cada botão alterna a marcação, e o core só recebe a
             // resposta quando `count` valores estiverem marcados.
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-[repeat(auto-fill,minmax(140px,1fr))] gap-2">
               {announce.options.map((option, index) => {
                 const isPicked = picked.includes(index);
                 return (
@@ -3112,11 +3112,7 @@ function PromptModal({
                       playSfx("click");
                       onTogglePick(index);
                     }}
-                    className={`rounded border px-3 py-2 text-[13px] font-semibold transition ${
-                      isPicked
-                        ? "border-[color:var(--tf-gold)] bg-[color:var(--tf-gold)]/20 text-[color:var(--tf-gold-bright)]"
-                        : "border-[color:var(--tf-slot-border)] bg-black/40 text-zinc-200 hover:bg-black/70"
-                    }`}
+                    className={`md-option ${isPicked ? "md-option-on" : ""}`}
                   >
                     {option.label}
                   </button>
@@ -3128,13 +3124,7 @@ function PromptModal({
               {/* A que se está respondendo. O core pergunta "deseja responder
                   com algum efeito?" sem nunca repetir o que foi ativado, e a
                   linha do log já rolou para longe quando o modal aparece. */}
-              {chain && (
-                <ChainLinkPanel
-                  chain={chain}
-                  registry={registry}
-                  onHover={onHover}
-                />
-              )}
+              {chain && <ChainLinkPanel chain={chain} registry={registry} onHover={onHover} />}
 
               {/* O prompt costuma ser sobre uma carta. Mostrar a carta e o
                   texto do efeito é o que transforma "Efeito 1 / Efeito 2" em
@@ -3165,37 +3155,8 @@ function PromptModal({
             </>
           )}
         </div>
-
-        <div className="flex shrink-0 flex-col gap-2 border-t border-[color:var(--tf-slot-border)] p-4">
-          {announce ? (
-            <>
-              <span className="text-center font-mono text-[12px] text-[color:var(--tf-gold-dim)]">
-                {picked.length}/{announce.count} marcado(s)
-              </span>
-              <ModalButton
-                tone="primary"
-                label="Confirmar"
-                disabled={picked.length !== announce.count}
-                onClick={() =>
-                  onRespond(
-                    announce.build(picked.map((index) => announce.options[index].value)),
-                  )
-                }
-              />
-            </>
-          ) : (
-            plan.global.map((action, index) => (
-              <ModalButton
-                key={`global-${index}`}
-                tone={cardChoices.length === 0 ? action.tone : "default"}
-                label={action.label}
-                onClick={() => onRespond(action.response)}
-              />
-            ))
-          )}
-          <PeekButton onPeek={onPeek} />
-        </div>
-    </DecisionShell>
+      ) : undefined}
+    </DecisionSheet>
   );
 }
 
@@ -3334,13 +3295,13 @@ function ChainLinkPanel({
 }
 
 /**
- * A janela de resposta do Master Duel: sem diálogo por cima da mesa.
+ * A janela de resposta do Master Duel: "O oponente ativou X. Ativar uma carta
+ * em resposta?" — o painel de baixo com as cartas que podem responder, o
+ * botão de ativar a escolhida e "Não responder".
  *
- * O que pode responder brilha no lugar onde está (mão, campo, pilha) e se
- * ativa pelo menu da carta, como qualquer jogada; a barra só diz A QUE se
- * responde (o elo do topo da corrente, que também está na leitura da
- * esquerda) e oferece passar. O diálogo de antes tapava exatamente o campo
- * que decide se vale encadear.
+ * Não bloqueia a mesa: as mesmas cartas brilham onde estão (mão, campo,
+ * pilha) e se ativam clicando nelas, como qualquer jogada. A seta do canto
+ * recolhe o painel numa faixa, para ver o campo que decide se vale encadear.
  */
 function ChainResponseBar({
   plan,
@@ -3358,56 +3319,149 @@ function ChainResponseBar({
   onHover: (card: PreviewCard | null) => void;
 }) {
   const texto = useCardText();
+  const [recolhida, setRecolhida] = useState(false);
+  const [escolhida, setEscolhida] = useState<string | null>(null);
   const definition = chain ? registry?.get(chain.code) : undefined;
   const nome = definition ? texto.name(definition) : chain ? `Carta ${chain.code}` : null;
-  const opcoes = [...plan.byCard.values()].reduce((total, acoes) => total + acoes.length, 0);
   const doOponente = chain ? chain.player !== me : false;
+  const cartas = [...plan.byCard.entries()];
+  const jogadas = escolhida ? (plan.byCard.get(escolhida) ?? []) : [];
+  const pergunta = chain
+    ? `${chain.playerName} ativou ${nome}. Ativar uma carta em resposta (corrente)?`
+    : plan.instruction;
+  const passar = plan.global.map((action, index) => (
+    <button
+      key={index}
+      type="button"
+      onClick={() => {
+        playSfx("click");
+        onRespond(action.response);
+      }}
+      className="md-pill md-pill-ghost min-w-[150px] px-5 py-2 text-[13px]"
+    >
+      {action.label}
+    </button>
+  ));
+
+  if (recolhida) {
+    return (
+      <div className="md-banner-wrap pointer-events-none absolute inset-x-0 z-40 flex justify-center px-2">
+        <div
+          data-chain-response
+          data-menu-avoid
+          className={`md-banner pointer-events-auto ${doOponente ? "md-banner-foe" : ""}`}
+        >
+          <span className="md-banner-text">⛓ {pergunta}</span>
+          <button
+            type="button"
+            data-table-control
+            onClick={() => setRecolhida(false)}
+            className="md-pill md-pill-primary px-4 py-1.5 text-[13px]"
+          >
+            Ver as cartas
+          </button>
+          {passar}
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="pointer-events-none absolute inset-x-0 bottom-[19%] z-40 flex justify-center px-2">
-      <div
-        data-chain-response
-        data-menu-avoid
-        className={`md-prompt-bar pointer-events-auto flex max-w-full items-center gap-3 rounded-full py-1.5 pl-2 pr-2 ${
-          doOponente ? "md-prompt-bar-foe" : ""
-        }`}
-      >
-        {chain && definition ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={definition.images[0]?.image_url_small}
-            alt={nome ?? "Carta"}
-            onMouseEnter={() => onHover({ code: chain.code })}
-            className="h-10 w-auto shrink-0 rounded-[3px] shadow-md shadow-black/60"
-          />
-        ) : null}
-        <div className="min-w-0 pl-1">
-          <p className="truncate text-[13px] font-semibold text-white">
-            {chain
-              ? `${chain.playerName} ativou ${nome}`
-              : plan.instruction}
-          </p>
-          <p className="truncate text-[11px] text-[color:var(--md-text-dim)]">
-            {opcoes > 0
-              ? `${opcoes === 1 ? "1 carta pode" : `${opcoes} jogadas podem`} responder — clique na que brilha`
-              : "Responder?"}
-          </p>
+    <DecisionSheet
+      label={pergunta}
+      modal={false}
+      tone={doOponente ? "foe" : "neutral"}
+      onPeek={() => setRecolhida(true)}
+      className="md-sheet-chain"
+      sheetProps={{ "data-chain-response": true, "data-menu-avoid": true }}
+      head={
+        <div className="flex items-center gap-3">
+          {chain && definition && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={definition.images[0]?.image_url_small}
+              alt={nome ?? "Carta"}
+              onMouseEnter={() => onHover({ code: chain.code })}
+              className="md-sheet-chain-thumb"
+            />
+          )}
+          <div className="min-w-0 text-left">
+            <p className="md-sheet-title">
+              {chain ? (
+                <>
+                  <span className={doOponente ? "text-[color:var(--md-red-bright)]" : "text-[color:var(--md-blue-bright)]"}>
+                    {chain.playerName}
+                  </span>{" "}
+                  ativou <span className="text-[color:var(--md-yellow)]">{nome}</span>.
+                </>
+              ) : (
+                plan.instruction
+              )}
+            </p>
+            <p className="md-sheet-sub">
+              {cartas.length > 0
+                ? "Ativar uma carta em resposta (corrente)? Escolha abaixo — ou clique na que brilha na mesa."
+                : "Responder?"}
+            </p>
+          </div>
         </div>
-        {plan.global.map((action, index) => (
-          <button
-            key={index}
-            type="button"
-            onClick={() => {
-              playSfx("click");
-              onRespond(action.response);
-            }}
-            className="shrink-0 rounded-full bg-[color:var(--md-blue)] px-4 py-1.5 text-[13px] font-bold text-white transition hover:brightness-110"
-          >
-            {action.label}
-          </button>
-        ))}
-      </div>
-    </div>
+      }
+      foot={
+        <>
+          {jogadas.map((action, index) => (
+            <button
+              key={index}
+              type="button"
+              onClick={() => {
+                playSfx("click");
+                onRespond(action.response);
+              }}
+              className="md-pill md-pill-effect px-5 py-2 text-left text-[13px]"
+            >
+              {action.label}
+              {action.detail && (
+                <span className="block max-w-[280px] text-[11px] font-semibold opacity-80">{action.detail}</span>
+              )}
+            </button>
+          ))}
+          {passar}
+        </>
+      }
+    >
+      {cartas.length > 0 && (
+        <CardStrip>
+          {cartas.map(([key, acoes]) => {
+            const primeira = acoes[0];
+            const def = registry?.get(primeira.code);
+            const [controller] = key.split(":").map(Number);
+            return (
+              <CardTile
+                key={key}
+                data={{ "data-chain-card": key }}
+                image={def?.images[0]?.image_url_small}
+                alt={def ? texto.name(def) : "Carta"}
+                title={def ? texto.name(def) : undefined}
+                place={locationLabel(primeira.location)}
+                owner={controller === me ? "me" : "foe"}
+                picked={escolhida === key}
+                actionable={escolhida !== key}
+                onHover={() => onHover({ code: primeira.code })}
+                onClick={() => {
+                  playSfx("click");
+                  // Clicar de novo na escolhida, com um efeito só, ativa — o
+                  // duplo clique do MD.
+                  if (escolhida === key && acoes.length === 1) {
+                    onRespond(primeira.response);
+                    return;
+                  }
+                  setEscolhida(key);
+                }}
+              />
+            );
+          })}
+        </CardStrip>
+      )}
+    </DecisionSheet>
   );
 }
 
@@ -3433,17 +3487,15 @@ function PendingDecisionBar({
   const definition = chain ? registry?.get(chain.code) : undefined;
 
   return (
-    <div className="pointer-events-none absolute inset-x-0 bottom-[19%] z-40 flex justify-center">
-      <div className="tf-panel pointer-events-auto flex items-center gap-3 rounded-full px-4 py-2 shadow-xl shadow-black/60">
-        <span className="text-[13px] text-zinc-100">
+    <div className="md-banner-wrap pointer-events-none absolute inset-x-0 z-40 flex justify-center">
+      <div data-menu-avoid className="md-banner pointer-events-auto">
+        <span className="md-banner-text">
           {chain ? "⛓ " : ""}
           {instruction}
+          {definition && (
+            <span className="ml-2 text-[color:var(--md-yellow)]">{texto.name(definition)}</span>
+          )}
         </span>
-        {definition && (
-          <span className="text-[12px] font-semibold text-[color:var(--tf-gold-bright)]">
-            {texto.name(definition)}
-          </span>
-        )}
         <button
           type="button"
           data-table-control
@@ -3451,7 +3503,7 @@ function PendingDecisionBar({
             playSfx("click");
             onBack();
           }}
-          className="rounded-full bg-[color:var(--tf-gold)] px-4 py-1.5 text-[13px] font-bold text-black transition hover:brightness-110"
+          className="md-pill md-pill-ok px-5 py-1.5 text-[13px]"
         >
           Voltar à decisão
         </button>
@@ -3479,10 +3531,8 @@ function ModalButton({
         playSfx("click");
         onClick();
       }}
-      className={`w-full rounded px-3 py-2.5 text-[14px] font-semibold transition disabled:cursor-not-allowed disabled:opacity-40 ${
-        tone === "primary"
-          ? "bg-[color:var(--tf-gold)] text-black hover:brightness-110"
-          : "border border-[color:var(--tf-slot-border)] bg-black/40 text-[color:var(--tf-gold-bright)] hover:bg-black/70"
+      className={`md-pill min-w-[150px] px-6 py-2.5 text-[14px] ${
+        tone === "primary" ? "md-pill-ok" : "md-pill-ghost"
       }`}
     >
       {label}
@@ -3539,23 +3589,23 @@ function SelectionBar({
           }`;
 
   return (
-    <div className="pointer-events-none absolute inset-x-0 bottom-[19%] z-40 flex justify-center">
+    // A faixa de instrução do MD sobre a mesa ("Selecione a carta a destruir"):
+    // as cartas escolhíveis brilham em amarelo no próprio campo.
+    <div className="md-banner-wrap pointer-events-none absolute inset-x-0 z-40 flex justify-center">
       <div
         data-menu-avoid
         data-selection-bar
-        // `tf-panel` fica: os testes acham a barra por `.tf-panel.rounded-full`.
-        className="tf-panel md-prompt-bar pointer-events-auto flex items-center gap-3 rounded-full px-4 py-2"
+        // `tf-panel rounded-full` ficam: os testes acham a barra por eles.
+        className="tf-panel md-banner pointer-events-auto rounded-full"
       >
-        <span className="text-[13px] text-zinc-100">{instruction}</span>
-        <span className="font-mono text-[13px] text-[color:var(--tf-gold-dim)]">
-          {progress}
-        </span>
+        <span className="md-banner-text">{instruction}</span>
+        <span className="md-sheet-count">{progress}</span>
         {chosen === undefined && (
           <button
             type="button"
             disabled={!canConfirm}
             onClick={onConfirm}
-            className="rounded-full bg-[color:var(--tf-gold)] px-4 py-1.5 text-[13px] font-bold text-black transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-40"
+            className="md-pill md-pill-ok px-5 py-1.5 text-[13px]"
           >
             Confirmar
           </button>
@@ -3565,11 +3615,7 @@ function SelectionBar({
             key={index}
             type="button"
             onClick={() => onRespond(action.response)}
-            className={
-              chosen !== undefined
-                ? "rounded-full bg-[color:var(--tf-gold)] px-4 py-1.5 text-[13px] font-bold text-black transition hover:brightness-110"
-                : "rounded-full border border-[color:var(--tf-slot-border)] px-4 py-1.5 text-[13px] text-[color:var(--tf-gold-bright)] hover:bg-black/50"
-            }
+            className={`md-pill px-4 py-1.5 text-[13px] ${chosen !== undefined ? "md-pill-ok" : "md-pill-ghost"}`}
           >
             {action.label}
           </button>

@@ -12,7 +12,7 @@
  *
  * Uso: APP_URL=http://127.0.0.1:3100 node tools/harness/test-browser-cancel.mjs
  */
-import { launchChrome, openPage } from "./browser.mjs";
+import { FASES_DISPONIVEIS, launchChrome, openPage } from "./browser.mjs";
 
 const BASE = process.env.APP_URL ?? "http://127.0.0.1:3000";
 const DECK_KEY = "yugioh-goat-deck-v1";
@@ -41,7 +41,7 @@ const LER = `
   const util = (b) => !b.disabled && b.offsetParent !== null && !b.closest("[data-table-control]") && !b.innerText.includes("\\u{1F50A}") && !b.closest('[aria-label="Idioma das cartas"]');
   return {
     texto: mesa.innerText,
-    botoes: [...document.querySelectorAll("button")].filter(util).map((b) => b.innerText.trim()).filter(Boolean),
+    botoes: [...document.querySelectorAll("button")].filter(util).map((b) => b.innerText.trim()).filter(Boolean).concat(${FASES_DISPONIVEIS}),
     cartas: document.querySelectorAll(".tf-slot-active").length,
     monstrosEmCampo: document.querySelectorAll("[data-zone^='0:4:'] img").length,
     // Na BARRA de seleção, não na mesa inteira: o histórico também fala de

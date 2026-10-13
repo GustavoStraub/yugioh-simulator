@@ -262,7 +262,12 @@ async function main() {
     console.log("4. Mesa");
     const textoMesa = await page.evaluate(`return document.querySelector(".tf-playmat").innerText;`);
     conferir(!/\bMon\d\b|M\/A\d/.test(textoMesa), "sem 'Mon1' nem 'M/A5' nas zonas vazias");
-    conferir(/Sua vez/i.test(textoMesa), "o selo 'Sua vez' está na barra de LP");
+    // De quem é a vez, no Master Duel, é a cor do botão de fase (azul seu,
+    // vermelho do oponente) — o selo "Sua vez" da placa saiu com o HUD novo.
+    conferir(
+      (await page.evaluate(`return document.querySelector("[data-turn-owner]")?.dataset.turnOwner ?? null;`)) === "me",
+      "o botão de fase diz que o turno é seu",
+    );
 
     // ---- 5. Fim de duelo -----------------------------------------------
     console.log("5. Fim de duelo");
@@ -288,7 +293,7 @@ async function main() {
       page,
       `
       const mesa = document.querySelector(".tf-playmat");
-      return mesa && !document.querySelector("[data-result]") && /Sua vez/i.test(mesa.innerText) ? true : null;
+      return mesa && !document.querySelector("[data-result]") && document.querySelector('[data-turn-owner="me"]') ? true : null;
     `,
       { tentativas: 80, intervalo: 500 },
     );

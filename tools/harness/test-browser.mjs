@@ -19,7 +19,7 @@
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 
-import { launchChrome, openPage } from "./browser.mjs";
+import { FASES_DISPONIVEIS, launchChrome, openPage } from "./browser.mjs";
 import { REPO } from "./env.mjs";
 
 const BASE = process.env.APP_URL ?? "http://127.0.0.1:3000";
@@ -60,7 +60,7 @@ const LER_ESTADO = `
     // Nem os de "ver" (👁 cartas reveladas, 👁 ver o tabuleiro): ajudam a
     // ler a mesa, não são jogada — e clicados em laço gastavam as 250 ações.
     !b.innerText.trim().startsWith("\u{1F441}");
-  const botoes = [...document.querySelectorAll("button")].filter(util).map((b) => b.innerText.trim()).filter(Boolean);
+  const botoes = [...document.querySelectorAll("button")].filter(util).map((b) => b.innerText.trim()).filter(Boolean).concat(${FASES_DISPONIVEIS});
   const menu = [...document.querySelectorAll(".tf-menu-item, [data-menu-item]")].map((b) => b.innerText.trim());
   const cartas = [...document.querySelectorAll(".tf-slot-active")].length;
   return {

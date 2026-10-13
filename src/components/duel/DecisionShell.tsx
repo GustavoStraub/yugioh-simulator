@@ -12,12 +12,10 @@ import { playSfx } from "@/lib/audio/sfx";
  * é a de não prender a mesa: com `hidden` o diálogo continua MONTADO (o nome
  * digitado no "declarar carta", os contadores distribuídos, a ordem montada
  * sobrevivem) e só some da tela, para o jogador conferir o campo, o Cemitério
- * ou o Extra Deck e voltar pela barra "Voltar à decisão". Antes só o modal de
- * sim/não tinha esse caminho; escolher uma carta do Deck ou declarar um nome
- * tapava o campo sem saída.
+ * ou o Extra Deck e voltar pela barra "Voltar à decisão".
  *
- * Também é onde mora o básico de acessibilidade que os modais não tinham:
- * papel de diálogo, rótulo e o foco indo para dentro ao abrir.
+ * Também é onde mora o básico de acessibilidade: papel de diálogo, rótulo e o
+ * foco indo para dentro ao abrir.
  */
 export function DecisionShell({
   label,
@@ -36,17 +34,7 @@ export function DecisionShell({
   /** Clique fora da caixa — só para o que pode ser fechado sem decidir. */
   onScrimClick?: () => void;
 }) {
-  const boxRef = useRef<HTMLDivElement | null>(null);
-
-  // O foco vai para a caixa quando ela aparece (ao abrir e ao voltar da
-  // espiada): o teclado — Enter, Tab, Esc — passa a falar com a decisão, e não
-  // com o botão da mesa que estava focado antes.
-  useEffect(() => {
-    if (hidden) return;
-    const box = boxRef.current;
-    if (!box || box.contains(document.activeElement)) return;
-    box.focus({ preventScroll: true });
-  }, [hidden]);
+  const boxRef = useFocoAoAbrir(hidden);
 
   return (
     <div
@@ -71,6 +59,121 @@ export function DecisionShell({
 }
 
 /**
+ * O foco vai para a caixa quando ela aparece (ao abrir e ao voltar da
+ * espiada): o teclado — Enter, Tab, Esc — passa a falar com a decisão, e não
+ * com o botão da mesa que estava focado antes.
+ */
+function useFocoAoAbrir(hidden: boolean) {
+  const boxRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    if (hidden) return;
+    const box = boxRef.current;
+    if (!box || box.contains(document.activeElement)) return;
+    box.focus({ preventScroll: true });
+  }, [hidden]);
+  return boxRef;
+}
+
+/**
+ * O painel de baixo do Master Duel — a "lista de cartas" das escolhas: a
+ * instrução no topo, as cartas numa faixa e os botões no pé. Fica sobre a
+ * parte de baixo do campo, sem escurecer a mesa inteira; as abas do canto
+ * (a grade e a seta para baixo) são as do MD — a seta esconde o painel para
+ * ver a mesa (o "Ver a mesa" de antes), e Esc faz o mesmo.
+ *
+ * Mesmas garantias da `DecisionShell`: diálogo com rótulo, foco ao abrir, e
+ * montado mesmo escondido.
+ */
+export function DecisionSheet({
+  label,
+  hidden = false,
+  onPeek,
+  head,
+  foot,
+  children,
+  tone = "neutral",
+  modal = true,
+  tabs,
+  className = "",
+  sheetProps,
+}: {
+  label: string;
+  hidden?: boolean;
+  /** A seta para baixo: esconde sem responder. Ausente, não há seta. */
+  onPeek?: () => void;
+  head: ReactNode;
+  foot?: ReactNode;
+  children?: ReactNode;
+  /** A cor do fio do painel: azul (sua decisão), vermelho (resposta ao oponente). */
+  tone?: "neutral" | "foe";
+  /**
+   * Bloqueia a mesa por trás (as decisões do core que não se jogam na mesa).
+   * A janela de resposta na corrente não bloqueia: a carta que responde também
+   * se ativa clicando nela na mesa.
+   */
+  modal?: boolean;
+  /** Abas extras à esquerda da seta (ex.: alternar faixa/grade). */
+  tabs?: ReactNode;
+  className?: string;
+  /** Atributos `data-*` do painel (os testes acham a decisão por eles). */
+  sheetProps?: Record<string, string | number | boolean | undefined>;
+}) {
+  const boxRef = useFocoAoAbrir(hidden);
+
+  const painel = (
+    <div
+      ref={boxRef}
+      role="dialog"
+      aria-modal={modal ? "true" : undefined}
+      aria-label={label}
+      tabIndex={-1}
+      data-decision-dialog={modal ? true : undefined}
+      className={`md-sheet md-sheet-${tone} pointer-events-auto outline-none ${className}`}
+      onClick={(event) => event.stopPropagation()}
+      {...sheetProps}
+    >
+      <div className="md-sheet-tabs">
+        {tabs}
+        {onPeek && (
+          // `data-table-control`: ver a mesa não é jogada — os testes que
+          // clicam "qualquer botão útil" o ignoram.
+          <button
+            type="button"
+            data-peek
+            data-table-control
+            onClick={() => {
+              playSfx("click");
+              onPeek();
+            }}
+            title="Esconde esta escolha para você conferir o campo, o Cemitério e o Extra Deck. Ela continua esperando. (Esc)"
+            aria-label="Ver a mesa"
+            className="md-sheet-tab"
+          >
+            <svg aria-hidden viewBox="0 0 24 24" className="h-5 w-5">
+              <path d="M5 8l7 7 7-7" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </button>
+        )}
+      </div>
+      <header className="md-sheet-head">{head}</header>
+      {children !== undefined && <div className="md-sheet-body">{children}</div>}
+      {foot && <footer className="md-sheet-foot">{foot}</footer>}
+    </div>
+  );
+
+  return (
+    <div
+      hidden={hidden}
+      className={`md-sheet-area tf-modal-area z-50 flex items-end justify-center ${
+        modal ? "md-sheet-scrim" : "pointer-events-none"
+      }`}
+    >
+      {painel}
+    </div>
+  );
+}
+
+/**
  * "Ver a mesa": esconde a decisão sem responder.
  *
  * Igual em todo diálogo, no mesmo lugar (o rodapé), com o atalho escrito — o
@@ -90,7 +193,7 @@ export function PeekButton({ onPeek }: { onPeek: () => void }) {
         onPeek();
       }}
       title="Esconde esta decisão para você conferir o campo, o Cemitério e o Extra Deck. Ela continua esperando. (Esc)"
-      className="shrink-0 rounded border border-[color:var(--tf-slot-border)] px-3 py-1.5 text-[12px] text-[color:var(--tf-gold-dim)] transition hover:bg-black/50 hover:text-[color:var(--tf-gold-bright)]"
+      className="md-pill md-pill-ghost shrink-0 px-3 py-1.5 text-[12px]"
     >
       👁 Ver a mesa <span className="opacity-60">(Esc)</span>
     </button>

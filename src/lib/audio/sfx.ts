@@ -26,7 +26,15 @@ export type SfxName =
   | "phase"
   | "turn"
   | "victory"
-  | "defeat";
+  | "defeat"
+  /** O corte de invocação: o "vwoosh" grave subindo para um brilho. */
+  | "cutIn"
+  /** A faixa de fase atravessando a tela. */
+  | "banner"
+  /** "Final Blow!": o golpe que acaba o duelo. */
+  | "finalBlow"
+  /** Um elo novo na corrente: o tilintar de corrente. */
+  | "chain";
 
 interface SfxSettings {
   /** 0 a 1. */
@@ -305,6 +313,38 @@ export function playSfx(name: SfxName): void {
           peak: 0.24,
         });
       });
+      break;
+
+    case "cutIn":
+      // Sobe como o MD: o ar sendo puxado, um grave que cresce e o brilho.
+      noise(ctx, out, { start: t, duration: 0.5, peak: 0.16, filterFrom: 300, filterTo: 5200, type: "bandpass" });
+      tone(ctx, out, { type: "sawtooth", from: 80, to: 220, start: t, duration: 0.45, peak: 0.16 });
+      tone(ctx, out, { type: "triangle", from: 523, start: t + 0.38, duration: 0.6, peak: 0.2 });
+      tone(ctx, out, { type: "triangle", from: 784, start: t + 0.44, duration: 0.6, peak: 0.16 });
+      tone(ctx, out, { type: "sine", from: 1568, start: t + 0.5, duration: 0.5, peak: 0.08 });
+      break;
+
+    case "banner":
+      // A faixa passando: um "fsss" de ar e um toque metálico.
+      noise(ctx, out, { start: t, duration: 0.32, peak: 0.1, filterFrom: 900, filterTo: 6000, type: "bandpass" });
+      tone(ctx, out, { type: "sine", from: 1318, start: t + 0.06, duration: 0.16, peak: 0.06 });
+      break;
+
+    case "finalBlow":
+      // O golpe final: impacto grave e um acorde que sobe.
+      tone(ctx, out, { type: "sawtooth", from: 110, to: 55, start: t, duration: 0.5, peak: 0.3 });
+      noise(ctx, out, { start: t, duration: 0.4, peak: 0.22, filterFrom: 2400, filterTo: 160 });
+      [392, 523, 659].forEach((freq, index) => {
+        tone(ctx, out, { type: "square", from: freq, start: t + 0.18 + index * 0.08, duration: 0.42, peak: 0.1 });
+      });
+      break;
+
+    case "chain":
+      // Elos de corrente batendo.
+      [1760, 2350, 1980].forEach((freq, index) => {
+        tone(ctx, out, { type: "square", from: freq, to: freq * 0.85, start: t + index * 0.045, duration: 0.07, peak: 0.06 });
+      });
+      noise(ctx, out, { start: t, duration: 0.12, peak: 0.08, filterFrom: 7000, filterTo: 2500, type: "highpass" });
       break;
 
     case "defeat":

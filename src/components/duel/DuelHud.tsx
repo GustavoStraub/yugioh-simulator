@@ -216,6 +216,11 @@ export function PhaseButton({
       <button
         type="button"
         data-phase-button
+        // O botão só ABRE o menu — quem joga são as opções. Por isso é
+        // controle da mesa (os laços de clique dos testes o pulam) e diz, em
+        // `data-phase-options`, para onde dá para ir agora ("BP EP").
+        data-table-control
+        data-phase-options={pode ? opcoes.map((opcao) => opcao.short).join(" ") : undefined}
         aria-expanded={aberto}
         aria-haspopup="menu"
         disabled={!pode}

@@ -27,8 +27,21 @@ export type LeaveReason =
   | "hand"
   | "deck";
 
+/**
+ * Que invocação ganha o corte do Master Duel (a arte em tela cheia): as do
+ * Extra Deck, a de Ritual e a por Tributo — decisão do Gustavo.
+ */
+export type CutInKind = "fusion" | "synchro" | "xyz" | "link" | "ritual" | "tribute";
+
 export type DuelEvent =
-  | { kind: "summon"; player: number; code: number; special: boolean }
+  | {
+      kind: "summon";
+      player: number;
+      code: number;
+      special: boolean;
+      /** Presente quando a invocação ganha o corte (ver `CutInKind`). */
+      cutIn?: CutInKind;
+    }
   | { kind: "set"; player: number }
   | { kind: "activate"; player: number; code: number }
   | {
@@ -58,7 +71,8 @@ export type DuelEvent =
     }
   | { kind: "draw"; player: number; count: number }
   | { kind: "phase"; phase: number }
-  | { kind: "turn"; player: number }
+  /** `count`: o número do turno (1 = o primeiro — a faixa "DUEL START"). */
+  | { kind: "turn"; player: number; count?: number }
   | { kind: "flip"; player: number; code: number }
   | { kind: "position"; player: number }
   | { kind: "coin"; player: number; results: boolean[] }

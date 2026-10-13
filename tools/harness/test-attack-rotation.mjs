@@ -15,7 +15,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { launchChrome, openPage } from "./browser.mjs";
+import { FASES_DISPONIVEIS, launchChrome, openPage } from "./browser.mjs";
 import { REPO } from "./env.mjs";
 
 const BASE = process.env.APP_URL ?? "http://127.0.0.1:3000";
@@ -107,7 +107,7 @@ async function main() {
       const estado = await page.evaluate(`
         const util = (b) => !b.disabled && b.offsetParent !== null && !b.closest("[data-table-control]") && !b.innerText.includes("\\u{1F50A}") && !b.closest('[aria-label="Idioma das cartas"]');
         return {
-          botoes: [...document.querySelectorAll("button")].filter(util).map((b) => b.innerText.trim()).filter(Boolean),
+          botoes: [...document.querySelectorAll("button")].filter(util).map((b) => b.innerText.trim()).filter(Boolean).concat(${FASES_DISPONIVEIS}),
           cartas: document.querySelectorAll(".tf-slot-active").length,
         };
       `);

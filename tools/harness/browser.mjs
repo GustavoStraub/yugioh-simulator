@@ -178,9 +178,38 @@ export class Page {
         lista.find((b) => texto(b) === ${JSON.stringify(text)}) ??
         lista.find((b) => texto(b).startsWith(${JSON.stringify(text)}));
       const alvo = achar(deJogo) ?? achar(todos);
-      if (!alvo) return false;
-      alvo.click();
-      return true;
+      if (alvo) {
+        alvo.click();
+        return true;
+      }
+      // As fases moram num menu: o botão redondo do Master Duel abre "Battle
+      // Phase / Main Phase 2 / End Phase". "BP", "EP"… (e os rótulos
+      // antigos) abrem o menu e clicam a opção — os testes listam o que dá
+      // para fazer com \`fasesDisponiveis\` (o \`data-phase-options\` do botão).
+      const fase = {
+        BP: "BP", "Battle Phase": "BP", "Ir para Battle Phase": "BP",
+        M2: "M2", "Main Phase 2": "M2", "Ir para Main Phase 2": "M2",
+        EP: "EP", "End Phase": "EP", "Encerrar turno": "EP",
+      }[${JSON.stringify(text)}];
+      const botao = document.querySelector("[data-phase-button]:not(:disabled)");
+      if (!fase || !botao) return false;
+      const aberta = () => document.querySelector('[data-phase="' + fase + '"]');
+      if (!aberta()) botao.click();
+      return new Promise((resolve) => {
+        let tentativas = 0;
+        const tentar = () => {
+          const opcao = aberta();
+          if (opcao) {
+            opcao.click();
+            resolve(true);
+          } else if (++tentativas > 20) {
+            resolve(false);
+          } else {
+            setTimeout(tentar, 25);
+          }
+        };
+        tentar();
+      });
     `);
   }
 
@@ -224,6 +253,15 @@ export class Page {
     });
   }
 }
+
+/**
+ * Trecho de JS (para dentro de um \`page.evaluate\`) que devolve as fases para
+ * onde dá para ir agora — "BP", "M2", "EP". O botão de fase do Master Duel
+ * só abre um menu; os laços dos testes juntam estes rótulos à lista de botões
+ * e o \`clickAction\` abre o menu e clica a opção.
+ */
+export const FASES_DISPONIVEIS =
+  `(document.querySelector("[data-phase-button]:not(:disabled)")?.dataset.phaseOptions?.split(" ").filter(Boolean) ?? [])`;
 
 export async function openPage(port) {
   const response = await fetch(`http://127.0.0.1:${port}/json/new?about:blank`, { method: "PUT" });

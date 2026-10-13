@@ -24,7 +24,7 @@ import { join } from "node:path";
 
 import { OcgLocation } from "@n1xx1/ocgcore-wasm";
 
-import { launchChrome, openPage } from "./browser.mjs";
+import { FASES_DISPONIVEIS, launchChrome, openPage } from "./browser.mjs";
 import { REPO } from "./env.mjs";
 
 const BASE = process.env.APP_URL ?? "http://127.0.0.1:3000";
@@ -89,7 +89,7 @@ const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 /** Tudo o que a tela oferece agora, para decidir o próximo clique. */
 const LER = `
   const visivel = (el) => el && el.offsetParent !== null;
-  const botoes = [...document.querySelectorAll("button")].filter((b) => visivel(b) && !b.disabled).map((b) => b.innerText.trim()).filter(Boolean);
+  const botoes = [...document.querySelectorAll("button")].filter((b) => visivel(b) && !b.disabled).map((b) => b.innerText.trim()).filter(Boolean).concat(${FASES_DISPONIVEIS});
   const zona = (k) => document.querySelector('[data-zone="' + k + '"]');
   const nomeEm = (k) => zona(k)?.querySelector("img")?.alt ?? null;
   const campo = {};
