@@ -32,7 +32,7 @@ export const TIPS: DuelTip[] = [
   {
     id: "corrente",
     text:
-      "Você pode responder ao que acabou de acontecer. No modo Automático (⛓ na trilha de fases) o jogo só pergunta nos momentos que importam; segure Ctrl para ser perguntado em toda janela.",
+      "Você pode responder ao que acabou de acontecer: as cartas que brilham respondem — clique numa, ou em \"Não responder\" na barra. No modo Automático (⛓ na trilha de fases) o jogo só pergunta nos momentos que importam; segure Ctrl para ser perguntado em toda janela.",
     when: (ctx) => ctx.chainWindow,
   },
   {
@@ -44,7 +44,7 @@ export const TIPS: DuelTip[] = [
   {
     id: "selecao",
     text:
-      "Escolha as cartas que brilham em ciano e confirme na barra. Quando é uma carta só, clicar de novo nela já confirma.",
+      "Escolha as cartas que brilham em azul e confirme na barra. Quando é uma carta só, clicar de novo nela já confirma.",
     when: (ctx) => ctx.inlineSelection,
   },
   {
@@ -56,7 +56,7 @@ export const TIPS: DuelTip[] = [
   {
     id: "jogar",
     text:
-      "As cartas que brilham em dourado têm jogada: clique numa para ver o que dá para fazer (Invocar, Baixar, Ativar). Para avançar de fase, use BP, M2 ou EP na trilha.",
+      "As cartas que brilham em amarelo têm jogada: clique numa para ver o que dá para fazer (Invocar, Baixar, Ativar). Para avançar de fase, use BP, M2 ou EP na trilha.",
     when: (ctx) => ctx.canPlay,
   },
   {

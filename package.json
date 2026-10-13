@@ -50,6 +50,7 @@
     "test:bot": "node --import ./tools/harness/ts-loader-register.mjs tools/harness/test-bot.mjs",
     "test:presets": "node --import ./tools/harness/ts-loader-register.mjs tools/harness/test-preset-decks.mjs",
     "test:sort-card": "node --import ./tools/harness/ts-loader-register.mjs tools/harness/test-sort-card.mjs",
+    "test:zone-first": "node --import ./tools/harness/ts-loader-register.mjs tools/harness/test-zone-first.mjs",
     "test:token-images": "node --import ./tools/harness/ts-loader-register.mjs tools/harness/test-token-images.mjs",
     "test:chain-mode": "node --import ./tools/harness/ts-loader-register.mjs tools/harness/test-chain-mode.mjs",
     "test:duel-log": "node --import ./tools/harness/ts-loader-register.mjs tools/harness/test-duel-log.mjs",

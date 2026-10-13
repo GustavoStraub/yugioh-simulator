@@ -12,7 +12,7 @@ import {
 
 import { useCardRegistry } from "@/context/CardRegistryProvider";
 import { useCardText } from "@/hooks/useCardText";
-import { useDuelFeedback, type DuelFlash } from "@/hooks/useDuelFeedback";
+import { prefersReducedMotion, useDuelFeedback, type DuelFlash } from "@/hooks/useDuelFeedback";
 import { NARROW_TABLE_QUERY, useMediaQuery } from "@/hooks/useMediaQuery";
 import { useTips } from "@/hooks/useTips";
 import { nextTip } from "@/lib/duel/tips";
@@ -46,6 +46,7 @@ import {
   type OfficialCardDb,
 } from "@/lib/duel/official-card-data";
 import { linkedZones } from "@/lib/duel/link-geometry";
+import { placeResponseFor, zonesBeforeCommand } from "@/lib/duel/zone-first";
 import { localizeLogText } from "@/lib/duel/log-names";
 import { cardMarks, slotChips, type CardMark } from "@/lib/duel/card-marks";
 import type {
@@ -321,6 +322,26 @@ export function DuelBoard({
     });
   }
   const [menuFor, setMenuFor] = useState<string | null>(null);
+  /**
+   * Jogada esperando a zona — "Invocar" escolhido, zona ainda não. Nada foi
+   * enviado ao core: "Cancelar" (ou Esc) só fecha. Ver `zone-first.ts`.
+   */
+  const [zonaAntes, setZonaAntes] = useState<{
+    action: CardAction;
+    key: string;
+    zones: SelectFieldPlace[];
+  } | null>(null);
+  /**
+   * A zona já escolhida para a jogada enviada: quando o core perguntar a zona
+   * (o próximo prompt), a resposta é esta. `antes` é o prompt em que a jogada
+   * foi feita — a resposta vale para o PRÓXIMO. Consumida uma vez só (ver
+   * `zonaConsumida`); depois fica inerte até a próxima escolha.
+   */
+  const [zonaEscolhida, setZonaEscolhida] = useState<{
+    zona: SelectFieldPlace;
+    antes: number;
+  } | null>(null);
+  const zonaConsumida = useRef<object | null>(null);
   const [picked, setPicked] = useState<number[]>([]);
   /** Painel do próprio deck, de onde se desiste. */
   const [deckAberto, setDeckAberto] = useState(false);
@@ -421,12 +442,36 @@ export function DuelBoard({
     [prompt, engineStrings],
   );
 
+  // A zona escolhida antes do comando responde a pergunta de zona do core.
+  // É consumida no PRIMEIRO prompt deste assento depois do comando: se ele
+  // não for a pergunta de zona (ou não oferecer a zona escolhida), a escolha
+  // é descartada e o jogador escolhe como sempre — ela nunca responde outra
+  // pergunta por engano.
+  useEffect(() => {
+    const escolha = zonaEscolhida;
+    if (!escolha || zonaConsumida.current === escolha) return;
+    // Pelo `promptId`, e não pela identidade do objeto: no online cada
+    // mensagem do servidor traz um prompt novo, mesmo sendo a mesma pergunta.
+    if (
+      !prompt ||
+      snapshot.promptId === escolha.antes ||
+      snapshot.promptPlayer !== me ||
+      snapshot.isProcessing
+    )
+      return;
+    zonaConsumida.current = escolha;
+    const resposta =
+      plan && plan.places.length > 0 ? placeResponseFor(plan.places, escolha.zona) : null;
+    if (resposta) onRespond(resposta);
+  }, [zonaEscolhida, prompt, plan, snapshot.promptId, snapshot.promptPlayer, snapshot.isProcessing, me, onRespond]);
+
   // Um prompt novo zera seleção/menu do anterior. Ajustar durante o render (em
   // vez de num efeito) evita exibir por um frame o menu do prompt antigo.
   const [lastPrompt, setLastPrompt] = useState(prompt);
   if (prompt !== lastPrompt) {
     setLastPrompt(prompt);
     setMenuFor(null);
+    setZonaAntes(null);
     setPicked([]);
     setModalEspiado(false);
     setOutrasAbertas(false);
@@ -658,8 +703,75 @@ export function DuelBoard({
     });
   }
 
+  /**
+   * Uma jogada escolhida no menu da carta. Se a zona pode ser escolhida antes
+   * do comando (ver `zone-first.ts`), abre a escolha — sem falar com o core,
+   * para que "Cancelar" ainda seja possível; senão, vai direto.
+   */
+  function escolherJogada(action: CardAction, key: string) {
+    const definition = registry?.get(action.code);
+    const zonas = definition
+      ? zonesBeforeCommand(
+          {
+            label: action.label,
+            detail: action.detail,
+            response: action.response,
+            location: action.location,
+            level: definition.level ?? null,
+            kind: /monster/i.test(definition.type)
+              ? "monster"
+              : /spell/i.test(definition.type)
+                ? "spell"
+                : /trap/i.test(definition.type)
+                  ? "trap"
+                  : "other",
+            isFieldSpell: /spell/i.test(definition.type) && definition.race === "Field",
+            isPendulum: definition.frameType.includes("pendulum"),
+          },
+          { seat: me, monsters: you.monsters, spells: you.spells, isDisabled: isDisabledZone },
+        )
+      : null;
+    if (!zonas) {
+      respond(action.response);
+      return;
+    }
+    playSfx("click");
+    setMenuFor(null);
+    setZonaAntes({ action, key, zones: zonas });
+  }
+
+  /** A zona escolhida: agora sim o comando vai ao core. */
+  function confirmarZona(zona: SelectFieldPlace) {
+    if (!zonaAntes) return;
+    setZonaEscolhida({ zona, antes: snapshot.promptId });
+    const { action } = zonaAntes;
+    setZonaAntes(null);
+    respond(action.response);
+  }
+
   const slotProps: SlotPropsFn = (card, zone) => {
     const key = cardKey(zone.player, zone.location, zone.sequence);
+    // Escolhendo a zona de uma jogada: só as zonas candidatas respondem ao
+    // clique — o resto da mesa espera (Esc ou "Cancelar" desistem).
+    if (zonaAntes) {
+      const candidata =
+        !card &&
+        zonaAntes.zones.some(
+          (z) => z.player === zone.player && z.location === zone.location && z.sequence === zone.sequence,
+        );
+      const origem = key === zonaAntes.key;
+      return {
+        // Só as zonas brilham (são o que se clica); a carta que vai para a
+        // zona fica marcada, sem parecer jogada.
+        highlighted: candidata,
+        intent: "place" as const,
+        selected: origem,
+        onClick: candidata ? () => confirmarZona(zone) : undefined,
+        menu: null,
+        onChoose: () => {},
+        onCloseMenu: () => {},
+      };
+    }
     const placeResponse = placeByKey.get(key);
     const placeSelectionIndex = placeSelectionKeys.get(key) ?? -1;
     const hasActions = card ? actionableKeys.has(key) : false;
@@ -732,7 +844,7 @@ export function DuelBoard({
           }
         : undefined,
       menu: menuFor === key ? (plan?.byCard.get(key) ?? null) : null,
-      onChoose: (action: CardAction) => respond(action.response),
+      onChoose: (action: CardAction) => escolherJogada(action, key),
       onCloseMenu: () => setMenuFor(null),
     };
   };
@@ -919,7 +1031,8 @@ export function DuelBoard({
 
     if (event.key === "Escape") {
       // Primeiro o que é consulta (fecha), depois a decisão (esconde/mostra).
-      if (menuFor) setMenuFor(null);
+      if (zonaAntes) setZonaAntes(null);
+      else if (menuFor) setMenuFor(null);
       else if (folhaAberta) setFolhaAberta(false);
       else if (historicoAberto) setHistoricoAberto(false);
       else if (openPile) setOpenPile(null);
@@ -1054,9 +1167,79 @@ export function DuelBoard({
       ? ultimaPilha.cards
       : pileCards;
 
+  /**
+   * "Aguardando Fulano…" / "Fulano está jogando…". Mora debaixo da placa do
+   * oponente, junto da luz de quem decide — em cima do campo ele tapava a mão
+   * do oponente. Na mesa estreita, logo abaixo dessa mão.
+   */
+  const avisoDeEspera = waitingForFoe
+    ? `Aguardando ${opponentName}…`
+    : foeIsPlaying
+      ? `${opponentName} está jogando…`
+      : null;
+
+  /** As placas de LP e o que vai junto delas (marcas do jogador, avisos de dano). */
+  const placaMinha = (
+    <>
+      <LifeBar
+        name={playerName}
+        role={spectating ? "Bot" : "Você"}
+        lp={snapshot.lifePoints[me]}
+        active={snapshot.turnPlayer === me}
+        mine={!spectating}
+        acting={minhaPergunta}
+      />
+      <PlayerHints hints={snapshot.playerHints[me]} up={!estreita} />
+      <FlashLayer flashes={flashes} anchor="player" up={!estreita} />
+    </>
+  );
+  const placaDoOponente = (
+    <>
+      <LifeBar
+        name={opponentName}
+        role="Oponente"
+        lp={snapshot.lifePoints[foeSeat]}
+        active={snapshot.turnPlayer === foeSeat}
+        align="right"
+        acting={waitingForFoe || foeIsPlaying}
+      />
+      <PlayerHints hints={snapshot.playerHints[foeSeat]} align="right" />
+      <FlashLayer flashes={flashes} anchor="opponent" />
+    </>
+  );
+  /** Engrenagem, som e — na mesa larga — o registro do duelo. */
+  const controlesDaMesa = (
+    <>
+      {!estreita && (
+        <button
+          type="button"
+          data-table-control
+          data-open-log
+          aria-expanded={historicoAberto}
+          onClick={() => setHistoricoAberto((aberto) => !aberto)}
+          title="Registro do duelo — tudo o que aconteceu até aqui"
+          className={`tf-panel rounded-md px-2.5 py-1.5 text-[12px] font-bold leading-none transition hover:brightness-125 ${
+            historicoAberto ? "text-white ring-1 ring-[color:var(--tf-gold)]" : "text-[color:var(--tf-gold-bright)]"
+          }`}
+        >
+          📜 Registro
+        </button>
+      )}
+      {onPrefsChange && (
+        <DuelSettings
+          prefs={prefs}
+          onChange={onPrefsChange}
+          pacing={pacing}
+          tips={spectating ? undefined : { on: !dicas.tips.off, onToggle: (on) => dicas.setOff(!on), onReset: dicas.reset }}
+        />
+      )}
+      <SoundControl />
+    </>
+  );
+
   return (
     <div
-      className="tf-playmat relative flex min-h-0 flex-1 flex-col overflow-hidden"
+      className="tf-playmat md-duel relative flex min-h-0 flex-1 flex-col overflow-hidden"
       // Estado do motor para quem observa a mesa de fora (os testes de
       // navegador): o turno do bot é ritmado — cada ataque espera a investida
       // inteira —, e sem isto um turno longo dele parecia "nada clicável, mesa
@@ -1064,67 +1247,44 @@ export function DuelBoard({
       data-processing={snapshot.isProcessing ? "1" : undefined}
       data-waiting-foe={waitingForFoe ? "1" : undefined}
     >
-      {/* ---------------- LP nos cantos, estilo Tag Force ---------------- */}
-      <div className="flex shrink-0 items-stretch gap-2 px-2 pt-1.5">
-        <div className="relative flex min-w-0 flex-1">
-          <LifeBar
-            name={playerName}
-            role={spectating ? "Bot" : "Você"}
-            lp={snapshot.lifePoints[me]}
-            active={snapshot.turnPlayer === me}
-            mine={!spectating}
-          />
-          <PlayerHints hints={snapshot.playerHints[me]} />
-          <FlashLayer flashes={flashes} anchor="player" />
+      {/* Mesa estreita (sem trilhos): as placas de LP numa faixa no topo. Na
+          mesa larga elas moram nos cantos, como no Master Duel — a sua
+          embaixo à esquerda, a do oponente em cima à direita. */}
+      {estreita && (
+        <div className="flex shrink-0 items-stretch gap-2 px-2 pt-1.5">
+          <div className="relative flex min-w-0 flex-1">{placaMinha}</div>
+          <div className="relative flex min-w-0 flex-1">{placaDoOponente}</div>
+          {controlesDaMesa}
         </div>
-        <div className="relative flex min-w-0 flex-1">
-          <LifeBar
-            name={opponentName}
-            role="Oponente"
-            lp={snapshot.lifePoints[foeSeat]}
-            active={snapshot.turnPlayer === foeSeat}
-            align="right"
-          />
-          <PlayerHints hints={snapshot.playerHints[foeSeat]} align="right" />
-          <FlashLayer flashes={flashes} anchor="opponent" />
-        </div>
-        {onPrefsChange && (
-          <DuelSettings
-            prefs={prefs}
-            onChange={onPrefsChange}
-            pacing={pacing}
-            tips={spectating ? undefined : { on: !dicas.tips.off, onToggle: (on) => dicas.setOff(!on), onReset: dicas.reset }}
-          />
-        )}
-        <SoundControl />
-      </div>
+      )}
 
       <div className="relative flex min-h-0 flex-1 overflow-hidden">
         {/*
-          Leitura da carta à esquerda, histórico à direita.
-          As cartas do tabuleiro têm proporção fixa e crescem a partir da
-          ALTURA da fileira, então numa tela 16:9 sobra largura de qualquer
-          jeito — apertar as colunas laterais não aumentaria carta nenhuma.
-          Por isso a sobra vira leitura de carta, que é o que se consulta
-          antes de cada jogada, e o histórico ganha coluna própria em vez de
-          disputar altura com ela.
+          Leitura da carta à esquerda (o painel de detalhes do Master Duel),
+          com a corrente em cima e a sua placa de LP embaixo; à direita, a
+          placa do oponente, as fases e os botões da mesa. O histórico virou
+          gaveta (o "Registro do duelo" do MD): a coluna que ele ocupava
+          voltou para o campo, que é o que cresce — as cartas são limitadas
+          também pela largura (ver `CARD_SHAPE`).
         */}
         {!estreita && (
-          <aside className="flex w-[var(--tf-rail-left)] shrink-0 flex-col overflow-hidden p-2">
+          <aside className="flex w-[var(--tf-rail-left)] shrink-0 flex-col gap-2 overflow-hidden p-2">
             <ChainStack links={snapshot.chainLinks ?? []} me={me} registry={registry} />
             <CardPreview
               card={cartaEmLeitura}
               registry={registry}
               marksOf={marksOf}
               activation={ativacaoEmLeitura}
+              viewer={me}
             />
+            <div className="relative flex shrink-0">{placaMinha}</div>
           </aside>
         )}
 
         {/* -------- campo -------- */}
         <div
           ref={fieldRef}
-          className={`relative flex min-h-0 min-w-0 flex-1 flex-col gap-1 p-1.5 ${
+          className={`md-field relative flex min-h-0 min-w-0 flex-1 flex-col gap-1 p-1.5 ${
             shake !== null ? "tf-shake" : ""
           }`}
           // Teto das cartas pela LARGURA do campo (ver `CARD_SHAPE`): uma
@@ -1134,10 +1294,11 @@ export function DuelBoard({
           // as duas, no Goat em 1440×900 (fileiras mais altas, logo cartas
           // mais largas) a pilha de banidas caía sobre os botões BP/M2 da
           // trilha de fases. `cqw` é a largura deste contêiner.
-          style={{
-            containerType: "inline-size",
-            ["--tf-card-max-h" as string]: "calc((100cqw - 64px) / 8.3 * 86 / 59)",
-          }}
+          // O teto mora no CSS (`.md-field`): com a mesa deitada, as fileiras
+          // de longe encolhem e a conta muda — e em tela baixa (mesa plana)
+          // volta a ser a de antes.
+          style={{ containerType: "inline-size" }}
+          data-field
         >
           {/* Clarão no lado atingido. */}
           {shake !== null && (
@@ -1179,11 +1340,7 @@ export function DuelBoard({
             </div>
           )}
 
-          {waitingForFoe ? (
-            <WaitingBanner text={`Aguardando ${opponentName}…`} />
-          ) : (
-            foeIsPlaying && <WaitingBanner text={`${opponentName} está jogando…`} />
-          )}
+          {estreita && avisoDeEspera && <WaitingBanner text={avisoDeEspera} place="field" />}
           <AttackFlightLayer flight={flight} fieldRef={fieldRef} />
           <LeaveFlightLayer leaves={leaves} fieldRef={fieldRef} registry={registry} me={me} />
           <ChainSpotlight
@@ -1210,7 +1367,15 @@ export function DuelBoard({
             onLongPress={onLongPress}
           />
 
-          <div className="flex min-h-0 flex-1 flex-col justify-center gap-1.5">
+          {/* A câmera do Master Duel: a mesa vista de trás e de cima do
+              jogador, deitada em perspectiva — o campo do oponente fica mais
+              longe e menor, o seu mais perto. Só as quatro fileiras (e as
+              Zonas Extra) entram no plano inclinado; mãos, avisos, voos e
+              diálogos ficam em pé, na tela. As animações de voo leem a caixa
+              de cada zona com `getBoundingClientRect`, que já devolve a
+              posição projetada — continuam acertando o lugar certo. */}
+          <div data-board-camera className="md-camera flex min-h-0 flex-1 flex-col">
+          <div data-board3d className="md-board flex min-h-0 flex-1 flex-col justify-center gap-1.5">
             {/* Oponente — espelhado e de cabeça para baixo. */}
             <FieldRow
               cards={foe.spells}
@@ -1368,8 +1533,55 @@ export function DuelBoard({
               {...shared}
             />
           </div>
+          </div>
 
           <Hand cards={you.hand} seat={me} {...shared} />
+
+          {/* Janela de resposta na corrente, sem popup (Master Duel): as cartas
+              que respondem brilham, e a barra diz a quê e oferece passar. */}
+          {plan &&
+            prompt?.type === OcgMessageType.SELECT_CHAIN &&
+            snapshot.promptPlayer === me &&
+            !busy && (
+              <ChainResponseBar
+                plan={plan}
+                chain={snapshot.chain}
+                registry={registry}
+                me={me}
+                onRespond={respond}
+                onHover={showPreview}
+              />
+            )}
+
+          {/* Escolhendo a zona de uma jogada (ver `zone-first.ts`): nada foi
+              enviado ao core ainda, então "Cancelar" de fato desiste. */}
+          {zonaAntes && (
+            <div className="pointer-events-none absolute inset-x-0 bottom-[19%] z-40 flex justify-center">
+              <div
+                data-zone-first
+                className="md-prompt-bar pointer-events-auto flex items-center gap-3 rounded-full px-4 py-2"
+              >
+                <span className="text-[13px] text-zinc-100">
+                  {(() => {
+                    const definition = registry?.get(zonaAntes.action.code);
+                    const nome = definition ? texto.name(definition) : "a carta";
+                    return `${zonaAntes.action.label}: escolha a zona para ${nome}`;
+                  })()}
+                </span>
+                <button
+                  type="button"
+                  data-cancel-zone-first
+                  onClick={() => {
+                    playSfx("click");
+                    setZonaAntes(null);
+                  }}
+                  className="rounded-full border border-[color:var(--tf-slot-border)] px-4 py-1.5 text-[13px] text-[color:var(--tf-gold-bright)] hover:bg-black/50"
+                >
+                  Cancelar <span className="opacity-60">(Esc)</span>
+                </button>
+              </div>
+            </div>
+          )}
 
           {/* Barra flutuante da seleção múltipla: fica sobre o campo, centrada,
               porque o jogador precisa continuar vendo as cartas que marca. */}
@@ -1429,20 +1641,37 @@ export function DuelBoard({
           </div>
         )}
 
-        {/* -------- fases e histórico, no trilho direito --------
+        {/* -------- trilho direito: placa do oponente e fases --------
             A trilha de fases é o que o jogador consulta antes de cada jogada
-            ("ainda estou na Main 1?") e o botão que a avança. Entre as Zonas
-            Extra ela tinha a largura de uma carta e não se lia; aqui é uma
-            coluna compacta à direita do campo, antes do histórico, sem
-            roubar largura dele. (Uma barra da altura inteira do campo foi
-            testada e ficou pior — botões soltos demais para a leitura.) */}
-        <aside className="flex w-[var(--tf-rail-right)] shrink-0 gap-2 overflow-hidden p-2">
+            ("ainda estou na Main 1?") e o botão que a avança. No MD ela é o
+            botão de fase à direita do campo; aqui as transições ficam todas à
+            vista (um clique, e não "abrir o menu de fases e escolher"). Em
+            cima, a placa de LP do oponente — o canto de cima à direita do MD. */}
+        <aside
+          className={`flex w-[var(--tf-rail-right)] shrink-0 gap-2 overflow-hidden p-2 ${
+            estreita ? "" : "flex-col"
+          }`}
+        >
+          {!estreita && (
+            <>
+              <div className="flex shrink-0 items-center justify-end gap-1.5">{controlesDaMesa}</div>
+              <div className="relative flex shrink-0">{placaDoOponente}</div>
+              {/* Altura reservada: o aviso entra e sai a cada jogada do
+                  oponente, e sem a reserva as fases pulavam junto. */}
+              <div className="flex h-6 shrink-0 justify-end">
+                {avisoDeEspera && <WaitingBanner text={avisoDeEspera} place="rail" />}
+              </div>
+            </>
+          )}
+          <div className={`flex min-h-0 ${estreita ? "" : "flex-1 justify-center"}`}>
           <PhaseTrack
             phase={snapshot.phase}
             turn={snapshot.turnCount}
             mine={snapshot.turnPlayer === me}
             actions={plan?.global ?? []}
-            disabled={busy}
+            // Escolhendo a zona de uma jogada, a fase não anda: primeiro
+            // termina (ou cancela) a jogada.
+            disabled={busy || zonaAntes !== null}
             onRespond={respond}
             chainMode={onPrefsChange && !spectating ? prefs.chainMode : null}
             forcing={ctrlHeld}
@@ -1472,19 +1701,31 @@ export function DuelBoard({
               ) : null
             }
           />
-          {estreita ? null : (
-            <div className="flex min-w-0 flex-1 flex-col">
-              <DuelLog
-                entries={snapshot.log}
-                reveals={minhasRevelacoes}
-                onOpenReveals={() => setRevelacoesAbertas(true)}
-                me={me}
-                onHover={showPreview}
-                registry={registry}
-              />
-            </div>
-          )}
+          </div>
         </aside>
+
+        {/* Registro do duelo, em gaveta ao lado do trilho direito — o "Duel
+            Log" do Master Duel, que fica a um botão de distância em vez de
+            ocupar uma coluna da mesa o tempo todo. Fica MONTADO fechado: o
+            que se lê dele (testes, leitores de tela) continua lá, e abrir não
+            perde a rolagem. Sem pano escuro: dá para jogar com ele aberto. */}
+        {!estreita && (
+          <div
+            data-log-drawer
+            hidden={!historicoAberto}
+            className="md-log-drawer absolute bottom-2 top-2 z-[45] flex w-[min(340px,40vw)] flex-col"
+            style={{ right: "var(--tf-rail-right)" }}
+          >
+            <DuelLog
+              entries={snapshot.log}
+              reveals={minhasRevelacoes}
+              onOpenReveals={() => setRevelacoesAbertas(true)}
+              me={me}
+              onHover={showPreview}
+              registry={registry}
+            />
+          </div>
+        )}
 
         {/* Mesa estreita: o histórico e a leitura em painéis que se abrem —
             sem os trilhos, a largura inteira fica para as cartas. Os botões
@@ -1545,6 +1786,7 @@ export function DuelBoard({
                 registry={registry}
                 marksOf={marksOf}
                 activation={ativacaoEmLeitura}
+                viewer={me}
               />
             </div>
           </div>
@@ -1937,6 +2179,18 @@ function FieldSpellSlot({
   );
 }
 
+/**
+ * O passo entre as cartas de uma mão: o vão normal enquanto cabe; quando não
+ * cabe, a sobreposição exata para a fileira caber na largura — em `cqw`/`cqh`
+ * da própria mão (ela é contêiner de tamanho, ver `.md-hand`). A carta tem a
+ * altura da mão, então a largura dela é 59/86 = 68,6% dessa altura. O piso
+ * (-52cqh) deixa sempre uma tira de cada carta à mostra para clicar.
+ */
+function passoDaMao(n: number, vao: string): string {
+  if (n <= 1) return vao;
+  return `max(-52cqh, min(${vao}, calc((100cqw - 24px - ${n} * 68.6cqh) / ${n - 1})))`;
+}
+
 function Hand({
   cards,
   seat,
@@ -1948,16 +2202,28 @@ function Hand({
   cards: BoardCard[];
   seat: 0 | 1;
 }) {
+  // A mão do Master Duel: cartas grandes, soltas sobre a borda de baixo da
+  // mesa, sem caixa em volta — e encavaladas quando passam de seis, em vez de
+  // encolher (encolher de novo era a mão de 100 px que não deixava ler a arte).
+  // O passo é medido em `cqh` (altura da própria mão): a carta tem a altura
+  // dela, então a sobreposição acompanha o tamanho em qualquer tela.
+  const passo = passoDaMao(cards.length, "1.5cqh");
   return (
     <div
       // Índice ABSOLUTO — ver o comentário no `dataPile` da fileira acima.
       data-hand={seat}
       // Tela baixa (celular deitado): a mão encolhe para sobrar fileira de
       // campo — com 104 px fixos as cartas da mesa ficavam com 24 px.
-      className="tf-panel flex h-[15%] min-h-[104px] shrink-0 items-center justify-center gap-1 rounded-md px-3 py-1.5 [@media(max-height:500px)]:min-h-[64px] [@media(max-height:500px)]:py-1"
+      className="md-hand z-10 flex h-[17%] min-h-[104px] shrink-0 items-end justify-center px-3 pb-1 [@media(max-height:500px)]:min-h-[60px] [@media(max-height:500px)]:pb-0.5"
+      style={{
+        ["--md-hand-step" as string]: passo,
+        // Sem o teto de largura do campo: na mão as cartas encavalam em vez
+        // de encolher, então só a altura da mão manda.
+        ["--tf-card-max-h" as string]: "100%",
+      }}
     >
       {cards.length === 0 ? (
-        <span className="text-[13px] text-zinc-500">Mão vazia</span>
+        <span className="self-center text-[13px] text-zinc-500">Mão vazia</span>
       ) : (
         cards.map((card) => (
           <DuelCardSlot
@@ -2383,49 +2649,47 @@ function OpponentHand({
   onLongPress?: (card: BoardCard) => void;
 }) {
   const revelada = cards.some((card) => card.code !== null);
+  // Como a mão do Master Duel: versos encavalados no alto da mesa, sem caixa
+  // em volta. Passa de seis e as cartas se sobrepõem mais, em vez de
+  // empurrar a contagem para fora.
+  const passo = passoDaMao(cards.length, "4cqh");
 
   return (
     <div
       data-hand={seat}
-      className={`tf-panel flex shrink-0 items-center justify-center gap-1 rounded-md px-3 py-1 ${
-        revelada ? "h-[96px] [@media(max-height:500px)]:h-[64px]" : "h-[56px] [@media(max-height:500px)]:h-[36px]"
+      className={`md-hand z-10 flex shrink-0 items-start justify-center gap-0 px-3 ${
+        // Do tamanho de uma carta de verdade, e não de um ícone: 48 px
+        // ficavam miúdos perto da mão de baixo e do campo.
+        revelada
+          ? "h-[clamp(80px,12vh,120px)] [@media(max-height:500px)]:h-[64px]"
+          : "h-[clamp(56px,9vh,84px)] [@media(max-height:500px)]:h-[32px]"
       }`}
+      style={{ ["--md-hand-step" as string]: passo, ["--tf-card-max-h" as string]: "100%" }}
     >
-      <span
-        className={`mr-2 text-[10px] uppercase tracking-wider ${
-          revelada
-            ? "text-[color:var(--tf-gold-bright)]"
-            : "text-[color:var(--tf-gold-dim)]"
-        }`}
-      >
-        Mão do oponente
-        {revelada && (
-          <>
-            <br />
-            <span className="text-[9px] tracking-normal normal-case">
-              👁 revelada
-            </span>
-          </>
-        )}
-      </span>
       {cards.length === 0 ? (
-        <span className="text-[12px] text-zinc-500">vazia</span>
+        <span className="self-center text-[11px] text-zinc-500">Mão do oponente vazia</span>
       ) : (
-        <>
-          {cards.map((card) => (
-            <DuelCardSlot
-              key={card.sequence}
-              card={card}
-              registry={registry}
-              inHand
-              onHover={onHover}
-              onLongPress={onLongPress}
-            />
-          ))}
-          <span className="ml-2 font-mono text-[13px] font-bold text-[color:var(--tf-gold-bright)]">
-            {cards.length}
-          </span>
-        </>
+        cards.map((card) => (
+          <DuelCardSlot
+            key={card.sequence}
+            card={card}
+            registry={registry}
+            inHand
+            onHover={onHover}
+            onLongPress={onLongPress}
+          />
+        ))
+      )}
+      {/* A contagem, sempre — é informação pública e decide jogada. */}
+      {cards.length > 0 && (
+        <span
+          data-hand-count
+          title={revelada ? "Mão do oponente — revelada" : "Cartas na mão do oponente"}
+          className="md-hand-count ml-3 self-center"
+        >
+          {revelada ? "👁 " : "✋ "}
+          {cards.length}
+        </span>
       )}
     </div>
   );
@@ -2512,9 +2776,12 @@ function TossOverlay({
 function FlashLayer({
   flashes,
   anchor,
+  up = false,
 }: {
   flashes: DuelFlash[];
   anchor: DuelFlash["anchor"];
+  /** Junto de uma placa no canto de baixo: o número sobe em vez de descer. */
+  up?: boolean;
 }) {
   const visible = flashes.filter((flash) => flash.anchor === anchor);
   if (visible.length === 0) return null;
@@ -2529,11 +2796,27 @@ function FlashLayer({
         // Fica no centro mesmo — é onde o olho está. Para não esconder o
         // indicador de fase, que passa exatamente ali, quem sobe de camada é
         // a trilha de fases (z-50), e não o aviso que sai de cena em 1 s.
-        centered ? "inset-0 items-center" : "inset-x-0 top-full items-start pt-1"
+        centered
+          ? "inset-0 items-center"
+          : up
+            ? "inset-x-0 bottom-full items-end pb-1"
+            : "inset-x-0 top-full items-start pt-1"
       }`}
     >
-      <div className="flex flex-col items-center gap-1">
-        {visible.map((flash) => (
+      <div className="flex w-full flex-col items-center gap-1">
+        {visible.map((flash) =>
+          flash.band ? (
+            <div
+              key={flash.id}
+              data-turn-band={flash.band}
+              style={{ ["--tf-flash-duration" as string]: `${flash.duration}ms` }}
+              className={`md-turn-band md-turn-band-${flash.band} tf-flash-text w-full select-none py-3 text-center`}
+            >
+              <span className="tf-hud-text font-black italic tracking-[0.18em] text-white text-2xl sm:text-5xl">
+                {flash.text}
+              </span>
+            </div>
+          ) : (
           <span
             key={flash.id}
             style={{ ["--tf-flash-duration" as string]: `${flash.duration}ms` }}
@@ -2551,7 +2834,8 @@ function FlashLayer({
           >
             {flash.text}
           </span>
-        ))}
+          ),
+        )}
       </div>
     </div>
   );
@@ -3096,6 +3380,84 @@ function ChainLinkPanel({
 }
 
 /**
+ * A janela de resposta do Master Duel: sem diálogo por cima da mesa.
+ *
+ * O que pode responder brilha no lugar onde está (mão, campo, pilha) e se
+ * ativa pelo menu da carta, como qualquer jogada; a barra só diz A QUE se
+ * responde (o elo do topo da corrente, que também está na leitura da
+ * esquerda) e oferece passar. O diálogo de antes tapava exatamente o campo
+ * que decide se vale encadear.
+ */
+function ChainResponseBar({
+  plan,
+  chain,
+  registry,
+  me,
+  onRespond,
+  onHover,
+}: {
+  plan: PromptPlan;
+  chain: DuelChainLink | null;
+  registry: CardRegistry | null;
+  me: 0 | 1;
+  onRespond: (response: OcgResponse) => void;
+  onHover: (card: PreviewCard | null) => void;
+}) {
+  const texto = useCardText();
+  const definition = chain ? registry?.get(chain.code) : undefined;
+  const nome = definition ? texto.name(definition) : chain ? `Carta ${chain.code}` : null;
+  const opcoes = [...plan.byCard.values()].reduce((total, acoes) => total + acoes.length, 0);
+  const doOponente = chain ? chain.player !== me : false;
+
+  return (
+    <div className="pointer-events-none absolute inset-x-0 bottom-[19%] z-40 flex justify-center px-2">
+      <div
+        data-chain-response
+        data-menu-avoid
+        className={`md-prompt-bar pointer-events-auto flex max-w-full items-center gap-3 rounded-full py-1.5 pl-2 pr-2 ${
+          doOponente ? "md-prompt-bar-foe" : ""
+        }`}
+      >
+        {chain && definition ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={definition.images[0]?.image_url_small}
+            alt={nome ?? "Carta"}
+            onMouseEnter={() => onHover({ code: chain.code })}
+            className="h-10 w-auto shrink-0 rounded-[3px] shadow-md shadow-black/60"
+          />
+        ) : null}
+        <div className="min-w-0 pl-1">
+          <p className="truncate text-[13px] font-semibold text-white">
+            {chain
+              ? `${chain.playerName} ativou ${nome}`
+              : plan.instruction}
+          </p>
+          <p className="truncate text-[11px] text-[color:var(--md-text-dim)]">
+            {opcoes > 0
+              ? `${opcoes === 1 ? "1 carta pode" : `${opcoes} jogadas podem`} responder — clique na que brilha`
+              : "Responder?"}
+          </p>
+        </div>
+        {plan.global.map((action, index) => (
+          <button
+            key={index}
+            type="button"
+            onClick={() => {
+              playSfx("click");
+              onRespond(action.response);
+            }}
+            className="shrink-0 rounded-full bg-[color:var(--md-blue)] px-4 py-1.5 text-[13px] font-bold text-white transition hover:brightness-110"
+          >
+            {action.label}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/**
  * Barra do modal escondido — o caminho de volta para a decisão.
  *
  * Fica no mesmo lugar da barra de seleção (sobre a mesa, embaixo) e repete o
@@ -3224,7 +3586,12 @@ function SelectionBar({
 
   return (
     <div className="pointer-events-none absolute inset-x-0 bottom-[19%] z-40 flex justify-center">
-      <div className="tf-panel pointer-events-auto flex items-center gap-3 rounded-full px-4 py-2 shadow-xl shadow-black/60">
+      <div
+        data-menu-avoid
+        data-selection-bar
+        // `tf-panel` fica: os testes acham a barra por `.tf-panel.rounded-full`.
+        className="tf-panel md-prompt-bar pointer-events-auto flex items-center gap-3 rounded-full px-4 py-2"
+      >
         <span className="text-[13px] text-zinc-100">{instruction}</span>
         <span className="font-mono text-[13px] text-[color:var(--tf-gold-dim)]">
           {progress}
@@ -3325,15 +3692,21 @@ function PainelDoDeck({
  * Sem ele o duelo online parece travado: o core bloqueia inteiro esperando um
  * jogador, e a tela de quem espera fica idêntica à de um duelo congelado.
  */
-function WaitingBanner({ text }: { text: string }) {
+function WaitingBanner({ text, place }: { text: string; place: "rail" | "field" }) {
+  const aviso = (
+    <span
+      data-waiting-banner
+      className="tf-delayed-in md-waiting max-w-full truncate rounded-full px-3 py-1 text-[10px] font-semibold uppercase tracking-wider"
+    >
+      {text}
+    </span>
+  );
+  if (place === "rail") return aviso;
+  // Mesa estreita: logo abaixo da mão do oponente (a altura dela, ver
+  // `OpponentHand`), nunca por cima.
   return (
-    <div className="pointer-events-none absolute inset-x-0 top-2 z-30 flex justify-center">
-      <span
-        data-waiting-banner
-        className="tf-panel tf-delayed-in rounded-full px-4 py-1 text-[11px] font-semibold uppercase tracking-wider text-[color:var(--tf-gold-dim)]"
-      >
-        {text}
-      </span>
+    <div className="pointer-events-none absolute inset-x-0 top-[calc(clamp(56px,9vh,84px)+10px)] z-30 flex justify-center px-2 [@media(max-height:500px)]:top-[40px]">
+      {aviso}
     </div>
   );
 }
@@ -3495,6 +3868,43 @@ function ResultPeekBar({
   );
 }
 
+/**
+ * O número de LP correndo até o valor novo, como no Master Duel: o dano se lê
+ * no contador descendo, e não num salto de um quadro para o outro. Com
+ * "menos movimento" ligado, salta direto.
+ */
+function useContagem(alvo: number, duracao = 650): number {
+  const [mostrado, setMostrado] = useState(alvo);
+  const deRef = useRef(alvo);
+  useEffect(() => {
+    const de = deRef.current;
+    if (de === alvo) return;
+    // Menos movimento: um quadro só, já no valor final.
+    const total = prefersReducedMotion() ? 0 : duracao;
+    const inicio = performance.now();
+    let quadro = 0;
+    const passo = (agora: number) => {
+      const t = total === 0 ? 1 : Math.min(1, (agora - inicio) / total);
+      // Começa rápido e freia no fim — o último dígito "assenta".
+      const suave = 1 - Math.pow(1 - t, 3);
+      const valor = Math.round(de + (alvo - de) * suave);
+      deRef.current = valor;
+      setMostrado(valor);
+      if (t < 1) quadro = requestAnimationFrame(passo);
+    };
+    quadro = requestAnimationFrame(passo);
+    return () => cancelAnimationFrame(quadro);
+  }, [alvo, duracao]);
+  return mostrado;
+}
+
+/**
+ * Placa de LP do Master Duel: avatar com o anel da cor do lado (azul seu,
+ * vermelho do oponente), nome, "LP" e o número grande correndo.
+ *
+ * Mora nos cantos — a sua embaixo à esquerda, a do oponente em cima à
+ * direita, como no MD — e, na mesa estreita (sem trilhos), numa faixa no topo.
+ */
 function LifeBar({
   name,
   role,
@@ -3502,6 +3912,7 @@ function LifeBar({
   active,
   align = "left",
   mine = false,
+  acting = false,
 }: {
   name: string;
   role: string;
@@ -3510,9 +3921,20 @@ function LifeBar({
   align?: "left" | "right";
   /** A barra de quem olha a mesa — muda o texto do selo de vez. */
   mine?: boolean;
+  /**
+   * O jogo está esperando ESTE jogador decidir — a luz de "quem age" do
+   * Master Duel: acende do lado de quem tem a vez de responder, que nem
+   * sempre é o dono do turno (a janela de resposta na corrente).
+   */
+  acting?: boolean;
 }) {
   const ratio = Math.max(0, Math.min(1, lp / 8000));
   const low = ratio <= 0.25;
+  const mostrado = useContagem(lp);
+  // O lado de baixo (quem olha) é azul; o de cima, vermelho — inclusive no
+  // bot × bot, em que "mine" é falso mas a placa de baixo continua sendo a do
+  // assento assistido.
+  const lado = role === "Oponente" ? "foe" : "me";
 
   // Um "bump" curto sempre que o valor muda, para o dano não passar batido.
   const [bump, setBump] = useState(false);
@@ -3526,50 +3948,58 @@ function LifeBar({
   return (
     <div
       data-lp-bar
-      className={`tf-panel flex min-w-0 flex-1 items-center gap-3 rounded-md px-3 py-1 ${
+      data-lp-side={lado}
+      title={name}
+      className={`md-lp md-lp-${lado} relative flex min-w-0 flex-1 items-center gap-2.5 px-2.5 py-1.5 [@media(max-height:500px)]:py-1 ${
         align === "right" ? "flex-row-reverse text-right" : ""
-      } ${active ? "ring-1 ring-[color:var(--tf-gold)]/70" : ""}`}
+      } ${active ? "md-lp-active" : ""}`}
     >
-      <p
-        className={`tf-hud-text shrink-0 font-mono text-2xl font-bold tabular-nums transition-colors ${
-          bump ? "tf-lp-bump" : ""
-        } ${low ? "text-red-300" : "text-[color:var(--tf-gold-bright)]"}`}
-      >
-        {lp}
-      </p>
+      <span aria-hidden className="md-lp-avatar relative shrink-0">
+        {name.trim().charAt(0).toUpperCase() || "?"}
+        {acting && <span data-acting className="md-acting-light" title="Decidindo agora" />}
+      </span>
 
-      <div className={`min-w-0 flex-1 ${align === "right" ? "text-right" : ""}`}>
-        <p className="truncate text-sm font-semibold text-zinc-100">{name}</p>
-        <div className="tf-lp-track mt-0.5 h-1.5 w-full overflow-hidden rounded-full">
+      <div className="min-w-0 flex-1">
+        {/* Em tela baixa (celular deitado) o nome sai: três linhas de placa
+            comiam a altura das fileiras do campo, e o avatar com a inicial
+            já diz de quem é. O nome continua no `title`. */}
+        <p className="min-w-0 truncate text-[12px] font-semibold text-[color:var(--md-text)] [@media(max-height:500px)]:hidden">
+          {name}
+        </p>
+        {/* De quem é a vez, como estado e não como rótulo: uma aba no alto da
+            placa — fora da linha do nome, que no trilho estreito ficava
+            cortado ("Opo…"). No celular a placa tem ~140 px e a aba não
+            cabe: lá a vez fica com o contorno aceso da placa e com o
+            "Turno N" da trilha de fases. */}
+        {active ? (
+          <span
+            data-turn-badge
+            className={`absolute -top-2 rounded-sm px-1.5 py-px text-[9px] font-extrabold uppercase tracking-wider shadow-md shadow-black/60 max-[520px]:hidden ${
+              align === "right" ? "right-14" : "left-14"
+            } ${lado === "me" ? "bg-[color:var(--md-blue)] text-white" : "bg-[color:var(--md-red)] text-white"}`}
+          >
+            {mine ? "Sua vez" : role === "Oponente" ? "Vez do oponente" : "Na vez"}
+          </span>
+        ) : null}
+        <p className={`flex items-baseline gap-1.5 ${align === "right" ? "justify-end" : ""}`}>
+          <span className="text-[11px] font-black italic text-[color:var(--md-text-dim)]">LP</span>
+          <span
+            className={`tf-hud-text inline-block font-mono text-[26px] font-black leading-none tabular-nums [@media(max-height:500px)]:text-[18px] ${
+              bump ? "tf-lp-bump" : ""
+            } ${low ? "text-red-300" : "text-white"}`}
+          >
+            {mostrado}
+          </span>
+        </p>
+        <div className="md-lp-track mt-1 h-1 w-full overflow-hidden rounded-full [@media(max-height:500px)]:mt-0.5">
           <div
-            className={`h-full rounded-full transition-[width] duration-500 ${
-              low ? "tf-lp-fill-low" : "tf-lp-fill"
+            className={`h-full rounded-full transition-[width] duration-700 ${
+              low ? "tf-lp-fill-low" : lado === "me" ? "md-lp-fill-me" : "md-lp-fill-foe"
             }`}
-            style={{ width: `${ratio * 100}%` }}
+            style={{ width: `${ratio * 100}%`, marginLeft: align === "right" ? "auto" : undefined }}
           />
         </div>
       </div>
-
-      {/* De quem é a vez, como estado e não como rótulo: antes a barra de
-          quem jogava dizia "TURNO" e a outra "Oponente" — dois textos no
-          mesmo lugar, que se liam como dois nomes. */}
-      {active ? (
-        // No celular a barra tem ~140 px: o LP e o selo não cabem juntos, e o
-        // selo vazava por cima da barra do lado. Lá a vez fica com o contorno
-        // dourado da barra e com o "Turno N — Você" da trilha de fases.
-        <span
-          data-turn-badge
-          className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-wider max-[520px]:hidden ${
-            mine ? "bg-[color:var(--tf-gold)] text-black" : "bg-red-600 text-white"
-          }`}
-        >
-          {mine ? "Sua vez" : role === "Oponente" ? "Vez do oponente" : "Na vez"}
-        </span>
-      ) : (
-        <span className="shrink-0 text-[10px] uppercase tracking-[0.2em] text-[color:var(--tf-gold-dim)] max-[520px]:hidden">
-          {role}
-        </span>
-      )}
     </div>
   );
 }
@@ -3734,15 +4164,27 @@ function CardPreview({
   registry,
   marksOf,
   activation = null,
+  viewer,
 }: {
   card: PreviewCard | null;
   registry: CardRegistry | null;
   marksOf: (card: BoardCard | null | undefined) => CardMark[];
   /** Quando a carta está aqui porque acabou de ser ativada (ver `ativacaoLida`). */
   activation?: ActivationHeader | null;
+  /** Quem olha a mesa — decide o fundo azul (sua) ou vermelho (do oponente). */
+  viewer: 0 | 1;
 }) {
   const texto = useCardText();
   const definition = card?.code ? registry?.get(card.code) : undefined;
+  // O fundo da leitura diz de quem é a carta, como no Master Duel: azul a
+  // sua, vermelho a do oponente. Carta sem dono conhecido (lista de busca,
+  // seletor) fica neutra.
+  const dono =
+    card?.controller === undefined || card.controller === null
+      ? "neutral"
+      : card.controller === viewer
+        ? "me"
+        : "foe";
 
   if (!definition) {
     return (
@@ -3786,7 +4228,10 @@ function CardPreview({
       : [];
 
   return (
-    <div className="tf-panel flex min-h-0 flex-1 flex-col gap-2 overflow-hidden rounded-md p-2.5">
+    <div
+      data-preview-owner={dono}
+      className={`tf-panel md-detail md-detail-${dono} flex min-h-0 flex-1 flex-col gap-2 overflow-hidden rounded-md p-2.5`}
+    >
       {activation && <ActivationBanner activation={activation} />}
       {image && (
         // eslint-disable-next-line @next/next/no-img-element
@@ -3958,15 +4403,20 @@ function LinkArrowsGlyph({ markers }: { markers: number }) {
 function PlayerHints({
   hints,
   align = "left",
+  up = false,
 }: {
   hints: string[];
   align?: "left" | "right";
+  /** A placa está no canto de baixo: as marcas sobem em vez de descer. */
+  up?: boolean;
 }) {
   if (hints.length === 0) return null;
   return (
     <div
       data-player-hints={hints.length}
-      className={`pointer-events-none absolute top-full z-40 mt-0.5 flex max-w-full flex-wrap gap-1 ${
+      className={`pointer-events-none absolute z-40 flex max-w-full flex-wrap gap-1 ${
+        up ? "bottom-full mb-0.5" : "top-full mt-0.5"
+      } ${
         align === "right" ? "right-0 justify-end" : "left-0"
       }`}
     >

@@ -38,7 +38,7 @@ body {
      para escurecer só o campo e deixar os dois trilhos intactos. */
   --tf-rail-left: 330px;
   /* Trilho direito = coluna das fases + histórico (ver `PhaseTrack`). */
-  --tf-rail-right: 300px;
+  --tf-rail-right: 236px;
   --tf-rail-phase: 72px;
 }
 
@@ -247,17 +247,17 @@ body {
 @keyframes tf-menu-in {
   0% {
     opacity: 0;
-    transform: translate(-50%, -4px) scale(0.94);
+    transform: translateY(6px) scale(0.94);
   }
   100% {
     opacity: 1;
-    transform: translate(-50%, 0) scale(1);
+    transform: translateY(0) scale(1);
   }
 }
 
 .tf-anim-menu-in {
   animation: tf-menu-in 120ms cubic-bezier(0.2, 0.9, 0.3, 1.1);
-  transform-origin: top center;
+  transform-origin: bottom center;
 }
 
 /* Tremor da mesa quando alguém leva dano. */
@@ -601,4 +601,517 @@ body {
     rgba(220, 38, 38, 0.32) 0 6px,
     transparent 6px 12px
   );
+}
+
+/* ---------------------------------------------------------------------------
+   Master Duel — câmera da mesa e comandos da carta.
+--------------------------------------------------------------------------- */
+
+/* A mesa deitada em perspectiva. A rotação gira em torno da borda de BAIXO:
+   a fileira mais perto do jogador fica do tamanho que o layout calculou e o
+   resto encolhe para longe — nada cresce, e nenhuma zona passa a invadir os
+   trilhos ou sair da janela (o que `test:viewports` mede). */
+.md-camera {
+  perspective: var(--md-perspective, 1800px);
+  perspective-origin: 50% 30%;
+}
+
+.md-board {
+  transform: rotateX(var(--md-tilt, 22deg));
+  transform-origin: 50% 100%;
+}
+
+/*
+ * Teto da carta pela LARGURA do campo (ver `CARD_SHAPE`), em `cqw` do campo.
+ *
+ * Mesa plana: uma fileira tem 7 cartas + 36 px de vãos, e as banidas ficam
+ * penduradas FORA dela dos dois lados (0,62 carta + 4 px cada) — 8,3 cartas.
+ *
+ * Mesa deitada: a fileira de baixo (Extra…Deck) fica no eixo do giro e
+ * mantém o tamanho; as outras encolhem com a distância. A mais larga passa a
+ * ser a sua fileira de monstros com as banidas penduradas à direita — meia
+ * fileira (3,5 cartas) + a pilha (0,62), encolhidas ~10% — e o tapete tem
+ * 14 px de borda de cada lado. Dá ~7,4 cartas; 7,6 deixa folga para a
+ * perspectiva variar com a altura. Era 8,3 nos dois casos, e numa tela
+ * 1440×900 o campo ficava preso pela largura com 200 px de tapete vazio.
+ */
+.md-field {
+  --tf-card-max-h: calc((100cqw - 84px) / 7.6 * 86 / 59);
+}
+
+/* Os comandos ao lado da carta. */
+.md-command {
+  border-radius: 6px;
+  border: 1px solid rgba(110, 200, 255, 0.55);
+  background: linear-gradient(180deg, rgba(14, 30, 58, 0.96), rgba(6, 14, 30, 0.96));
+  color: #eaf6ff;
+  box-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.6),
+    0 6px 16px rgba(0, 0, 0, 0.55),
+    inset 0 1px 0 rgba(170, 225, 255, 0.18);
+  transition:
+    background 100ms ease-out,
+    border-color 100ms ease-out,
+    color 100ms ease-out;
+}
+
+.md-command:hover,
+.md-command:focus-visible {
+  border-color: #8fe3ff;
+  background: linear-gradient(180deg, #2c7fc2, #164f86);
+  color: #ffffff;
+  outline: none;
+}
+
+.md-command-icon {
+  display: flex;
+  height: 22px;
+  width: 22px;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+  background: rgba(110, 200, 255, 0.16);
+  color: #8fe3ff;
+  font-size: 12px;
+  line-height: 1;
+}
+
+.md-command-icon::before {
+  content: attr(data-icon);
+}
+
+.md-command:hover .md-command-icon {
+  background: rgba(255, 255, 255, 0.2);
+  color: #ffffff;
+}
+
+.md-command-detail {
+  color: #9fc8e8;
+}
+
+.md-command:hover .md-command-detail {
+  color: #e2f3ff;
+}
+
+/* Mão do jogador: a altura da mão é a régua (`cqh`) do passo entre cartas. */
+.md-hand {
+  container-type: size;
+}
+
+.md-hand > div + div {
+  margin-left: var(--md-hand-step, 1.5cqh);
+}
+
+/* ---------------------------------------------------------------------------
+   Paleta do Master Duel, só na tela de duelo.
+
+   Os componentes do duelo falam a língua dos tokens `--tf-*` (o tema Tag
+   Force, que o construtor de deck continua usando). Redefinir os tokens no
+   ESCOPO do duelo troca a tela inteira de uma vez — azul-noite com ciano no
+   lugar do azul-petróleo com dourado — sem mexer no construtor e sem
+   reescrever cada `text-[color:var(--tf-gold)]` espalhado pelos componentes.
+   O nome "gold" fica histórico; aqui ele é o acento do MD.
+--------------------------------------------------------------------------- */
+.md-duel {
+  --tf-mat-deep: #02060d;
+  --tf-mat: #081426;
+  --tf-mat-light: #123056;
+  --tf-gold: #4fb6ff;
+  --tf-gold-dim: #5d7fa3;
+  --tf-gold-bright: #d4efff;
+  --tf-slot: rgba(5, 14, 30, 0.28);
+  --tf-slot-border: rgba(110, 190, 255, 0.3);
+  --tf-panel: rgba(5, 11, 24, 0.9);
+
+  /* Cores próprias do MD: o amarelo da jogada disponível, o azul do que é
+     seu e o vermelho do que é do oponente. */
+  --md-yellow: #ffd65a;
+  --md-blue: #3d9dff;
+  --md-red: #ff4d5d;
+  --md-line: rgba(120, 200, 255, 0.42);
+  --md-text: #eaf4ff;
+  --md-text-dim: #8fa8c4;
+}
+
+.md-duel.tf-playmat {
+  background:
+    radial-gradient(ellipse 70% 55% at 50% 52%, rgba(40, 110, 200, 0.22), rgba(0, 0, 0, 0) 70%),
+    radial-gradient(ellipse 120% 90% at 50% 40%, #0c1d36 0%, #060f1f 55%, #02060d 100%);
+}
+
+/* O tapete da mesa, deitado junto com as zonas. */
+.md-duel .md-board {
+  border-radius: 18px;
+  padding: 10px 14px;
+  background:
+    radial-gradient(ellipse 60% 50% at 50% 50%, rgba(80, 160, 255, 0.16), rgba(0, 0, 0, 0) 75%),
+    repeating-linear-gradient(0deg, rgba(120, 190, 255, 0.045) 0 1px, rgba(0, 0, 0, 0) 1px 46px),
+    repeating-linear-gradient(90deg, rgba(120, 190, 255, 0.045) 0 1px, rgba(0, 0, 0, 0) 1px 46px),
+    linear-gradient(180deg, rgba(8, 22, 44, 0.92), rgba(4, 12, 26, 0.94));
+  box-shadow:
+    0 0 0 1px rgba(110, 190, 255, 0.28),
+    0 0 40px rgba(40, 120, 220, 0.18),
+    inset 0 0 60px rgba(0, 0, 0, 0.55);
+}
+
+/* Zona vazia: só o traço luminoso, como as zonas gravadas no tapete do MD. */
+.md-duel .tf-slot {
+  border-color: var(--md-line);
+  box-shadow:
+    inset 0 0 14px rgba(40, 130, 230, 0.12),
+    0 0 6px rgba(60, 150, 255, 0.12);
+}
+
+.md-duel .tf-modal-scrim {
+  background: rgba(1, 5, 12, 0.66);
+}
+
+.md-duel .tf-modal {
+  border: 1px solid rgba(110, 190, 255, 0.5);
+  border-radius: 10px;
+  background: linear-gradient(180deg, rgba(10, 22, 44, 0.97), rgba(4, 10, 22, 0.97));
+  box-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.7),
+    0 0 30px rgba(40, 130, 230, 0.2),
+    0 18px 50px rgba(0, 0, 0, 0.65);
+}
+
+.md-duel .tf-modal-head {
+  border-bottom: 1px solid rgba(110, 190, 255, 0.28);
+  background: linear-gradient(180deg, rgba(70, 160, 255, 0.2), rgba(70, 160, 255, 0));
+}
+
+.md-duel .tf-panel {
+  border-color: rgba(110, 190, 255, 0.26);
+  box-shadow:
+    inset 0 1px 0 rgba(170, 225, 255, 0.1),
+    0 2px 12px rgba(0, 0, 0, 0.5);
+}
+
+.md-duel .tf-hud-text {
+  text-shadow:
+    0 1px 0 rgba(0, 0, 0, 0.9),
+    0 0 12px rgba(80, 170, 255, 0.35);
+}
+
+/* Jogada disponível: o contorno amarelo do MD. */
+@keyframes md-glow-activate {
+  0%, 100% {
+    box-shadow:
+      0 0 0 2px var(--md-yellow),
+      0 0 12px rgba(255, 214, 90, 0.55);
+  }
+  50% {
+    box-shadow:
+      0 0 0 2px var(--md-yellow),
+      0 0 24px rgba(255, 214, 90, 0.95);
+  }
+}
+
+.md-duel .tf-slot-activate {
+  border-color: var(--md-yellow);
+  animation-name: md-glow-activate;
+}
+
+/* Alvo a escolher: o azul do MD. */
+@keyframes md-glow-select {
+  0%, 100% {
+    box-shadow:
+      0 0 0 2px #5cc8ff,
+      0 0 10px rgba(92, 200, 255, 0.55);
+  }
+  50% {
+    box-shadow:
+      0 0 0 2px #5cc8ff,
+      0 0 22px rgba(92, 200, 255, 0.95);
+  }
+}
+
+.md-duel .tf-slot-select {
+  border-color: #5cc8ff;
+  animation-name: md-glow-select;
+}
+
+.md-duel .tf-slot-place {
+  border-color: rgba(120, 210, 255, 0.85);
+  box-shadow:
+    inset 0 0 16px rgba(60, 160, 255, 0.3),
+    0 0 0 1px rgba(120, 210, 255, 0.85);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .md-duel .tf-slot-activate {
+    box-shadow:
+      0 0 0 2px var(--md-yellow),
+      0 0 18px rgba(255, 214, 90, 0.75);
+  }
+
+  .md-duel .tf-slot-select {
+    box-shadow:
+      0 0 0 2px #5cc8ff,
+      0 0 14px rgba(92, 200, 255, 0.7);
+  }
+}
+
+/* ----- Placa de LP (Master Duel) ----------------------------------------- */
+.md-lp {
+  border-radius: 10px;
+  border: 1px solid rgba(110, 190, 255, 0.28);
+  background:
+    linear-gradient(100deg, rgba(14, 30, 58, 0.94), rgba(5, 11, 24, 0.9) 70%);
+  box-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.6),
+    0 6px 18px rgba(0, 0, 0, 0.5),
+    inset 0 1px 0 rgba(170, 225, 255, 0.12);
+  transition:
+    border-color 200ms ease-out,
+    box-shadow 200ms ease-out;
+}
+
+.md-lp-foe {
+  background: linear-gradient(260deg, rgba(48, 14, 26, 0.92), rgba(5, 11, 24, 0.9) 70%);
+  border-color: rgba(255, 110, 130, 0.26);
+}
+
+/* Na vez: a placa acende na cor do lado. */
+.md-lp-me.md-lp-active {
+  border-color: rgba(90, 175, 255, 0.85);
+  box-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.6),
+    0 0 18px rgba(61, 157, 255, 0.45),
+    inset 0 1px 0 rgba(170, 225, 255, 0.2);
+}
+
+.md-lp-foe.md-lp-active {
+  border-color: rgba(255, 95, 115, 0.85);
+  box-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.6),
+    0 0 18px rgba(255, 77, 93, 0.42),
+    inset 0 1px 0 rgba(255, 200, 210, 0.16);
+}
+
+.md-lp-avatar {
+  display: flex;
+  height: 42px;
+  width: 42px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+  font-size: 18px;
+  font-weight: 900;
+  color: #ffffff;
+  background: radial-gradient(circle at 35% 30%, #3f7fc4, #0b2547 75%);
+  box-shadow:
+    0 0 0 2px var(--md-blue),
+    0 0 12px rgba(61, 157, 255, 0.5);
+}
+
+.md-lp-foe .md-lp-avatar {
+  background: radial-gradient(circle at 35% 30%, #c4455a, #470b1a 75%);
+  box-shadow:
+    0 0 0 2px var(--md-red),
+    0 0 12px rgba(255, 77, 93, 0.45);
+}
+
+@media (max-height: 500px), (max-width: 520px) {
+  .md-lp-avatar {
+    height: 28px;
+    width: 28px;
+    font-size: 13px;
+  }
+}
+
+.md-lp-track {
+  background: rgba(0, 0, 0, 0.55);
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.8);
+}
+
+.md-lp-fill-me {
+  background: linear-gradient(90deg, #1f6fd1, #7fd0ff);
+  box-shadow: 0 0 8px rgba(80, 170, 255, 0.6);
+}
+
+.md-lp-fill-foe {
+  background: linear-gradient(270deg, #b3263b, #ff8a98);
+  box-shadow: 0 0 8px rgba(255, 90, 110, 0.55);
+}
+
+/* Gaveta do registro do duelo. */
+.md-log-drawer {
+  border-radius: 10px;
+  border: 1px solid rgba(110, 190, 255, 0.3);
+  background: linear-gradient(180deg, rgba(8, 18, 36, 0.97), rgba(3, 8, 18, 0.97));
+  box-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.7),
+    -12px 0 40px rgba(0, 0, 0, 0.55);
+  padding: 8px;
+}
+
+.md-log-drawer[hidden] {
+  display: none;
+}
+
+.md-hand-count {
+  border-radius: 9999px;
+  border: 1px solid rgba(255, 110, 130, 0.45);
+  background: rgba(30, 6, 14, 0.85);
+  padding: 2px 9px;
+  font-family: var(--font-geist-mono), monospace;
+  font-size: 12px;
+  font-weight: 800;
+  color: #ffd0d6;
+}
+
+/* A mesa se encosta na mão do oponente: deitada, a borda de cima do tapete
+   desce (gira em torno da borda de baixo), e o vão ficava vazio. */
+.md-camera {
+  margin-top: -9vh;
+}
+
+/* Tela baixa (celular deitado): mesa plana. A inclinação achatava as
+   fileiras e a perspectiva encolhia ainda mais as de longe — no TCG (cinco
+   fileiras) a Zona Extra ficava com 28 px de altura, abaixo do que se toca
+   com o dedo. Ali cada pixel de altura vale mais que o efeito 3D. */
+@media (max-height: 500px) {
+  .md-board {
+    --md-tilt: 0deg;
+    padding: 0 8px;
+    gap: 3px;
+  }
+
+  .md-field {
+    --tf-card-max-h: calc((100cqw - 64px) / 8.3 * 86 / 59);
+  }
+
+  .md-camera {
+    margin-top: 0;
+  }
+}
+
+/* Barra de instrução sobre a mesa (escolher zona, alvo, seleção). Com o
+   `.md-duel` na frente para vencer o `.md-duel .tf-panel` quando a barra
+   também é painel (a de seleção). */
+.md-duel .md-prompt-bar {
+  border: 1px solid rgba(110, 190, 255, 0.55);
+  background: linear-gradient(180deg, rgba(14, 32, 62, 0.96), rgba(5, 12, 26, 0.96));
+  box-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.6),
+    0 0 22px rgba(50, 140, 240, 0.3),
+    0 10px 30px rgba(0, 0, 0, 0.55);
+}
+
+/* A resposta a uma ativação do oponente: a barra puxa para o vermelho dele. */
+.md-duel .md-prompt-bar-foe {
+  border-color: rgba(255, 110, 130, 0.6);
+  box-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.6),
+    0 0 22px rgba(255, 77, 93, 0.28),
+    0 10px 30px rgba(0, 0, 0, 0.55);
+}
+
+/* ----- Corrente: azul é seu, vermelho é do oponente (a regra do MD) ------ */
+.md-chain-mine {
+  background: radial-gradient(circle at 35% 30%, #6cc0ff, #1c5fc4 70%);
+  color: #ffffff;
+  box-shadow: 0 0 10px rgba(61, 157, 255, 0.7);
+}
+
+.md-chain-foe {
+  background: radial-gradient(circle at 35% 30%, #ff8a98, #b81c34 70%);
+  color: #ffffff;
+  box-shadow: 0 0 10px rgba(255, 77, 93, 0.65);
+}
+
+.md-duel .tf-spotlight-glow-mine {
+  box-shadow: 0 0 0 3px var(--md-blue), 0 0 44px 10px rgba(61, 157, 255, 0.55);
+}
+
+.md-duel .tf-spotlight-glow-foe {
+  box-shadow: 0 0 0 3px var(--md-red), 0 0 44px 10px rgba(255, 77, 93, 0.5);
+}
+
+/* ----- Leitura da carta: o fundo diz de quem é ---------------------------- */
+.md-duel .md-detail-me {
+  background: linear-gradient(180deg, rgba(16, 44, 86, 0.95), rgba(5, 13, 28, 0.95) 55%);
+  border-color: rgba(90, 170, 255, 0.45);
+}
+
+.md-duel .md-detail-foe {
+  background: linear-gradient(180deg, rgba(86, 18, 34, 0.95), rgba(24, 6, 12, 0.95) 55%);
+  border-color: rgba(255, 110, 130, 0.45);
+}
+
+/* A luz de "quem decide agora", no avatar da placa. */
+@keyframes md-acting {
+  0%, 100% { opacity: 0.55; transform: scale(0.9); }
+  50% { opacity: 1; transform: scale(1.08); }
+}
+
+.md-acting-light {
+  position: absolute;
+  inset: -6px;
+  border-radius: 9999px;
+  border: 2px solid #8fd8ff;
+  box-shadow: 0 0 14px 3px rgba(80, 180, 255, 0.75);
+  animation: md-acting 1.1s ease-in-out infinite;
+  pointer-events: none;
+}
+
+.md-lp-foe .md-acting-light {
+  border-color: #ff9aa6;
+  box-shadow: 0 0 14px 3px rgba(255, 80, 100, 0.7);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .md-acting-light {
+    animation: none;
+  }
+}
+
+/* Faixa de virada de turno: atravessa a mesa na cor de quem joga. */
+.md-turn-band {
+  background: linear-gradient(
+    90deg,
+    rgba(0, 0, 0, 0) 0%,
+    rgba(20, 90, 200, 0.82) 18%,
+    rgba(40, 130, 240, 0.9) 50%,
+    rgba(20, 90, 200, 0.82) 82%,
+    rgba(0, 0, 0, 0) 100%
+  );
+  border-top: 1px solid rgba(150, 215, 255, 0.7);
+  border-bottom: 1px solid rgba(150, 215, 255, 0.7);
+  box-shadow: 0 0 40px rgba(40, 130, 240, 0.45);
+}
+
+.md-turn-band-foe {
+  background: linear-gradient(
+    90deg,
+    rgba(0, 0, 0, 0) 0%,
+    rgba(170, 20, 45, 0.82) 18%,
+    rgba(220, 40, 70, 0.9) 50%,
+    rgba(170, 20, 45, 0.82) 82%,
+    rgba(0, 0, 0, 0) 100%
+  );
+  border-color: rgba(255, 170, 185, 0.7);
+  box-shadow: 0 0 40px rgba(220, 40, 70, 0.45);
+}
+
+/* Carta marcada numa seleção (e a carta que vai para a zona escolhida).
+   Era um `ring-2` do Tailwind, que nunca aparecia: a `box-shadow` da zona
+   (`.tf-slot`, fora de camada) vence qualquer utilitário, que mora numa
+   camada. Aqui é regra própria, por cima do brilho pulsante do candidato. */
+.tf-slot.tf-slot-picked {
+  border-color: #4ade80;
+  animation: none;
+  box-shadow:
+    0 0 0 3px #4ade80,
+    0 0 18px rgba(74, 222, 128, 0.7);
+}
+
+/* "Fulano está jogando…": legenda discreta, na cor do oponente. */
+.md-waiting {
+  border: 1px solid rgba(255, 110, 130, 0.35);
+  background: rgba(30, 6, 14, 0.85);
+  color: #ffc2ca;
 }

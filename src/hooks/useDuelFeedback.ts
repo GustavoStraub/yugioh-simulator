@@ -31,6 +31,11 @@ export interface DuelFlash {
    * oponente é que levou.
    */
   anchor: "center" | "player" | "opponent";
+  /**
+   * A virada de turno vira a faixa do Master Duel atravessando a mesa —
+   * azul no seu turno, vermelha no do oponente — e não um texto solto.
+   */
+  band?: "mine" | "foe";
 }
 
 /** Uma compra a ser animada; `token` muda a cada evento para reanimar. */
@@ -179,11 +184,12 @@ export function useDuelFeedback(
       tone: DuelFlash["tone"],
       duration = 1100,
       anchor: DuelFlash["anchor"] = "center",
+      band?: DuelFlash["band"],
     ) => {
       const id = nextId.current++;
       setFlashes((current) => [
         ...current,
-        { id, text, tone, duration, anchor },
+        { id, text, tone, duration, anchor, band },
       ]);
       // O elemento se remove sozinho ao fim da animação para não acumular.
       setTimeout(() => {
@@ -284,6 +290,8 @@ export function useDuelFeedback(
             event.player === me ? meuTurno : turnoDoOutro,
             "neutral",
             dur(1200),
+            "center",
+            event.player === me ? "mine" : "foe",
           );
           break;
         case "damage":

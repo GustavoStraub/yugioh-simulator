@@ -100,8 +100,8 @@ export function ChainSpotlight({
             negada
               ? "bg-red-700 text-white ring-2 ring-red-400"
               : spotlight.mine
-                ? "bg-[color:var(--tf-gold)] text-black"
-                : "bg-red-600 text-white"
+                ? "md-chain-mine"
+                : "md-chain-foe"
           }`}
         >
           {negada
@@ -124,7 +124,7 @@ export function ChainSpotlight({
               pilha da corrente e no slot da carta. */}
           <span
             className={`absolute -left-3 -top-3 flex h-10 w-10 items-center justify-center rounded-full border-2 border-black/70 text-[18px] font-black shadow-lg ${
-              spotlight.mine ? "bg-[color:var(--tf-gold)] text-black" : "bg-red-600 text-white"
+              spotlight.mine ? "md-chain-mine" : "md-chain-foe"
             }`}
           >
             {spotlight.link}

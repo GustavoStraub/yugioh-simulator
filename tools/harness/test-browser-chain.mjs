@@ -68,7 +68,9 @@ const LER = `
     botoes: [...document.querySelectorAll("button")]
       .filter((b) => !b.disabled && b.offsetParent !== null && !b.closest("header, nav"))
       .map((b) => b.innerText.trim()),
-    log: [...document.querySelectorAll("aside")].at(-1)?.innerText ?? "",
+    // O histórico mora numa gaveta (fechada, mas montada): o texto vem dele
+    // mesmo, e não de "o último trilho", que agora é placa de LP e fases.
+    log: document.querySelector("[data-duel-log]")?.textContent ?? "",
     // A leitura da esquerda segue a ativação: o cabeçalho do elo e o nome da
     // carta que ele trouxe.
     leitura: (() => {

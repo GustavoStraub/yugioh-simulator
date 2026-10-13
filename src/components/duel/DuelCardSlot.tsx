@@ -1,6 +1,7 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useLayoutEffect, useRef, useState, type RefObject } from "react";
+import { createPortal } from "react-dom";
 
 import { OcgLocation } from "@n1xx1/ocgcore-wasm";
 
@@ -159,6 +160,8 @@ export function DuelCardSlot({
   onLongPress,
 }: DuelCardSlotProps) {
   const pressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  /** A caixa da carta na tela — de onde o menu de jogadas se ancora. */
+  const slotRef = useRef<HTMLDivElement | null>(null);
   /** O toque longo já abriu a leitura — o clique que vem junto não age. */
   const longPressed = useRef(false);
   const cancelarToque = () => {
@@ -218,6 +221,7 @@ export function DuelCardSlot({
 
   return (
     <div
+      ref={slotRef}
       data-zone={zoneKey}
       className={`relative ${CARD_SHAPE} ${
         // Na mão a carta cresce e sobe ao passar o mouse — a carta "levantada"
@@ -242,7 +246,7 @@ export function DuelCardSlot({
           // da ordem no arquivo CSS — frágil e difícil de enxergar.
           highlighted ? `tf-slot-active ${INTENT_CLASS[intent]}` : ""
         } ${
-          selected ? "ring-2 ring-emerald-400" : ""
+          selected ? "tf-slot-picked" : ""
         } ${
           interactive ? "cursor-pointer hover:brightness-125" : ""
         }`}
@@ -384,8 +388,8 @@ export function DuelCardSlot({
               chainBadge.state === "negated" || chainBadge.state === "disabled"
                 ? "bg-zinc-700 text-red-300 line-through"
                 : chainBadge.mine
-                  ? "bg-[color:var(--tf-gold)] text-black"
-                  : "bg-red-600 text-white"
+                  ? "md-chain-mine"
+                  : "md-chain-foe"
             } ${chainBadge.state === "resolving" ? "tf-chain-resolving" : ""}`}
           >
             {chainBadge.link}
@@ -457,7 +461,7 @@ export function DuelCardSlot({
       {menu && menu.length > 0 && (
         <CardActionMenu
           actions={menu}
-          upward={inHand}
+          anchorRef={slotRef}
           onChoose={(action) => onChoose?.(action)}
           onClose={() => onCloseMenu?.()}
         />
@@ -584,46 +588,127 @@ export function StatValue({
   );
 }
 
-/** Menu flutuante com as jogadas legais da carta clicada. */
+/**
+ * Ícone de cada comando, como os botões ao lado da carta no Master Duel: o
+ * olho acha "Invocar" e "Baixar" pela forma antes de ler. Casa pelo rótulo —
+ * o mesmo verbo que os testes e o `duel-actions.ts` usam.
+ */
+function commandIcon(label: string): string {
+  if (/^atacar/i.test(label)) return "⚔";
+  if (/^invoca[çc][aã]o-especial/i.test(label)) return "✦";
+  if (/^invocar/i.test(label)) return "▲";
+  if (/^baixar/i.test(label)) return "▼";
+  if (/^mudar posi/i.test(label)) return "⟲";
+  if (/^ativar/i.test(label)) return "⚡";
+  return "●";
+}
+
+/**
+ * Menu flutuante com as jogadas legais da carta clicada — os comandos do
+ * Master Duel, em pé ao lado da carta.
+ *
+ * Vai para o `body` por portal, ancorado na caixa da carta NA TELA. Morando
+ * dentro da carta, ele herdava a inclinação 3D da mesa (texto deitado, em
+ * trapézio) e o `fixed` do "clique fora fecha" deixava de cobrir a tela: um
+ * ancestral com `transform` vira o contêiner de todo `position: fixed` abaixo
+ * dele, e o pano invisível encolhia para o tamanho do campo.
+ */
 function CardActionMenu({
   actions,
-  upward,
+  anchorRef,
   onChoose,
   onClose,
 }: {
   actions: CardAction[];
-  upward: boolean;
+  anchorRef: RefObject<HTMLDivElement | null>;
   onChoose: (action: CardAction) => void;
   onClose: () => void;
 }) {
-  return (
+  const menuRef = useRef<HTMLDivElement | null>(null);
+  const [pos, setPos] = useState<{ left: number; top: number } | null>(null);
+
+  // Mede depois de montar (precisa da largura do próprio menu para não sair
+  // pela borda) e de novo quando a janela muda. A carta não anda com o menu
+  // aberto — o clique fora o fecha antes de qualquer outra jogada.
+  useLayoutEffect(() => {
+    const medir = () => {
+      const anchor = anchorRef.current;
+      const menu = menuRef.current;
+      if (!anchor || !menu) return;
+      const r = anchor.getBoundingClientRect();
+      const w = menu.offsetWidth;
+      const h = menu.offsetHeight;
+      const margem = 8;
+      const left = Math.min(
+        Math.max(r.left + r.width / 2 - w / 2, margem),
+        window.innerWidth - w - margem,
+      );
+      // Sempre para CIMA da carta, como os comandos do Master Duel — também
+      // no campo (pedido do Gustavo: ao responder na corrente, o "Ativar"
+      // abrindo para baixo caía sobre a fileira de trás e a mão). Só desce
+      // quando não cabe em cima (carta no alto da tela).
+      let top = r.top - h - 6;
+      // Barras de decisão sobre a mesa ("Não responder", seleção) marcam-se
+      // com `data-menu-avoid`: o menu sobe acima delas em vez de tapar o
+      // botão que é a outra metade da mesma decisão.
+      for (const barra of document.querySelectorAll("[data-menu-avoid]")) {
+        const b = barra.getBoundingClientRect();
+        const cruza =
+          left < b.right && left + w > b.left && top < b.bottom && top + h > b.top;
+        if (cruza) top = b.top - h - 6;
+      }
+      if (top < margem) top = Math.min(r.bottom + 6, window.innerHeight - h - margem);
+      setPos({ left, top });
+    };
+    medir();
+    window.addEventListener("resize", medir);
+    return () => window.removeEventListener("resize", medir);
+  }, [anchorRef, actions.length]);
+
+  if (typeof document === "undefined") return null;
+  return createPortal(
     <>
       {/* Clique fora fecha o menu. */}
-      <div className="fixed inset-0 z-30" onClick={onClose} />
+      <div className="fixed inset-0 z-[70]" onClick={onClose} />
       <div
-        className={`tf-anim-menu-in absolute left-1/2 z-40 w-max min-w-[160px] -translate-x-1/2 overflow-hidden rounded-md border border-[color:var(--tf-gold)] bg-[color:var(--tf-panel)] shadow-xl shadow-black/70 ${
-          upward ? "bottom-full mb-1" : "top-full mt-1"
-        }`}
+        ref={menuRef}
+        data-card-menu
+        className="fixed z-[71]"
+        style={{
+          left: pos?.left ?? -9999,
+          top: pos?.top ?? -9999,
+          visibility: pos ? "visible" : "hidden",
+        }}
       >
-        {actions.map((action, index) => (
-          <button
-            key={index}
-            type="button"
-            onClick={() => onChoose(action)}
-            className="tf-menu-item group block w-full max-w-[280px] px-4 py-2.5 text-left text-[13px] font-semibold text-[color:var(--tf-gold-bright)] transition-colors duration-100 hover:bg-[color:var(--tf-gold)] hover:text-black"
-          >
-            {action.label}
-            {/* Qual efeito — duas jogadas "Ativar" na mesma carta deixam de
-                ser iguais (ver `CardAction.detail`). */}
-            {action.detail && (
-              <span className="block text-[11px] font-medium leading-snug text-sky-200 group-hover:text-black/75">
-                {action.detail}
+        <div className="tf-anim-menu-in md-command-menu flex w-max min-w-[176px] max-w-[300px] flex-col gap-1">
+          {actions.map((action, index) => (
+            <button
+              key={index}
+              type="button"
+              data-menu-item
+              onClick={() => onChoose(action)}
+              className="tf-menu-item md-command group flex w-full items-start gap-2.5 px-3 py-2 text-left"
+            >
+              {/* O ícone vem por `::before` (ver `.md-command-icon`): fora do
+                  `innerText`, o texto do botão continua começando pelo verbo —
+                  é por ele que os testes escolhem a jogada ("Invocar"…). */}
+              <span aria-hidden className="md-command-icon" data-icon={commandIcon(action.label)} />
+              <span className="min-w-0 flex-1">
+                <span className="block text-[13px] font-bold leading-tight">{action.label}</span>
+                {/* Qual efeito — duas jogadas "Ativar" na mesma carta deixam de
+                    ser iguais (ver `CardAction.detail`). */}
+                {action.detail && (
+                  <span className="md-command-detail mt-0.5 block text-[11px] font-medium leading-snug">
+                    {action.detail}
+                  </span>
+                )}
               </span>
-            )}
-          </button>
-        ))}
+            </button>
+          ))}
+        </div>
       </div>
-    </>
+    </>,
+    document.body,
   );
 }
 

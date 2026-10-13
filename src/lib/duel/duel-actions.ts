@@ -265,8 +265,11 @@ const GENERIC_EFFECT_TEXT = new Set(["activate", "ativar"]);
  * Descrições do sistema que aparecem em jogada de carta, em português — o
  * resto das strings do sistema vem do `strings.conf`, em inglês.
  */
+/** O detalhe da jogada "ativar como Escala de Pêndulo" (string 1160 do sistema). */
+export const PENDULUM_SCALE_DETAIL = "Como Escala de Pêndulo";
+
 const SYSTEM_EFFECT_PT: Record<number, string> = {
-  1160: "Como Escala de Pêndulo",
+  1160: PENDULUM_SCALE_DETAIL,
   1161: "Resolver o efeito",
   1162: "Reiniciar o efeito",
 };
@@ -636,11 +639,15 @@ export function buildPromptPlan(
     }
 
     case OcgMessageType.SELECT_CHAIN: {
+      // Sem popup, como no Master Duel: as cartas que podem responder brilham
+      // na mesa (ou na pilha onde estão), e uma barra diz a que se responde e
+      // oferece "Não responder". O diálogo de antes cobria justamente o campo
+      // que a decisão de encadear precisa ver.
       const plan = emptyPlan(
         message.forced
           ? "Você precisa encadear um efeito."
           : "Deseja responder com algum efeito?",
-        "modal",
+        "inline",
       );
 
       message.selects.forEach((card, index) => {

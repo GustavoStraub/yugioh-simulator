@@ -319,12 +319,20 @@ async function main() {
  * termina — sem erro nenhum na tela.
  */
 async function verificarRendicao(page) {
-  const abriu = await page.evaluate(`
-    const deck = document.querySelector('.tf-playmat [data-pile^="deck-"][role="button"]');
-    if (!deck) return false;
-    deck.click();
-    return true;
-  `);
+  // Espera o deck ficar clicável — e não o texto "LP", que a placa de LP
+  // mostra desde o primeiro quadro, antes de o duelo ter cartas (o deck com
+  // 0 cartas não abre). Com a placa antiga o "LP" nunca aparecia e o teste
+  // seguia por acaso, depois do timeout de 60 s.
+  let abriu = false;
+  for (let i = 0; i < 120 && !abriu; i += 1) {
+    abriu = await page.evaluate(`
+      const deck = document.querySelector('.tf-playmat [data-pile^="deck-"][role="button"]');
+      if (!deck) return false;
+      deck.click();
+      return true;
+    `);
+    if (!abriu) await new Promise((r) => setTimeout(r, 500));
+  }
   if (!abriu) {
     process.stdout.write("RENDIÇÃO: não achei o deck clicável\n");
     process.exitCode = 1;

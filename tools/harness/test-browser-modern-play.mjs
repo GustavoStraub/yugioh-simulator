@@ -165,7 +165,7 @@ async function main() {
    */
   const marcar = (regex) =>
     page.evaluate(`
-      const slot = [...document.querySelectorAll('[data-zone^="0:4:"], [data-zone^="0:2:"]')].find((el) => ${regex}.test(el.querySelector("img")?.alt ?? "") && el.querySelector(".tf-slot-active") && !el.querySelector(".ring-emerald-400"));
+      const slot = [...document.querySelectorAll('[data-zone^="0:4:"], [data-zone^="0:2:"]')].find((el) => ${regex}.test(el.querySelector("img")?.alt ?? "") && el.querySelector(".tf-slot-active") && !el.querySelector(".tf-slot-picked"));
       const alvo = slot?.querySelector('[role="button"]');
       if (!alvo) return false;
       alvo.click();

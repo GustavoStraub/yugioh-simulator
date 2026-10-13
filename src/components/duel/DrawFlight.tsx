@@ -63,8 +63,11 @@ export function DrawFlightLayer({
      * da mão — o que se fazia antes — deixava a carta pousando num lugar onde
      * ela não está, e o olho perdia qual carta foi comprada.
      */
+    // Só as cartas: a contagem ao lado da mão do oponente (`data-hand-count`)
+    // também é filha dela, e o voo pousava no número.
     const slots = [...handEl.children].filter(
-      (node): node is HTMLElement => node instanceof HTMLElement,
+      (node): node is HTMLElement =>
+        node instanceof HTMLElement && !node.hasAttribute("data-hand-count"),
     );
     const chegando = slots.slice(-draw.count);
 

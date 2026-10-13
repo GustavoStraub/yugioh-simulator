@@ -101,7 +101,7 @@ export function ChainStack({
             >
               <span
                 className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[12px] font-black ${
-                  meu ? "bg-[color:var(--tf-gold)] text-black" : "bg-red-600 text-white"
+                  meu ? "md-chain-mine" : "md-chain-foe"
                 }`}
               >
                 {link.link}
