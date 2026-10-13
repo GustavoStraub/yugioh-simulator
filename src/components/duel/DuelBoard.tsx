@@ -13,7 +13,7 @@ import {
 import { useCardRegistry } from "@/context/CardRegistryProvider";
 import { useCardText } from "@/hooks/useCardText";
 import { useDuelFeedback, type DuelFlash } from "@/hooks/useDuelFeedback";
-import { NARROW_TABLE_QUERY, SHORT_TABLE_QUERY, useMediaQuery } from "@/hooks/useMediaQuery";
+import { NARROW_TABLE_QUERY, useMediaQuery } from "@/hooks/useMediaQuery";
 import { useTips } from "@/hooks/useTips";
 import { nextTip } from "@/lib/duel/tips";
 import { playSfx } from "@/lib/audio/sfx";
@@ -126,8 +126,6 @@ interface DuelBoardProps {
    * e o selo de vez não diz "Sua vez" para um assento que é do bot.
    */
   spectating?: boolean;
-  /** Duelo-problema: o objetivo fica à vista, com a dica a um clique. */
-  goal?: { title: string; text: string; hint: string };
   /**
    * O que fazer quando o duelo acaba.
    *
@@ -153,10 +151,8 @@ interface DuelBoardProps {
     onBackToRoom?: () => void;
     /** Revanche com os mesmos decks (duelo local). */
     onRematch?: () => void;
-    /** Rótulo do botão de revanche ("Tentar de novo" num puzzle). */
+    /** Rótulo do botão de revanche ("Assistir outra" no bot × bot). */
     rematchLabel?: string;
-    /** A solução do puzzle — o resultado oferece mostrá-la depois de errar. */
-    solution?: string;
   };
 }
 
@@ -248,7 +244,6 @@ export function DuelBoard({
   onHurry,
   pacing = "local",
   spectating = false,
-  goal,
 }: DuelBoardProps) {
   /** O outro assento — usado o tempo todo, e `1 - me` espalhado confunde. */
   const foeSeat = (1 - me) as 0 | 1;
@@ -365,11 +360,6 @@ export function DuelBoard({
   const [historicoAberto, setHistoricoAberto] = useState(false);
   /** Dicas de primeira vez (`tips.ts`) — desligáveis na engrenagem. */
   const dicas = useTips();
-  const [dicaDoProblema, setDicaDoProblema] = useState(false);
-  /** `null` = ninguém mexeu: aberto na mesa larga, fechado na estreita/baixa. */
-  const [objetivoAberto, setObjetivoAberto] = useState<boolean | null>(null);
-  const telaBaixa = useMediaQuery(SHORT_TABLE_QUERY);
-  const objetivoVisivel = objetivoAberto ?? !(estreita || telaBaixa);
 
   /**
    * Rótulos das opções de efeito. Recurso estático e igual para qualquer
@@ -1149,12 +1139,7 @@ export function DuelBoard({
           {dica && (
             <div
               data-tip={dica.id}
-              // Com um duelo-problema, o objetivo mora no canto direito: a dica
-              // para antes dele em vez de cobri-lo (no celular, a dica de 80%
-              // tapava o objetivo inteiro).
-              className={`tf-panel absolute left-2 top-16 z-[55] rounded-md border-sky-400/40 p-2.5 shadow-xl shadow-black/60 ${
-                goal ? "w-[min(300px,calc(100%-8rem))]" : "w-[min(300px,80%)]"
-              }`}
+              className="tf-panel absolute left-2 top-16 z-[55] w-[min(300px,80%)] rounded-md border-sky-400/40 p-2.5 shadow-xl shadow-black/60"
             >
               <p className="text-[12px] leading-snug text-zinc-100 [@media(max-height:500px)]:text-[11px]">💡 {dica.text}</p>
               <div className="mt-2 flex gap-2">
@@ -1175,55 +1160,6 @@ export function DuelBoard({
                   Desligar dicas
                 </button>
               </div>
-            </div>
-          )}
-
-          {/* O objetivo do duelo-problema, à vista — mas minimizável, como todo
-              painel por cima da mesa: aberto ele cobre duas zonas do
-              oponente, e no celular (ou deitado) começa já fechado num selo,
-              porque lá cobriria metade do campo. */}
-          {goal && !objetivoVisivel && (
-            <button
-              type="button"
-              data-puzzle-goal
-              data-puzzle-goal-toggle
-              data-table-control
-              title={goal.text}
-              onClick={() => setObjetivoAberto(true)}
-              className="tf-panel absolute right-2 top-16 z-[45] rounded-full px-3 py-1 text-[11px] font-bold text-[color:var(--tf-gold-bright)] shadow-lg shadow-black/60 hover:brightness-125"
-            >
-              🧩 Objetivo
-            </button>
-          )}
-          {goal && objetivoVisivel && (
-            <div
-              data-puzzle-goal
-              className="tf-panel absolute right-2 top-16 z-[45] w-[min(280px,70%)] rounded-md p-2.5 shadow-xl shadow-black/60"
-            >
-              <div className="flex items-start justify-between gap-2">
-                <p className="text-[11px] font-bold uppercase tracking-wider text-[color:var(--tf-gold)]">🧩 {goal.title}</p>
-                <button
-                  type="button"
-                  data-puzzle-goal-toggle
-                  data-table-control
-                  aria-label="Minimizar o objetivo"
-                  title="Minimizar o objetivo"
-                  onClick={() => setObjetivoAberto(false)}
-                  className="-mr-1 -mt-1 rounded px-1.5 text-[13px] leading-none text-zinc-400 hover:bg-black/50 hover:text-zinc-100"
-                >
-                  —
-                </button>
-              </div>
-              <p className="mt-0.5 text-[12px] leading-snug text-zinc-100">{goal.text}</p>
-              <button
-                type="button"
-                data-table-control
-                onClick={() => setDicaDoProblema((v) => !v)}
-                className="mt-1 text-[11px] text-sky-300 hover:text-sky-200"
-              >
-                {dicaDoProblema ? "Esconder a dica" : "Ver uma dica"}
-              </button>
-              {dicaDoProblema && <p className="mt-1 text-[11px] leading-snug text-sky-100">{goal.hint}</p>}
             </div>
           )}
 
@@ -3453,8 +3389,6 @@ function ResultOverlay({
             </button>
           )}
 
-          {ending.solution && winner !== me && <SolucaoDoProblema texto={ending.solution} />}
-
           <a
             href={ending.backHref}
             className={`rounded px-4 py-2 text-sm font-bold ${
@@ -3477,24 +3411,6 @@ function ResultOverlay({
         </div>
       </div>
     </div>
-  );
-}
-
-/** A solução do puzzle, escondida até o jogador pedir. */
-function SolucaoDoProblema({ texto }: { texto: string }) {
-  const [aberta, setAberta] = useState(false);
-  return aberta ? (
-    <p data-puzzle-solution className="max-w-[22rem] text-[12px] leading-snug text-sky-100">
-      💡 {texto}
-    </p>
-  ) : (
-    <button
-      type="button"
-      onClick={() => setAberta(true)}
-      className="text-[12px] text-sky-300 hover:text-sky-200"
-    >
-      Ver a solução
-    </button>
   );
 }
 

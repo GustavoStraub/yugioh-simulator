@@ -156,13 +156,6 @@ export interface DuelSessionConfig {
   /** Uma linha logo depois de "Duelo iniciado" — o resultado da moeda. */
   openingNote?: string;
   /**
-   * Duelo-problema (modo puzzle): a mesa vem pronta pelo `scenario`, ninguém
-   * compra mão inicial, os pontos de vida são os do problema e quem começa
-   * pode atacar já no primeiro turno — o desafio é vencer NESTE turno.
-   * `lifePoints` é [quem joga, oponente].
-   */
-  puzzle?: { lifePoints: [number, number] };
-  /**
    * Assento cujo tabuleiro é lido mesmo sendo bot — o modo espectador (bot ×
    * bot). Sem isto ninguém olha um assento de bot e a mesa ficaria vazia.
    */
@@ -689,24 +682,16 @@ export class DuelSession {
       );
 
       const core = this.core;
-      const puzzle = config.puzzle;
-      // O LP do problema é escrito de quem joga para o oponente; o core quer
-      // por assento.
-      const lpDoAssento = (assento: 0 | 1) =>
-        puzzle ? puzzle.lifePoints[assento === humanSeat ? 0 : 1] : rules.startingLp;
-      const team = (assento: 0 | 1) => ({
-        startingLP: lpDoAssento(assento),
-        startingDrawCount: puzzle ? 0 : rules.startingHandSize,
+      const team = {
+        startingLP: rules.startingLp,
+        startingDrawCount: rules.startingHandSize,
         drawCountPerTurn: rules.drawPerTurn,
-      });
-      if (puzzle) {
-        this.update({ lifePoints: [lpDoAssento(0), lpDoAssento(1)] });
-      }
+      };
       const handle = core.createDuel({
-        flags: puzzle ? DUEL_FLAGS[format] | OcgDuelMode.ATTACK_FIRST_TURN : DUEL_FLAGS[format],
+        flags: DUEL_FLAGS[format],
         seed: randomSeed(),
-        team1: team(0),
-        team2: team(1),
+        team1: team,
+        team2: team,
         cardReader: (code) => {
           const card = config.registry.get(code);
           if (card) return cardDefinitionToOcgData(card, this.cardDb);

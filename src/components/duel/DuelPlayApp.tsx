@@ -10,8 +10,6 @@ import { useDuelEngine } from "@/hooks/useDuelEngine";
 import { useClientSnapshot } from "@/hooks/useClientSnapshot";
 import { useDuelPrefs } from "@/hooks/useDuelPrefs";
 import { SPEED_SCALE } from "@/lib/duel/duel-prefs";
-import { puzzleById } from "@/lib/data/puzzles";
-import { markPuzzleSolved } from "@/lib/duel/puzzle-progress";
 import {
   DUEL_SETUP_STORAGE_KEY,
   loadDuelSetup,
@@ -63,26 +61,10 @@ function DuelPlayInner({
     }
   }, [mounted, setup, router]);
 
-  /** Duelo-problema, quando a partida veio da lista de puzzles. */
-  const puzzle = puzzleById(setup?.puzzleId);
-  const spectate = Boolean(setup?.spectate) && !puzzle;
+  const spectate = Boolean(setup?.spectate);
 
   const config: DuelSessionConfig | null = useMemo(() => {
     if (!setup || !registry) return null;
-    const problema = puzzleById(setup.puzzleId);
-    if (problema) {
-      return {
-        playerName: setup.playerName,
-        playerDeck: { main: problema.deck, extra: [], side: [] },
-        opponentName: "Oponente",
-        opponentDeck: { main: problema.opponentDeck, extra: [], side: [] },
-        registry,
-        format: problema.format,
-        scenario: problema.scenario,
-        puzzle: { lifePoints: problema.lifePoints },
-        openingNote: `🧩 ${problema.title}: ${problema.goal}`,
-      };
-    }
     if (setup.spectate) {
       // Os dois assentos são bots; quem olha vê pela ótica do assento 0 (o
       // seu deck, pilotado pelo bot).
@@ -134,20 +116,6 @@ function DuelPlayInner({
     [setChainPreference],
   );
 
-  // Puzzle: vencer neste turno. Se o turno passou para o oponente sem vitória,
-  // o problema acabou — encerra pela rendição com a frase certa (o resultado
-  // oferece "Tentar de novo" e a solução). Se venceu, guarda o ✓ na lista.
-  const turnoPassou = Boolean(puzzle) && snapshot.turnCount > 1 && snapshot.winner === null;
-  useEffect(() => {
-    if (turnoPassou) {
-      surrender("⌛ O turno acabou sem vencer.", "O turno acabou sem vencer — tente de novo.");
-    }
-  }, [turnoPassou, surrender]);
-  const resolveu = Boolean(puzzle) && snapshot.winner === me;
-  useEffect(() => {
-    if (resolveu && puzzle) markPuzzleSolved(puzzle.id);
-  }, [resolveu, puzzle]);
-
   if (!mounted || !setup) {
     return <DuelLoading />;
   }
@@ -180,17 +148,15 @@ function DuelPlayInner({
       onSurrender={spectate ? undefined : () => surrender()}
       subscribeEvents={subscribeEvents}
       spectating={spectate}
-      goal={puzzle ? { title: puzzle.title, text: puzzle.goal, hint: puzzle.hint } : undefined}
       prefs={prefs}
       onPrefsChange={setPrefs}
       onForceAsk={forceAsk}
       onHurry={hurry}
       pacing="local"
       ending={{
-        backHref: puzzle ? "/duel/puzzles" : "/duel",
-        backLabel: puzzle ? "Outros problemas" : "Voltar ao lobby",
-        solution: puzzle?.solution,
-        rematchLabel: puzzle ? "Tentar de novo" : spectate ? "Assistir outra" : undefined,
+        backHref: "/duel",
+        backLabel: "Voltar ao lobby",
+        rematchLabel: spectate ? "Assistir outra" : undefined,
         // Revanche: com "moeda" a moeda cai de novo; senão, a mesma ordem.
         onRematch: () =>
           onRematch(

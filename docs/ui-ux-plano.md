@@ -622,7 +622,9 @@ Mesma branch e mesmo PR. O que cada fase virou, e o que ficou de fora.
   "Desligar dicas" (também na engrenagem) cala todas; "Rever todas" recomeça.
   A dica não aparece para quem só assiste, nem enquanto a decisão está
   escondida para ver a mesa.
-- **Duelos-problema** (`/duel/puzzles`, `puzzles.ts`): a mesa vem montada e
+- **Duelos-problema** *(removidos em 2026-10-13 — a página, o modo na sessão
+  e o `test:puzzles` saíram; o que segue é o registro de como era)*
+  (`/duel/puzzles`, `puzzles.ts`): a mesa vem montada e
   é preciso vencer **neste turno** — "Raio final" (Raigeki), "Abra caminho"
   (Tufão na Força do Espelho) e "Mudança de opinião". O objetivo fica num
   painel minimizável (no celular começa fechado num selo), com uma dica a um

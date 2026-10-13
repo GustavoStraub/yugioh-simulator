@@ -10,7 +10,6 @@ import { LANGUAGE_OPTIONS } from "@/lib/i18n/language";
 const NAV_ITEMS = [
   { href: "/", label: "Deck Builder", short: "Deck" },
   { href: "/duel", label: "vs Bot", short: "vs Bot" },
-  { href: "/duel/puzzles", label: "Puzzles", short: "Puzzles" },
   { href: "/duel/online", label: "Online", short: "Online" },
 ] as const;
 
@@ -20,7 +19,7 @@ export function AppNav() {
   return (
     // No celular os itens não cabem lado a lado em `text-sm`: encolhem e, no
     // limite, rolam — nunca quebram linha. O PT/EN fica FORA da parte que
-    // rola: dentro dela, o quarto item (Puzzles) já o empurrava para fora da
+    // rola: dentro dela, um quarto item já o empurrava para fora da
     // janela num celular de 390 px.
     <nav className="flex min-w-0 max-w-full items-center gap-1 whitespace-nowrap text-[12px] sm:gap-2 sm:text-sm">
       <div className="flex min-w-0 items-center gap-1 overflow-x-auto sm:gap-2">

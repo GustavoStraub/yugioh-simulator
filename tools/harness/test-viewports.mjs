@@ -74,7 +74,7 @@ const MEDIR = `
       if (!idioma) return true;
       const r = idioma.getBoundingClientRect();
       // E todo item da navegação à vista: a parte que rola escondia
-      // "Puzzles"/"Online" no celular sem nada indicar que havia mais.
+      // "Online" no celular sem nada indicar que havia mais.
       const itens = [...document.querySelectorAll("header nav a")].every((a) => {
         const caixa = a.parentElement.getBoundingClientRect();
         const ra = a.getBoundingClientRect();
@@ -213,7 +213,7 @@ async function main() {
     {
       const page = await openPage(port);
       await page.setViewport(390, 844);
-      await page.goto(`${BASE}/duel/puzzles`);
+      await page.goto(`${BASE}/duel/online`);
       await new Promise((r) => setTimeout(r, 1500));
       const m = await page.evaluate(MEDIR);
       const ok = m.navegacaoCabe && !m.rolagemHorizontal;

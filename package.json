@@ -56,7 +56,6 @@
     "test:browser-peek": "node tools/harness/test-browser-peek.mjs",
     "test:deck-codec": "node --import ./tools/harness/ts-loader-register.mjs tools/harness/test-deck-codec.mjs",
     "test:browser-builder": "node tools/harness/test-browser-builder.mjs",
-    "test:puzzles": "node --import ./tools/harness/ts-loader-register.mjs tools/harness/test-puzzles.mjs",
     "test:learning": "node --import ./tools/harness/ts-loader-register.mjs tools/harness/test-learning.mjs",
     "test:browser-learning": "node tools/harness/test-browser-learning.mjs"
   },

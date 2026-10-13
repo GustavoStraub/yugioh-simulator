@@ -250,9 +250,6 @@ export function DuelLobby() {
         >
           👁 Assistir bot × bot
         </button>
-        <Link href="/duel/puzzles" className="text-amber-400 underline-offset-2 hover:underline">
-          🧩 Duelos-problema
-        </Link>
       </div>
 
       <p className="text-center text-xs text-zinc-600">

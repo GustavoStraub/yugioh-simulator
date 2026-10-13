@@ -1,6 +1,6 @@
 /**
- * Aprender jogando (Fase 12): as peças puras — glossário, dicas, progresso
- * dos puzzles — e o modo espectador na `DuelSession` real.
+ * Aprender jogando (Fase 12): as peças puras — glossário e dicas — e o
+ * modo espectador na `DuelSession` real.
  *
  *   - Glossário: acha os termos em português e em inglês, a grafia mais longa
  *     ganha ("Invocação-Tributo" e não "Tributo"), não acha termo dentro de
@@ -16,8 +16,6 @@ import { join } from "node:path";
 
 import { GLOSSARY, glossarySegments } from "@/lib/domain/glossary";
 import { nextTip, parseTips, TIPS } from "@/lib/duel/tips";
-import { parseSolved } from "@/lib/duel/puzzle-progress";
-import { PUZZLES } from "@/lib/data/puzzles";
 import { createDuelSession } from "@/lib/duel/duel-session";
 import { CardRegistry } from "@/lib/domain/card-registry";
 import { nodeAssets } from "@/server/duel/node-assets";
@@ -63,13 +61,6 @@ console.log("Dicas");
   conferir(nextTip({ ...vazio, canPlay: true }, new Set(["jogar"]))?.id === "ler", "vista a de jogar, vem a de ler");
   conferir(nextTip(vazio, new Set(TIPS.map((t) => t.id))) === null, "todas vistas → nenhuma");
   conferir(parseTips("lixo").off === false && parseTips('{"off":true,"seen":["a",3]}').seen.join() === "a", "o estado guardado é lido com cuidado");
-}
-
-console.log("Puzzles");
-{
-  conferir(PUZZLES.length >= 3 && new Set(PUZZLES.map((p) => p.id)).size === PUZZLES.length, "ids únicos");
-  conferir(PUZZLES.every((p) => p.goal && p.hint && p.solution && p.scenario.length > 0), "todo puzzle tem objetivo, dica, solução e mesa");
-  conferir(parseSolved('["raio-final", 2]').join() === "raio-final" && parseSolved("{").length === 0, "progresso lido com cuidado");
 }
 
 console.log("Bot × bot (espectador)");
