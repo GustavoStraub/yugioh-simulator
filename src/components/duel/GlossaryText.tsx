@@ -20,9 +20,14 @@ export function GlossaryText({ text, className }: { text: string; className?: st
       <p data-glossary-text>
         {segmentos.map((segmento, index) =>
           segmento.term ? (
+            // `data-table-control`: o termo é ajuda de leitura, não jogada —
+            // como o "👁 Ver a mesa". Sem a marca, os laços de teste que clicam
+            // "o botão Cemitério" pegavam o termo sublinhado na leitura da
+            // carta em vez da carta do seletor, e clicavam nele para sempre.
             <button
               key={index}
               type="button"
+              data-table-control
               data-glossary-term={segmento.term.id}
               title={`${segmento.term.label}: ${segmento.term.definition}`}
               onClick={() =>

@@ -158,14 +158,21 @@ export class Page {
    * no perfil de teste.
    */
   clickAction(text) {
+    // Botão de jogo primeiro; os controles da mesa (`data-table-control`: ver
+    // a mesa, termos do glossário, dicas) só quando nenhum botão de jogo
+    // casar — "Voltar à decisão" é um deles e os testes o clicam. Sem essa
+    // ordem, o "Cemitério" sublinhado na leitura da carta ganhava da carta
+    // "Cemitério" do seletor, e o laço clicava no glossário para sempre.
     return this.evaluate(`
-      const botoes = [...document.querySelectorAll("button")].filter(
+      const todos = [...document.querySelectorAll("button")].filter(
         (b) => !b.disabled && b.offsetParent !== null && !b.closest("header, nav"),
       );
+      const deJogo = todos.filter((b) => !b.closest("[data-table-control]"));
       const texto = (b) => b.innerText.trim();
-      const alvo =
-        botoes.find((b) => texto(b) === ${JSON.stringify(text)}) ??
-        botoes.find((b) => texto(b).startsWith(${JSON.stringify(text)}));
+      const achar = (lista) =>
+        lista.find((b) => texto(b) === ${JSON.stringify(text)}) ??
+        lista.find((b) => texto(b).startsWith(${JSON.stringify(text)}));
+      const alvo = achar(deJogo) ?? achar(todos);
       if (!alvo) return false;
       alvo.click();
       return true;
