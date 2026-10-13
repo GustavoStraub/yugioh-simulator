@@ -11,11 +11,18 @@ import type { CardAction } from "@/lib/duel/duel-actions";
 import type { CardRegistry } from "@/lib/domain/card-registry";
 
 /**
- * Todas as peças da mesa dimensionam pela ALTURA (`h-full` + `aspect`), nunca
- * pela largura. É isso que faz o campo inteiro caber na viewport sem scroll,
- * encolhendo as cartas conforme a janela diminui.
+ * Todas as peças da mesa dimensionam pela ALTURA (`h-full` + `aspect`). É isso
+ * que faz o campo inteiro caber na viewport sem scroll, encolhendo as cartas
+ * conforme a janela diminui.
+ *
+ * E também têm um TETO pela largura (`--tf-card-max-h`, que o campo define
+ * em unidades do próprio contêiner): só pela altura, numa janela estreita e
+ * alta a fileira saía mais larga que a coluna do campo e entrava por baixo
+ * dos trilhos — numa de 1024×640 o Deck e o Cemitério ficavam sob a trilha
+ * de fases. Fora do campo a variável não existe e o teto é 100% (nenhum).
  */
-export const CARD_SHAPE = "h-full w-auto aspect-[59/86] shrink-0";
+export const CARD_SHAPE =
+  "h-full w-auto aspect-[59/86] shrink-0 max-h-[var(--tf-card-max-h,100%)]";
 
 /** Classe de realce por intenção — ver `intent` em DuelCardSlotProps. */
 const INTENT_CLASS = {

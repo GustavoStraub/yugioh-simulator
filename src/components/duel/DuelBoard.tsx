@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   OcgLocation,
   OcgMessageType,
+  OcgPhase,
   type OcgResponse,
   type SelectFieldPlace,
 } from "@n1xx1/ocgcore-wasm";
@@ -692,6 +693,14 @@ export function DuelBoard({
           className={`relative flex min-h-0 min-w-0 flex-1 flex-col gap-1 p-1.5 ${
             shake !== null ? "tf-shake" : ""
           }`}
+          // Teto das cartas pela LARGURA do campo (ver `CARD_SHAPE`): uma
+          // fileira ocupa ~7 larguras de carta + 37 px de vãos e pilhas
+          // laterais (medido em 1024, 1280 e 1440). `cqw` é a largura deste
+          // contêiner; 56 px dão a folga do padding.
+          style={{
+            containerType: "inline-size",
+            ["--tf-card-max-h" as string]: "calc((100cqw - 56px) / 7 * 86 / 59)",
+          }}
         >
           {/* Clarão no lado atingido. */}
           {shake !== null && (
@@ -785,11 +794,12 @@ export function DuelBoard({
               {...shared}
             />
 
-            {/* Trilha de fases entre os dois campos, como no Tag Force —
-                clicar avança a fase quando o engine permite. No TCG ela vira
-                coluna, no meio da fileira das Zonas Extra: assim as duas zonas
-                ficam exatamente sobre as colunas 2 e 4, que é o que faz as
-                setas Link de quem está nelas se lerem. */}
+            {/* No TCG, a fileira das Zonas Extra entre os dois campos: as
+                duas zonas ficam exatamente sobre as colunas 2 e 4, que é o que
+                faz as setas Link de quem está nelas se lerem — por isso o vão
+                do meio é uma carta vazia. A trilha de fases, que morava nesse
+                vão (do tamanho de uma carta, ilegível), tem coluna própria ao
+                lado do histórico. No Goat, só um fio separando os campos. */}
             {isTcg ? (
               <div
                 data-row="extra-monster-zones"
@@ -798,26 +808,13 @@ export function DuelBoard({
                 <div className={CARD_SHAPE} />
                 <div className={CARD_SHAPE} />
                 {extraZone("left")}
-                <PhaseTrack
-                  vertical
-                  phase={snapshot.phase}
-                  turn={snapshot.turnCount}
-                  actions={plan?.global ?? []}
-                  disabled={busy}
-                  onRespond={respond}
-                />
+                <div className={CARD_SHAPE} />
                 {extraZone("right")}
                 <div className={CARD_SHAPE} />
                 <div className={CARD_SHAPE} />
               </div>
             ) : (
-              <PhaseTrack
-                phase={snapshot.phase}
-                turn={snapshot.turnCount}
-                actions={plan?.global ?? []}
-                disabled={busy}
-                onRespond={respond}
-              />
+              <div className="mx-10 h-px shrink-0 bg-gradient-to-r from-transparent via-[color:var(--tf-gold-dim)] to-transparent" />
             )}
 
             <FieldRow
@@ -940,13 +937,29 @@ export function DuelBoard({
           </div>
         )}
 
-        {/* -------- histórico, em coluna própria -------- */}
-        <aside className="flex w-[var(--tf-rail-right)] shrink-0 flex-col overflow-hidden p-2">
-          <DuelLog
-            entries={snapshot.log}
-            reveals={minhasRevelacoes}
-            onOpenReveals={() => setRevelacoesAbertas(true)}
+        {/* -------- fases e histórico, no trilho direito --------
+            A trilha de fases é o que o jogador consulta antes de cada jogada
+            ("ainda estou na Main 1?") e o botão que a avança. Entre as Zonas
+            Extra ela tinha a largura de uma carta e não se lia; aqui é uma
+            coluna compacta à direita do campo, antes do histórico, sem
+            roubar largura dele. (Uma barra da altura inteira do campo foi
+            testada e ficou pior — botões soltos demais para a leitura.) */}
+        <aside className="flex w-[var(--tf-rail-right)] shrink-0 gap-2 overflow-hidden p-2">
+          <PhaseTrack
+            phase={snapshot.phase}
+            turn={snapshot.turnCount}
+            mine={snapshot.turnPlayer === me}
+            actions={plan?.global ?? []}
+            disabled={busy}
+            onRespond={respond}
           />
+          <div className="flex min-w-0 flex-1 flex-col">
+            <DuelLog
+              entries={snapshot.log}
+              reveals={minhasRevelacoes}
+              onOpenReveals={() => setRevelacoesAbertas(true)}
+            />
+          </div>
         </aside>
 
         {/* Os modais nascem AQUI, dentro da linha central, e não na raiz da
@@ -1339,58 +1352,80 @@ const PHASE_ACTION_MATCH: { short: string; test: RegExp }[] = [
   { short: "EP", test: /encerrar turno/i },
 ];
 
+/** Passos da Battle Phase que o engine anuncia — todos acendem o "BP". */
+const BATTLE_STEPS =
+  OcgPhase.BATTLE_START | OcgPhase.BATTLE_STEP | OcgPhase.DAMAGE | OcgPhase.DAMAGE_CAL | OcgPhase.BATTLE;
+
 function PhaseTrack({
   phase,
   turn,
+  mine,
   actions,
   disabled,
   onRespond,
-  vertical = false,
 }: {
   phase: number | null;
   /** Turnos já iniciados. 0 = o duelo ainda não começou. */
   turn: number;
+  /** O turno é de quem olha a mesa? */
+  mine: boolean;
   actions: GlobalAction[];
   disabled?: boolean;
   onRespond: (response: OcgResponse) => void;
-  /**
-   * Coluna em vez de trilha: no TCG a trilha mora entre as duas Zonas Extra,
-   * na largura de uma carta.
-   */
-  vertical?: boolean;
 }) {
   const actionFor = (short: string) => {
     const match = PHASE_ACTION_MATCH.find((entry) => entry.short === short);
     if (!match) return null;
     return actions.find((action) => match.test.test(action.label)) ?? null;
   };
+  // A Battle Phase passa por vários passos (Battle Step, Damage Step…): o
+  // "BP" fica aceso em todos — antes só no instante em que ela começava.
+  const isActive = (value: number) =>
+    phase !== null &&
+    (phase === value || (value === OcgPhase.BATTLE_START && (phase & BATTLE_STEPS) !== 0));
 
-  if (vertical) {
-    return (
+  return (
+    <div
+      data-phase-track
+      // z-50: os avisos grandes (SEU TURNO, dano) passam por cima da mesa em
+      // z-40. A fase é a informação consultada para decidir a jogada — ela
+      // nunca pode sumir debaixo de um deles.
+      className="relative z-50 flex w-[var(--tf-rail-phase)] shrink-0 flex-col justify-center gap-1.5"
+    >
+      {/* Contagem de turno junto das fases: as duas respondem "em que ponto do
+          duelo estamos", e é o número que as cartas de contagem (Espada da
+          Luz, Reckless Greed, Mensagem do Espírito) cobram. A cor diz de quem
+          é o turno — o mesmo que a barra de LP indica, aqui ao alcance do
+          olho que está nas fases. */}
       <div
-        // z-50 pelo mesmo motivo da trilha horizontal (ver abaixo). Grade de
-        // duas colunas, lida como texto (DP SP / M1 BP / M2 EP): numa coluna
-        // só, sete botões na altura de uma carta ficavam ilegíveis em telas
-        // baixas.
-        className={`relative z-50 grid ${CARD_SHAPE} grid-cols-2 grid-rows-4 gap-[4%] py-[4%]`}
+        title={turn > 0 ? `Turno ${turn} — ${mine ? "seu" : "do oponente"}` : "Duelo começando"}
+        className={`tf-phase-pip flex flex-col items-center rounded-md py-1.5 ${
+          mine ? "tf-phase-turn-mine" : "tf-phase-turn-foe"
+        }`}
       >
-        <span
-          title={`Turno ${turn}`}
-          className="tf-phase-pip col-span-2 flex min-h-0 items-center justify-center rounded font-mono text-[11px] font-bold text-[color:var(--tf-gold-bright)]"
-        >
-          {turn > 0 ? `T${turn}` : "—"}
-        </span>
+        <span className="text-[9px] font-semibold uppercase tracking-[0.18em] opacity-80">Turno</span>
+        <span className="font-mono text-[22px] font-bold leading-none">{turn > 0 ? turn : "—"}</span>
+        {turn > 0 && (
+          <span className="mt-0.5 text-[9px] font-semibold uppercase tracking-wider opacity-80">
+            {mine ? "Você" : "Oponente"}
+          </span>
+        )}
+      </div>
+
+      <div className="flex flex-col gap-1.5">
         {PHASE_TRACK.map((entry) => {
           const action = actionFor(entry.short);
-          const active = phase === entry.value;
+          const active = isActive(entry.value);
           return (
             <button
               key={entry.value}
               type="button"
+              data-phase={entry.short}
+              data-phase-active={active ? "1" : undefined}
               disabled={!action || disabled}
               onClick={() => action && onRespond(action.response)}
               title={action ? action.label : phaseLabel(entry.value)}
-              className={`min-h-0 rounded text-[11px] font-bold leading-none transition ${
+              className={`h-9 w-full rounded-md text-[15px] font-bold tracking-wide transition ${
                 active
                   ? "tf-phase-pip tf-phase-pip-active"
                   : action
@@ -1403,49 +1438,12 @@ function PhaseTrack({
           );
         })}
       </div>
-    );
-  }
 
-  return (
-    // z-50: os avisos grandes do centro (SEU TURNO, dano) passam por cima do
-    // tabuleiro em z-40 e cairiam justamente aqui. A fase atual é a informação
-    // que o jogador consulta para decidir a jogada — ela nunca pode sumir.
-    <div className="relative z-50 flex shrink-0 items-center justify-center gap-1 py-0.5">
-      <div className="h-px flex-1 bg-gradient-to-r from-transparent to-[color:var(--tf-gold-dim)]" />
-      {/* Contagem de turno colada na trilha de fases: as duas respondem "em que
-          ponto do duelo estamos", e é o número que as cartas de contagem
-          (Espada da Luz, Reckless Greed, Mensagem do Espírito) cobram. */}
-      {turn > 0 && (
-        <span
-          title={`Turno ${turn}`}
-          className="tf-phase-pip flex h-6 items-center rounded px-2 font-mono text-[12px] font-bold text-[color:var(--tf-gold-bright)]"
-        >
-          T{turn}
-        </span>
-      )}
-      {PHASE_TRACK.map((entry) => {
-        const action = actionFor(entry.short);
-        const active = phase === entry.value;
-        return (
-          <button
-            key={entry.value}
-            type="button"
-            disabled={!action || disabled}
-            onClick={() => action && onRespond(action.response)}
-            title={action ? action.label : phaseLabel(entry.value)}
-            className={`h-6 w-14 rounded text-[12px] font-bold tracking-wide transition ${
-              active
-                ? "tf-phase-pip tf-phase-pip-active"
-                : action
-                  ? "tf-phase-pip cursor-pointer text-[color:var(--tf-gold-bright)] hover:bg-[color:var(--tf-gold)] hover:text-black"
-                  : "tf-phase-pip cursor-default text-[color:var(--tf-gold-dim)]/50"
-            }`}
-          >
-            {entry.short}
-          </button>
-        );
-      })}
-      <div className="h-px flex-1 bg-gradient-to-l from-transparent to-[color:var(--tf-gold-dim)]" />
+      {/* O nome da fase atual por extenso — "BP" não diz nada a quem está
+          começando; "Battle Phase" diz. */}
+      <span className="min-h-[2lh] px-0.5 text-center text-[10px] font-semibold leading-tight text-[color:var(--tf-gold-bright)]">
+        {phase !== null ? phaseLabel(phase) : ""}
+      </span>
     </div>
   );
 }
