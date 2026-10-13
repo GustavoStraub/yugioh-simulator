@@ -13,6 +13,20 @@ export interface DuelZoneRef {
   sequence: number;
 }
 
+/**
+ * Por que uma carta saiu do campo, já resumido para a tela e o histórico. Vem
+ * do motivo que o core guarda na carta (`REASON_*`), lido no destino.
+ */
+export type LeaveReason =
+  | "battle"
+  | "destroy"
+  | "tribute"
+  | "material"
+  | "grave"
+  | "banish"
+  | "hand"
+  | "deck";
+
 export type DuelEvent =
   | { kind: "summon"; player: number; code: number; special: boolean }
   | { kind: "set"; player: number }
@@ -27,7 +41,21 @@ export type DuelEvent =
     }
   | { kind: "damage"; player: number; amount: number }
   | { kind: "recover"; player: number; amount: number }
-  | { kind: "destroy"; player: number }
+  /**
+   * Uma carta saiu do campo — destruída, enviada, banida, devolvida.
+   *
+   * A mesa desenha um fantasma dela na zona de onde saiu (estilhaço na
+   * destruição, esmaecer no banimento); sem isto a carta simplesmente sumia e o
+   * topo do Cemitério trocava. `code` é `null` quando a carta não era pública
+   * (baixada voltando para a mão ou o Deck): o evento vai aos dois assentos.
+   */
+  | {
+      kind: "leave";
+      player: number;
+      code: number | null;
+      from: DuelZoneRef;
+      why: LeaveReason;
+    }
   | { kind: "draw"; player: number; count: number }
   | { kind: "phase"; phase: number }
   | { kind: "turn"; player: number }

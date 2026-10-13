@@ -84,6 +84,27 @@ const BEAT: Partial<Record<OcgMessageType, number>> = {
   [OcgMessageType.TOSS_DICE]: TOSS_MS,
 };
 
+/**
+ * Carta saindo do campo (`LeaveFlight`): o fantasma dela se desfaz na zona de
+ * onde saiu. Destruição é o momento que mais se quer ver; ir para a mão ou o
+ * Deck é só um deslize.
+ */
+export const LEAVE_MS = {
+  battle: 520,
+  destroy: 520,
+  tribute: 360,
+  material: 300,
+  grave: 360,
+  banish: 440,
+  hand: 320,
+  deck: 320,
+} as const;
+
+/** Pausa de uma saída do campo — ver `LEAVE_MS`. */
+export function leaveBeat(why: keyof typeof LEAVE_MS, ownTurn: boolean): number {
+  return Math.round(LEAVE_MS[why] * (ownTurn ? OWN_TURN_SCALE : 1));
+}
+
 /** Troca de fase — mais curto que uma jogada, mas não instantâneo. */
 const PHASE_BEAT = 200;
 
