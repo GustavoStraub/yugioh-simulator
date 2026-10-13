@@ -40,6 +40,8 @@ const C = {
   stargazer: 94415058, // Pêndulo 1/1
   raigeki: 12580477, // destrói os monstros do oponente
   breaker: 71413901, // ganha 1 Marcador de Magia ao ser Invocado-Normal
+  // Ficha sem arte na YGOPRODeck: a rota de imagem desenha a face.
+  fiendsmithToken: 35552986,
 };
 
 const M = OcgLocation.MZONE;
@@ -50,6 +52,7 @@ const SCENARIO = [
   { player: 0, location: M, sequence: 5, code: C.linkSpider }, // Zona Extra esquerda (minha)
   { player: 0, location: M, sequence: 2, code: C.utopia },
   { player: 0, location: M, sequence: 0, code: C.elf },
+  { player: 0, location: M, sequence: 4, code: C.fiendsmithToken },
   { player: 0, location: S, sequence: 0, position: OcgPosition.FACEUP, code: C.oddEyes },
   { player: 0, location: S, sequence: 4, position: OcgPosition.FACEUP, code: C.timegazer },
   // Zona 5 do oponente = a Zona Extra da DIREITA na minha tela.
@@ -135,6 +138,22 @@ async function main() {
     conferir(mesa.linkMeu === "2", "o meu Link Spider está na Zona Extra, com a seta para baixo", String(mesa.linkMeu));
     conferir(mesa.setasAcesasMeu === 1, "uma seta acesa no Link Spider", String(mesa.setasAcesasMeu));
     conferir(mesa.linkDele === "133", "o Decode Talker do oponente aparece na Zona Extra compartilhada", String(mesa.linkDele));
+
+    // Ficha sem arte na YGOPRODeck: imagem carregada (a face desenhada) e o
+    // nome certo — antes era imagem quebrada com o nome "Carta".
+    const ficha = await page.evaluate(`
+      const img = document.querySelector('[data-zone="0:4:4"] img');
+      if (!img) return null;
+      return new Promise((resolve) => {
+        const pronto = () => resolve({ largura: img.naturalWidth, nome: img.alt });
+        img.complete ? pronto() : (img.onload = pronto, img.onerror = pronto);
+      });
+    `);
+    conferir(
+      ficha && ficha.largura > 0 && /Fiendsmith Token/.test(ficha.nome),
+      "a ficha sem arte aparece com imagem e com o nome",
+      JSON.stringify(ficha),
+    );
     conferir(mesa.linkDeleGirado, "e de cabeça para baixo, como carta do oponente");
     // Link Spider (Zona Extra esquerda, seta para baixo) → minha zona 2 (índice 1).
     // Decode Talker do oponente (zona 5 dele = Zona Extra direita na minha

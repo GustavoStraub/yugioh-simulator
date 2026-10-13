@@ -34,7 +34,12 @@ const cards = catalog.cards
 const tarefas = [];
 for (const size of sizes) {
   for (const card of cards) {
-    if (!hasCardImage(size, card.id)) tarefas.push({ size, id: card.id });
+    // Nas fichas, as "artes alternativas" são fichas diferentes que o engine
+    // cria com passcode próprio (as cores do Ojama, do Hipopótamo, das
+    // Ovelhas): baixar só a primeira deixava as outras para a primeira vez
+    // que aparecessem na mesa.
+    const ids = card.frameType === "token" ? [card.id, ...card.arts] : [card.id];
+    for (const id of ids) if (!hasCardImage(size, id)) tarefas.push({ size, id });
   }
 }
 

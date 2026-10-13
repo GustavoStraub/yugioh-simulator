@@ -1,4 +1,10 @@
-import { cardImage, isCardImageSize, passcodeFromFile } from "@/server/catalog/card-images";
+import {
+  cardImage,
+  fallbackCardSvg,
+  isCardImageSize,
+  passcodeFromFile,
+} from "@/server/catalog/card-images";
+import { loadCatalogRegistry } from "@/server/catalog/catalog-store";
 
 /**
  * `/card-images/<small|full|cropped>/<passcode>.jpg` — a imagem da carta,
@@ -20,7 +26,19 @@ export async function GET(
 
   try {
     const bytes = await cardImage(size, passcode);
-    if (!bytes) return new Response("Imagem não encontrada.", { status: 404 });
+    if (!bytes) {
+      // Sem arte na YGOPRODeck (fichas modernas, carta recém-anunciada): a
+      // face desenhada no lugar da imagem quebrada. Cache curto, não
+      // imutável — quando a arte existir, ela substitui esta.
+      const registry = await loadCatalogRegistry().catch(() => null);
+      const card = registry?.get(passcode) ?? null;
+      return new Response(fallbackCardSvg(card, passcode), {
+        headers: {
+          "Content-Type": "image/svg+xml; charset=utf-8",
+          "Cache-Control": "public, max-age=86400",
+        },
+      });
+    }
     return new Response(new Uint8Array(bytes), {
       headers: {
         "Content-Type": "image/jpeg",

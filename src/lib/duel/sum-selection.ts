@@ -113,11 +113,59 @@ export function sumProgress(request: SumRequest, indices: number[]): string {
 }
 
 /**
+ * Soma exata com `k` cartas de `selects` (a partir de `from`), cada uma
+ * valendo um dos seus dois valores — índices da solução, ou `null`.
+ *
+ * Busca com memória em (carta, quantas faltam, quanto falta): os valores são
+ * Níveis e afins, então a tabela é minúscula mesmo com o Deck inteiro como
+ * candidato.
+ */
+function exactWith(
+  values: [number, number][],
+  k: number,
+  target: number,
+  from = 0,
+  memo = new Map<string, number[] | null>(),
+): number[] | null {
+  if (k === 0) return target === 0 ? [] : null;
+  if (target <= 0 || values.length - from < k) return null;
+  const key = `${from}:${k}:${target}`;
+  if (memo.has(key)) return memo.get(key)!;
+  let found: number[] | null = null;
+  const [o1, o2] = values[from];
+  for (const value of o2 > 0 && o2 !== o1 ? [o1, o2] : [o1]) {
+    if (value <= 0 || value > target) continue;
+    const rest = exactWith(values, k - 1, target - value, from + 1, memo);
+    if (rest) {
+      found = [from, ...rest];
+      break;
+    }
+  }
+  found ??= exactWith(values, k, target, from + 1, memo);
+  memo.set(key, found);
+  return found;
+}
+
+/** Somas possíveis das cartas obrigatórias (cada uma vale um dos seus dois valores). */
+function mustSums(request: SumRequest): number[] {
+  let sums = [0];
+  for (const card of request.selectsMust) {
+    const [o1, o2] = sumValues(card);
+    const options = o2 > 0 && o2 !== o1 ? [o1, o2] : [o1];
+    sums = [...new Set(sums.flatMap((sum) => options.map((value) => sum + value)))];
+  }
+  return sums;
+}
+
+/**
  * Acha uma seleção válida para o core, com o menor número de cartas.
  *
- * Busca exaustiva — `selects` num duelo real é uma lista curta (as cartas
- * elegíveis em campo/mão). Acima de 16 candidatos cai numa gulosa, que pode
- * errar; o core então pede de novo (RETRY) e o respondedor tenta outra vez.
+ * Até 16 candidatos, busca exaustiva. Acima disso — um efeito que olha o Deck
+ * inteiro, como o Speedroid Wheel ("1 ou 2 Speedroid cujos Níveis somem o
+ * dado") —, uma busca pela regra de cada modo. A primeira versão caía aqui
+ * numa gulosa "os maiores até cobrir o alvo", que ignora a soma EXATA: com o
+ * dado em 1 ela mandava um Nível 5, o core recusava, e a mesma resposta
+ * voltava até o duelo ser interrompido.
  */
 export function findSumSubset(request: SumRequest): number[] {
   const n = request.selects.length;
@@ -135,12 +183,25 @@ export function findSumSubset(request: SumRequest): number[] {
     if (best) return best;
   }
 
-  // Gulosa: os maiores primeiro até cobrir o alvo.
-  const order = request.selects
-    .map((card, index) => ({ index, value: Math.max(...sumValues(card)) }))
+  const values = request.selects.map(sumValues);
+  if (request.mode === "exact") {
+    const max = Math.max(request.max, request.min);
+    for (let k = Math.max(request.min, 1); k <= Math.min(max, n); k += 1) {
+      for (const must of mustSums(request)) {
+        const picked = exactWith(values, k, request.amount - must);
+        if (picked && isValidSum(request, picked)) return picked;
+      }
+    }
+  }
+
+  // Igual ou maior (e reserva do exato): os maiores primeiro até cobrir o
+  // alvo. É a seleção com MENOS cartas que chega lá — e por isso sem carta
+  // sobrando, que é a regra do modo.
+  const order = values
+    .map(([o1, o2], index) => ({ index, value: Math.max(o1, o2) }))
     .sort((a, b) => b.value - a.value);
   const picked: number[] = [];
-  let total = request.selectsMust.reduce((t, card) => t + sumValues(card)[0], 0);
+  let total = Math.max(...mustSums(request));
   for (const entry of order) {
     if (total >= request.amount) break;
     picked.push(entry.index);

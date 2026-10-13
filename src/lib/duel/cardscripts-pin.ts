@@ -16,7 +16,7 @@
  * Importado por caminho relativo pelo harness (Node puro, sem o atalho `@/`),
  * então só pode conter constantes.
  */
-export const CARDSCRIPTS_COMMIT = "f1522e75cc41eda09727678433f9cbbbca2255dc";
+export const CARDSCRIPTS_COMMIT = "a30bd15c0fc5fad951762420c55f5e0b96f596ea";
 
 /** Repositório de onde o clone do harness é feito. */
 export const CARDSCRIPTS_REPO = "https://github.com/ProjectIgnis/CardScripts.git";

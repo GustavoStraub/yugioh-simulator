@@ -86,6 +86,21 @@ console.log("\nSELECT_SUM — soma exata, igual ou maior, carta de dois valores"
     amount, mode: "atLeast", min: 0, max: 0, selects: valores.map(carta), selectsMust: [],
   });
 
+  // Mais de 16 candidatos (efeito que olha o Deck inteiro): a busca não pode
+  // virar "os maiores primeiro". Speedroid Wheel com o dado em 1, no deck
+  // Speedroid do Legendary Arc-V: só o Nível 1 serve.
+  {
+    const wheel = exata(1, [4, 4, 2, 3, 3, 3, 3, 3, 3, 5, 4, 2, 5, 3, 1, 2, 3, 3, 3], 1, 2);
+    const r = findSumSubset(wheel);
+    conferir(JSON.stringify(r) === "[14]" && isValidSum(wheel, r), "19 candidatos, soma exata 1: escolhe o Nível 1", JSON.stringify(r));
+    const dois = exata(7, Array.from({ length: 20 }, (_, i) => (i === 6 ? 3 : i === 13 ? 4 : 8 + (i % 3))), 1, 2);
+    const r2 = findSumSubset(dois);
+    conferir(isValidSum(dois, r2) && r2.length === 2, "20 candidatos, soma exata 7 com duas cartas (3 + 4)", JSON.stringify(r2));
+    const ritual = maior(8, Array.from({ length: 18 }, (_, i) => 1 + (i % 4)));
+    const r3 = findSumSubset(ritual);
+    conferir(isValidSum(ritual, r3), "18 candidatos, igual ou maior que 8 sem carta sobrando", JSON.stringify(r3));
+  }
+
   conferir(isValidSum(exata(8, [4, 4, 3]), [0, 1]), "exata: 4+4 = 8 vale");
   conferir(!isValidSum(exata(8, [4, 4, 3]), [0, 2]), "exata: 4+3 = 7 não vale");
   conferir(!isValidSum(exata(8, [4, 4, 3]), [0, 1, 2]), "exata: 4+4+3 = 11 não vale (passar não pode)");

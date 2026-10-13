@@ -637,7 +637,15 @@ export function DuelBoard({
       : pileCards;
 
   return (
-    <div className="tf-playmat relative flex min-h-0 flex-1 flex-col overflow-hidden">
+    <div
+      className="tf-playmat relative flex min-h-0 flex-1 flex-col overflow-hidden"
+      // Estado do motor para quem observa a mesa de fora (os testes de
+      // navegador): o turno do bot é ritmado — cada ataque espera a investida
+      // inteira —, e sem isto um turno longo dele parecia "nada clicável, mesa
+      // parada". O texto "Processando" que o teste procurava já não existe.
+      data-processing={snapshot.isProcessing ? "1" : undefined}
+      data-waiting-foe={waitingForFoe ? "1" : undefined}
+    >
       {/* ---------------- LP nos cantos, estilo Tag Force ---------------- */}
       <div className="flex shrink-0 items-stretch gap-2 px-2 pt-1.5">
         <div className="relative flex min-w-0 flex-1">

@@ -44,7 +44,7 @@ Browser tests (`test:browser*`, `test:attack`, `test:draw`, `test:viewports`, `s
 
 Diagnostic env flags: `SKIP_SCRIPT_PATCHES=1` shows the original error a script patch hides; `LEGACY_CARD_DATA=1` drops setcode/alias to measure their effect.
 
-Generated data is committed; regenerate with `npm run build:presets` (`src/data/preset-decks-tcg.json`, the ~100 TCG preset decks, from Yugipedia lists cached in `.cache/yugipedia/` + YGOPRODeck set codes; it validates every deck and fails loudly), `npm run build:card-db` (`src/data/card-db.json` from ProjectIgnis BabelCDB `cards.cdb`) and `npm run build:engine-strings` (`src/data/engine-strings.json`).
+Generated data is committed; regenerate with `npm run build:presets` (`src/data/preset-decks-tcg.json`, the ~100 TCG preset decks, from Yugipedia lists cached in `.cache/yugipedia/` + YGOPRODeck set codes; it validates every deck and fails loudly), `npm run build:card-db` (`src/data/card-db.json` from ProjectIgnis BabelCDB: `cards.cdb` plus every `release-*.cdb`, all from one BabelCDB commit; `-- --refresh` re-downloads and writes `.cache/cdb-manifest.json`, which the engine-strings build, the catalog's TCG fill-in and `test:tcg-pool` read too; `prerelease-*.cdb` are skipped — temporary passcodes) and `npm run build:engine-strings` (`src/data/engine-strings.json`; `-- --refresh` refetches `strings.conf`). Updating card data = `build:card-db -- --refresh`, bump `CARDSCRIPTS_COMMIT` + `npm run fixtures`, `build:engine-strings -- --refresh`, `build:catalog -- --refresh`, `build:presets`, `sync:images`, then the whole battery.
 
 ## Architecture
 
@@ -76,7 +76,7 @@ Board reads are per viewer (`readBoardState(core, handle, viewer)` in `board-sta
 ### Card data comes from two places
 
 - **Catalog** (`src/server/catalog/catalog-build.ts` → `.cache/catalog/catalog.json` → `/api/cards` → `CardRegistry.fromCatalog`): names, PT/EN text, types, Link/Pendulum/Rank, banlists (`ban_tcg`, `ban_goat`), Goat-pool flag — display and search only. Built once from YGOPRODeck (`npm run build:catalog`, `-- --refresh` to update; the server builds it lazily if missing), indexed by the **official** passcode with every alternate art resolvable (YGOPRODeck sometimes uses an alt art as the main id). Cards without official data (`playable: false`, released after our `cards.cdb` snapshot) are display-only. `/api/cards` is precompressed (brotli/gzip) with an ETag.
-- **Images** are served from disk by `/card-images/<small|full|cropped>/<passcode>.jpg` (`card-images.ts`): each is fetched from YGOPRODeck once, rate-limited, then cached in `.cache/card-images/` — never hotlinked.
+- **Images** are served from disk by `/card-images/<small|full|cropped>/<passcode>.jpg` (`card-images.ts`): each is fetched from YGOPRODeck once, rate-limited, then cached in `.cache/card-images/` — never hotlinked. When YGOPRODeck has no art (a `.missing` marker, rechecked after 7 days) the route serves a generated SVG card face (`fallbackCardSvg`: frame by card type, name, Level, ATK/DEF) instead of a 404. Tokens: YGOPRODeck lists only ~110 of the ~240 the engine can create, so the catalog adds the rest from the cdb (`tokensFromCdb`); `test:token-images` checks every token has a name and an image.
 - **Official engine data** (`src/data/card-db.json`, read by `official-card-data.ts`): type bitfields, setcodes, alias, level/scales. The engine must get this (`card-adapter.ts`); data derived from YGOPRODeck strings silently breaks every `IsSetCard` check.
 
 ### Scripts

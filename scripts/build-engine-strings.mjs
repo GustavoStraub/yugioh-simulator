@@ -34,14 +34,13 @@ import { mkdirSync, writeFileSync, existsSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { cdbFiles } from "./cdb-manifest.mjs";
+
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const OUT = join(root, "src/data/engine-strings.json");
 const CACHE_DIR = join(root, ".cache");
-const CDB_CACHE = join(CACHE_DIR, "cards.cdb");
 const STRINGS_CACHE = join(CACHE_DIR, "strings.conf");
-
-/** Mesma fonte de `build-card-db.mjs` — reaproveita o cache se ele já rodou. */
-const CDB_URL = "https://github.com/ProjectIgnis/BabelCDB/raw/master/cards.cdb";
+const REFRESH = process.argv.includes("--refresh");
 
 /**
  * `ProjectIgnis/LFLists` (o repo citado originalmente para strings.conf) não
@@ -58,7 +57,7 @@ async function download(url, target) {
 }
 
 async function ensureCached(url, target, label) {
-  if (existsSync(target)) return;
+  if (existsSync(target) && !REFRESH) return;
   process.stdout.write(`Baixando ${label}...\n`);
   await download(url, target);
 }
@@ -119,13 +118,25 @@ async function main() {
   mkdirSync(CACHE_DIR, { recursive: true });
 
   await ensureCached(STRINGS_CONF_URL, STRINGS_CACHE, "strings.conf");
-  await ensureCached(CDB_URL, CDB_CACHE, "cards.cdb");
+  // Os mesmos .cdb do `card-db.json` (`npm run build:card-db` baixa e grava
+  // o manifesto): sem isso, as cartas de um `release-*.cdb` entravam no duelo
+  // sem as próprias strings — opção de efeito sem rótulo.
+  const fontes = cdbFiles(root);
+  if (fontes.length === 0) {
+    throw new Error("sem .cdb em .cache/ — rode `npm run build:card-db -- --refresh` antes");
+  }
 
   const { system, counters } = parseStringsConf(readFileSync(STRINGS_CACHE, "utf8"));
   // Todas as cartas, não só o pool Goat: com o TCG no app qualquer carta pode
   // estar em jogo, e os avisos que ficam na carta ("não pode atacar neste
   // turno") são strings de carta. O arquivo vai comprimido ao navegador.
-  const cards = readCardStrings(CDB_CACHE, null);
+  const cards = {};
+  for (const fonte of fontes) {
+    // O primeiro arquivo (cards.cdb) vence num id repetido, como no card-db.
+    for (const [id, strs] of Object.entries(readCardStrings(fonte, null))) {
+      cards[id] ??= strs;
+    }
+  }
 
   const payload = { system, cards, counters };
   writeFileSync(OUT, JSON.stringify(payload));

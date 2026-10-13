@@ -215,6 +215,16 @@ const OCG_ATTRIBUTE_NAMES: Record<number, string> = {
   64: "DIVINE",
 };
 
+/** Nome (formato YGOPRODeck) da raça pelo bitmask do engine; `null` se desconhecida. */
+export function ocgRaceName(race: number): string | null {
+  return OCG_RACE_NAMES[String(race)] ?? null;
+}
+
+/** Nome (formato YGOPRODeck) do atributo pelo bitmask do engine; `null` se desconhecido. */
+export function ocgAttributeName(attribute: number): string | null {
+  return OCG_ATTRIBUTE_NAMES[attribute] ?? null;
+}
+
 /** Traduz um atributo pelo valor do ocgcore (ANNOUNCE_ATTRIB) — ver `OCG_ATTRIBUTE_NAMES`. */
 export function translateOcgAttribute(attribute: number): string {
   const name = OCG_ATTRIBUTE_NAMES[attribute];

@@ -64,7 +64,12 @@ const LER_ESTADO = `
     botoes,
     menu,
     cartas,
-    processando: /Processando|Preparando duelo/.test(texto),
+    // O motor trabalhando (turno ritmado do bot, resolução de corrente) ou
+    // esperando o outro assento: nada a clicar é o esperado, não trava.
+    processando:
+      mesa.dataset?.processing === "1" ||
+      mesa.dataset?.waitingFoe === "1" ||
+      /Processando|Preparando duelo/.test(texto),
     erro: texto.includes("Erro:") || texto.includes("falhou") || texto.includes("interrompido"),
     acabou: texto.includes("venceu") || texto.includes("empatad"),
     trecho: texto.slice(0, 500),

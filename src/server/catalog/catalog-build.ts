@@ -36,6 +36,7 @@ import {
   type CatalogCard,
   type CatalogFile,
 } from "@/lib/catalog/catalog-format";
+import { ocgAttributeName, ocgRaceName } from "@/lib/card-labels";
 
 const REPO = join(dirname(fileURLToPath(import.meta.url)), "../../..");
 
@@ -215,8 +216,20 @@ export function composeCatalog(
   return [...byId.values()].sort((a, b) => a.id - b.id);
 }
 
-/** O `cards.cdb` que `npm run build:card-db` baixa — de onde sai o `ot` (TCG/OCG). */
-const CDB_PATH = join(REPO, ".cache/cards.cdb");
+/**
+ * Os `.cdb` que `npm run build:card-db` baixa — de onde sai o `ot` (TCG/OCG).
+ * O `cards.cdb` e os `release-*.cdb` listados no manifesto (ver
+ * `scripts/cdb-manifest.mjs`, mesma regra; repetida aqui porque este módulo
+ * entra no grafo do Next e não importa script de linha de comando).
+ */
+function cdbPaths(): string[] {
+  const cache = join(REPO, ".cache");
+  const manifest = join(cache, "cdb-manifest.json");
+  const names = existsSync(manifest)
+    ? (JSON.parse(readFileSync(manifest, "utf8")) as { files: string[] }).files
+    : ["cards.cdb"];
+  return names.map((name) => join(cache, name)).filter((path) => existsSync(path));
+}
 const OT_TCG = 0x2;
 const TYPE_TOKEN = 0x4000;
 
@@ -230,18 +243,24 @@ const TYPE_TOKEN = 0x4000;
  * que nunca rodou `build:card-db`), fica só a lista da YGOPRODeck.
  */
 function tcgIdsMissing(listed: RawCard[], db: CardDbRows): number[] {
-  if (!existsSync(CDB_PATH)) return [];
+  const paths = cdbPaths();
+  if (paths.length === 0) return [];
   const known = new Set<number>();
   for (const card of listed) {
     known.add(card.id);
     for (const image of card.card_images) known.add(image.id);
   }
-  const cdb = new DatabaseSync(CDB_PATH, { readOnly: true });
-  const rows = cdb
-    .prepare("select id, alias from datas where (ot & ?) != 0 and (type & ?) = 0")
-    .all(OT_TCG, TYPE_TOKEN) as { id: number | bigint; alias: number | bigint }[];
-  cdb.close();
-  return rows
+  const rows: { id: number | bigint; alias: number | bigint }[] = [];
+  for (const path of paths) {
+    const cdb = new DatabaseSync(path, { readOnly: true });
+    rows.push(
+      ...(cdb
+        .prepare("select id, alias from datas where (ot & ?) != 0 and (type & ?) = 0")
+        .all(OT_TCG, TYPE_TOKEN) as { id: number | bigint; alias: number | bigint }[]),
+    );
+    cdb.close();
+  }
+  return [...new Map(rows.map((row) => [Number(row.id), row])).values()]
     .map((row) => ({ id: Number(row.id), alias: Number(row.alias) }))
     .filter(({ id, alias }) => {
       if (known.has(id) || !db[String(id)]) return false;
@@ -288,6 +307,71 @@ async function rawByIds(
  *
  * @param refresh baixa as fontes de novo mesmo havendo cópia em disco.
  */
+/**
+ * Fichas que o engine pode criar e o catálogo não tem.
+ *
+ * A lista de fichas da YGOPRODeck (`type=token`) tem ~110 das ~240 que existem
+ * no banco oficial. Ficha fora do catálogo entrava na mesa sem definição
+ * nenhuma: imagem quebrada e o nome "Carta". Aqui elas vêm do próprio `.cdb`
+ * (nome, texto, ATK/DEF, Nível, Tipo, Atributo). A imagem é a do passcode,
+ * como em qualquer carta; quando a YGOPRODeck não tem arte para ela (~30
+ * fichas modernas), a rota de imagem desenha uma face genérica
+ * (`card-images.ts`).
+ */
+function tokensFromCdb(): CatalogCard[] {
+  const fichas = new Map<number, CatalogCard>();
+  for (const path of cdbPaths()) {
+    const cdb = new DatabaseSync(path, { readOnly: true });
+    const rows = cdb
+      .prepare(
+        "select d.id, d.atk, d.def, d.level, d.race, d.attribute, t.name, t.desc " +
+          "from datas d join texts t on t.id = d.id where (d.type & ?) != 0",
+      )
+      .all(TYPE_TOKEN) as {
+      id: number | bigint;
+      atk: number | bigint;
+      def: number | bigint;
+      level: number | bigint;
+      race: number | bigint;
+      attribute: number | bigint;
+      name: string;
+      desc: string;
+    }[];
+    cdb.close();
+    for (const row of rows) {
+      const id = Number(row.id);
+      // O primeiro arquivo (cards.cdb) vence num id repetido.
+      if (fichas.has(id)) continue;
+      fichas.set(id, {
+        id,
+        arts: [],
+        name: row.name,
+        namePt: null,
+        type: "Token",
+        humanType: "Token",
+        frameType: "token",
+        race: ocgRaceName(Number(row.race)),
+        attribute: ocgAttributeName(Number(row.attribute)),
+        atk: Number(row.atk),
+        def: Number(row.def),
+        // Os bytes altos do `level` guardam escalas de Pêndulo (ver build-card-db).
+        level: Number(row.level) & 0xff,
+        linkval: null,
+        linkMarkers: null,
+        scale: null,
+        archetype: null,
+        banTcg: null,
+        banGoat: null,
+        goat: false,
+        playable: true,
+        desc: row.desc,
+        descPt: null,
+      });
+    }
+  }
+  return [...fichas.values()];
+}
+
 export async function buildCatalog({ refresh = false } = {}): Promise<CatalogFile> {
   const sources = {} as Record<SourceKey, RawCard[]>;
   for (const key of Object.keys(SOURCES) as SourceKey[]) {
@@ -301,7 +385,14 @@ export async function buildCatalog({ refresh = false } = {}): Promise<CatalogFil
     sources.tcgEn = [...sources.tcgEn, ...extra.en];
     sources.tcgPt = [...sources.tcgPt, ...extra.pt];
   }
-  const cards = composeCatalog(sources, db);
+  const composed = composeCatalog(sources, db);
+  // Por arte também: a YGOPRODeck às vezes lista a ficha por uma arte
+  // alternativa, e a do banco oficial seria a mesma ficha duas vezes.
+  const conhecidas = new Set(composed.flatMap((card) => [card.id, ...card.arts]));
+  const cards = [
+    ...composed,
+    ...tokensFromCdb().filter((token) => !conhecidas.has(token.id) && db[String(token.id)]),
+  ].sort((a, b) => a.id - b.id);
   const rows = cards.map(encodeCatalogCard);
   const body = JSON.stringify(rows);
   const file: CatalogFile = {

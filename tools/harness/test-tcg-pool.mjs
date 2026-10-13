@@ -40,8 +40,8 @@ import {
   runScan,
 } from "./card-scan.mjs";
 import { CARD_ARTWORK_VERSIONS_OFFSET, REPO, SCRIPTS_DIR, loadCardDb } from "./env.mjs";
+import { cdbFiles } from "../../scripts/cdb-manifest.mjs";
 
-const CDB = join(REPO, ".cache/cards.cdb");
 const OT_TCG = 0x2;
 
 /**
@@ -57,19 +57,29 @@ const KNOWN_FAILURES = new Map([
   // agora avalia o filtro do core (`announce-filter.ts`).
 ]);
 
-/** O pool TCG com script, lido do `cards.cdb`. */
+/**
+ * O pool TCG com script, lido dos mesmos `.cdb` do `card-db.json` — o
+ * `cards.cdb` e os `release-*.cdb` do manifesto (`scripts/cdb-manifest.mjs`).
+ */
 function loadTcgPool() {
-  if (!existsSync(CDB)) {
-    throw new Error("Falta .cache/cards.cdb — rode `npm run build:card-db`.");
+  const fontes = cdbFiles(REPO);
+  if (fontes.length === 0) {
+    throw new Error("Falta .cache/cards.cdb — rode `npm run build:card-db -- --refresh`.");
   }
-  const db = new DatabaseSync(CDB, { readOnly: true });
-  const rows = db
-    .prepare(
-      "select d.id, d.alias, d.type, t.name from datas d join texts t on t.id = d.id " +
-        "where (d.ot & ?) != 0 and (d.type & ?) = 0 order by d.id",
-    )
-    .all(OT_TCG, OCG_TYPE.TOKEN);
-  db.close();
+  const porId = new Map();
+  for (const fonte of fontes) {
+    const db = new DatabaseSync(fonte, { readOnly: true });
+    const linhas = db
+      .prepare(
+        "select d.id, d.alias, d.type, t.name from datas d join texts t on t.id = d.id " +
+          "where (d.ot & ?) != 0 and (d.type & ?) = 0 order by d.id",
+      )
+      .all(OT_TCG, OCG_TYPE.TOKEN);
+    db.close();
+    // O primeiro arquivo (cards.cdb) vence num id repetido.
+    for (const linha of linhas) if (!porId.has(Number(linha.id))) porId.set(Number(linha.id), linha);
+  }
+  const rows = [...porId.values()].sort((a, b) => Number(a.id) - Number(b.id));
 
   return rows
     .filter((row) => {

@@ -224,6 +224,8 @@ function criarRastreador(duel) {
   // Quem ativou o último elo da corrente aberta — a mesma informação que a
   // sessão passa ao bot (`snapshot.chain`).
   let chainPlayer = null;
+  /** Carta do último elo — diz de QUEM é o prompt que travou. */
+  let chainCode = null;
   return () => {
     for (; cursor < duel.messages.length; cursor += 1) {
       const message = duel.messages[cursor];
@@ -234,11 +236,12 @@ function criarRastreador(duel) {
         phase = message.phase;
       } else if (message.type === OcgMessageType.CHAINING) {
         chainPlayer = message.controller;
+        chainCode = message.code;
       } else if (message.type === OcgMessageType.CHAIN_END) {
         chainPlayer = null;
       }
     }
-    return { turnPlayer, turnCount, phase, chainPlayer };
+    return { turnPlayer, turnCount, phase, chainPlayer, chainCode };
   };
 }
 
@@ -321,6 +324,7 @@ async function partida(a, b, seed) {
     tipos,
     naoRespondidos: duel.unanswered ?? [],
     ultimas: desfecho === "RETRY_LOOP" ? ultimas : [],
+    eloAtivo: rastrear().chainCode,
     retries: duel.retriesTotal,
     eof: duel.bindingErrorsTotal,
   };
@@ -382,7 +386,8 @@ if (!SKIP_DUELS) {
     );
     for (const { message, resposta } of r.ultimas.slice(-1)) {
       const json = (valor) => JSON.stringify(valor, (_, v) => (typeof v === "bigint" ? `${v}n` : v));
-      console.log(`      recusado: ${MESSAGE_NAMES[message.type]} ${json(message).slice(0, 700)}`);
+      console.log(`      recusado: ${MESSAGE_NAMES[message.type]} ${json(message)}`);
+      console.log(`      último elo da corrente: ${r.eloAtivo ?? "nenhum"}`);
       console.log(`      resposta: ${json(resposta)}`);
     }
     conferir(r.erros.length === 0, `${a.id} × ${b.id} (rodada ${rodada}): sem erro de script`, r.erros.slice(0, 3).join(" | "));

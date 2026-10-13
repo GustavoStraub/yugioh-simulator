@@ -108,7 +108,10 @@ const LER = `
     // faz o teste achar que o modal de declarar carta está aberto o duelo
     // inteiro.
     temBusca: Boolean(document.querySelector("input[type=text]")),
-    processando: /Processando|Preparando duelo/.test(texto),
+    processando:
+      mesa.dataset?.processing === "1" ||
+      mesa.dataset?.waitingFoe === "1" ||
+      /Processando|Preparando duelo/.test(texto),
     acabou: /venceu|empatad/.test(texto),
   };
 `;

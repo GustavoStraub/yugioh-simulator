@@ -1014,7 +1014,85 @@ qualquer número acima:
 **Registrado sem causa provada**: um "TRAVOU" no Yusei (L5DD) com o harness
 antigo — botões de "ver" ainda clicáveis na época. Não se repetiu em 5
 rodadas seguintes do mesmo deck com o diagnóstico novo nem nos outros 19
-decks. A suspeita é o próprio harness, mas não ficou provado.
+decks. A suspeita é o próprio harness, mas não ficou provado. *(Depois: a
+causa provável apareceu — ver "Dados atualizados e fichas", abaixo: turno
+ritmado do bot lido como mesa parada.)*
 
 **Pronto quando**: zero plano vazio e zero travamento na bateria (2.140/2.140)
 — sim; cartas problemáticas resolvidas ou registradas — sim (acima).
+
+### Dados atualizados e fichas (depois da Fase 9)
+
+**Atualização dos dados** — `card-db.json`, scripts, strings, catálogo e
+decks prontos, tudo de novo a partir das fontes:
+
+- **BabelCDB** (commit `01a32349`, 2026-10-12): `npm run build:card-db --
+  --refresh` agora baixa o `cards.cdb` **e todos os `release-*.cdb`** do mesmo
+  commit (set lançado, ainda não fundido no `cards.cdb`) e grava
+  `.cache/cdb-manifest.json`; as strings do engine, o preenchimento TCG do
+  catálogo e o `test:tcg-pool` leem a mesma lista. Os `prerelease-*` ficam de
+  fora (passcode provisório). Resultado: **+121 cartas** (35 do `cards.cdb`,
+  86 do `release-betb.cdb`), nenhuma removida, nenhuma linha antiga mudada.
+- **CardScripts**: o commit fixo passou de `f1522e75` (24/08) para `a30bd15c`
+  (12/10) — 162 commits, ~270 scripts de carta. As 119 cartas novas que não
+  são ficha têm script (próprio ou o da arte original). O binding continua o
+  0.1.4 (o mais novo publicado).
+- **Strings do engine**: +119 cartas com strings próprias; 4 com texto
+  corrigido no upstream.
+- **Catálogo**: 14.086 cartas jogáveis (eram 14.003). As 3 cartas que
+  barravam os decks do **Legendary Arc-V Decks** entraram — os decks prontos
+  passam a **110** (os outros 107 iguais, deck por deck).
+- **Ainda sem dados (32)**: 19 anunciadas e ainda em *prerelease* no
+  BabelCDB (as do BETB em inglês, com passcode provisório — os scripts delas
+  citam umas às outras pelo provisório, então ligá-las pelo nome deixaria as
+  interações quebradas); 13 que nem estão no BabelCDB (os 501000000+ de
+  videogame, "???", e quatro Link novíssimos). Entram sozinhas numa próxima
+  atualização, quando o ProjectIgnis as lançar.
+
+**Bateria depois da atualização**: `test:tcg-pool` 13.324 cartas, 24.601
+cenários, **0 erro de Lua**, e **0 veredito mudado** nos 24.589 cenários que
+já existiam (os 12 novos são as 6 cartas TCG novas com script); Goat: 3.108
+cenários, **0 veredito mudado**. Suíte headless inteira passando
+(`patches`, `modern-summons`, `ui`, `ui-rare`, `archetypes`, `triggers`,
+`remaining`…).
+
+**Fichas**: das 243 que o engine pode criar, **123 não estavam no catálogo**
+(a lista da YGOPRODeck tem ~110) — entravam na mesa como imagem quebrada com o
+nome "Carta" — e 30 não têm arte na YGOPRODeck. Agora:
+
+- o catálogo completa as fichas pelo próprio `.cdb` (nome, texto, ATK/DEF,
+  Nível, Tipo, Atributo): **243 de 243 com nome**;
+- a rota de imagem, quando a YGOPRODeck não tem a arte, desenha uma **face de
+  carta** (moldura cinza de ficha, nome, estrelas, ATK/DEF) em vez do 404 — e
+  lembra o "não tem" por 7 dias, para não ir à origem a cada vez; vale para
+  qualquer carta sem arte, não só ficha;
+- `sync:images` baixa também as variações de ficha (as cores do Ojama, das
+  Ovelhas…): **213 com a arte da YGOPRODeck, 30 com a face desenhada, 0 sem
+  imagem**;
+- `test:token-images` confere as 243 (e, com `APP_URL`, carrega as duas pela
+  rota num Chrome); o `test:board-modern` põe uma ficha sem arte na mesa.
+
+**Achados da bateria com os decks novos** (consertados, com teste):
+
+- **SELECT_SUM com mais de 16 candidatos travava o bot.** Speedroid Wheel
+  ("1 ou 2 Speedroid cujos Níveis somem o dado") olha a mão e o Deck — no
+  deck Speedroid do Legendary Arc-V são 19 candidatos. Acima de 16 a busca
+  caía numa gulosa "os maiores primeiro" que ignora a soma EXATA: com o dado
+  em 1 ela mandava um Nível 5, o core recusava e a mesma resposta voltava
+  (no app, o duelo seria interrompido). Agora uma busca pela regra de cada
+  modo (exata: de `min` a `max` cartas, cada uma com um dos seus dois
+  valores; igual ou maior: a menor quantidade que chega lá). Casos novos no
+  `test:prompt-rules` (19 e 20 candidatos; falham sem o conserto) e a
+  partida repetida termina. Valia para o bot, para o piloto do harness e
+  para qualquer efeito que olhe o Deck inteiro.
+- **"TRAVOU" falso no navegador**: o turno do bot é ritmado (cada ataque
+  espera a investida inteira), e um turno com quatro ataques diretos passa
+  dos 8 s em que o teste via "nada clicável". O teste procurava o texto
+  "Processando" para saber que o motor trabalhava — texto que a tela não
+  mostra mais. A mesa agora expõe `data-processing` e `data-waiting-foe`, e
+  os testes leem isso. Era, muito provavelmente, o "TRAVOU" do Yusei acima.
+
+Depois dos dois consertos: `test:presets` em massa com os **110** decks (5
+rodadas, 550 duelos) — **550 terminados**, 0 RETRY, 0 `eof`, 0 plano vazio;
+pela tela, 8 duelos completos (os três Arc-V novos, Yusei, Synchron Extreme,
+Starter Kaiba), mesa moderna, declaração e online Goat e TCG passando.

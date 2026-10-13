@@ -60,7 +60,10 @@ const LER_ESTADO = `
     botoes: [...document.querySelectorAll("button")].filter(util).map((b) => b.innerText.trim()).filter(Boolean),
     cartas: document.querySelectorAll(".tf-slot-active").length,
     aguardando: /aguardando /i.test(texto),
-    processando: /Processando|Preparando duelo/.test(texto),
+    processando:
+      mesa.dataset?.processing === "1" ||
+      mesa.dataset?.waitingFoe === "1" ||
+      /Processando|Preparando duelo/.test(texto),
     erro: texto.includes("Erro:") || texto.includes("interrompido"),
     acabou: texto.includes("venceu") || texto.includes("empatad"),
     trecho: texto.slice(0, 300),
