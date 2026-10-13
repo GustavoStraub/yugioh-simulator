@@ -365,6 +365,24 @@ Achados no caminho:
 - `test:browser-announce` imprimiu o resultado e ficou pendurado depois do
   fim (o processo não saía); a bateria final roda cada teste com vigia.
 
+### Segunda entrega
+
+- `tsc`, `lint` e `npm run build` limpos (o único aviso do build já existia).
+- Navegador, contra o **build de produção** num servidor próprio (porta
+  3210): os 15 testes de navegador e o `test:sfx` novo — 16/16.
+- Motor: os 23 testes de motor e `test:presets` (110 duelos bot × bot) —
+  tudo verde; `test:connection` contra o servidor de produção.
+- Testes ajustados, sempre o seletor e nunca o critério: o fantasma do ataque
+  (`.md-attack-ghost`), os selos de Nível/Rank/material, a carta do oponente
+  de pé (as setas Link giram), "Sua vez" → dono do botão de fase, o carimbo
+  NEGATED e as fases no menu do botão redondo (`FASES_DISPONIVEIS`).
+
+Achado no caminho: num `npm run dev` aberto há horas, o Tailwind deixou de
+gerar classes novas de valor arbitrário (`h-[clamp(…)]`) — o CSS servido
+ficava sem elas e a mão do oponente sumia (altura 0, por ser contêiner de
+tamanho). A altura dela foi para o `md-duel.css`; no build de produção as
+classes saem todas. Reiniciar o dev server resolve.
+
 ## Fontes
 
 - Steam — as 8 capturas da página do jogo e ~450 capturas de jogadores na
