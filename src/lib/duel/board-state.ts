@@ -214,6 +214,12 @@ function toBoardCard(
   const link = raw.link as { rating?: number; marker?: number } | undefined;
   const left = num(raw, "leftScale");
   const right = num(raw, "rightScale");
+  // Na zona de Magias/Armadilhas nada é monstro (nem o Pêndulo, que ali é
+  // escala, nem a União equipada) e o core responde ATK/DEF 0 para Magia e
+  // Armadilha — que a mesa pintava como "0/0" em toda carta virada para cima
+  // ali, Magia de Campo inclusive. Sem número do engine, a casa cai no
+  // catálogo, que não tem ATK/DEF para Magia/Armadilha.
+  const inSpellZone = location === OcgLocation.SZONE;
 
   return {
     code: visible ? code : null,
@@ -223,13 +229,13 @@ function toBoardCard(
     location,
     faceDown,
     defense,
-    attack: num(raw, "attack"),
-    defenseValue: num(raw, "defense"),
+    attack: inSpellZone ? null : num(raw, "attack"),
+    defenseValue: inSpellZone ? null : num(raw, "defense"),
     // camelCase: é assim que o wrapper do ocgcore nomeia estes dois campos
     // (`baseAttack`/`baseDefense`). Em snake_case a leitura vinha sempre null
     // e o ATK/DEF impresso caía no catálogo, mascarando o erro.
-    baseAttack: num(raw, "baseAttack"),
-    baseDefense: num(raw, "baseDefense"),
+    baseAttack: inSpellZone ? null : num(raw, "baseAttack"),
+    baseDefense: inSpellZone ? null : num(raw, "baseDefense"),
     // Nada disto vaza de carta oculta: o nível ou as setas de um monstro
     // baixado já dizem que carta ele é.
     level: visible ? num(raw, "level") : null,

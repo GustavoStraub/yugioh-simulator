@@ -62,6 +62,34 @@ if (indexJs.includes(SORT_BUG)) {
 }
 
 /*
+ * Consulta COUNTERS: o core manda cada contador como um u32 `tipo | (qtd << 16)`
+ * (`card::get_infos`), ou seja, em little-endian o 1º u16 é o TIPO e o 2º a
+ * QUANTIDADE. O binding lê os dois na ordem certa e grava ao contrário —
+ * `counters[qtd] = tipo`. A mesa recebia `{ 1: 27 }` para 1 Marcador de
+ * Relógio (tipo 0x1b) e mostrava "✦27" desde o primeiro marcador. O Marcador
+ * de Magia (tipo 0x1) com 1 unidade é o único caso em que a troca não aparece,
+ * e era justo o que o `test:marks` usava. Pior que o número errado: indexar
+ * pela quantidade faz dois tipos com a mesma contagem se sobrescreverem.
+ *
+ * O conserto só troca chave e valor. A narração (`ADD_COUNTER`/
+ * `REMOVE_COUNTER`) vem por outro parse, que já estava certo.
+ */
+const indexJsContadores = readFileSync(indexJsPath, "utf-8");
+const COUNTERS_BUG = "let c=e.u16(),a=e.u16();t.counters[a]=c}";
+const COUNTERS_FIX = "let c=e.u16(),a=e.u16();t.counters[c]=a}";
+if (indexJsContadores.includes(COUNTERS_BUG)) {
+  writeFileSync(indexJsPath, indexJsContadores.replace(COUNTERS_BUG, COUNTERS_FIX));
+  console.log("Patched @n1xx1/ocgcore-wasm: consulta COUNTERS indexada pelo tipo, não pela quantidade");
+} else if (indexJsContadores.includes(COUNTERS_FIX)) {
+  console.log("@n1xx1/ocgcore-wasm: consulta COUNTERS já corrigida");
+} else {
+  console.warn(
+    "⚠ @n1xx1/ocgcore-wasm: âncora da consulta COUNTERS não encontrada — " +
+      "conferir se tipo e quantidade do contador ainda vêm trocados (test:marks, Clock Tower Prison).",
+  );
+}
+
+/*
  * Mensagem que o binding não sabe desserializar: ele lança ("Error: eof") e
  * o lote INTEIRO daquele passo do core se perde — junto com as mensagens boas
  * que vinham no mesmo lote (dano, movimento, dica de carta, log). Visto ~1 vez

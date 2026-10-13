@@ -50,6 +50,7 @@ const C = {
   strayLambs: 60764581,
   groundCollapse: 90502999,
   lance: 27243130,
+  clockTower: 75041269,
 };
 
 const catalog = JSON.parse(readFileSync(join(REPO, ".cache/catalog/catalog.json"), "utf8"));
@@ -278,6 +279,15 @@ console.log("Marcas no campo — contador, declaração, alvo, equipamento, avis
       `[${otica}] o Machado do Desespero diz a quem está equipado`,
       JSON.stringify(machado?.equippedTo),
     );
+    // O core responde ATK/DEF 0 para Magia/Armadilha, e a mesa pintava "0/0".
+    const comNumero = snap.boards[quem].players[0].spells.filter(
+      (c) => c && (c.attack !== null || c.defenseValue !== null),
+    );
+    conferir(
+      comNumero.length === 0,
+      `[${otica}] nenhuma Magia/Armadilha da fileira carrega ATK/DEF`,
+      JSON.stringify(comNumero.map((c) => [c.code, c.attack, c.defenseValue])),
+    );
     const boi = naMesa(snap, quem, 1, C.ox);
     conferir(
       boi?.hints.some((h) => h.kind === "desc" && /Magia\/Armadilha/.test(h.text)),
@@ -346,6 +356,36 @@ console.log("\nMarcas de turno, de jogador e de zona");
       JSON.stringify(espadas?.hints),
     );
   }
+}
+
+// ---------------------------------------------------------------------------
+console.log("\nContador cujo tipo não é 1: Clock Tower Prison");
+{
+  const { snap } = await jogar({
+    scenario: [{ player: 0, location: OcgLocation.HAND, code: C.clockTower }],
+    jogadas: [{ acao: "activate", code: C.clockTower }, { acao: "fim" }],
+    // O Marcador de Relógio entra na Standby do oponente — basta chegar ao
+    // meu segundo turno.
+    pararSe: (s) =>
+      s.turnCount >= 3 && s.pendingPrompt?.type === OcgMessageType.SELECT_IDLECMD && s.promptPlayer === 0,
+  });
+  for (const quem of [0, 1]) {
+    const torre = naMesa(snap, quem, 0, C.clockTower);
+    conferir(
+      torre?.counters.length === 1 && torre.counters[0].type === 0x1b && torre.counters[0].count === 1,
+      `[${quem === 0 ? "dona" : "oponente"}] a Torre mostra 1 Marcador de Relógio (tipo 0x1b), não 27`,
+      JSON.stringify(torre?.counters),
+    );
+    conferir(
+      torre?.attack === null && torre?.defenseValue === null,
+      `[${quem === 0 ? "dona" : "oponente"}] Magia de Campo não carrega ATK/DEF (o "0/0" da mesa)`,
+      JSON.stringify({ atk: torre?.attack, def: torre?.defenseValue }),
+    );
+  }
+  conferir(
+    /recebeu 1 Marcador de Relógio/.test(snap.log.map((l) => l.text).join("\n")),
+    "o log narra o Marcador de Relógio",
+  );
 }
 
 // ---------------------------------------------------------------------------

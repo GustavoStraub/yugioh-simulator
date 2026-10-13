@@ -13,7 +13,7 @@ Code comments, UI text, docs and commit messages are in Portuguese (pt-BR), and 
 ## Commands
 
 ```bash
-npm install                # postinstall copies the engine wasm to public/ocgcore/ (git-ignored) and patches the binding (mod.js default export; SORT_CARD response encoding; per-message parse guard)
+npm install                # postinstall copies the engine wasm to public/ocgcore/ (git-ignored) and patches the binding (mod.js default export; SORT_CARD response encoding; per-message parse guard; COUNTERS query key/value swap)
 npm run dev                # custom server (server.mjs) + WebSocket on :3000 — the normal way to develop
 npm run dev:next           # plain `next dev`, without the online duel
 npm run build && npm start # production mode, same custom server
@@ -113,6 +113,7 @@ Each `DeckList` has `format: "goat" | "tcg"` (missing = Goat via `formatOf`/`nor
 - The binding sometimes throws `Error: eof` while deserializing a message (e.g. `SHUFFLE_SET_CARD`); both loops treat it as recoverable, with a cap — keep that.
 - The binding throws on a message it can't parse (always `SHUFFLE_SET_CARD`, ~1 per 19 TCG duels) and used to drop the whole batch with it; `copy-ocgcore-wasm.mjs` also patches `duelGetMessage` to skip just that message (it warns `failed to parse a message: 36`). The loops' `eof` cap stays as a safety net.
 - The binding (0.1.4) prefixes the SORT_CARD/SORT_CHAIN response with a length byte the core doesn't read, so every explicit order got RETRY forever; `scripts/copy-ocgcore-wasm.mjs` patches `dist/index.js` at postinstall (a running dev server needs a restart to pick it up). The core reads the order as "position of each card", not "card at each position" — build UI orders through `sortOrderForCore`. `test:sort-card` covers both.
+- The binding (0.1.4) stored the `COUNTERS` query as `counters[count] = type` (the core sends `type | count << 16`), so 1 Clock Counter (type 0x1b) showed as "✦27" and two types with the same count overwrote each other; `copy-ocgcore-wasm.mjs` swaps them at postinstall. Spell Counter ×1 (type 1, count 1) is the one case where the swap is invisible — test counters with a type ≠ 1 (`test:marks` uses Clock Tower Prison). The core also answers ATK/DEF 0 for every Spell/Trap, so `board-state.ts` drops ATK/DEF in the S/T zone (it painted "0/0" on every face-up Spell/Trap).
 - To stop a server you started, kill it by port or PID — never `pkill -f server.mjs`, which also kills the user's dev server.
 - `.env.github` (git-ignored) may hold a GitHub token used for pushes — never print it.
 
