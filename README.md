@@ -85,7 +85,9 @@ npm run public
 
 Enquanto o terminal estiver aberto, o jogo está no ar; `Ctrl+C` derruba
 servidor e túnel juntos. `npm run public -- --sem-build` pula a compilação (útil
-para reabrir o túnel), e `PORT=3001 npm run public` troca a porta.
+para reabrir o túnel). Se a 3000 estiver ocupada (um `npm run dev` aberto, por
+exemplo), o servidor sobe na próxima porta livre e o túnel vai junto;
+`PORT=3001 npm run public` exige uma porta específica.
 
 O túnel abre uma conexão **de dentro para fora**, então não precisa de
 encaminhamento de porta nem de acesso ao roteador — é a saída para quem não é
@@ -127,7 +129,7 @@ Tudo opcional, por variável de ambiente:
 
 | Variável | Padrão | Para quê |
 |---|---|---|
-| `PORT` | `3000` | Porta do servidor (e do `npm run public`) |
+| `PORT` | `3000` | Porta do servidor (e do `npm run public`). Sem ela, a 3000 ocupada faz o servidor subir na próxima livre (até 3019); com ela, porta ocupada é erro |
 | `HOST` | `0.0.0.0` | Interface em que o servidor escuta; `127.0.0.1` deixa só esta máquina entrar |
 | `DECKS_DIR` | `.data/decks` | Onde os decks são gravados |
 | `DUEL_DISCONNECT_GRACE_MS` | `45000` | Quanto esperar por quem caiu antes de liberar "encerrar a meu favor" |

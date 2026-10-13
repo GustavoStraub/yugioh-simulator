@@ -24,14 +24,30 @@ import next from "next";
 
 import { WS_PATH } from "@/lib/net/duel-protocol";
 import { createDuelSocket } from "@/server/duel/socket";
+import { acharPorta } from "@/server/free-port";
 import { lanUrls } from "@/server/net-info";
 
 const dev = process.env.NODE_ENV !== "production";
-const port = Number.parseInt(process.env.PORT ?? "3000", 10);
 // 0.0.0.0 é o ponto do exercício: em `localhost` ninguém da rede alcança.
 const hostname = process.env.HOST ?? "0.0.0.0";
 
+// Sem PORT, a 3000 é só a preferência: se estiver ocupada (outro `npm run dev`,
+// outro projeto), sobe na próxima livre e diz qual. Com PORT explícito, a porta
+// é exigência — quem fixou 3100 para um teste com APP_URL apontando para ela
+// quer um erro, não um servidor em 3101 que o teste nunca vai achar.
+const portaFixa = process.env.PORT !== undefined;
+const pedida = Number.parseInt(process.env.PORT ?? "3000", 10);
+const port = portaFixa ? pedida : await acharPorta(pedida, hostname);
+if (port === null) {
+  console.error(`  nenhuma porta livre entre ${pedida} e ${pedida + 19}.`);
+  process.exit(1);
+}
+if (port !== pedida) {
+  console.log(`  a porta ${pedida} está ocupada — usando ${port}.`);
+}
+
 // A rota `/api/duel/net-info` lê a porta daqui para montar o link de convite.
+// Escrita ANTES do `next(...)`: é a porta escolhida, não a pedida.
 process.env.PORT = String(port);
 
 const app = next({ dev, hostname, port });
@@ -59,6 +75,16 @@ server.on("upgrade", (request, socket, head) => {
   // Todo o resto continua sendo do Next — inclusive o socket de HMR do
   // `next dev`, que quebraria silenciosamente se fosse engolido aqui.
   handleNextUpgrade(request, socket, head);
+});
+
+// A janela entre a sondagem e este `listen` é pequena, mas existe — e com PORT
+// fixo não houve sondagem. Sem este handler o erro sai como stack trace cru.
+server.on("error", (erro) => {
+  if (erro.code === "EADDRINUSE") {
+    console.error(`  a porta ${port} está ocupada.`);
+    process.exit(1);
+  }
+  throw erro;
 });
 
 server.listen(port, hostname, () => {

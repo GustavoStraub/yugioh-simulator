@@ -15,11 +15,15 @@
  * Uso:
  *   npm run public                 # builda, sobe e publica
  *   npm run public -- --sem-build  # pula o build (útil ao reabrir o túnel)
- *   PORT=3001 npm run public
+ *   PORT=3001 npm run public       # exige essa porta (sem PORT: 3000 ou a próxima livre)
  */
 import { spawn } from "node:child_process";
 
-const PORTA = Number.parseInt(process.env.PORT ?? "3000", 10);
+/**
+ * A porta em que o servidor DE FATO subiu. Sem PORT o `server.mjs` escolhe
+ * (3000 ou a próxima livre), então ela só é conhecida quando ele a anuncia.
+ */
+let porta = null;
 const PULAR_BUILD = process.argv.includes("--sem-build");
 
 /** A URL que o cloudflared anuncia num quadro no meio do log. */
@@ -69,15 +73,17 @@ async function build() {
   });
 }
 
-/** Sobe o servidor e resolve quando ele estiver escutando. */
+/** Sobe o servidor e resolve com a porta quando ele estiver escutando. */
 async function servidor() {
-  console.log(`  subindo o servidor na porta ${PORTA}...`);
+  console.log("  subindo o servidor...");
 
   const filho = rodar(
     process.execPath,
     ["--import", "./tools/harness/ts-loader-register.mjs", "server.mjs"],
     {
-      env: { ...process.env, NODE_ENV: "production", PORT: String(PORTA) },
+      // PORT só vai adiante se quem chamou o definiu: sem ele, o servidor
+      // procura uma porta livre em vez de morrer porque a 3000 está ocupada.
+      env: { ...process.env, NODE_ENV: "production" },
       stdio: ["ignore", "pipe", "pipe"],
     },
   );
@@ -95,14 +101,23 @@ async function servidor() {
       90_000,
     );
 
+    // O log chega em pedaços arbitrários; a porta e o "convite:" podem vir em
+    // pedaços diferentes, então se lê o acumulado.
+    let acumulado = "";
     const olhar = (dado) => {
       const texto = String(dado);
-      // O `server.mjs` imprime a linha do convite quando já está escutando.
-      if (texto.includes("convite:") || texto.includes(`:${PORTA}`)) {
+      acumulado += texto;
+      // Só a linha "convite:", que o `server.mjs` imprime de dentro do
+      // callback do `listen`. Antes valia qualquer texto com ":3000" — e a
+      // mensagem de EADDRINUSE contém ":3000", então com a porta ocupada o
+      // script dava o servidor por pronto e abria o túnel para o OUTRO
+      // processo que estava ali (um `next dev`, por exemplo).
+      const local = /http:\/\/localhost:(\d+)/.exec(acumulado);
+      if (acumulado.includes("convite:") && local) {
         clearTimeout(prazo);
-        resolve();
+        resolve(Number(local[1]));
       }
-      if (/error|Error/.test(texto)) process.stderr.write(texto);
+      if (/error|Error|ocupada/.test(texto)) process.stderr.write(texto);
     };
 
     filho.stdout.on("data", olhar);
@@ -116,7 +131,7 @@ async function tunel() {
 
   const filho = rodar(
     "cloudflared",
-    ["tunnel", "--url", `http://localhost:${PORTA}`],
+    ["tunnel", "--url", `http://localhost:${porta}`],
     { stdio: ["ignore", "pipe", "pipe"] },
   );
 
@@ -159,7 +174,7 @@ function anunciar(url) {
   Mande esse link para quem vai jogar. Enquanto este terminal estiver
   aberto, o jogo está no ar; Ctrl+C derruba servidor e túnel juntos.
 
-  Local: http://localhost:${PORTA}
+  Local: http://localhost:${porta}
 `);
 }
 
@@ -176,7 +191,7 @@ if (!(await temCloudflared())) {
 
 try {
   if (!PULAR_BUILD) await build();
-  await servidor();
+  porta = await servidor();
   anunciar(await tunel());
 } catch (erro) {
   console.error(`\n  ${erro instanceof Error ? erro.message : erro}`);
