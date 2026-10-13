@@ -1326,11 +1326,15 @@ export class DuelSession {
           break;
         case OcgMessageType.DRAW:
           // A compra da Draw Phase é implícita — narrá-la todo turno só
-          // empurraria o resto para fora da tela. A que vem de efeito (Pote
-          // da Ganância, Upstart Goblin) é a que o jogador quer conferir.
-          if (this.snapshot.phase !== OcgPhase.DRAW || message.drawn.length > 1) {
+          // empurraria o resto para fora da tela —, e a mão inicial também (é
+          // sempre a mesma). A que vem de efeito (Pote da Ganância, Upstart
+          // Goblin) é a que o jogador quer conferir.
+          if (
+            this.snapshot.turnCount > 0 &&
+            (this.snapshot.phase !== OcgPhase.DRAW || message.drawn.length > 1)
+          ) {
             this.appendLog(
-              `🂠 ${this.seatName(message.player)} comprou ${message.drawn.length} carta(s)`,
+              `${this.seatName(message.player)} comprou ${message.drawn.length} carta(s)`,
               null,
               { actor: seatOf(message.player) },
             );

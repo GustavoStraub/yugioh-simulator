@@ -48,7 +48,7 @@ const LER_ESTADO = `
     b.offsetParent !== null &&
     // O controle de som está sempre habilitado e não é uma jogada; sem
     // excluí-lo o teste clica nele o duelo inteiro e não exercita nada.
-    !b.innerText.includes("\u{1F50A}") &&
+    !b.closest("[data-table-control]") && !b.innerText.includes("\u{1F50A}") &&
     !b.innerText.includes("\u{1F507}") &&
     // Nem o seletor de idioma das cartas (PT/EN, na navegação): também está
     // sempre habilitado, e o teste o clicava em vez de esperar — um duelo

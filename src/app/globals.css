@@ -489,9 +489,22 @@ body {
   .tf-spotlight,
   .tf-spotlight-backdrop,
   .tf-negated-stamp,
-  .tf-chain-resolving {
+  .tf-chain-resolving,
+  .tf-coin,
+  .tf-dice {
     animation: none !important;
   }
+}
+
+/* Aviso que só aparece se a situação durar ("O oponente está jogando…"):
+   entra depois de um instante, para não piscar a cada jogada curta. */
+@keyframes tf-delayed-in {
+  0%, 60% { opacity: 0; }
+  100% { opacity: 1; }
+}
+
+.tf-delayed-in {
+  animation: tf-delayed-in 1.1s ease-out both;
 }
 
 /* Moeda girando e dado rolando. */

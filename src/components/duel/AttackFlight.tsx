@@ -20,6 +20,8 @@ interface Flight {
   /** Deslocamento do recuo e da investida. */
   windUp: { x: number; y: number };
   lunge: { x: number; y: number };
+  /** Velocidade escolhida — a sessão espera o voo nesta mesma escala. */
+  scale: number;
 }
 
 // As durações vêm do módulo de ritmo: o laço de mensagens do duelo precisa
@@ -137,6 +139,7 @@ export function AttackFlightLayer({
       // Recuo curto no sentido oposto, para dar peso à investida.
       windUp: { x: -ux * originBox.height * 0.16, y: -uy * originBox.height * 0.16 },
       lunge: { x: ux * travel, y: uy * travel },
+      scale: flight.scale,
     });
   }, [flight, fieldRef]);
 
@@ -156,6 +159,8 @@ export function AttackFlightLayer({
     // centro — a carta atravessa a mesa sem se endireitar.
     const giro = active.spin ? ` ${active.spin}` : "";
     const total = WIND_UP_MS + LUNGE_MS + HOLD_MS + RETURN_MS;
+    // A proporção entre os passos fica; só o tempo total encolhe.
+    const duracao = Math.max(1, Math.round(total * active.scale));
 
     const animation = ghost.animate(
       [
@@ -177,7 +182,7 @@ export function AttackFlightLayer({
         { transform: `translate(0px, 0px)${giro} scale(1)`, offset: 1, easing: "ease-in" },
       ],
       {
-        duration: WIND_UP_MS + LUNGE_MS + HOLD_MS + RETURN_MS,
+        duration: duracao,
         fill: "forwards",
       },
     );

@@ -9,6 +9,8 @@ interface Ghost {
   from: { x: number; y: number; w: number; h: number };
   to: { x: number; y: number };
   delay: number;
+  /** Duração do voo, já na velocidade escolhida. */
+  travel: number;
 }
 
 const TRAVEL_MS = 380;
@@ -86,13 +88,19 @@ export function DrawFlightLayer({
         };
       }
 
-      return { id: `${draw.token}-${index}`, from, to, delay: index * STAGGER_MS };
+      return {
+        id: `${draw.token}-${index}`,
+        from,
+        to,
+        delay: Math.round(index * STAGGER_MS * draw.scale),
+        travel: Math.max(1, Math.round(TRAVEL_MS * draw.scale)),
+      };
     });
 
     setGhosts(created);
     const done = setTimeout(
       () => setGhosts([]),
-      TRAVEL_MS + created.length * STAGGER_MS + 80,
+      (TRAVEL_MS + created.length * STAGGER_MS) * draw.scale + 80,
     );
     return () => clearTimeout(done);
   }, [draw, fieldRef]);
@@ -130,7 +138,7 @@ function DrawGhost({ ghost }: { ghost: Ghost }) {
         },
       ],
       {
-        duration: TRAVEL_MS,
+        duration: ghost.travel,
         delay: ghost.delay,
         fill: "both",
         easing: "cubic-bezier(0.3, 0, 0.2, 1)",

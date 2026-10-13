@@ -38,15 +38,22 @@ const ORIGEM: Partial<Record<number, string>> = {
  * aparece grande, com quem ativou, de onde e o número do elo; e quando um elo
  * é negado a mesma carta volta com o carimbo NEGADO.
  *
- * Não captura o mouse: é informação, e o prompt que vier junto (responder à
- * corrente) continua clicável por baixo.
+ * O fundo não captura o mouse: é informação, e o prompt que vier junto
+ * (responder à corrente) continua clicável por baixo. Só a carta captura —
+ * clicar nela pula o destaque.
  */
 export function ChainSpotlight({
   spotlight,
   registry,
+  onSkip,
 }: {
   spotlight: ChainSpotlightState | null;
   registry: CardRegistry | null;
+  /**
+   * Clique na carta: pula o destaque (e a pausa da sessão, no duelo local) —
+   * o ○ do Tag Force. Quem já leu o elo não precisa esperar o resto.
+   */
+  onSkip?: () => void;
 }) {
   const texto = useCardText();
   if (!spotlight) return null;
@@ -69,8 +76,10 @@ export function ChainSpotlight({
       style={{ animationDuration: `${spotlight.duration}ms` }}
     >
       <div
-        className="tf-spotlight flex flex-col items-center gap-2"
+        className={`tf-spotlight flex flex-col items-center gap-2 ${onSkip ? "pointer-events-auto cursor-pointer" : ""}`}
         style={{ animationDuration: `${spotlight.duration}ms` }}
+        onClick={onSkip}
+        title={onSkip ? "Clique para pular" : undefined}
       >
         {/* Na ativação a cor diz de quem é o elo (dourado = seu, vermelho =
             do oponente — a mesma do número do elo); na negação o rótulo é

@@ -2,12 +2,14 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { DuelBoard } from "@/components/duel/DuelBoard";
 import { CardRegistryProvider, useCardRegistry } from "@/context/CardRegistryProvider";
 import { useDuelEngine } from "@/hooks/useDuelEngine";
 import { useClientSnapshot } from "@/hooks/useClientSnapshot";
+import { useDuelPrefs } from "@/hooks/useDuelPrefs";
+import { SPEED_SCALE } from "@/lib/duel/duel-prefs";
 import {
   DUEL_SETUP_STORAGE_KEY,
   loadDuelSetup,
@@ -24,7 +26,7 @@ function DuelLoading() {
   );
 }
 
-function DuelPlayInner() {
+function DuelPlayInner({ onRematch }: { onRematch: () => void }) {
   const router = useRouter();
   const { registry, isLoading, error } = useCardRegistry();
 
@@ -61,8 +63,21 @@ function DuelPlayInner() {
     [setup, registry],
   );
 
-  const { snapshot, respond, surrender, subscribeEvents } = useDuelEngine(
-    mounted ? config : null,
+  const { snapshot, respond, surrender, subscribeEvents, setChainPreference, setPace, hurry } =
+    useDuelEngine(mounted ? config : null);
+
+  // Preferências da mesa → sessão: o modo de resposta e o ritmo valem já na
+  // próxima janela/pausa, sem recomeçar o duelo.
+  const [prefs, setPrefs] = useDuelPrefs();
+  useEffect(() => {
+    setChainPreference({ mode: prefs.chainMode });
+  }, [prefs.chainMode, setChainPreference]);
+  useEffect(() => {
+    setPace(SPEED_SCALE[prefs.speed]);
+  }, [prefs.speed, setPace]);
+  const forceAsk = useCallback(
+    (held: boolean) => setChainPreference({ forceAsk: held }),
+    [setChainPreference],
   );
 
   if (!mounted || !setup) {
@@ -94,14 +109,27 @@ function DuelPlayInner() {
       onRespond={(response) => void respond(response)}
       onSurrender={surrender}
       subscribeEvents={subscribeEvents}
+      prefs={prefs}
+      onPrefsChange={setPrefs}
+      onForceAsk={forceAsk}
+      onHurry={hurry}
+      pacing="local"
+      ending={{ backHref: "/duel", backLabel: "Voltar ao lobby", onRematch }}
     />
   );
 }
 
 export function DuelPlayApp() {
+  /**
+   * Número da partida — a revanche troca a `key` e remonta a mesa, o que dá
+   * uma sessão nova com os mesmos decks (o preparo do lobby continua no
+   * sessionStorage). Mais simples e mais seguro do que "zerar" uma sessão
+   * do engine que já terminou.
+   */
+  const [partida, setPartida] = useState(0);
   return (
     <CardRegistryProvider>
-      <DuelPlayInner />
+      <DuelPlayInner key={partida} onRematch={() => setPartida((n) => n + 1)} />
     </CardRegistryProvider>
   );
 }

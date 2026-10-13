@@ -26,6 +26,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
 import {
+  OcgDuelMode,
   OcgLocation,
   OcgMessageType,
   OcgPhase,
@@ -40,7 +41,8 @@ import { createDuelSession } from "@/lib/duel/duel-session";
 import { CardRegistry } from "@/lib/domain/card-registry";
 import { nodeAssets } from "@/server/duel/node-assets";
 
-import { REPO } from "./env.mjs";
+import { REPO, loadGoatPool } from "./env.mjs";
+import { Zone, autoPilot, createDuel } from "./duel.mjs";
 
 const C = {
   celtic: 91152256, // Guerreiro de Nível 4 — o deck dos dois lados
@@ -294,6 +296,92 @@ console.log("\n5. Ctrl segurado e troca no meio do duelo");
     `Nunca → Sempre no 3º turno: perguntas só a partir dele (${trocou.length})`,
     JSON.stringify(trocou.map((p) => p.turno)),
   );
+}
+
+// ---------------------------------------------------------------------------
+// 6. Medição em partidas inteiras.
+//
+// Os cenários acima provam a regra; esta parte mede o efeito num jogo de
+// verdade: decks pré-montados, os dois lados jogando com o piloto automático,
+// e cada janela de resposta do assento 0 passada pela regra nos três modos —
+// a MESMA partida, contada três vezes. É o número que entra no plano (§11).
+// ---------------------------------------------------------------------------
+console.log("\n6. Medição: perguntas ao assento 0 em partidas inteiras");
+{
+  const goatPool = new Set(loadGoatPool().map((card) => card.id));
+  const goat = JSON.parse(readFileSync(join(REPO, "src/data/preset-decks.json"), "utf8"));
+  const tcg = JSON.parse(readFileSync(join(REPO, "src/data/preset-decks-tcg.json"), "utf8"));
+  const PARTIDAS = Number(process.env.CHAIN_MODE_PARTIDAS ?? 8);
+
+  async function medir(formato) {
+    const total = { janelas: 0, always: 0, auto: 0, never: 0, oponenteAtivou: 0, autoNaAtivacao: 0, fins: {}, turnos: 0 };
+    for (let rodada = 0; rodada < PARTIDAS; rodada += 1) {
+      const lista = formato === "goat" ? goat : tcg;
+      const a = lista[(rodada * 3) % lista.length];
+      const b = lista[(rodada * 3 + 5) % lista.length];
+      const principal = (preset) =>
+        formato === "goat" ? preset.main.filter((code) => goatPool.has(code)) : preset.main;
+      const extra = (player, preset) =>
+        formato === "goat" ? [] : (preset.extra ?? []).map((code) => ({ player, zone: Zone.EXTRA, code }));
+      const duel = await createDuel({
+        mode: formato === "goat" ? OcgDuelMode.MODE_GOAT : OcgDuelMode.MODE_MR5,
+        decks: [principal(a), principal(b)],
+        place: [...extra(0, a), ...extra(1, b)],
+        seed: BigInt(7000 + rodada * 13),
+        startingDraw: 5,
+      });
+      // A corrente aberta, reconstruída das mensagens como a sessão faz.
+      let pendentes = [];
+      let lidas = 0;
+      const fim = duel.run((prompt, d) => {
+        for (const m of d.messages.slice(lidas)) {
+          if (m.type === OcgMessageType.CHAINING) pendentes.push(m.controller);
+          else if (m.type === OcgMessageType.CHAIN_SOLVING) pendentes = pendentes.slice(0, m.chain_size - 1);
+          else if (m.type === OcgMessageType.CHAIN_END) pendentes = [];
+        }
+        lidas = d.messages.length;
+        if (
+          prompt.type === OcgMessageType.SELECT_CHAIN &&
+          prompt.player === 0 &&
+          prompt.selects.length > 0 &&
+          !prompt.forced
+        ) {
+          const contexto = { topLinkPlayer: pendentes.at(-1) ?? null };
+          total.janelas += 1;
+          for (const modo of ["always", "auto", "never"]) {
+            if (!chainWindowSkip(prompt, modo, contexto)) total[modo] += 1;
+          }
+          if (contexto.topLinkPlayer === 1) {
+            total.oponenteAtivou += 1;
+            if (!chainWindowSkip(prompt, "auto", contexto)) total.autoNaAtivacao += 1;
+          }
+        }
+        return null;
+      }, { play: true });
+      total.fins[fim] = (total.fins[fim] ?? 0) + 1;
+      total.turnos += duel.of(OcgMessageType.NEW_TURN).length;
+      duel.destroy();
+    }
+    return total;
+  }
+
+  for (const formato of ["goat", "tcg"]) {
+    const t = await medir(formato);
+    console.log(
+      `     ${formato.toUpperCase()} (${PARTIDAS} partidas): janelas com resposta legal ${t.janelas} → ` +
+        `Sempre ${t.always}, Automático ${t.auto}, Nunca ${t.never}; ` +
+        `ativações do oponente com resposta possível: ${t.oponenteAtivou}, perguntadas no Automático: ${t.autoNaAtivacao} ` +
+        `(${t.turnos} turnos; fins: ${JSON.stringify(t.fins)})`,
+    );
+    conferir(t.turnos >= PARTIDAS * 4, `${formato}: as partidas foram jogadas de verdade (${t.turnos} turnos)`);
+    conferir(t.always === t.janelas, `${formato}: Sempre pergunta toda janela`);
+    conferir(t.auto <= t.always, `${formato}: Automático nunca pergunta mais que Sempre`);
+    conferir(t.never === 0, `${formato}: Nunca não pergunta nada opcional`);
+    conferir(
+      t.autoNaAtivacao === t.oponenteAtivou,
+      `${formato}: toda ativação do oponente com resposta possível continua perguntada`,
+    );
+  }
 }
 
 console.log(falhas.length === 0 ? "\nOK — modos de resposta" : `\nFALHOU (${falhas.length}): ${falhas.join("; ")}`);

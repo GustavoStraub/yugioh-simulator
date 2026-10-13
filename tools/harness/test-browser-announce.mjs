@@ -97,7 +97,7 @@ const LER = `
   const mesa = document.querySelector(".tf-playmat") ?? document.body;
   const texto = mesa.innerText;
   const util = (b) => !b.disabled && b.offsetParent !== null &&
-    !b.innerText.includes("\\u{1F50A}") && !b.innerText.includes("\\u{1F507}") &&
+    !b.closest("[data-table-control]") && !b.innerText.includes("\\u{1F50A}") && !b.innerText.includes("\\u{1F507}") &&
     !b.closest('[aria-label="Idioma das cartas"]');
   return {
     texto,

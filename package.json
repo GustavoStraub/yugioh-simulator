@@ -52,7 +52,8 @@
     "test:sort-card": "node --import ./tools/harness/ts-loader-register.mjs tools/harness/test-sort-card.mjs",
     "test:token-images": "node --import ./tools/harness/ts-loader-register.mjs tools/harness/test-token-images.mjs",
     "test:chain-mode": "node --import ./tools/harness/ts-loader-register.mjs tools/harness/test-chain-mode.mjs",
-    "test:duel-log": "node --import ./tools/harness/ts-loader-register.mjs tools/harness/test-duel-log.mjs"
+    "test:duel-log": "node --import ./tools/harness/ts-loader-register.mjs tools/harness/test-duel-log.mjs",
+    "test:browser-peek": "node tools/harness/test-browser-peek.mjs"
   },
   "dependencies": {
     "@n1xx1/ocgcore-wasm": "npm:@jsr/n1xx1__ocgcore-wasm@^0.1.4",

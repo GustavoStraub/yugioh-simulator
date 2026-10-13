@@ -20,6 +20,8 @@ export type SfxName =
   | "activate"
   | "attack"
   | "damage"
+  | "destroy"
+  | "banish"
   | "recover"
   | "phase"
   | "turn"
@@ -265,6 +267,18 @@ export function playSfx(name: SfxName): void {
       // Impacto grave e sujo.
       tone(ctx, out, { type: "square", from: 140, to: 50, start: t, duration: 0.3, peak: 0.32 });
       noise(ctx, out, { start: t, duration: 0.26, peak: 0.24, filterFrom: 1600, filterTo: 120 });
+      break;
+
+    case "destroy":
+      // Estilhaço: estalo agudo de ruído caindo para um baque curto.
+      noise(ctx, out, { start: t, duration: 0.22, peak: 0.24, filterFrom: 6000, filterTo: 900, type: "highpass" });
+      tone(ctx, out, { type: "triangle", from: 220, to: 60, start: t + 0.03, duration: 0.2, peak: 0.2 });
+      break;
+
+    case "banish":
+      // Some no ar: varredura descendente e etérea.
+      tone(ctx, out, { type: "sine", from: 1500, to: 300, start: t, duration: 0.34, peak: 0.12 });
+      noise(ctx, out, { start: t, duration: 0.3, peak: 0.08, filterFrom: 3000, filterTo: 8000, type: "bandpass" });
       break;
 
     case "recover":

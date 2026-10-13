@@ -191,7 +191,7 @@ console.log("\n2. Efeito: Pote da Ganância e Raigeki no meu turno");
     turnos: 1,
   });
   conferir(
-    linhas(snap).some((linha) => linha.text === "🂠 Ana comprou 2 carta(s)"),
+    linhas(snap).some((linha) => linha.text === "Ana comprou 2 carta(s)"),
     "a compra por efeito aparece",
     linhas(snap).map((l) => l.text).join(" | "),
   );
