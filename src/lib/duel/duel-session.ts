@@ -16,6 +16,7 @@ import {
 } from "@n1xx1/ocgcore-wasm";
 
 import { autoResponseFor } from "@/lib/duel/auto-response";
+import { chainWindowSkip, type ChainResponseMode } from "@/lib/duel/chain-mode";
 import { browserAssets } from "@/lib/duel/browser-assets";
 import type { DuelAssets } from "@/lib/duel/duel-assets";
 import type { DuelEvent, DuelEventListener, DuelZoneRef } from "@/lib/duel/duel-events";
@@ -70,6 +71,12 @@ export interface SeatConfig {
   kind: SeatKind;
   /** Nome usado na narração do log ("Você invocou...", "Gustavo invocou..."). */
   name: string;
+  /**
+   * Quando perguntar "deseja responder?" a este assento (ver `chain-mode.ts`).
+   * Omitido = automático. Só vale para assento humano; trocável no meio do
+   * duelo por `setChainPreference`.
+   */
+  chainMode?: ChainResponseMode;
 }
 
 /** Duelo de hoje: você embaixo, bot em cima. */
@@ -124,6 +131,12 @@ export interface DuelSessionConfig {
    * duelo online: só quem monta o duelo por código.
    */
   scenario?: ScenarioCard[];
+  /**
+   * Multiplicador das pausas entre jogadas (ver `pacing.ts`): 1 = ritmo
+   * normal, menos = mais rápido, 0 = sem pausa nenhuma (testes). Trocável no
+   * meio do duelo por `setPace`.
+   */
+  pace?: number;
 }
 
 /**
@@ -355,9 +368,6 @@ const PLAY_EVENTS = new Set<OcgMessageType>([
   OcgMessageType.DRAW,
 ]);
 
-const delay = (ms: number) =>
-  new Promise<void>((resolve) => setTimeout(resolve, ms));
-
 /**
  * Monstro Normal sem efeito — o core lida com ele sem script nenhum, então a
  * ausência de script não é problema. Serve para não alarmar à toa.
@@ -460,6 +470,18 @@ export class DuelSession {
    * dois estão decidindo ao mesmo tempo.
    */
   private readonly brains = new Map<0 | 1, BotBrain>();
+  /** Modo de resposta de cada assento — ver `chain-mode.ts`. */
+  private chainModes: [ChainResponseMode, ChainResponseMode] = ["auto", "auto"];
+  /**
+   * "Segurando Ctrl": enquanto valer, o assento é perguntado em toda janela,
+   * qualquer que seja o modo. É o *hold* do Master Duel — o jeito de parar
+   * numa janela que o automático pularia (a Standby do oponente, para um MST).
+   */
+  private forceAsk: [boolean, boolean] = [false, false];
+  /** Multiplicador das pausas — ver `DuelSessionConfig.pace`. */
+  private pace = 1;
+  /** Encerra a pausa em curso, quando há uma — ver `hurry`. */
+  private endPause: (() => void) | null = null;
 
   subscribe(listener: (snapshot: DuelSnapshot) => void): () => void {
     this.listeners.add(listener);
@@ -486,6 +508,13 @@ export class DuelSession {
     this.started = true;
     this.registry = config.registry;
     this.seats = config.seats ?? DEFAULT_SEATS;
+    // O que o assento trouxe vale; senão fica o que a tela já pediu antes do
+    // `start` (a preferência pode chegar antes de o duelo carregar).
+    this.chainModes = [
+      this.seats[0].chainMode ?? this.chainModes[0],
+      this.seats[1].chainMode ?? this.chainModes[1],
+    ];
+    this.setPace(config.pace ?? this.pace);
     this.assets = config.assets ?? browserAssets;
     const format = config.format ?? DEFAULT_FORMAT;
     const rules = FORMAT_RULES[format];
@@ -642,6 +671,49 @@ export class DuelSession {
         isProcessing: false,
       });
     }
+  }
+
+  /**
+   * Troca, no meio do duelo, quando o assento é perguntado se quer responder.
+   *
+   * Não mexe numa pergunta já na tela: o jogador que abriu o modal decide ele.
+   * Vale a partir da próxima janela.
+   */
+  setChainPreference(
+    seat: 0 | 1,
+    preference: { mode?: ChainResponseMode; forceAsk?: boolean },
+  ): void {
+    if (preference.mode) this.chainModes[seat] = preference.mode;
+    if (preference.forceAsk !== undefined) this.forceAsk[seat] = preference.forceAsk;
+  }
+
+  /**
+   * "Pula": encerra agora a pausa entre jogadas que está correndo.
+   *
+   * É o ○ do Tag Force e o clique do Master Duel — quem já leu o destaque da
+   * ativação não precisa esperar o resto dele. Só a pausa em curso: a próxima
+   * jogada volta ao ritmo escolhido.
+   */
+  hurry(): void {
+    this.endPause?.();
+  }
+
+  /** Espera `ms`, ou menos se alguém chamar `hurry`. */
+  private pause(ms: number): Promise<void> {
+    return new Promise<void>((resolve) => {
+      const done = () => {
+        clearTimeout(timer);
+        if (this.endPause === done) this.endPause = null;
+        resolve();
+      };
+      const timer = setTimeout(done, ms);
+      this.endPause = done;
+    });
+  }
+
+  /** Troca o ritmo no meio do duelo (ver `DuelSessionConfig.pace`). */
+  setPace(scale: number): void {
+    this.pace = Number.isFinite(scale) ? Math.min(2, Math.max(0, scale)) : 1;
   }
 
   /**
@@ -816,7 +888,7 @@ export class DuelSession {
           // atacante ainda no ar. Já um MOVE de carta quase não precisa de
           // nada. Uma pausa única para tudo deixava o combate atropelado e as
           // jogadas triviais lentas ao mesmo tempo.
-          const isOwnTurn = this.snapshot.turnPlayer === 0;
+          const isOwnTurn = this.ownTurnDiscount();
           let wanted = 0;
           for (const message of messages) {
             wanted = Math.max(wanted, beatFor(message.type, isOwnTurn));
@@ -829,8 +901,8 @@ export class DuelSession {
           // turno as primeiras jogadas gastavam a cota e o resto do turno
           // corria sem pausa nenhuma — o ritmo mudava no meio da jogada, que
           // é justamente o que dá a sensação de engasgo.
-          const allowed = Math.min(wanted, MAX_BEAT_PER_BATCH_MS);
-          if (allowed > 0) await delay(allowed);
+          const allowed = Math.round(Math.min(wanted, MAX_BEAT_PER_BATCH_MS) * this.pace);
+          if (allowed > 0) await this.pause(allowed);
         }
 
         // Com o duelo decidido não há mais o que perguntar ao jogador.
@@ -897,6 +969,25 @@ export class DuelSession {
           this.core.duelSetResponse(this.handle, automatic);
           this.selectHint = null;
           continue;
+        }
+
+        // Janela de resposta que o modo do jogador manda pular (ver
+        // `chain-mode.ts`): "não responder" sem a pergunta chegar à tela. Só
+        // para humano — o bot decide as próprias janelas.
+        if (
+          prompt.type === OcgMessageType.SELECT_CHAIN &&
+          this.seats[promptPlayer].kind !== "bot"
+        ) {
+          const skip = chainWindowSkip(
+            prompt,
+            this.forceAsk[promptPlayer] ? "always" : this.chainModes[promptPlayer],
+            { topLinkPlayer: this.openChainController() },
+          );
+          if (skip) {
+            this.core.duelSetResponse(this.handle, skip);
+            this.selectHint = null;
+            continue;
+          }
         }
 
         if (this.seats[promptPlayer].kind === "bot") {
@@ -1336,6 +1427,30 @@ export class DuelSession {
           break;
       }
     }
+  }
+
+  /**
+   * As pausas do turno do próprio jogador podem ser encurtadas?
+   *
+   * Só quando quem joga é um humano local e do outro lado está o bot: quem
+   * clicou já sabe o que fez, e ninguém mais assiste. Num duelo online os dois
+   * assentos são humanos e um deles está sempre só assistindo — antes o teste
+   * era `turnPlayer === 0`, e o assento 1 via o turno do 0 em ritmo acelerado
+   * (e o 0 via o turno do 1 lento), nos dois sentidos errados.
+   */
+  private ownTurnDiscount(): boolean {
+    const turn = this.snapshot.turnPlayer;
+    if (turn !== 0 && turn !== 1) return false;
+    return this.seats[turn].kind === "local" && this.seats[1 - turn].kind === "bot";
+  }
+
+  /** Quem ativou o último elo ainda por resolver; `null` fora de corrente. */
+  private openChainController(): number | null {
+    for (let i = this.snapshot.chainLinks.length - 1; i >= 0; i -= 1) {
+      const link = this.snapshot.chainLinks[i];
+      if (link.state === "pending") return link.player;
+    }
+    return null;
   }
 
   /** Chave da zona nas marcas, a mesma do `cardKey` da mesa. */

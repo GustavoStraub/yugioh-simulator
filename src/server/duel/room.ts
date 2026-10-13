@@ -1,6 +1,7 @@
 import type { OcgResponse } from "@n1xx1/ocgcore-wasm";
 
 import type { CardRegistry } from "@/lib/domain/card-registry";
+import { isChainResponseMode, type ChainResponseMode } from "@/lib/duel/chain-mode";
 import { deckLimits } from "@/lib/domain/deck-rules";
 import { formatOf } from "@/lib/types";
 import type { DuelEvent } from "@/lib/duel/duel-events";
@@ -37,6 +38,14 @@ interface RoomPlayer {
   /** Quando o socket caiu, para contar a tolerância. `null` = está aqui. */
   disconnectedAt: number | null;
   seat: 0 | 1 | null;
+  /**
+   * Quando perguntar "deseja responder?" a este jogador. Fica no jogador, e
+   * não na sessão, porque sobrevive à revanche (uma sessão nova por partida)
+   * e é reaplicado a cada uma — ver `setPrefs` e `iniciarSessao`.
+   */
+  chainMode: ChainResponseMode;
+  /** Ctrl segurado do lado dele: pergunta em toda janela enquanto valer. */
+  forceAsk: boolean;
 }
 
 /**
@@ -203,6 +212,8 @@ export class DuelRoom {
       send: params.send,
       disconnectedAt: null,
       seat: null,
+      chainMode: "auto",
+      forceAsk: false,
     };
     this.players.push(player);
     this.enviarEstadoInicial(player);
@@ -335,6 +346,26 @@ export class DuelRoom {
     this.tentarIniciar();
   }
 
+  /**
+   * Preferências de resposta de um jogador.
+   *
+   * Valida o que chega: é texto vindo da rede, e um modo desconhecido não pode
+   * virar estado da sala. Aplicado na sessão em andamento (se houver) e
+   * guardado para as próximas partidas.
+   */
+  setPrefs(token: string, chainMode: unknown, forceAsk: boolean): void {
+    const player = this.players.find((candidate) => candidate.token === token);
+    if (!player) return;
+    if (isChainResponseMode(chainMode)) player.chainMode = chainMode;
+    player.forceAsk = forceAsk;
+    if (this.session && player.seat !== null && !this.finished) {
+      this.session.setChainPreference(player.seat, {
+        mode: player.chainMode,
+        forceAsk: player.forceAsk,
+      });
+    }
+  }
+
   respond(token: string, promptId: number, response: OcgResponse): void {
     const player = this.players.find((candidate) => candidate.token === token);
     if (!player || player.seat === null || !this.session) return;
@@ -350,6 +381,9 @@ export class DuelRoom {
 
     player.send = null;
     player.disconnectedAt = Date.now();
+    // Quem caiu com o Ctrl apertado não solta a tecla do lado de cá: sem isto
+    // o assento ficaria perguntando em toda janela até o fim da partida.
+    if (player.forceAsk) this.setPrefs(player.token, player.chainMode, false);
 
     // Antes de começar, sair é sair: o lugar volta a ficar livre para outro
     // amigo entrar. Depois de começar o lugar fica guardado pelo token, senão
@@ -671,8 +705,8 @@ export class DuelRoom {
       opponentDeck: segundo.deck as DuelDeckPayload,
       registry,
       seats: [
-        { kind: "remote", name: primeiro.name },
-        { kind: "remote", name: segundo.name },
+        { kind: "remote", name: primeiro.name, chainMode: primeiro.chainMode },
+        { kind: "remote", name: segundo.name, chainMode: segundo.chainMode },
       ],
       assets: nodeAssets,
       // Os dois decks têm o mesmo formato (`tentarIniciar` não começa sem isso).

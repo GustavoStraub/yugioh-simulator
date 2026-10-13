@@ -1,5 +1,6 @@
 import type { OcgResponse } from "@n1xx1/ocgcore-wasm";
 
+import type { ChainResponseMode } from "@/lib/duel/chain-mode";
 import type { DuelEvent } from "@/lib/duel/duel-events";
 import type { DuelSnapshot } from "@/lib/duel/duel-session";
 import type { JokenpoJogada } from "@/lib/duel/jokenpo";
@@ -111,6 +112,13 @@ export type ClientMessage =
    * tabuleiro que nunca mais anda.
    */
   | { t: "claimWin" }
+  /**
+   * Quando perguntar "deseja responder?" a este jogador (ver `chain-mode.ts`).
+   *
+   * Atravessa a rede porque é o servidor quem roda o engine e decide pular a
+   * janela; `forceAsk` é o Ctrl segurado. Mandado ao entrar e a cada troca.
+   */
+  | { t: "prefs"; chainMode: ChainResponseMode; forceAsk: boolean }
   | { t: "respond"; promptId: number; response: OcgResponse };
 
 export type ServerMessage =

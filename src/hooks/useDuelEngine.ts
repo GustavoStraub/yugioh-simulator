@@ -33,6 +33,13 @@ export function useDuelEngine(config: DuelSessionConfig | null) {
         session.subscribeEvents(listener),
       /** Desistir — no duelo local quem desiste é sempre o assento 0. */
       surrender: () => session.surrender(0),
+      /** Modo de resposta e "Ctrl segurado" do jogador (assento 0). */
+      setChainPreference: (preference: Parameters<typeof session.setChainPreference>[1]) =>
+        session.setChainPreference(0, preference),
+      /** Ritmo das pausas entre jogadas (1 = normal). */
+      setPace: (scale: number) => session.setPace(scale),
+      /** Encerra a pausa em curso — o clique que pula a animação. */
+      hurry: () => session.hurry(),
     }),
     [session],
   );

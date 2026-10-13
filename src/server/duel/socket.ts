@@ -154,6 +154,9 @@ export function createDuelSocket(httpServer: Server) {
         case "claimWin":
           atual.room.claimWin(atual.token);
           break;
+        case "prefs":
+          atual.room.setPrefs(atual.token, parsed.chainMode, parsed.forceAsk === true);
+          break;
         case "surrender":
           atual.room.surrender(atual.token);
           break;
