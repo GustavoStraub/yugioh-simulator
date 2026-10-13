@@ -129,7 +129,13 @@ export function useDuelFeedback(
    * pausa, o tabuleiro muda com ela ainda no ar.
    */
   scale = 1,
+  /**
+   * Os avisos de turno. Quem joga lê "SEU TURNO"; quem só assiste bot × bot
+   * não tem turno — ali o aviso diz de quem é a vez, pelo nome.
+   */
+  turnText: { mine: string; foe: string } = { mine: "SEU TURNO", foe: "TURNO DO OPONENTE" },
 ) {
+  const { mine: meuTurno, foe: turnoDoOutro } = turnText;
   const [flashes, setFlashes] = useState<DuelFlash[]>([]);
   /** Que metade da tela treme — já em coordenadas de quem assiste. */
   const [shake, setShake] = useState<"mine" | "theirs" | null>(null);
@@ -274,7 +280,7 @@ export function useDuelFeedback(
         }
         case "turn":
           pushFlash(
-            event.player === me ? "SEU TURNO" : "TURNO DO OPONENTE",
+            event.player === me ? meuTurno : turnoDoOutro,
             "neutral",
             dur(1200),
           );
@@ -314,7 +320,7 @@ export function useDuelFeedback(
           break;
       }
     });
-  }, [subscribe, pushFlash, me]);
+  }, [subscribe, pushFlash, me, meuTurno, turnoDoOutro]);
 
   return { flashes, shake, toss, flight, reveal, draw, spotlight, leaves, dismissSpotlight };
 }

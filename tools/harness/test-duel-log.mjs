@@ -35,6 +35,7 @@ import {
 
 import { botAutoResponse } from "@/lib/duel/bot-responder";
 import { createDuelSession } from "@/lib/duel/duel-session";
+import { localizeLogText } from "@/lib/duel/log-names";
 import { CardRegistry } from "@/lib/domain/card-registry";
 import { nodeAssets } from "@/server/duel/node-assets";
 
@@ -327,6 +328,48 @@ console.log("\n3. Informação oculta: Giant Trunade devolve a Armadilha baixada
     snap.log.filter((linha) => linha.text.startsWith("💬")).every((linha) => linha.kind === "hint"),
     "as dicas de seleção do core são 'hint'",
   );
+}
+
+// ---------------------------------------------------------------------------
+console.log("\n4b. Nomes no idioma escolhido (PT/EN)");
+{
+  // O texto sai da sessão em português; a tela troca pelo idioma de quem lê
+  // usando os códigos da linha. Para isso funcionar, toda carta citada pelo
+  // nome precisa estar nos códigos — e nada além dela.
+  const { snap } = await rodar({
+    scenario: [
+      { player: 0, location: OcgLocation.HAND, code: C.potOfGreed },
+      { player: 0, location: OcgLocation.HAND, code: C.raigeki },
+      { player: 1, location: OcgLocation.MZONE, code: C.elf },
+      { player: 1, location: OcgLocation.MZONE, sequence: 2, code: C.horseman },
+    ],
+    roteiro: { 0: ativando(C.potOfGreed, C.raigeki) },
+    turnos: 1,
+  });
+  const comCodigo = snap.log.filter((linha) => linha.codes?.length);
+  const semNome = comCodigo.filter((linha) => linha.codes.some((code) => !linha.text.includes(nomeDe(code))));
+  conferir(comCodigo.length >= 5, `linhas com cartas citadas (${comCodigo.length})`);
+  conferir(semNome.length === 0, "todo código da linha está nomeado no texto", JSON.stringify(semNome.slice(0, 2)));
+  const conhecidos = [C.potOfGreed, C.raigeki, C.elf, C.horseman];
+  const citadoSemCodigo = snap.log.filter((linha) =>
+    conhecidos.some((code) => linha.text.includes(nomeDe(code)) && !linha.codes?.includes(code)),
+  );
+  conferir(citadoSemCodigo.length === 0, "toda carta pública citada pelo nome vem com o código", JSON.stringify(citadoSemCodigo.slice(0, 2)));
+
+  const emIngles = (code) => registry.get(code)?.nameEn ?? registry.get(code)?.name;
+  const raigekiPt = nomeDe(C.raigeki);
+  const raigekiEn = emIngles(C.raigeki);
+  const linha = comCodigo.find((l) => l.codes.includes(C.elf) && l.text.startsWith("💥"));
+  const traduzida = linha ? localizeLogText(linha.text, linha.codes, nomeDe, emIngles) : "";
+  conferir(
+    Boolean(linha) && traduzida.includes(emIngles(C.elf)) && (nomeDe(C.elf) === emIngles(C.elf) || !traduzida.includes(nomeDe(C.elf))),
+    `a linha troca o nome para o inglês ("${traduzida}")`,
+  );
+  conferir(
+    localizeLogText("Dark Magician Girl e Dark Magician", [1, 2], (c) => (c === 1 ? "Dark Magician" : "Dark Magician Girl"), (c) => (c === 1 ? "DM" : "DMG")) === "DMG e DM",
+    "nome contido em outro (Dark Magician × Dark Magician Girl) não se corrompe",
+  );
+  conferir(raigekiPt.length > 0 && raigekiEn.length > 0, `nomes do catálogo presentes (${raigekiPt} / ${raigekiEn})`);
 }
 
 // ---------------------------------------------------------------------------

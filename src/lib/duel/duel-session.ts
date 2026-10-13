@@ -155,6 +155,18 @@ export interface DuelSessionConfig {
   humanSeat?: 0 | 1;
   /** Uma linha logo depois de "Duelo iniciado" — o resultado da moeda. */
   openingNote?: string;
+  /**
+   * Duelo-problema (modo puzzle): a mesa vem pronta pelo `scenario`, ninguém
+   * compra mão inicial, os pontos de vida são os do problema e quem começa
+   * pode atacar já no primeiro turno — o desafio é vencer NESTE turno.
+   * `lifePoints` é [quem joga, oponente].
+   */
+  puzzle?: { lifePoints: [number, number] };
+  /**
+   * Assento cujo tabuleiro é lido mesmo sendo bot — o modo espectador (bot ×
+   * bot). Sem isto ninguém olha um assento de bot e a mesa ficaria vazia.
+   */
+  watchSeat?: 0 | 1;
 }
 
 /**
@@ -533,6 +545,8 @@ export class DuelSession {
   private forceAsk: [boolean, boolean] = [false, false];
   /** Multiplicador das pausas — ver `DuelSessionConfig.pace`. */
   private pace = 1;
+  /** Ver `DuelSessionConfig.watchSeat`. */
+  private watchSeat: 0 | 1 | null = null;
   /** Encerra a pausa em curso, quando há uma — ver `hurry`. */
   private endPause: (() => void) | null = null;
   /**
@@ -569,6 +583,7 @@ export class DuelSession {
     this.started = true;
     this.registry = config.registry;
     const humanSeat: 0 | 1 = config.humanSeat === 1 ? 1 : 0;
+    this.watchSeat = config.watchSeat ?? null;
     this.seats =
       config.seats ?? (humanSeat === 0 ? DEFAULT_SEATS : [DEFAULT_SEATS[1], DEFAULT_SEATS[0]]);
     // O que o assento trouxe vale; senão fica o que a tela já pediu antes do
@@ -648,6 +663,8 @@ export class DuelSession {
           `⚠ Sem script (não terão efeito): ${inert
             .map((passcode) => this.cardName(passcode))
             .join(", ")}`,
+          null,
+          { codes: inert },
         );
       }
 
@@ -663,16 +680,24 @@ export class DuelSession {
       );
 
       const core = this.core;
-      const team = {
-        startingLP: rules.startingLp,
-        startingDrawCount: rules.startingHandSize,
+      const puzzle = config.puzzle;
+      // O LP do problema é escrito de quem joga para o oponente; o core quer
+      // por assento.
+      const lpDoAssento = (assento: 0 | 1) =>
+        puzzle ? puzzle.lifePoints[assento === humanSeat ? 0 : 1] : rules.startingLp;
+      const team = (assento: 0 | 1) => ({
+        startingLP: lpDoAssento(assento),
+        startingDrawCount: puzzle ? 0 : rules.startingHandSize,
         drawCountPerTurn: rules.drawPerTurn,
-      };
+      });
+      if (puzzle) {
+        this.update({ lifePoints: [lpDoAssento(0), lpDoAssento(1)] });
+      }
       const handle = core.createDuel({
-        flags: DUEL_FLAGS[format],
+        flags: puzzle ? DUEL_FLAGS[format] | OcgDuelMode.ATTACK_FIRST_TURN : DUEL_FLAGS[format],
         seed: randomSeed(),
-        team1: team,
-        team2: team,
+        team1: team(0),
+        team2: team(1),
         cardReader: (code) => {
           const card = config.registry.get(code);
           if (card) return cardDefinitionToOcgData(card, this.cardDb);
@@ -1560,6 +1585,11 @@ export class DuelSession {
             message.type === OcgMessageType.ADD_COUNTER
               ? `✦ ${nome} recebeu ${message.count} ${contador}`
               : `✦ ${nome} perdeu ${message.count} ${contador}`,
+            null,
+            {
+              codes: this.publicCodesAt(message),
+              actor: message.controller,
+            },
           );
           break;
         }
@@ -1567,12 +1597,16 @@ export class DuelSession {
           this.appendLog(
             `🔗 ${this.publicNameAt(message.card.controller, message.card.location, message.card.sequence)} ` +
               `foi equipada a ${this.publicNameAt(message.target.controller, message.target.location, message.target.sequence)}`,
+            null,
+            { codes: this.publicCodesAt(message.card, message.target), actor: message.card.controller },
           );
           break;
         case OcgMessageType.CARD_TARGET:
           this.appendLog(
             `🎯 ${this.publicNameAt(message.card.controller, message.card.location, message.card.sequence)} ` +
               `passou a ter como alvo ${this.publicNameAt(message.target.controller, message.target.location, message.target.sequence)}`,
+            null,
+            { codes: this.publicCodesAt(message.card, message.target), actor: message.card.controller },
           );
           break;
         case OcgMessageType.RETRY:
@@ -1668,19 +1702,33 @@ export class DuelSession {
         break;
       case OcgCardHintType.CARD:
         entry.value = { kind: "card", code: raw };
-        this.appendLog(`📢 ${nome} — carta declarada: ${this.cardName(raw)}`);
+        this.appendLog(`📢 ${nome} — carta declarada: ${this.cardName(raw)}`, null, {
+          // A carta declarada é pública (foi dita em voz alta); a que
+          // declarou, só se estiver com a face para cima.
+          codes: [...this.publicCodesAt(message), raw],
+          actor: message.controller,
+        });
         break;
       case OcgCardHintType.RACE:
         entry.value = { kind: "race", mask: raw };
-        this.appendLog(`📢 ${nome} — Tipo declarado`);
+        this.appendLog(`📢 ${nome} — Tipo declarado`, null, {
+          codes: this.publicCodesAt(message),
+          actor: message.controller,
+        });
         break;
       case OcgCardHintType.ATTRIBUTE:
         entry.value = { kind: "attribute", mask: raw };
-        this.appendLog(`📢 ${nome} — Atributo declarado`);
+        this.appendLog(`📢 ${nome} — Atributo declarado`, null, {
+          codes: this.publicCodesAt(message),
+          actor: message.controller,
+        });
         break;
       case OcgCardHintType.NUMBER:
         entry.value = { kind: "number", value: raw };
-        this.appendLog(`📢 ${nome} — número declarado: ${raw}`);
+        this.appendLog(`📢 ${nome} — número declarado: ${raw}`, null, {
+          codes: this.publicCodesAt(message),
+          actor: message.controller,
+        });
         break;
       case OcgCardHintType.DESC_ADD:
       case OcgCardHintType.DESC_REMOVE: {
@@ -1744,6 +1792,15 @@ export class DuelSession {
     const raw = this.queryAt(controller, location, sequence);
     if (!raw?.code) return null;
     return ((raw.position ?? 0) & OcgPosition.FACEDOWN) !== 0 ? null : raw.code;
+  }
+
+  /** Os passcodes públicos das zonas citadas, na ordem (os baixados ficam de fora). */
+  private publicCodesAt(
+    ...zonas: { controller: number; location: number; sequence: number }[]
+  ): number[] {
+    return zonas
+      .map((zona) => this.publicCodeAt(zona.controller, zona.location, zona.sequence))
+      .filter((code): code is number => code !== null);
   }
 
   /** Código, posição e motivo da carta numa zona — `null` se não houver. */
@@ -1957,6 +2014,8 @@ export class DuelSession {
     this.appendLog(
       `👁 ${title}: ${codes.map((code) => this.cardName(code)).join(", ")}`,
       seat,
+      // A linha é só de quem tem direito de ver (`seat`): os códigos também.
+      { codes },
     );
     this.revealCounter += 1;
     this.update({
@@ -2079,7 +2138,7 @@ export class DuelSession {
     // o resultado — e é justamente esse custo que o modo `light` contém.
     const hints = this.hintsByZone();
     const boards = [0, 1].map((seat) =>
-      this.seats[seat as 0 | 1].kind === "bot"
+      this.seats[seat as 0 | 1].kind === "bot" && this.watchSeat !== seat
         ? null
         : readBoardState(core, handle, seat as 0 | 1, light, hints),
     ) as [BoardState | null, BoardState | null];

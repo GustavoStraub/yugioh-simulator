@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 
 import { PresetDeckPicker } from "@/components/deck-builder/PresetDeckPicker";
+import { GlossaryText } from "@/components/duel/GlossaryText";
 import {
   DeckStatsDialog,
   ImportExportDialog,
@@ -947,9 +948,10 @@ function BigCardPreview({
         </p>
       </div>
 
-      <p className="min-h-0 flex-1 overflow-y-auto pr-1 text-[13px] leading-relaxed text-zinc-200">
-        {texto.desc(card)}
-      </p>
+      <GlossaryText
+        text={texto.desc(card)}
+        className="min-h-0 flex-1 overflow-y-auto whitespace-pre-line pr-1 text-[13px] leading-relaxed text-zinc-200"
+      />
     </div>
   );
 }

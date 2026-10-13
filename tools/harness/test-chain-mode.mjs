@@ -42,7 +42,7 @@ import { CardRegistry } from "@/lib/domain/card-registry";
 import { nodeAssets } from "@/server/duel/node-assets";
 
 import { REPO, loadGoatPool } from "./env.mjs";
-import { Zone, autoPilot, createDuel } from "./duel.mjs";
+import { Zone, createDuel } from "./duel.mjs";
 
 const C = {
   celtic: 91152256, // Guerreiro de Nível 4 — o deck dos dois lados

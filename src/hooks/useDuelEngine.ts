@@ -40,8 +40,13 @@ export function useDuelEngine(config: DuelSessionConfig | null) {
       /** Assinatura estável dos eventos transitórios (animação e som). */
       subscribeEvents: (listener: DuelEventListener) =>
         session.subscribeEvents(listener),
-      /** Desistir — quem desiste é o assento de quem joga. */
-      surrender: () => session.surrender(humanSeatRef.current),
+      /**
+       * Desistir — quem desiste é o assento de quem joga. `motivo`/`razao`
+       * trocam a linha do histórico e a frase do resultado (o puzzle usa para
+       * "o turno acabou sem vencer").
+       */
+      surrender: (motivo?: string, razao?: string) =>
+        session.surrender(humanSeatRef.current, motivo, razao),
       /** Modo de resposta e "Ctrl segurado" de quem joga. */
       setChainPreference: (preference: Parameters<typeof session.setChainPreference>[1]) =>
         session.setChainPreference(humanSeatRef.current, preference),

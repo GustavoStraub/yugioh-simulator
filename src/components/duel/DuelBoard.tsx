@@ -13,7 +13,9 @@ import {
 import { useCardRegistry } from "@/context/CardRegistryProvider";
 import { useCardText } from "@/hooks/useCardText";
 import { useDuelFeedback, type DuelFlash } from "@/hooks/useDuelFeedback";
-import { NARROW_TABLE_QUERY, useMediaQuery } from "@/hooks/useMediaQuery";
+import { NARROW_TABLE_QUERY, SHORT_TABLE_QUERY, useMediaQuery } from "@/hooks/useMediaQuery";
+import { useTips } from "@/hooks/useTips";
+import { nextTip } from "@/lib/duel/tips";
 import { playSfx } from "@/lib/audio/sfx";
 import type { DuelEventListener } from "@/lib/duel/duel-events";
 import {
@@ -44,6 +46,7 @@ import {
   type OfficialCardDb,
 } from "@/lib/duel/official-card-data";
 import { linkedZones } from "@/lib/duel/link-geometry";
+import { localizeLogText } from "@/lib/duel/log-names";
 import { cardMarks, slotChips, type CardMark } from "@/lib/duel/card-marks";
 import type {
   DuelChainLink,
@@ -68,6 +71,7 @@ import { DrawFlightLayer } from "@/components/duel/DrawFlight";
 import { SortCardModal } from "@/components/duel/SortCardModal";
 import { AnnounceCardModal } from "@/components/duel/AnnounceCardModal";
 import { DecisionShell, PeekButton } from "@/components/duel/DecisionShell";
+import { GlossaryText } from "@/components/duel/GlossaryText";
 import { LeaveFlightLayer } from "@/components/duel/LeaveFlight";
 import { ChainModeButton, DuelSettings } from "@/components/duel/DuelSettings";
 import {
@@ -118,6 +122,13 @@ interface DuelBoardProps {
    */
   pacing?: "local" | "room";
   /**
+   * Bot × bot: quem olha não joga. Sem botão de modo de resposta, sem dicas,
+   * e o selo de vez não diz "Sua vez" para um assento que é do bot.
+   */
+  spectating?: boolean;
+  /** Duelo-problema: o objetivo fica à vista, com a dica a um clique. */
+  goal?: { title: string; text: string; hint: string };
+  /**
    * O que fazer quando o duelo acaba.
    *
    * Sai de fora porque depende do modo: no duelo local só há "voltar ao
@@ -142,6 +153,10 @@ interface DuelBoardProps {
     onBackToRoom?: () => void;
     /** Revanche com os mesmos decks (duelo local). */
     onRematch?: () => void;
+    /** Rótulo do botão de revanche ("Tentar de novo" num puzzle). */
+    rematchLabel?: string;
+    /** A solução do puzzle — o resultado oferece mostrá-la depois de errar. */
+    solution?: string;
   };
 }
 
@@ -216,6 +231,8 @@ export function DuelBoard({
   onForceAsk,
   onHurry,
   pacing = "local",
+  spectating = false,
+  goal,
 }: DuelBoardProps) {
   /** O outro assento — usado o tempo todo, e `1 - me` espalhado confunde. */
   const foeSeat = (1 - me) as 0 | 1;
@@ -227,7 +244,14 @@ export function DuelBoard({
    */
   const animationScale = pacing === "local" ? SPEED_SCALE[prefs.speed] : 1;
   const { flashes, shake, toss, flight, reveal, draw, spotlight, leaves, dismissSpotlight } =
-    useDuelFeedback(subscribeEvents, me, animationScale);
+    useDuelFeedback(
+      subscribeEvents,
+      me,
+      animationScale,
+      spectating
+        ? { mine: `VEZ DE ${playerName.toUpperCase()}`, foe: `VEZ DE ${opponentName.toUpperCase()}` }
+        : undefined,
+    );
   const fieldRef = useRef<HTMLDivElement | null>(null);
   const { registry, cards } = useCardRegistry();
   /**
@@ -282,6 +306,13 @@ export function DuelBoard({
   const estreita = useMediaQuery(NARROW_TABLE_QUERY);
   const [folhaAberta, setFolhaAberta] = useState(false);
   const [historicoAberto, setHistoricoAberto] = useState(false);
+  /** Dicas de primeira vez (`tips.ts`) — desligáveis na engrenagem. */
+  const dicas = useTips();
+  const [dicaDoProblema, setDicaDoProblema] = useState(false);
+  /** `null` = ninguém mexeu: aberto na mesa larga, fechado na estreita/baixa. */
+  const [objetivoAberto, setObjetivoAberto] = useState<boolean | null>(null);
+  const telaBaixa = useMediaQuery(SHORT_TABLE_QUERY);
+  const objetivoVisivel = objetivoAberto ?? !(estreita || telaBaixa);
 
   /**
    * Rótulos das opções de efeito. Recurso estático e igual para qualquer
@@ -774,6 +805,26 @@ export function DuelBoard({
     (selection.isValid?.(picked) ?? true);
   const placeReady = placeSelection != null && picked.length === placeSelection.count;
 
+  /** A dica da vez, se houver — uma por vez, no momento em que serve. */
+  const minhaPergunta = Boolean(prompt) && snapshot.promptPlayer === me && !busy;
+  const dica =
+    // Quem escondeu a decisão para olhar a mesa quer a mesa limpa: a dica
+    // espera, como a própria decisão.
+    spectating || dicas.tips.off || modalEspiado || snapshot.turnCount === 0 || snapshot.winner !== null
+      ? null
+      : nextTip(
+          {
+            myPrompt: minhaPergunta,
+            canPlay:
+              minhaPergunta && prompt?.type === OcgMessageType.SELECT_IDLECMD && actionableKeys.size > 0,
+            battle: minhaPergunta && prompt?.type === OcgMessageType.SELECT_BATTLECMD,
+            chainWindow: minhaPergunta && prompt?.type === OcgMessageType.SELECT_CHAIN,
+            decisionOpen: decision !== null && !modalEspiado,
+            inlineSelection: minhaPergunta && ((selection != null && !needsPicker) || placeSelection != null),
+          },
+          new Set(dicas.tips.seen),
+        );
+
   /**
    * Teclado da mesa. Num ref, e não nas dependências de um efeito: o efeito
    * registra o ouvinte uma vez, e o ouvinte sempre lê o estado do render mais
@@ -930,10 +981,10 @@ export function DuelBoard({
         <div className="relative flex min-w-0 flex-1">
           <LifeBar
             name={playerName}
-            role="Você"
+            role={spectating ? "Bot" : "Você"}
             lp={snapshot.lifePoints[me]}
             active={snapshot.turnPlayer === me}
-            mine
+            mine={!spectating}
           />
           <PlayerHints hints={snapshot.playerHints[me]} />
           <FlashLayer flashes={flashes} anchor="player" />
@@ -950,7 +1001,12 @@ export function DuelBoard({
           <FlashLayer flashes={flashes} anchor="opponent" />
         </div>
         {onPrefsChange && (
-          <DuelSettings prefs={prefs} onChange={onPrefsChange} pacing={pacing} />
+          <DuelSettings
+            prefs={prefs}
+            onChange={onPrefsChange}
+            pacing={pacing}
+            tips={spectating ? undefined : { on: !dicas.tips.off, onToggle: (on) => dicas.setOff(!on), onReset: dicas.reset }}
+          />
         )}
         <SoundControl />
       </div>
@@ -1000,6 +1056,90 @@ export function DuelBoard({
           )}
 
           <FlashLayer flashes={flashes} anchor="center" />
+
+          {/* Dica de primeira vez — acima dos diálogos (é deles que ela fala),
+              no canto, sem tapar a jogada. */}
+          {dica && (
+            <div
+              data-tip={dica.id}
+              // Com um duelo-problema, o objetivo mora no canto direito: a dica
+              // para antes dele em vez de cobri-lo (no celular, a dica de 80%
+              // tapava o objetivo inteiro).
+              className={`tf-panel absolute left-2 top-16 z-[55] rounded-md border-sky-400/40 p-2.5 shadow-xl shadow-black/60 ${
+                goal ? "w-[min(300px,calc(100%-8rem))]" : "w-[min(300px,80%)]"
+              }`}
+            >
+              <p className="text-[12px] leading-snug text-zinc-100 [@media(max-height:500px)]:text-[11px]">💡 {dica.text}</p>
+              <div className="mt-2 flex gap-2">
+                <button
+                  type="button"
+                  data-table-control
+                  onClick={() => dicas.markSeen(dica.id)}
+                  className="rounded bg-sky-600 px-2.5 py-1 text-[11px] font-bold text-white hover:bg-sky-500"
+                >
+                  Entendi
+                </button>
+                <button
+                  type="button"
+                  data-table-control
+                  onClick={() => dicas.setOff(true)}
+                  className="rounded px-2 py-1 text-[11px] text-zinc-400 hover:text-zinc-200"
+                >
+                  Desligar dicas
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* O objetivo do duelo-problema, à vista — mas minimizável, como todo
+              painel por cima da mesa: aberto ele cobre duas zonas do
+              oponente, e no celular (ou deitado) começa já fechado num selo,
+              porque lá cobriria metade do campo. */}
+          {goal && !objetivoVisivel && (
+            <button
+              type="button"
+              data-puzzle-goal
+              data-puzzle-goal-toggle
+              data-table-control
+              title={goal.text}
+              onClick={() => setObjetivoAberto(true)}
+              className="tf-panel absolute right-2 top-16 z-[45] rounded-full px-3 py-1 text-[11px] font-bold text-[color:var(--tf-gold-bright)] shadow-lg shadow-black/60 hover:brightness-125"
+            >
+              🧩 Objetivo
+            </button>
+          )}
+          {goal && objetivoVisivel && (
+            <div
+              data-puzzle-goal
+              className="tf-panel absolute right-2 top-16 z-[45] w-[min(280px,70%)] rounded-md p-2.5 shadow-xl shadow-black/60"
+            >
+              <div className="flex items-start justify-between gap-2">
+                <p className="text-[11px] font-bold uppercase tracking-wider text-[color:var(--tf-gold)]">🧩 {goal.title}</p>
+                <button
+                  type="button"
+                  data-puzzle-goal-toggle
+                  data-table-control
+                  aria-label="Minimizar o objetivo"
+                  title="Minimizar o objetivo"
+                  onClick={() => setObjetivoAberto(false)}
+                  className="-mr-1 -mt-1 rounded px-1.5 text-[13px] leading-none text-zinc-400 hover:bg-black/50 hover:text-zinc-100"
+                >
+                  —
+                </button>
+              </div>
+              <p className="mt-0.5 text-[12px] leading-snug text-zinc-100">{goal.text}</p>
+              <button
+                type="button"
+                data-table-control
+                onClick={() => setDicaDoProblema((v) => !v)}
+                className="mt-1 text-[11px] text-sky-300 hover:text-sky-200"
+              >
+                {dicaDoProblema ? "Esconder a dica" : "Ver uma dica"}
+              </button>
+              {dicaDoProblema && <p className="mt-1 text-[11px] leading-snug text-sky-100">{goal.hint}</p>}
+            </div>
+          )}
+
           {waitingForFoe ? (
             <WaitingBanner text={`Aguardando ${opponentName}…`} />
           ) : (
@@ -1263,7 +1403,7 @@ export function DuelBoard({
             actions={plan?.global ?? []}
             disabled={busy}
             onRespond={respond}
-            chainMode={onPrefsChange ? prefs.chainMode : null}
+            chainMode={onPrefsChange && !spectating ? prefs.chainMode : null}
             forcing={ctrlHeld}
             onChainMode={(chainMode) => onPrefsChange?.({ chainMode })}
             extras={
@@ -1299,6 +1439,7 @@ export function DuelBoard({
                 onOpenReveals={() => setRevelacoesAbertas(true)}
                 me={me}
                 onHover={showPreview}
+                registry={registry}
               />
             </div>
           )}
@@ -1334,6 +1475,7 @@ export function DuelBoard({
                 onOpenReveals={() => setRevelacoesAbertas(true)}
                 me={me}
                 onHover={showPreview}
+                registry={registry}
               />
             </div>
           </div>
@@ -3214,9 +3356,11 @@ function ResultOverlay({
               onClick={ending.onRematch}
               className="rounded bg-[color:var(--tf-gold)] px-4 py-2 text-sm font-bold text-black hover:brightness-110"
             >
-              Revanche
+              {ending.rematchLabel ?? "Revanche"}
             </button>
           )}
+
+          {ending.solution && winner !== me && <SolucaoDoProblema texto={ending.solution} />}
 
           <a
             href={ending.backHref}
@@ -3226,7 +3370,7 @@ function ResultOverlay({
                 : "bg-[color:var(--tf-gold)] text-black hover:brightness-110"
             }`}
           >
-            {ending.onRematch ? "Trocar de deck" : ending.backLabel}
+            {ending.onRematch && !ending.rematchLabel ? "Trocar de deck" : ending.backLabel}
           </a>
 
           <button
@@ -3240,6 +3384,24 @@ function ResultOverlay({
         </div>
       </div>
     </div>
+  );
+}
+
+/** A solução do puzzle, escondida até o jogador pedir. */
+function SolucaoDoProblema({ texto }: { texto: string }) {
+  const [aberta, setAberta] = useState(false);
+  return aberta ? (
+    <p data-puzzle-solution className="max-w-[22rem] text-[12px] leading-snug text-sky-100">
+      💡 {texto}
+    </p>
+  ) : (
+    <button
+      type="button"
+      onClick={() => setAberta(true)}
+      className="text-[12px] text-sky-300 hover:text-sky-200"
+    >
+      Ver a solução
+    </button>
   );
 }
 
@@ -3306,6 +3468,7 @@ function LifeBar({
 
   return (
     <div
+      data-lp-bar
       className={`tf-panel flex min-w-0 flex-1 items-center gap-3 rounded-md px-3 py-1 ${
         align === "right" ? "flex-row-reverse text-right" : ""
       } ${active ? "ring-1 ring-[color:var(--tf-gold)]/70" : ""}`}
@@ -3334,16 +3497,19 @@ function LifeBar({
           quem jogava dizia "TURNO" e a outra "Oponente" — dois textos no
           mesmo lugar, que se liam como dois nomes. */}
       {active ? (
+        // No celular a barra tem ~140 px: o LP e o selo não cabem juntos, e o
+        // selo vazava por cima da barra do lado. Lá a vez fica com o contorno
+        // dourado da barra e com o "Turno N — Você" da trilha de fases.
         <span
           data-turn-badge
-          className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-wider ${
+          className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-wider max-[520px]:hidden ${
             mine ? "bg-[color:var(--tf-gold)] text-black" : "bg-red-600 text-white"
           }`}
         >
-          {mine ? "Sua vez" : "Vez do oponente"}
+          {mine ? "Sua vez" : role === "Oponente" ? "Vez do oponente" : "Na vez"}
         </span>
       ) : (
-        <span className="shrink-0 text-[10px] uppercase tracking-[0.2em] text-[color:var(--tf-gold-dim)]">
+        <span className="shrink-0 text-[10px] uppercase tracking-[0.2em] text-[color:var(--tf-gold-dim)] max-[520px]:hidden">
           {role}
         </span>
       )}
@@ -3357,6 +3523,7 @@ function DuelLog({
   onOpenReveals,
   me,
   onHover,
+  registry,
 }: {
   entries: DuelLogEntry[];
   /** Revelações desta ótica — o botão só existe quando houve alguma. */
@@ -3366,7 +3533,20 @@ function DuelLog({
   me: 0 | 1;
   /** Passar o mouse numa linha com carta mostra a carta na leitura. */
   onHover: (card: PreviewCard | null) => void;
+  /** Para escrever os nomes de carta no idioma escolhido (ver `log-names.ts`). */
+  registry: CardRegistry | null;
 }) {
+  const texto = useCardText();
+  const noIdioma = (entry: DuelLogEntry) =>
+    localizeLogText(
+      entry.text,
+      entry.codes,
+      (code) => registry?.get(code)?.name,
+      (code) => {
+        const definicao = registry?.get(code);
+        return definicao ? texto.name(definicao) : undefined;
+      },
+    );
   // O que é jogo. Fora: o progresso da carga (`system`) e as dicas do core
   // sobre a escolha em curso (`hint`) — essas já aparecem na barra da seleção,
   // onde servem, e no histórico só empurravam o jogo para fora da tela.
@@ -3421,7 +3601,7 @@ function DuelLog({
                       : "border-[color:var(--tf-gold)]/50 text-[color:var(--tf-gold)]"
                   }`}
                 >
-                  {entry.text}
+                  {noIdioma(entry)}
                 </p>
               );
             }
@@ -3445,7 +3625,7 @@ function DuelLog({
                       : "border-transparent"
                 } ${carta ? "cursor-help hover:bg-white/5" : ""}`}
               >
-                {entry.text}
+                {noIdioma(entry)}
               </p>
             );
           })}
@@ -3617,9 +3797,12 @@ function CardPreview({
         )}
       </div>
 
-      <p className="min-h-0 flex-1 overflow-y-auto pr-1 text-[13px] leading-relaxed text-zinc-200">
-        {texto.desc(definition)}
-      </p>
+      {/* Termos de regra sublinhados, com a definição a um toque (glossário);
+          as quebras de linha da carta (as listas "●") ficam como estão. */}
+      <GlossaryText
+        text={texto.desc(definition)}
+        className="min-h-0 flex-1 overflow-y-auto whitespace-pre-line pr-1 text-[13px] leading-relaxed text-zinc-200"
+      />
     </div>
   );
 }

@@ -29,3 +29,9 @@ export function useMediaQuery(query: string, serverValue = false): boolean {
  * se abre por um botão, deixando a largura para as cartas.
  */
 export const NARROW_TABLE_QUERY = "(max-width: 900px)";
+
+/**
+ * Mesa baixa: celular deitado. A altura some antes da largura — os painéis por
+ * cima da mesa (objetivo do problema) começam fechados.
+ */
+export const SHORT_TABLE_QUERY = "(max-height: 500px)";

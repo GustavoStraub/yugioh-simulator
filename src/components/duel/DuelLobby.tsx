@@ -90,6 +90,21 @@ export function DuelLobby() {
   const opponent =
     opcoes.find((opcao) => opcao.id === opponentId) ?? opcoes[1] ?? opcoes[0] ?? null;
 
+  /** Bot × bot: o seu deck (pilotado pelo bot) contra o deck escolhido. */
+  function handleSpectate() {
+    if (!duelReady || !opponent) return;
+    saveDuelSetup({
+      playerName: profile?.name || meuDeck.deckName,
+      playerDeck: meuDeck.deck,
+      opponentId: opponent.id,
+      opponentName: opponent.nome,
+      opponentDeck: opponent.deck,
+      format: formato,
+      spectate: true,
+    });
+    router.push("/duel/play");
+  }
+
   function handleStart() {
     if (!duelReady || !opponent) return;
 
@@ -223,6 +238,22 @@ export function DuelLobby() {
       >
         Iniciar duelo vs bot
       </button>
+
+      <div className="flex flex-wrap items-center justify-center gap-3 text-sm">
+        <button
+          type="button"
+          data-spectate
+          disabled={!duelReady || !opponent}
+          onClick={handleSpectate}
+          title="O bot joga com o seu deck contra o deck escolhido — para ver como as cartas se usam"
+          className="rounded-lg border border-zinc-700 px-4 py-2 text-zinc-200 transition hover:border-amber-700 disabled:opacity-40"
+        >
+          👁 Assistir bot × bot
+        </button>
+        <Link href="/duel/puzzles" className="text-amber-400 underline-offset-2 hover:underline">
+          🧩 Duelos-problema
+        </Link>
+      </div>
 
       <p className="text-center text-xs text-zinc-600">
         Engine ocgcore-wasm · {formato === "tcg" ? "TCG (Master Rule 2020)" : "Goat Format"} · bot joga automaticamente

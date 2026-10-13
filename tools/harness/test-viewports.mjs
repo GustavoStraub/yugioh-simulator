@@ -73,8 +73,24 @@ const MEDIR = `
       const idioma = document.querySelector('[aria-label="Idioma das cartas"]');
       if (!idioma) return true;
       const r = idioma.getBoundingClientRect();
-      return r.right <= window.innerWidth + 1 && r.height < 40;
+      // E todo item da navegação à vista: a parte que rola escondia
+      // "Puzzles"/"Online" no celular sem nada indicar que havia mais.
+      const itens = [...document.querySelectorAll("header nav a")].every((a) => {
+        const caixa = a.parentElement.getBoundingClientRect();
+        const ra = a.getBoundingClientRect();
+        return ra.left >= caixa.left - 1 && ra.right <= caixa.right + 1 && ra.right <= window.innerWidth + 1;
+      });
+      return r.right <= window.innerWidth + 1 && r.height < 40 && itens;
     })(),
+    // Algo da barra de LP vazando para fora dela — no celular o selo "Sua
+    // vez" passava por cima da barra do oponente.
+    barraDeLpVaza: [...document.querySelectorAll("[data-lp-bar]")].some((barra) => {
+      const b = barra.getBoundingClientRect();
+      return [...barra.children].some((filho) => {
+        const r = filho.getBoundingClientRect();
+        return r.width > 0 && (r.left < b.left - 1 || r.right > b.right + 1);
+      });
+    }),
     // Peça da mesa saindo pela borda da janela (as banidas penduradas).
     foraDaJanela: [...document.querySelectorAll(".tf-playmat [data-zone], .tf-playmat [data-pile]")]
       .map((el) => ({ el, r: el.getBoundingClientRect() }))
@@ -149,13 +165,14 @@ async function main() {
           m.alturaDaCarta > pisoDaCarta &&
           m.sobreposicoes.length === 0 &&
           m.foraDaJanela.length === 0 &&
+          !m.barraDeLpVaza &&
           m.navegacaoCabe;
         if (!ok) falhas += 1;
         process.stdout.write(
           `${ok ? "OK   " : "FALHA"} ${formato.padEnd(4)} ${tela.nome.padEnd(10)} carta=${m.larguraDaCarta}x${m.alturaDaCarta} ` +
           `rolagem-h=${m.rolagemHorizontal} mesa-visível=${m.mesaVisivel} ` +
           `sob-os-trilhos=${m.sobreposicoes.length ? m.sobreposicoes.join(",") : "nenhuma"} ` +
-          `fora-da-janela=${m.foraDaJanela.length ? m.foraDaJanela.join(",") : "nenhuma"} nav-cabe=${m.navegacaoCabe}\n`,
+          `fora-da-janela=${m.foraDaJanela.length ? m.foraDaJanela.join(",") : "nenhuma"} nav-cabe=${m.navegacaoCabe} lp-vaza=${m.barraDeLpVaza}\n`,
         );
       }
     }
@@ -189,6 +206,20 @@ async function main() {
       if (!okToque) falhas += 1;
       process.stdout.write(
         `${okToque ? "OK   " : "FALHA"} toque 390x844     toque-longo-abre-a-leitura=${abriu} botões-histórico/carta=${temBotoes}\n`,
+      );
+    }
+
+    // --- cabeçalho fora da mesa (o grande, com o subtítulo) no celular ---
+    {
+      const page = await openPage(port);
+      await page.setViewport(390, 844);
+      await page.goto(`${BASE}/duel/puzzles`);
+      await new Promise((r) => setTimeout(r, 1500));
+      const m = await page.evaluate(MEDIR);
+      const ok = m.navegacaoCabe && !m.rolagemHorizontal;
+      if (!ok) falhas += 1;
+      process.stdout.write(
+        `${ok ? "OK   " : "FALHA"} cabeçalho 390x844 (fora da mesa) nav-cabe=${m.navegacaoCabe} rolagem-h=${m.rolagemHorizontal}\n`,
       );
     }
 

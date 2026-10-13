@@ -28,10 +28,13 @@ export function DuelSettings({
   prefs,
   onChange,
   pacing,
+  tips,
 }: {
   prefs: DuelPrefs;
   onChange: (next: Partial<DuelPrefs>) => void;
   pacing: "local" | "room";
+  /** Dicas de primeira vez (ver `tips.ts`); ausente esconde a seção. */
+  tips?: { on: boolean; onToggle: (on: boolean) => void; onReset: () => void };
 }) {
   const [open, setOpen] = useState(false);
 
@@ -118,6 +121,28 @@ export function DuelSettings({
                 </div>
               )}
             </Section>
+
+            {tips && (
+              <Section title="Dicas para iniciantes">
+                <label className="flex cursor-pointer items-center gap-2 text-[12px] text-zinc-200">
+                  <input
+                    type="checkbox"
+                    data-tips-toggle
+                    checked={tips.on}
+                    onChange={(event) => tips.onToggle(event.target.checked)}
+                    className="accent-[color:var(--tf-gold)]"
+                  />
+                  Mostrar dicas na primeira vez de cada situação
+                </label>
+                <button
+                  type="button"
+                  onClick={tips.onReset}
+                  className="text-[11px] text-sky-300 hover:text-sky-200"
+                >
+                  Rever todas as dicas desde o começo
+                </button>
+              </Section>
+            )}
 
             <Section title="Atalhos">
               <ul className="space-y-1 text-[11px] leading-snug text-zinc-300">

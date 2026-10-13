@@ -25,6 +25,10 @@ export interface StoredDuelSetup {
   humanSeat?: 0 | 1;
   /** A linha da moeda, quando houve sorteio. */
   openingNote?: string;
+  /** Duelo-problema (`puzzles.ts`): a mesa, os decks e o LP vêm dele. */
+  puzzleId?: string;
+  /** Bot × bot: quem abre a página só assiste (o seu deck contra o do bot). */
+  spectate?: boolean;
 }
 
 export type FirstTurnChoice = "me" | "bot" | "coin";
