@@ -113,6 +113,16 @@ body {
   box-sizing: border-box;
 }
 
+@keyframes card-face-pulse {
+  0%,
+  100% {
+    opacity: 0.08;
+  }
+  50% {
+    opacity: 0.28;
+  }
+}
+
 /* Barra de LP com brilho interno. */
 .tf-lp-track {
   background: rgba(0, 0, 0, 0.55);

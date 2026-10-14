@@ -1584,7 +1584,7 @@ export function DuelBoard({
                     }
                   />
                 }
-                right={<FieldSpellSlot player={foe} owner={foeSeat} {...shared} />}
+                right={<FieldSpellSlot player={foe} owner={foeSeat} ownedFaceDown={false} {...shared} />}
                 {...shared}
               />
 
@@ -1615,7 +1615,7 @@ export function DuelBoard({
                 cards={you.monsters.slice(0, 5)}
                 owner={me}
                 zone="monster"
-                left={<FieldSpellSlot player={you} owner={me} {...shared} />}
+                left={<FieldSpellSlot player={you} owner={me} ownedFaceDown {...shared} />}
                 right={
                   <GraveColumn
                     order="banished-first"
@@ -2237,6 +2237,7 @@ function FieldRow({
             // não as vira de cabeça para baixo): só as setas Link giram, porque
             // elas apontam para casas da mesa.
             foeSide={mirrored}
+            ownedFaceDown={!mirrored}
             zoneKey={key}
             onHover={onHover}
             onLongPress={onLongPress}
@@ -2332,6 +2333,7 @@ function FieldSpellArt({
 function FieldSpellSlot({
   player,
   owner,
+  ownedFaceDown,
   registry,
   onHover,
   onLongPress,
@@ -2344,6 +2346,7 @@ function FieldSpellSlot({
 > & {
   player: BoardPlayer;
   owner: 0 | 1;
+  ownedFaceDown: boolean;
 }) {
   return (
     <DuelCardSlot
@@ -2351,6 +2354,7 @@ function FieldSpellSlot({
       registry={registry}
       placeholder=""
       zoneKind="field"
+      ownedFaceDown={ownedFaceDown}
       zoneKey={cardKey(owner, OcgLocation.SZONE, FIELD_ZONE_SEQUENCE)}
       onHover={onHover}
       onLongPress={onLongPress}

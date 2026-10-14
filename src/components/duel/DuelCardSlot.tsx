@@ -71,6 +71,8 @@ interface DuelCardSlotProps {
   foeSide?: boolean;
   /** Cartas na mão sobem um pouco no hover. */
   inHand?: boolean;
+  /** O dono vê a arte da carta baixada através do verso. */
+  ownedFaceDown?: boolean;
   /** A zona/carta participa do prompt atual. */
   highlighted?: boolean;
   /** Que tipo de destaque a carta merece — ver `SlotIntent`. */
@@ -167,6 +169,7 @@ export function DuelCardSlot({
   rotated = false,
   foeSide = false,
   inHand = false,
+  ownedFaceDown = false,
   highlighted = false,
   intent = "select",
   selected = false,
@@ -199,9 +202,10 @@ export function DuelCardSlot({
   const image = definition?.images[0]?.image_url_small;
   const interactive = Boolean(onClick);
 
-  // Cartas viradas para baixo aparecem como verso, mesmo sendo nossas — como
-  // no Master Duel. O conteúdo continua acessível no painel de detalhes.
-  const showBack = !card?.code || (card.faceDown && !inHand);
+  // O dono reconhece a própria carta baixada pela arte sob transparência; do
+  // outro lado, `code` já vem mascarado e só resta mostrar o verso.
+  const showBack = !card?.code || (card.faceDown && !inHand && !ownedFaceDown);
+  const showFaceThroughBack = Boolean(card?.faceDown && !inHand && ownedFaceDown);
 
 
   const isTuner =
@@ -209,9 +213,11 @@ export function DuelCardSlot({
     definition?.humanReadableCardType?.includes("Tuner") ||
     false;
   const fieldBadge =
-    showLevel && !showBack && !inHand && card ? levelBadge(card, isTuner) : null;
+    showLevel && !showBack && !card?.faceDown && !inHand && card
+      ? levelBadge(card, isTuner)
+      : null;
   const scale =
-    scaleSide && !showBack && card?.scales
+    scaleSide && !showBack && !card?.faceDown && card?.scales
       ? scaleSide === "left"
         ? card.scales.left
         : card.scales.right
@@ -331,6 +337,19 @@ export function DuelCardSlot({
           >
             {showBack ? (
               <div className="tf-card-back h-full w-full" />
+            ) : showFaceThroughBack ? (
+              <div className="relative h-full w-full">
+                <div className="tf-card-back absolute inset-0 h-full w-full" />
+                {/* A pulsação lenta mantém o verso mais visível que a face. */}
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={image}
+                  alt={definition ? texto.name(definition) : "Carta"}
+                  loading="lazy"
+                  draggable={false}
+                  className={`absolute inset-0 h-full w-full animate-[card-face-pulse_4s_ease-in-out_infinite] object-cover ${card.negated ? "grayscale" : ""}`}
+                />
+              </div>
             ) : (
               /* eslint-disable-next-line @next/next/no-img-element */
               <img
@@ -353,7 +372,7 @@ export function DuelCardSlot({
         {/* Setas Link, na orientação da MESA: do lado do oponente giram meia
             volta (a carta dele está de pé, mas a seta "de cima" dele aponta
             para o seu lado). */}
-        {card?.link && !showBack && (
+        {card?.link && !showBack && !card.faceDown && (
           <span
             className="pointer-events-none absolute inset-0"
             style={foeSide ? { transform: "rotate(180deg)" } : undefined}
@@ -363,7 +382,7 @@ export function DuelCardSlot({
         )}
 
         {/* Proibido: a carta com o efeito negado ganha o símbolo do MD. */}
-        {card?.negated && !showBack && <span aria-hidden className="md-negated-icon" />}
+        {card?.negated && !showBack && !card.faceDown && <span aria-hidden className="md-negated-icon" />}
 
         {/* Nível/Rank/Link no pé da carta, como o MD — estrela amarela,
             estrela escura do Rank, o "LINK-N" azul. */}
