@@ -931,7 +931,7 @@ export function DuelBoard({
    */
   const statsDaMesa = useMemo((): FieldStat[] => {
     const lista: FieldStat[] = [];
-    const incluir = (card: BoardCard | null, foeSide: boolean) => {
+    const incluir = (card: BoardCard | null) => {
       if (!card || card.code === null || card.faceDown || card.attack === null) return;
       const definition = registry?.get(card.code);
       const isXyz = Boolean(definition?.frameType.includes("xyz"));
@@ -958,14 +958,13 @@ export function DuelBoard({
         baseAtk: card.baseAttack ?? definition?.atk ?? null,
         baseDef: card.baseDefense ?? definition?.def ?? null,
         isLink: Boolean(card.link || definition?.linkval),
-        foeSide,
         attribute: card.attribute ?? definition?.attribute ?? null,
         baseAttribute: definition?.attribute ?? null,
         grade,
       });
     };
-    you.monsters.forEach((card) => incluir(card, false));
-    foe.monsters.forEach((card) => incluir(card, true));
+    you.monsters.forEach(incluir);
+    foe.monsters.forEach(incluir);
     return lista;
   }, [you.monsters, foe.monsters, registry]);
 

@@ -231,12 +231,14 @@ depois do `globals.css`).
    (`rotateX(-16deg)` pela borda de baixo, `transform-style: preserve-3d`), um
    pouco acima do tapete (`translateZ`) para não brigar com ele pelo pixel.
 8. **Cartas do oponente de pé**, como no MD; só as setas Link dele giram meia
-   volta (apontam para casas da mesa).
+   volta (apontam para casas da mesa). Depois dos hologramas elas passaram a
+   ficar de cabeça para baixo, como numa mesa de verdade (ver §8).
 9. **ATK/DEF grande** numa camada plana por cima da mesa (`FieldStatsLayer`):
    dentro do plano 3D o número ficava atrás das cartas de pé da fileira da
    frente (profundidade decide quem tapa, não o `z-index`) e saía cortado.
-   Embaixo da sua carta, em cima da do oponente; azul-claro acima do impresso,
-   vermelho abaixo.
+   Embaixo da carta, dos dois lados (no MD o do oponente fica em cima; aqui
+   ele descia sobre o holograma dele, e o Gustavo preferiu embaixo);
+   azul-claro acima do impresso, vermelho abaixo.
 10. **Poços** do Cemitério e das banidas, um sobre o outro na coluna ao lado
     dos monstros (a arte da carta do topo dentro do círculo); Deck e Extra
     Deck como pilhas de versos de pé.
@@ -422,6 +424,10 @@ sem arte na YGOPRODeck não tem holograma.
   corrente se acompanha pelo registro.
 - **Rótulos em português** onde não são faixa nem carimbo ("Você ativou", "Não
   responder", "Confirmar") — o resto da interface segue em português.
+- **Cartas do oponente de cabeça para baixo** e o ATK/DEF dele **embaixo** da
+  carta (o MD as deixa de pé, com o número em cima). Com os hologramas — que
+  ficam de pé de qualquer jeito — o Gustavo preferiu a mesa de verdade, e o
+  número em cima ficava por cima do holograma do oponente.
 - **No Goat não há Zona Extra**: o meio da mesa é só o corredor com a linha de
   luz (o MD sempre tem a fileira, porque é Master Rule).
 

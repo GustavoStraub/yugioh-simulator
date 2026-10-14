@@ -645,10 +645,12 @@
 }
 
 /* O ATK/DEF grande, numa camada plana por cima da mesa (`FieldStatsLayer`):
-   embaixo da sua carta, em cima da do oponente. O tamanho vem inline, pela
-   altura da carta na tela. */
+   embaixo da carta, dos dois lados — em cima da do oponente (como no MD) ele
+   ficava por cima do holograma dela. O tamanho vem inline, pela altura da
+   carta na tela. */
 .md-stats {
   position: absolute;
+  transform: translate(-50%, -12%);
   font-family: var(--font-md-digits), var(--font-geist-mono), monospace;
   font-weight: 800;
   line-height: 1;
@@ -664,13 +666,6 @@
     0 0 8px rgba(0, 0, 0, 0.9);
 }
 
-.md-stats-me {
-  transform: translate(-50%, -12%);
-}
-
-.md-stats-foe {
-  transform: translate(-50%, -96%);
-}
 
 .md-stats-def {
   font-size: 0.72em;
@@ -687,7 +682,7 @@
 
 /* O atributo e o Nível/Rank/Link do monstro em campo, como no MD: o círculo
    do atributo sobre o canto da carta e a estrela com o número passando da
-   borda, do mesmo lado do ATK/DEF. Na camada plana do ATK/DEF
+   borda, logo acima do ATK/DEF. Na camada plana do ATK/DEF
    (`FieldStatsLayer`), não dentro da carta: dentro do plano 3D o selo ficava
    pequeno e atrás das cartas de pé da fileira da frente. Os valores são os
    ATUAIS do core — um efeito que troca o atributo ou o Nível aparece aqui
@@ -698,9 +693,6 @@
   align-items: center;
   gap: 0.15em;
   line-height: 1;
-}
-
-.md-tags-me {
   transform: translateY(-100%);
 }
 

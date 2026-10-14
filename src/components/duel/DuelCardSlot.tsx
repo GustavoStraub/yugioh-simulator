@@ -61,10 +61,11 @@ interface DuelCardSlotProps {
   /** Gira a carta 90° — monstro em defesa. */
   rotated?: boolean;
   /**
-   * A carta está do lado do oponente. Ela continua DE PÉ (o Master Duel não
-   * vira as cartas dele de cabeça para baixo), mas o ATK/DEF vai para cima da
-   * carta — o lado de lá — e as setas Link giram meia volta: elas apontam
-   * para casas da mesa, e a "de cima" dele aponta para o seu lado.
+   * A carta está do lado do oponente: de cabeça para baixo, como numa mesa de
+   * verdade (o Master Duel as deixa de pé; o Gustavo preferiu a mesa real
+   * depois dos hologramas, que ficam de pé de qualquer jeito). As setas Link
+   * giram meia volta junto: elas apontam para casas da mesa, e a "de cima"
+   * dele aponta para o seu lado.
    */
   foeSide?: boolean;
   /** Cartas na mão sobem um pouco no hover. */
@@ -311,9 +312,15 @@ export function DuelCardSlot({
           <div
             className="md-card-face h-full w-full overflow-hidden"
             style={
-              // O giro de defesa vale para a CARTA (deitada de lado); o rótulo
-              // e as marcas ficam fora dele, sempre legíveis.
-              rotated ? { transform: "rotate(90deg) scale(0.72)" } : undefined
+              // O giro vale para a CARTA (deitada de lado na defesa, de cabeça
+              // para baixo do lado do oponente); o rótulo e as marcas ficam
+              // fora dele, sempre legíveis. A investida copia este giro para a
+              // carta que voa (`AttackFlight`) — tem de estar AQUI, no estilo.
+              rotated
+                ? { transform: `rotate(${foeSide ? 270 : 90}deg) scale(0.72)` }
+                : foeSide
+                  ? { transform: "rotate(180deg)" }
+                  : undefined
             }
           >
             {showBack ? (
@@ -351,8 +358,8 @@ export function DuelCardSlot({
         )}
 
         {/* Setas Link, na orientação da MESA: do lado do oponente giram meia
-            volta (a carta dele está de pé, mas a seta "de cima" dele aponta
-            para o seu lado). */}
+            volta junto com a carta (a seta "de cima" dele aponta para o seu
+            lado). */}
         {card?.link && !showBack && !card.faceDown && (
           <span
             className="pointer-events-none absolute inset-0"

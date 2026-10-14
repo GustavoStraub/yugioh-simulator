@@ -95,7 +95,8 @@ const LER_MESA = `
     linkMeu: zona("0:4:5")?.querySelector("[data-link-markers]")?.dataset.linkMarkers ?? null,
     linkDele: zona("1:4:5")?.querySelector("[data-link-markers]")?.dataset.linkMarkers ?? null,
     setasAcesasMeu: zona("0:4:5")?.querySelectorAll("[data-arrow-on]").length ?? 0,
-    linkDeleGirado: (zona("1:4:5")?.querySelector("[style*='rotate(180deg)']")) != null,
+    // As setas em si (a face da carta do oponente também gira meia volta).
+    linkDeleGirado: zona("1:4:5")?.querySelector("[data-link-markers]")?.closest("[style*='rotate(180deg)']") != null,
     apontadas: [...document.querySelectorAll(".tf-slot-linked")].map((el) => el.closest("[data-zone]")?.dataset.zone).sort(),
     escalaEsq: texto("0:8:0"),
     escalaDir: texto("0:8:4"),
@@ -158,9 +159,9 @@ async function main() {
       "a ficha sem arte aparece com imagem e com o nome",
       JSON.stringify(ficha),
     );
-    // Na mesa do MD a carta do oponente fica de pé; as setas do Link dele
-    // giram meia volta (apontam para casas da mesa, e a "de cima" dele aponta
-    // para o seu lado).
+    // A carta do oponente fica de cabeça para baixo, e as setas do Link dele
+    // giram meia volta junto (apontam para casas da mesa, e a "de cima" dele
+    // aponta para o seu lado).
     conferir(mesa.linkDeleGirado, "e as setas do Link dele giram meia volta, como carta do oponente");
     // Link Spider (Zona Extra esquerda, seta para baixo) → minha zona 2 (índice 1).
     // Decode Talker do oponente (zona 5 dele = Zona Extra direita na minha

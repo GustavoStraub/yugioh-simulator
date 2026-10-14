@@ -16,8 +16,6 @@ export interface FieldStat {
   baseDef: number | null;
   /** Link não tem DEF: só o ATK. */
   isLink: boolean;
-  /** Do lado do oponente o número vai EM CIMA da carta (o lado de lá). */
-  foeSide: boolean;
   /**
    * Atributo atual ("DARK"…) e o impresso. Os dois porque um efeito pode
    * trocá-lo (DNA Surgery), e a troca tem de aparecer.
@@ -41,14 +39,17 @@ interface Placed extends FieldStat {
   y: number;
   /** Altura da carta na tela — o tamanho do número acompanha. */
   h: number;
-  /** Onde vão o atributo e o Nível: no canto da carta do lado do ATK/DEF. */
+  /** Onde vão o atributo e o Nível: no canto de baixo da carta, à direita. */
   tagX: number;
   tagY: number;
 }
 
 /**
- * O ATK/DEF grande do Master Duel, embaixo das suas cartas e em cima das do
- * oponente.
+ * O ATK/DEF grande do Master Duel, embaixo da carta — dos dois lados.
+ *
+ * No MD o do oponente fica EM CIMA da carta dele, e era assim aqui; com o
+ * holograma de pé saindo da carta, o número e os selos ficavam por cima do
+ * monstro. Embaixo, o holograma do oponente sobe livre (pedido do Gustavo).
  *
  * Desenhado FORA da mesa inclinada, numa camada plana por cima dela: dentro
  * do plano 3D o número ficava atrás das cartas de pé da fileira da frente (a
@@ -84,12 +85,12 @@ export function FieldStatsLayer({
       proximos.push({
         ...stat,
         x: r.left - base.left + r.width / 2,
-        y: stat.foeSide ? r.top - base.top : r.bottom - base.top,
+        y: r.bottom - base.top,
         h: r.height,
         // Como no MD: o círculo do atributo sobre o canto da carta e o Nível
-        // passando da borda dela, no mesmo lado do ATK/DEF.
+        // passando da borda dela, logo acima do ATK/DEF.
         tagX: r.left - base.left + r.width * 0.56,
-        tagY: stat.foeSide ? r.top - base.top + r.height * 0.05 : r.bottom - base.top - r.height * 0.05,
+        tagY: r.bottom - base.top - r.height * 0.05,
       });
     }
     setPlaced((atual) => (mesmasPosicoes(atual, proximos) ? atual : proximos));
@@ -116,7 +117,7 @@ export function FieldStatsLayer({
         <span
           key={stat.zoneKey}
           data-stats-for={stat.zoneKey}
-          className={`md-stats ${stat.foeSide ? "md-stats-foe" : "md-stats-me"}`}
+          className="md-stats"
           style={{
             left: stat.x,
             top: stat.y,
@@ -136,7 +137,7 @@ export function FieldStatsLayer({
           <span
             key={`tags:${stat.zoneKey}`}
             data-tags-for={stat.zoneKey}
-            className={`md-tags ${stat.foeSide ? "md-tags-foe" : "md-tags-me"}`}
+            className="md-tags"
             style={{
               left: stat.tagX,
               top: stat.tagY,

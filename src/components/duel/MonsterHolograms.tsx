@@ -305,9 +305,10 @@ function usePlacement(monsters: HoloMonster[], fieldRef: RefObject<HTMLDivElemen
       proximos.push({
         ...monster,
         x: r.left - base.left + r.width / 2,
-        // A base um pouco abaixo do meio: as pernas somem dentro da arte da
-        // carta (o degradê de baixo) e o corpo sai por cima dela.
-        y: r.top - base.top + r.height * 0.45,
+        // A base no meio da arte da carta: as pernas somem dentro dela (o
+        // degradê de baixo) e o corpo sai por cima. A carta do oponente está
+        // de cabeça para baixo — a arte dela fica na metade de baixo.
+        y: r.top - base.top + r.height * (monster.foeSide ? 0.55 : 0.45),
         side: Math.round(r.width * 1.2),
       });
     }
