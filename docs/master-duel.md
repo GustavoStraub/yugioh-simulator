@@ -408,6 +408,21 @@ dele é o que o põe de pé sobre a carta, e animá-lo apagaria isso.
 `test:attack` (que confere o giro da carta-fantasma) roda com os hologramas
 desligados.
 
+**Saindo do campo** (`LeaveFlight`, pedido do Gustavo, "igual o Master
+Duel"): a carta **voa da zona até a pilha de destino** — Cemitério, banidas,
+Deck, Extra Deck, mão, ou o monstro Xyz de quem virou matéria — e a pilha
+acende quando ela chega (anel na cor do motivo). O evento `leave` passou a
+levar o destino (`to`); sem destino desenhado (matéria anexada a um Xyz ainda
+no Extra Deck), a carta se desfaz na zona como antes. Destruída, ela se
+estilhaça na zona e o Cemitério acende depois; **com holograma, o holograma
+se estilhaça primeiro e a carta logo em seguida**, em cadeia (cacos de brilho
+frio, e a carta esperando acesa). A mesa tira o monstro no mesmo instante em
+que a destruição começa: no modo "Em momentos" cada holograma anota se saiu
+aceso (`hologramWasLit`), e o estilhaço consulta isso. As pausas de saída
+cresceram para caber o voo e a cadeia (`LEAVE_MS`: destruição 640 → 820 ms,
+Cemitério 360 → 440…). Medido no navegador: o Raigeki voou do campo e pousou
+no centro exato do Cemitério, encolhendo até o tamanho da pilha.
+
 Limites conhecidos: os recortes com resto de fundo continuam com ele; ficha
 sem arte na YGOPRODeck não tem holograma.
 

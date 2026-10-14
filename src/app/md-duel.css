@@ -4011,6 +4011,50 @@ button.md-tile:hover .md-tile-card {
   100% { opacity: 0; transform: translate(-50%, -50%) scale(1.3); }
 }
 
+/* O holograma se estilhaçando (antes da carta): cacos com o brilho de
+   holograma, e o clarão frio em vez do de fogo. */
+.md-shatter-holo .md-shard {
+  border-radius: 0;
+  filter: drop-shadow(0 0 5px rgba(143, 230, 255, 0.9));
+}
+
+.md-shatter-holo .md-shatter-flash {
+  background: radial-gradient(circle, rgba(220, 250, 255, 0.95) 0%, rgba(120, 220, 255, 0.5) 28%, rgba(60, 140, 255, 0) 62%);
+}
+
+/* A pilha acende quando a carta chega (`LeaveFlight`): um anel que abre e
+   some, na cor do motivo — o Master Duel marca assim a carta entrando no
+   Cemitério ou nas banidas. Numa camada plana: a pilha em si fica no plano
+   3D, e um filtro nela achataria o que está de pé dentro. */
+.md-pile-pulse {
+  --md-pulse: rgba(200, 230, 255, 0.9);
+  position: absolute;
+  z-index: 31;
+  pointer-events: none;
+  border-radius: 8px;
+  opacity: 0;
+  box-shadow:
+    0 0 0 2px var(--md-pulse),
+    0 0 18px 4px var(--md-pulse),
+    inset 0 0 14px var(--md-pulse);
+  animation-name: md-pile-pulse;
+  animation-timing-function: ease-out;
+  animation-fill-mode: both;
+}
+
+.md-pile-pulse-battle,
+.md-pile-pulse-destroy { --md-pulse: rgba(255, 110, 90, 0.85); }
+.md-pile-pulse-banish { --md-pulse: rgba(190, 130, 255, 0.95); }
+.md-pile-pulse-hand,
+.md-pile-pulse-deck { --md-pulse: rgba(120, 255, 200, 0.85); }
+.md-pile-pulse-material { --md-pulse: rgba(150, 210, 255, 0.95); }
+
+@keyframes md-pile-pulse {
+  0% { opacity: 0; transform: scale(0.85); }
+  35% { opacity: 1; transform: scale(1.04); }
+  100% { opacity: 0; transform: scale(1.12); }
+}
+
 /* ---------------------------------------------------------------------------
    A corrente: o destaque da ativação (o card grande com o número) e a pilha
    de elos.

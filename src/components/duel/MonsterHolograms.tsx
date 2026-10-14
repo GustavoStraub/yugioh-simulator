@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useLayoutEffect, useState, type RefObject } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type RefObject } from "react";
 
 import type { AttackFlight } from "@/hooks/useDuelFeedback";
 import { cardKey } from "@/lib/duel/duel-actions";
@@ -57,17 +57,19 @@ const ATTACK_MS = ATTACK_FLIGHT_MS + 900;
 export function MonsterHologramsLayer({
   monsters,
   fieldRef,
+  index,
   mode,
   flight,
   animationScale,
 }: {
   monsters: HoloMonster[];
   fieldRef: RefObject<HTMLDivElement | null>;
+  /** Quem tem holograma (`useHologramIndex`, lido uma vez pela mesa). */
+  index: HologramIndexView | null;
   mode: HologramMode;
   flight: AttackFlight | null;
   animationScale: number;
 }) {
-  const index = useHologramIndex(mode !== "off");
   const comHolograma = index ? monsters.filter((m) => index.kinds.has(m.code)) : [];
   const placed = usePlacement(comHolograma, fieldRef);
   const hovered = useHoveredZone(fieldRef);
@@ -98,7 +100,7 @@ export function MonsterHologramsLayer({
             arriveMs={ARRIVE_MS * animationScale}
             attackMs={ATTACK_MS * (flight?.scale ?? animationScale)}
             kind={index.kinds.get(m.code) ?? "cutout"}
-            url={`/card-images/holo/${m.code}.webp?v=${encodeURIComponent(index.generatedAt)}`}
+            url={hologramUrl(index, m.code)}
             layers={index.layers}
           />
         );
@@ -163,6 +165,18 @@ function Hologram({
   // e uma classe posta por fora o React apagaria no próximo render — um
   // atributo `data-` que ele não controla fica.
   const { zoneKey } = monster;
+  // Sai aceso? Anota (ver `saiuAceso`) — o `on` mais recente, num ref, porque
+  // a limpeza do efeito só roda na saída.
+  const acesoAgora = useRef(on);
+  useEffect(() => {
+    acesoAgora.current = on;
+  }, [on]);
+  useEffect(
+    () => () => {
+      if (acesoAgora.current) saiuAceso.set(zoneKey, Date.now());
+    },
+    [zoneKey],
+  );
   useEffect(() => {
     const plano = fieldRef.current?.querySelector<HTMLElement>(`[data-zone="${zoneKey}"] .md-card-plane`);
     if (!plano) return;
@@ -248,7 +262,7 @@ function Hologram({
 }
 
 /** A lista do servidor, com o tipo de cada passcode à mão. */
-interface HologramIndexView {
+export interface HologramIndexView {
   layers: number;
   generatedAt: string;
   kinds: Map<number, HologramKind>;
@@ -258,7 +272,7 @@ interface HologramIndexView {
  * Quem tem holograma. Lido uma vez por mesa — gerar mais hologramas aparece
  * na partida seguinte, sem recarregar o servidor.
  */
-function useHologramIndex(enabled: boolean): HologramIndexView | null {
+export function useHologramIndex(enabled: boolean): HologramIndexView | null {
   const [index, setIndex] = useState<HologramIndexView | null>(null);
   useEffect(() => {
     if (!enabled || index) return;
@@ -280,6 +294,53 @@ function useHologramIndex(enabled: boolean): HologramIndexView | null {
   return index;
 }
 
+/**
+ * Holograma que estava aceso quando o monstro saiu da zona, e quando.
+ *
+ * A mesa tira o monstro (e o holograma) no mesmo instante em que a destruição
+ * começa a ser animada: quando o estilhaço (`LeaveFlight`) vai conferir se o
+ * holograma estava de pé, o elemento já não existe. Cada holograma anota aqui
+ * se saiu aceso; o estilhaço consulta logo depois.
+ */
+const saiuAceso = new Map<string, number>();
+
+/** O holograma desta zona estava de pé agora há pouco (ou ainda está)? */
+export function hologramWasLit(field: HTMLElement, zoneKey: string): boolean {
+  if (field.querySelector(`[data-holo-for="${zoneKey}"][data-holo-on]`)) return true;
+  const quando = saiuAceso.get(zoneKey);
+  return quando !== undefined && Date.now() - quando < 1500;
+}
+
+/**
+ * Onde o holograma de uma carta fica, a partir da caixa dela na tela (`rect`)
+ * e da do campo (`base`): o ponto de onde ele sobe e o lado do quadro. A
+ * camada dos hologramas e o estilhaço da destruição (`LeaveFlight`) usam a
+ * mesma conta — o holograma estoura exatamente onde estava.
+ */
+export function hologramAnchor(
+  rect: { left: number; top: number; width: number; height: number },
+  base: { left: number; top: number },
+  foeSide: boolean,
+): { x: number; y: number; side: number } {
+  return {
+    x: rect.left - base.left + rect.width / 2,
+    // A base no meio da arte da carta: as pernas somem dentro dela (o degradê
+    // de baixo) e o corpo sai por cima. A carta do oponente está de cabeça
+    // para baixo — a arte dela fica na metade de baixo.
+    y: rect.top - base.top + rect.height * (foeSide ? 0.55 : 0.45),
+    // Pela LARGURA da carta: em defesa quem deita é a face dentro do plano, e
+    // a caixa do plano fica igual. Pouco mais larga que a carta — com 1,45 ×
+    // a altura os hologramas de zonas vizinhas se atropelavam, e 1,35 × a
+    // largura ainda pedia "um pouquinho" menor.
+    side: Math.round(rect.width * 1.2),
+  };
+}
+
+/** A imagem das fatias de um holograma (a versão vai na URL; ver a rota). */
+export function hologramUrl(index: HologramIndexView, code: number): string {
+  return `/card-images/holo/${code}.webp?v=${encodeURIComponent(index.generatedAt)}`;
+}
+
 /** Onde cada holograma fica: mede a carta de pé na tela, como o ATK/DEF. */
 function usePlacement(monsters: HoloMonster[], fieldRef: RefObject<HTMLDivElement | null>): Placed[] {
   const [placed, setPlaced] = useState<Placed[]>([]);
@@ -298,19 +359,7 @@ function usePlacement(monsters: HoloMonster[], fieldRef: RefObject<HTMLDivElemen
       if (!plano) continue;
       const r = plano.getBoundingClientRect();
       if (r.width === 0 || r.height === 0) continue;
-      // Pela LARGURA da carta: em defesa quem deita é a face dentro do plano,
-      // e a caixa do plano fica igual. Pouco mais larga que a carta — com
-      // 1,45 × a altura os hologramas de zonas vizinhas se atropelavam, e
-      // 1,35 × a largura ainda pedia "um pouquinho" menor.
-      proximos.push({
-        ...monster,
-        x: r.left - base.left + r.width / 2,
-        // A base no meio da arte da carta: as pernas somem dentro dela (o
-        // degradê de baixo) e o corpo sai por cima. A carta do oponente está
-        // de cabeça para baixo — a arte dela fica na metade de baixo.
-        y: r.top - base.top + r.height * (monster.foeSide ? 0.55 : 0.45),
-        side: Math.round(r.width * 1.2),
-      });
+      proximos.push({ ...monster, ...hologramAnchor(r, base, monster.foeSide) });
     }
     setPlaced((atual) => (mesmasPosicoes(atual, proximos) ? atual : proximos));
     // `monsters` muda de identidade a cada render; `chave` é o que importa.

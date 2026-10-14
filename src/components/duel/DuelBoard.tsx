@@ -67,7 +67,11 @@ import {
 import { HudButtons, LifePlate, PhaseButton } from "@/components/duel/DuelHud";
 import { DuelInfo, EffectsPanel, FieldCracks } from "@/components/duel/DuelInfo";
 import { FieldStatsLayer, type FieldGrade, type FieldStat } from "@/components/duel/FieldStats";
-import { MonsterHologramsLayer, type HoloMonster } from "@/components/duel/MonsterHolograms";
+import {
+  MonsterHologramsLayer,
+  useHologramIndex,
+  type HoloMonster,
+} from "@/components/duel/MonsterHolograms";
 import { AttackFlightLayer } from "@/components/duel/AttackFlight";
 import { ChainSpotlight, ORIGEM } from "@/components/duel/ChainSpotlight";
 import { ChainStack } from "@/components/duel/ChainStack";
@@ -397,6 +401,14 @@ export function DuelBoard({
    * da carta abre numa folha (toque longo) e o histórico num painel.
    */
   const estreita = useMediaQuery(NARROW_TABLE_QUERY);
+  /**
+   * Hologramas: na mesa estreita, nenhum — sem câmera inclinada nem espaço
+   * entre as fileiras, ele só cobriria a fileira de trás. O índice (quem tem
+   * holograma) é lido uma vez e serve à camada dos hologramas e à saída do
+   * campo (o holograma se estilhaça antes da carta).
+   */
+  const modoHolograma = estreita ? "off" : prefs.holograms;
+  const holoIndex = useHologramIndex(modoHolograma !== "off");
   const [folhaAberta, setFolhaAberta] = useState(false);
   const [historicoAberto, setHistoricoAberto] = useState(false);
   /** O "i" do Master Duel: ATK em campo e o tamanho das pilhas de cada um. */
@@ -1515,7 +1527,14 @@ export function DuelBoard({
 
           {estreita && avisoDeEspera && <WaitingBanner text={avisoDeEspera} place="field" />}
           <AttackFlightLayer flight={flight} fieldRef={fieldRef} />
-          <LeaveFlightLayer leaves={leaves} fieldRef={fieldRef} registry={registry} me={me} />
+          <LeaveFlightLayer
+            leaves={leaves}
+            fieldRef={fieldRef}
+            registry={registry}
+            me={me}
+            holoIndex={holoIndex}
+            holoMode={modoHolograma}
+          />
           <ChainSpotlight
             spotlight={spotlight}
             registry={registry}
@@ -1729,12 +1748,11 @@ export function DuelBoard({
             </div>
           </div>
 
-          {/* Mesa estreita: sem câmera inclinada nem espaço entre as fileiras,
-              o holograma só cobriria a fileira de trás. */}
           <MonsterHologramsLayer
             monsters={hologramas}
             fieldRef={fieldRef}
-            mode={estreita ? "off" : prefs.holograms}
+            index={holoIndex}
+            mode={modoHolograma}
             flight={flight}
             animationScale={animationScale}
           />

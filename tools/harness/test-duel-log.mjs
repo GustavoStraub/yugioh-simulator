@@ -176,8 +176,10 @@ console.log("\n1. Batalha: o Gemini Elf do oponente ataca o Mystic Horseman");
       saida.code === C.horseman &&
       saida.from.controller === 0 &&
       saida.from.location === OcgLocation.MZONE &&
-      saida.from.sequence === 2,
-    "o evento de saída aponta a zona de onde a carta saiu (para a mesa animar)",
+      saida.from.sequence === 2 &&
+      saida.to.controller === 0 &&
+      (saida.to.location & OcgLocation.GRAVE) !== 0,
+    "o evento de saída aponta de onde a carta saiu e para onde foi (a mesa a faz voar até o Cemitério)",
     JSON.stringify(saida),
   );
 }
@@ -205,6 +207,11 @@ console.log("\n2. Efeito: Pote da Ganância e Raigeki no meu turno");
   );
   const destruida = eventos.find((evento) => evento.kind === "leave" && evento.code === C.elf);
   conferir(destruida?.why === "destroy", "Raigeki: destruição por efeito, não de batalha", JSON.stringify(destruida));
+  conferir(
+    destruida?.to.controller === 1 && (destruida.to.location & OcgLocation.GRAVE) !== 0,
+    "e o destino é o Cemitério do dono",
+    JSON.stringify(destruida),
+  );
   conferir(
     linhas(snap).some((linha) => linha.text === `💥 ${nomeDe(C.elf)} foi destruída` && linha.actor === 1),
     "a linha diz de quem era a carta (pela cor) e que foi destruída",
@@ -252,6 +259,14 @@ console.log("\n2b. Invocação-Xyz: as matérias não 'vão para o Extra Deck'")
     saidas.length === 2 && saidas.every((evento) => evento.why === "material"),
     "as duas saídas do campo são de matéria",
     JSON.stringify(saidas),
+  );
+  // A matéria é anexada ao Xyz ainda no Extra Deck (ou já na zona dele): o
+  // destino é um desses dois, nunca o Cemitério — a mesa não a faz voar para
+  // uma pilha.
+  conferir(
+    saidas.every((evento) => (evento.to.location & (OcgLocation.EXTRA | OcgLocation.MZONE)) !== 0),
+    "o destino da matéria é o Xyz (no Extra Deck ou na zona dele)",
+    JSON.stringify(saidas.map((evento) => evento.to)),
   );
   conferir(
     (snap.boards[0]?.players[0].monsters ?? []).some((card) => card?.code === C.utopia && card.overlays.length === 2),

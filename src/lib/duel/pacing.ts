@@ -99,19 +99,22 @@ const BEAT: Partial<Record<OcgMessageType, number>> = {
 };
 
 /**
- * Carta saindo do campo (`LeaveFlight`): o fantasma dela se desfaz na zona de
- * onde saiu. Destruição é o momento que mais se quer ver; ir para a mão ou o
- * Deck é só um deslize.
+ * Carta saindo do campo (`LeaveFlight`): ela voa da zona até a pilha de
+ * destino (Cemitério, banidas, Deck, mão), como no Master Duel; destruída, ela
+ * se estilhaça — e, com holograma, o holograma se estilhaça primeiro e a
+ * carta logo depois (a cadeia cabe nos 820 ms; sem holograma sobra uma folga
+ * curta depois dos cacos). Antes do voo eram 640 ms na destruição e 300–440
+ * nas outras, que só desfaziam a carta na própria zona.
  */
 export const LEAVE_MS = {
-  battle: 640,
-  destroy: 640,
-  tribute: 360,
-  material: 300,
-  grave: 360,
-  banish: 440,
-  hand: 320,
-  deck: 320,
+  battle: 820,
+  destroy: 820,
+  tribute: 440,
+  material: 380,
+  grave: 440,
+  banish: 520,
+  hand: 420,
+  deck: 420,
 } as const;
 
 /** Pausa de uma saída do campo — ver `LEAVE_MS`. */

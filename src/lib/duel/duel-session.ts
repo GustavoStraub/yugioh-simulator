@@ -1966,6 +1966,7 @@ export class DuelSession {
       player: from.controller,
       code,
       from: { controller: from.controller, location: from.location, sequence: from.sequence },
+      to: { controller: to.controller, location: to.location, sequence: to.sequence },
       why,
     });
   }

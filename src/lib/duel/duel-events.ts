@@ -67,6 +67,14 @@ export type DuelEvent =
       player: number;
       code: number | null;
       from: DuelZoneRef;
+      /**
+       * Para onde ela foi — a mesa a faz voar até lá (Cemitério, banidas,
+       * Deck, Extra Deck, mão), como no Master Duel. Na matéria Xyz é a zona
+       * do monstro Xyz (ou o Extra Deck, na Invocação-Xyz: a matéria é
+       * anexada a ele antes de ele descer). O lugar é público mesmo quando a
+       * carta não é: todo mundo vê a carta baixada voltando para a mão.
+       */
+      to: DuelZoneRef;
       why: LeaveReason;
     }
   | { kind: "draw"; player: number; count: number }

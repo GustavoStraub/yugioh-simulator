@@ -55,6 +55,8 @@ export interface LeaveGhost {
   token: number;
   code: number | null;
   from: DuelZoneRef;
+  /** Para onde foi — o voo termina na pilha de lá. */
+  to: DuelZoneRef;
   why: LeaveReason;
   /** Já com a velocidade aplicada. */
   duration: number;
@@ -369,7 +371,7 @@ export function useDuelFeedback(
           const duration = dur(LEAVE_MS[event.why]);
           setLeaves((current) => [
             ...current,
-            { token, code: event.code, from: event.from, why: event.why, duration },
+            { token, code: event.code, from: event.from, to: event.to, why: event.why, duration },
           ]);
           setTimeout(() => {
             setLeaves((current) => current.filter((leave) => leave.token !== token));
