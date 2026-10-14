@@ -61,7 +61,8 @@
     "test:browser-learning": "node tools/harness/test-browser-learning.mjs",
     "test:select-unselect": "node --import ./tools/harness/ts-loader-register.mjs tools/harness/test-select-unselect.mjs",
     "test:browser-sort": "node tools/harness/test-browser-sort.mjs",
-    "test:sfx": "node tools/harness/test-sfx.mjs"
+    "test:sfx": "node tools/harness/test-sfx.mjs",
+    "test:deck-search": "node --import ./tools/harness/ts-loader-register.mjs tools/harness/test-deck-search.mjs"
   },
   "dependencies": {
     "@n1xx1/ocgcore-wasm": "npm:@jsr/n1xx1__ocgcore-wasm@^0.1.4",

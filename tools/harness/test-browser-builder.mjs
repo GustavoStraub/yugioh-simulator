@@ -189,6 +189,74 @@ async function lobby(page) {
   await espera(200);
   conferir(Boolean(await page.evaluate(`return document.querySelector("[data-deck-preview-list]")?.innerText.length > 50;`)), "e a lista completa abre");
 
+  // --- os seletores de deck com busca ("contém", sem acento e sem caixa) ---
+  const BOT = '[data-deck-combobox="deck-do-bot"]';
+  conferir(
+    Boolean(await page.evaluate(`return Boolean(document.querySelector('[data-deck-combobox="meu-deck"] [data-combobox-trigger]') && document.querySelector('${BOT} [data-combobox-trigger]'));`)),
+    "o seu deck e o do bot são listas suspensas com busca",
+  );
+  const valorAntes = await page.evaluate(`return document.querySelector('${BOT}')?.dataset.value ?? "";`);
+  await page.evaluate(`document.querySelector('${BOT} [data-combobox-trigger]').click(); return true;`);
+  const todas = await ate(page, `const n = document.querySelectorAll('${BOT} [data-combobox-option]').length; return n > 0 ? n : null;`);
+  conferir(
+    Boolean(todas) && (await page.evaluate(`return document.activeElement?.matches?.('${BOT} [data-combobox-search]') ?? false;`)),
+    `abrir mostra a lista (${todas} decks) com o foco já na busca`,
+  );
+  await page.evaluate(DIGITAR(`${BOT} [data-combobox-search]`, "KAIBA"));
+  await espera(150);
+  const achados = await page.evaluate(`return [...document.querySelectorAll('${BOT} [data-combobox-option]')].map((o) => o.dataset.label);`);
+  conferir(
+    achados.length > 0 && achados.length < todas && achados.every((nome) => /kaiba/i.test(nome)),
+    `"KAIBA" filtra por "contém", sem caixa (${achados.join(" | ")})`,
+  );
+  conferir(
+    Boolean(await page.evaluate(`return [...document.querySelectorAll('${BOT} [data-combobox-option] mark')].some((m) => /kaiba/i.test(m.textContent));`)),
+    "e destaca o trecho achado",
+  );
+  await page.evaluate(DIGITAR(`${BOT} [data-combobox-search]`, "kaiba inicial"));
+  await espera(150);
+  const duasPalavras = await page.evaluate(`return [...document.querySelectorAll('${BOT} [data-combobox-option]')].map((o) => o.dataset.label);`);
+  conferir(
+    duasPalavras.some((nome) => /Inicial.*Kaiba|Kaiba.*Inicial/i.test(nome)),
+    `"kaiba inicial" acha o deck com as duas palavras em outra ordem (${duasPalavras.join(" | ")})`,
+  );
+  // Enter escolhe a primeira achada (teclado no próprio campo de busca).
+  const alvo = await page.evaluate(`return document.querySelector('${BOT} [data-combobox-option]')?.dataset.comboboxOption ?? null;`);
+  await page.evaluate(`
+    document.querySelector('${BOT} [data-combobox-search]')
+      .dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true }));
+    return true;
+  `);
+  await espera(250);
+  const depois = await page.evaluate(`
+    const raiz = document.querySelector('${BOT}');
+    return { valor: raiz?.dataset.value ?? "", aberto: Boolean(raiz?.querySelector("[data-combobox-panel]")), botao: raiz?.querySelector("[data-combobox-trigger]")?.innerText ?? "" };
+  `);
+  conferir(
+    depois.valor === alvo && !depois.aberto && /Kaiba/i.test(depois.botao),
+    `Enter escolhe o deck achado e fecha a lista (${depois.botao.split("\n")[0]})`,
+    JSON.stringify({ antes: valorAntes, ...depois, alvo }),
+  );
+  // Busca sem resultado diz que não achou; Esc fecha sem mudar a escolha.
+  await page.evaluate(`document.querySelector('${BOT} [data-combobox-trigger]').click(); return true;`);
+  await ate(page, `return Boolean(document.querySelector('${BOT} [data-combobox-search]'));`);
+  await page.evaluate(DIGITAR(`${BOT} [data-combobox-search]`, "xyzzy nada"));
+  await espera(150);
+  conferir(
+    /Nenhum deck/.test(await page.evaluate(`return document.querySelector('${BOT} [data-combobox-panel]')?.innerText ?? "";`)),
+    "busca sem resultado diz que não achou",
+  );
+  await page.evaluate(`
+    document.querySelector('${BOT} [data-combobox-search]')
+      .dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
+    return true;
+  `);
+  await espera(200);
+  conferir(
+    (await page.evaluate(`const r = document.querySelector('${BOT}'); return !r.querySelector("[data-combobox-panel]") && r.dataset.value;`)) === alvo,
+    "Esc fecha a lista sem mudar o deck escolhido",
+  );
+
   await page.evaluate(`document.querySelector('[data-first-turn="bot"]')?.click(); return true;`);
   await espera(150);
   conferir(

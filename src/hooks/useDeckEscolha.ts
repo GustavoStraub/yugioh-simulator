@@ -143,13 +143,13 @@ export function useDeckEscolha(inicial: EscolhaDeDeck = null): DeckEscolha {
   }, [escolhido, meuDeck, biblioteca, lembrado]);
 }
 
-/** Uma opção do `<select>` de decks. */
+/** Uma opção do seletor de decks. */
 export interface OpcaoDeDeck {
   value: string;
   label: string;
 }
 
-/** Um `<optgroup>`: os decks do jogador de um lado, os prontos do outro. */
+/** Um grupo do seletor: os decks do jogador de um lado, os prontos do outro. */
 export interface GrupoDeDecks {
   label: string;
   opcoes: OpcaoDeDeck[];

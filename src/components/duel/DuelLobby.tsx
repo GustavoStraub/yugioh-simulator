@@ -7,6 +7,7 @@ import { useMemo, useState } from "react";
 import { useCardRegistry } from "@/context/CardRegistryProvider";
 import { usePlayer } from "@/context/PlayerProvider";
 import { useDeckEscolha } from "@/hooks/useDeckEscolha";
+import { DeckCombobox } from "@/components/duel/DeckCombobox";
 import { DeckSelect } from "@/components/duel/DeckSelect";
 import { deckToDuelPayload } from "@/lib/domain/deck-serializer";
 import { isDeckDuelReady } from "@/lib/domain/deck-rules";
@@ -68,7 +69,7 @@ export function DuelLobby() {
         cartas: preset.main.length,
         deck: presetToDuelPayload(preset),
         // No TCG são ~100: agrupar pela linha (Estruturais, Lendários…) é o
-        // que torna o `<select>` navegável.
+        // que torna a lista navegável (além da busca).
         grupo: kindGroupLabel(preset.kind),
       }),
     );
@@ -85,6 +86,18 @@ export function DuelLobby() {
       );
     return [...prontos, ...meus];
   }, [formato, meuDeck.biblioteca]);
+
+  /** As opções do bot agrupadas como no seletor (a linha do deck pronto, "Seus decks"). */
+  const gruposDoBot = useMemo(
+    () =>
+      [...new Set(opcoes.map((opcao) => opcao.grupo))].map((grupo) => ({
+        label: grupo,
+        opcoes: opcoes
+          .filter((opcao) => opcao.grupo === grupo)
+          .map((opcao) => ({ value: opcao.id, label: `${opcao.nome} (${opcao.cartas} cartas)` })),
+      })),
+    [opcoes],
+  );
 
   // Padrão: o segundo deck pronto (o primeiro costuma ser o do próprio Yugi).
   const opponent =
@@ -180,25 +193,15 @@ export function DuelLobby() {
             Monte e complete outro deck desse formato no construtor.
           </p>
         ) : (
-          <select
+          // Lista suspensa com busca: no TCG são ~100 decks prontos.
+          <DeckCombobox
+            nome="deck-do-bot"
+            rotulo="Deck do bot"
+            grupos={gruposDoBot}
             value={opponent?.id ?? ""}
-            onChange={(event) => setOpponentId(event.target.value)}
-            className="mt-4 w-full rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-amber-600"
-          >
-            {[...new Set(opcoes.map((opcao) => opcao.grupo))].map((grupo) => {
-              const doGrupo = opcoes.filter((opcao) => opcao.grupo === grupo);
-              if (doGrupo.length === 0) return null;
-              return (
-                <optgroup key={grupo} label={grupo}>
-                  {doGrupo.map((opcao) => (
-                    <option key={opcao.id} value={opcao.id}>
-                      {opcao.nome} ({opcao.cartas} cartas)
-                    </option>
-                  ))}
-                </optgroup>
-              );
-            })}
-          </select>
+            onChange={(valor) => setOpponentId(valor)}
+            className="mt-4"
+          />
         )}
 
         {opponent && <DeckPreview deck={opponent.deck} registry={registry} />}

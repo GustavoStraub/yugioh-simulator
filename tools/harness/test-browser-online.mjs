@@ -130,21 +130,37 @@ async function until(fn, label, timeout = 60000) {
  */
 const GRUPO = process.env.FORMATO === "tcg" ? "TCG" : "Goat";
 
+/**
+ * Escolhe um deck pronto do formato no seletor de deck (a lista suspensa com
+ * busca, `DeckCombobox`): abre a lista, pega a opção pedida entre as dos
+ * grupos do formato e clica nela. `qual` é o índice entre elas, ou "ultima".
+ *
+ * Só os grupos do formato: "Meus decks" (o deck salvo, vazio nesta aba) e os
+ * do outro formato ficam de fora.
+ */
+function escolherNoSeletor(qual) {
+  return `
+    return (async () => {
+      const raiz = document.querySelector('[data-deck-combobox="meu-deck"]');
+      if (!raiz) return null;
+      if (!raiz.querySelector("[data-combobox-panel]")) raiz.querySelector("[data-combobox-trigger]")?.click();
+      for (let i = 0; i < 20 && !raiz.querySelector("[data-combobox-option]"); i += 1) {
+        await new Promise((r) => setTimeout(r, 25));
+      }
+      const opcoes = [...raiz.querySelectorAll("[data-combobox-option]")]
+        .filter((o) => (o.dataset.group ?? "").startsWith(${JSON.stringify(GRUPO)}) && o.dataset.comboboxOption);
+      const opcao = ${JSON.stringify(qual)} === "ultima" ? opcoes.at(-1) : opcoes[${typeof qual === "number" ? qual : 0}];
+      if (!opcao) return null;
+      const texto = opcao.dataset.label ?? opcao.innerText.trim();
+      opcao.click();
+      return texto;
+    })();
+  `;
+}
+
 /** Escolhe um deck pronto do formato no seletor do lobby (o jogador não tem deck salvo). */
 async function escolherPreset(page, indice) {
-  return page.evaluate(`
-    const select = document.querySelector("select");
-    if (!select) return false;
-    // Só os grupos do formato: "Meus decks" (o deck salvo, vazio nesta aba)
-    // e os do outro formato ficam de fora.
-    const opcao = [...select.querySelectorAll("optgroup")]
-      .filter((grupo) => grupo.label.startsWith(${JSON.stringify(GRUPO)}))
-      .flatMap((grupo) => [...grupo.querySelectorAll("option")])[${indice}];
-    if (!opcao) return false;
-    select.value = opcao.value;
-    select.dispatchEvent(new Event("change", { bubbles: true }));
-    return opcao.text;
-  `);
+  return (await page.evaluate(escolherNoSeletor(indice))) ?? false;
 }
 
 async function esperarCatalogo(page) {
@@ -242,19 +258,7 @@ async function main() {
     // A última dos grupos **Goat**: a Ana está num deck Goat, e com os decks
     // TCG no fim da lista a última opção virou um deck TCG — a sala, com
     // razão, não abria o jokenpô entre formatos diferentes.
-    const trocado = await bruno.evaluate(`
-      const select = document.querySelector("select");
-      if (!select) return null;
-      const opcao = [...select.querySelectorAll("optgroup")]
-        .filter((grupo) => grupo.label.startsWith(${JSON.stringify(GRUPO)}))
-        .flatMap((grupo) => [...grupo.querySelectorAll("option")])
-        .filter((o) => o.value)
-        .at(-1);
-      if (!opcao) return null;
-      select.value = opcao.value;
-      select.dispatchEvent(new Event("change", { bubbles: true }));
-      return opcao.text;
-    `);
+    const trocado = await bruno.evaluate(escolherNoSeletor("ultima"));
     conferir(Boolean(trocado), `Bruno trocou de deck dentro da sala (${trocado})`);
 
     await espera(600);
