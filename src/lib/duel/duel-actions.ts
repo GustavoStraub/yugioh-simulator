@@ -19,6 +19,7 @@ import {
 } from "@n1xx1/ocgcore-wasm";
 
 import { isDeclarable } from "@/lib/duel/announce-filter";
+import { isTriggerWindow } from "@/lib/duel/chain-mode";
 import { decodeFieldMask } from "@/lib/duel/field-places";
 import type { OfficialCardData } from "@/lib/duel/official-card-data";
 import type { EngineStringsDb } from "@/lib/duel/engine-strings";
@@ -643,16 +644,25 @@ export function buildPromptPlan(
       // na mesa (ou na pilha onde estão), e uma barra diz a que se responde e
       // oferece "Não responder". O diálogo de antes cobria justamente o campo
       // que a decisão de encadear precisa ver.
+      //
+      // A janela dos gatilhos (`isTriggerWindow`) usa a mesma mensagem, mas a
+      // pergunta é outra: não é "responder a algo", é "ativar o efeito que a
+      // minha carta acabou de acionar" — e passar o descarta de vez.
+      const gatilho = isTriggerWindow(message);
       const plan = emptyPlan(
-        message.forced
-          ? "Você precisa encadear um efeito."
-          : "Deseja responder com algum efeito?",
+        gatilho
+          ? message.forced
+            ? "Efeitos obrigatórios ao mesmo tempo: escolha qual entra agora na corrente."
+            : "Efeitos de gatilho disponíveis — qual ativar?"
+          : message.forced
+            ? "Você precisa encadear um efeito."
+            : "Deseja responder com algum efeito?",
         "inline",
       );
 
       message.selects.forEach((card, index) => {
         push(plan.byCard, card, {
-          label: "Ativar em resposta",
+          label: gatilho ? "Ativar" : "Ativar em resposta",
           detail: effectDetail(card.description, engineStrings),
           response: { type: OcgResponseType.SELECT_CHAIN, index },
         });
@@ -660,7 +670,7 @@ export function buildPromptPlan(
 
       if (!message.forced) {
         plan.global.push({
-          label: "Não responder",
+          label: gatilho ? "Não ativar" : "Não responder",
           tone: "primary",
           response: { type: OcgResponseType.SELECT_CHAIN, index: null },
         });

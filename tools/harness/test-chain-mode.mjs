@@ -14,7 +14,11 @@
  *      oferecido em cada troca de fase — e encadear no próprio efeito some.
  *   4. **Sempre** é o comportamento antigo; **Nunca** não pergunta nada que não
  *      seja obrigatório.
- *   5. **Ctrl segurado** (`forceAsk`) vale como "Sempre" sem trocar o modo, e
+ *   5. **Nenhum modo cala um gatilho:** a Invocação-Link da Halqifibrax com o
+ *      Swap Cleric de material aciona os dois efeitos juntos; o core pergunta
+ *      um, e com ele já na corrente pergunta o outro — essa segunda pergunta
+ *      era respondida "não" sozinha (o elo de cima era meu) e o efeito sumia.
+ *   6. **Ctrl segurado** (`forceAsk`) vale como "Sempre" sem trocar o modo, e
  *      a troca no meio do duelo vale a partir da janela seguinte.
  *
  * Os dois assentos são roteirizados aqui (nenhum bot): o oponente invoca e
@@ -36,7 +40,7 @@ import {
 } from "@n1xx1/ocgcore-wasm";
 
 import { botAutoResponse } from "@/lib/duel/bot-responder";
-import { chainWindowSkip } from "@/lib/duel/chain-mode";
+import { TRIGGER_WINDOW_SPE_COUNT, chainWindowSkip, isTriggerWindow } from "@/lib/duel/chain-mode";
 import { createDuelSession } from "@/lib/duel/duel-session";
 import { CardRegistry } from "@/lib/domain/card-registry";
 import { nodeAssets } from "@/server/duel/node-assets";
@@ -46,6 +50,8 @@ import { Zone, createDuel } from "./duel.mjs";
 
 const C = {
   celtic: 91152256, // Guerreiro de Nível 4 — o deck dos dois lados
+  halqi: 50588353, // Crystron Halqifibrax: Link-2 com gatilho ao ser Invocado por Link
+  cleric: 30968774, // Swap Cleric: gatilho ao ir para o Cemitério como matéria de Link
   elf: 69140098, // Gemini Elf: o atacante do oponente
   reinforcement: 32807846,
   ash: 14558127,
@@ -78,7 +84,19 @@ const PASSAR = { type: OcgResponseType.SELECT_CHAIN, index: null };
  *
  * @returns as perguntas de corrente que chegaram ao assento 0.
  */
-async function rodar({ modo, scenario, turnos = 4, meuTurno = () => null, depoisDoTurno = {} }) {
+async function rodar({
+  modo,
+  scenario,
+  turnos = 4,
+  meuTurno = () => null,
+  depoisDoTurno = {},
+  // Main Deck do assento 0 (padrão: só Guardião Celta).
+  deck = Array(40).fill(C.celtic),
+  // Resposta do assento 0 a cada janela que chega; `null` = passar.
+  naJanela = () => null,
+  // Recebe o último estado da sessão (o log, a mesa) antes de sair.
+  aoFim = () => {},
+}) {
   const session = createDuelSession();
   let snap = null;
   session.subscribe((s) => {
@@ -86,7 +104,7 @@ async function rodar({ modo, scenario, turnos = 4, meuTurno = () => null, depois
   });
   void session.start({
     playerName: "Ana",
-    playerDeck: { main: Array(40).fill(C.celtic), extra: [], side: [] },
+    playerDeck: { main: deck, extra: [], side: [] },
     opponentName: "Bruno",
     opponentDeck: { main: Array(40).fill(C.celtic), extra: [], side: [] },
     registry,
@@ -156,7 +174,7 @@ async function rodar({ modo, scenario, turnos = 4, meuTurno = () => null, depois
         topo: topo ? topo.player : null,
         cartas: prompt.selects.map((c) => c.code),
       });
-      resposta = prompt.forced ? botAutoResponse(prompt) : PASSAR;
+      resposta = naJanela(prompt, snap) ?? (prompt.forced ? botAutoResponse(prompt) : PASSAR);
     } else if (prompt.type === OcgMessageType.SELECT_IDLECMD) {
       resposta = meuTurno(prompt, snap) ?? idle(SelectIdleCMDAction.TO_EP);
     } else {
@@ -164,6 +182,7 @@ async function rodar({ modo, scenario, turnos = 4, meuTurno = () => null, depois
     }
     await session.respond(resposta, snap.promptId);
   }
+  aoFim(snap);
   return perguntas;
 }
 
@@ -189,6 +208,13 @@ console.log("\n1. A regra pura");
   conferir(chainWindowSkip(janela({ spe_count: 1 }), "auto", fora) === null, "Automático: timing do momento → pergunta");
   conferir(chainWindowSkip(janela(), "auto", { topLinkPlayer: 1 }) === null, "Automático: o oponente ativou → pergunta");
   conferir(chainWindowSkip(janela({ spe_count: 2 }), "auto", { topLinkPlayer: 0 }) !== null, "Automático: encadear no próprio efeito → pula");
+  // A janela dos gatilhos (spe_count 0x7f): passar descartaria o efeito.
+  const gatilho = { spe_count: TRIGGER_WINDOW_SPE_COUNT };
+  conferir(isTriggerWindow(janela(gatilho)) && !isTriggerWindow(janela({ spe_count: 2 })), "0x7f é a janela dos gatilhos; uma contagem comum não é");
+  for (const modo of ["auto", "never", "always"]) {
+    conferir(chainWindowSkip(janela(gatilho), modo, { topLinkPlayer: 0 }) === null, `${modo}: gatilho com o meu elo em cima → pergunta`);
+    conferir(chainWindowSkip(janela(gatilho), modo, fora) === null, `${modo}: gatilhos juntos fora de corrente → pergunta`);
+  }
   const pulo = chainWindowSkip(janela(), "never", fora);
   conferir(pulo?.type === OcgResponseType.SELECT_CHAIN && pulo.index === null, "o pulo é 'não responder'");
 }
@@ -270,7 +296,83 @@ console.log("\n4. Encadear no próprio efeito: ativo Reforço com MST baixado");
 }
 
 // ---------------------------------------------------------------------------
-console.log("\n5. Ctrl segurado e troca no meio do duelo");
+console.log("\n5. Gatilhos juntos: Invocação-Link da Halqifibrax com o Swap Cleric de material");
+{
+  // As duas matérias já em campo (a Ash é a Regulador que a Halqifibrax
+  // pede); as Ash do Deck são o alvo do efeito dela — sem alvo legal o core
+  // nem aciona o gatilho.
+  const scenario = [
+    { player: 0, location: OcgLocation.MZONE, sequence: 0, code: C.cleric },
+    { player: 0, location: OcgLocation.MZONE, sequence: 1, code: C.ash },
+    { player: 0, location: OcgLocation.EXTRA, code: C.halqi },
+  ];
+  const deck = [...Array(37).fill(C.celtic), C.ash, C.ash, C.ash];
+  const invocarHalqi = () => {
+    let invocou = false;
+    return (prompt, snap) => {
+      if (invocou || snap.turnCount !== 1) return null;
+      const i = prompt.special_summons.findIndex((c) => c.code === C.halqi);
+      if (i < 0) return null;
+      invocou = true;
+      return idle(SelectIdleCMDAction.SELECT_SPECIAL_SUMMON, i);
+    };
+  };
+  const GATILHOS = [C.halqi, C.cleric];
+  // Ativa o gatilho que a ordem pede entre os oferecidos; a Ash (resposta,
+  // não gatilho) fica sem resposta.
+  const ativarNaOrdem = (ordem) => (prompt) => {
+    for (const code of ordem) {
+      const i = prompt.selects.findIndex((c) => c.code === code);
+      if (i >= 0) return { type: OcgResponseType.SELECT_CHAIN, index: i };
+    }
+    return null;
+  };
+  for (const modo of ["auto", "never", "always"]) {
+    for (const ordem of [GATILHOS, [...GATILHOS].reverse()]) {
+      let log = [];
+      const perguntas = await rodar({
+        modo,
+        scenario,
+        deck,
+        turnos: 1,
+        meuTurno: invocarHalqi(),
+        naJanela: ativarNaOrdem(ordem),
+        aoFim: (snap) => {
+          log = snap.log.map((linha) => linha.text);
+        },
+      });
+      const segundo = ordem[1];
+      const rotulo = `${modo}, ${ordem[0] === C.halqi ? "Link primeiro" : "material primeiro"}`;
+      conferir(
+        perguntas.some((p) => p.topo === 0 && p.cartas.length === 1 && p.cartas[0] === segundo),
+        `${rotulo}: com o 1º gatilho na corrente, o 2º chega à tela`,
+        JSON.stringify(perguntas),
+      );
+      conferir(
+        log.some((linha) => linha.includes("Elo 1")) && log.some((linha) => linha.includes("Elo 2")),
+        `${rotulo}: os dois efeitos entram na corrente`,
+        log.filter((linha) => linha.includes("⛓")).join(" | "),
+      );
+      conferir(
+        log.some((linha) => linha.includes("comprou")),
+        `${rotulo}: o Swap Cleric resolve (compra 1)`,
+      );
+      if (modo === "auto") {
+        // A regra do *Self Chain* continua valendo para resposta de verdade:
+        // a Ash do Deck que veio para a mão não é oferecida contra o próprio
+        // efeito da Halqifibrax.
+        conferir(
+          !perguntas.some((p) => p.cartas.includes(C.ash)),
+          `${rotulo}: a Ash contra o próprio efeito segue calada`,
+          JSON.stringify(perguntas),
+        );
+      }
+    }
+  }
+}
+
+// ---------------------------------------------------------------------------
+console.log("\n6. Ctrl segurado e troca no meio do duelo");
 {
   const scenario = [
     { player: 0, location: OcgLocation.SZONE, code: C.scapegoat },
@@ -299,14 +401,14 @@ console.log("\n5. Ctrl segurado e troca no meio do duelo");
 }
 
 // ---------------------------------------------------------------------------
-// 6. Medição em partidas inteiras.
+// 7. Medição em partidas inteiras.
 //
 // Os cenários acima provam a regra; esta parte mede o efeito num jogo de
 // verdade: decks pré-montados, os dois lados jogando com o piloto automático,
 // e cada janela de resposta do assento 0 passada pela regra nos três modos —
 // a MESMA partida, contada três vezes. É o número que entra no plano (§11).
 // ---------------------------------------------------------------------------
-console.log("\n6. Medição: perguntas ao assento 0 em partidas inteiras");
+console.log("\n7. Medição: perguntas ao assento 0 em partidas inteiras");
 {
   const goatPool = new Set(loadGoatPool().map((card) => card.id));
   const goat = JSON.parse(readFileSync(join(REPO, "src/data/preset-decks.json"), "utf8"));
@@ -314,7 +416,7 @@ console.log("\n6. Medição: perguntas ao assento 0 em partidas inteiras");
   const PARTIDAS = Number(process.env.CHAIN_MODE_PARTIDAS ?? 8);
 
   async function medir(formato) {
-    const total = { janelas: 0, always: 0, auto: 0, never: 0, oponenteAtivou: 0, autoNaAtivacao: 0, fins: {}, turnos: 0 };
+    const total = { janelas: 0, always: 0, auto: 0, never: 0, gatilhos: 0, oponenteAtivou: 0, autoNaAtivacao: 0, fins: {}, turnos: 0 };
     for (let rodada = 0; rodada < PARTIDAS; rodada += 1) {
       const lista = formato === "goat" ? goat : tcg;
       const a = lista[(rodada * 3) % lista.length];
@@ -351,6 +453,7 @@ console.log("\n6. Medição: perguntas ao assento 0 em partidas inteiras");
           for (const modo of ["always", "auto", "never"]) {
             if (!chainWindowSkip(prompt, modo, contexto)) total[modo] += 1;
           }
+          if (isTriggerWindow(prompt)) total.gatilhos += 1;
           if (contexto.topLinkPlayer === 1) {
             total.oponenteAtivou += 1;
             if (!chainWindowSkip(prompt, "auto", contexto)) total.autoNaAtivacao += 1;
@@ -369,14 +472,16 @@ console.log("\n6. Medição: perguntas ao assento 0 em partidas inteiras");
     const t = await medir(formato);
     console.log(
       `     ${formato.toUpperCase()} (${PARTIDAS} partidas): janelas com resposta legal ${t.janelas} → ` +
-        `Sempre ${t.always}, Automático ${t.auto}, Nunca ${t.never}; ` +
+        `Sempre ${t.always}, Automático ${t.auto}, Nunca ${t.never} (janelas de gatilho: ${t.gatilhos}); ` +
         `ativações do oponente com resposta possível: ${t.oponenteAtivou}, perguntadas no Automático: ${t.autoNaAtivacao} ` +
         `(${t.turnos} turnos; fins: ${JSON.stringify(t.fins)})`,
     );
     conferir(t.turnos >= PARTIDAS * 4, `${formato}: as partidas foram jogadas de verdade (${t.turnos} turnos)`);
     conferir(t.always === t.janelas, `${formato}: Sempre pergunta toda janela`);
     conferir(t.auto <= t.always, `${formato}: Automático nunca pergunta mais que Sempre`);
-    conferir(t.never === 0, `${formato}: Nunca não pergunta nada opcional`);
+    // As janelas de gatilho são perguntadas em todo modo (seção 5); fora
+    // delas, o Nunca não pergunta nada opcional.
+    conferir(t.never === t.gatilhos, `${formato}: Nunca só pergunta gatilho (${t.never} × ${t.gatilhos})`);
     conferir(
       t.autoNaAtivacao === t.oponenteAtivou,
       `${formato}: toda ativação do oponente com resposta possível continua perguntada`,

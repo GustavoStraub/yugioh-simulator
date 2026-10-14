@@ -45,6 +45,7 @@
     "test:patches": "node tools/harness/test-patches.mjs",
     "test:browser-cancel": "node tools/harness/test-browser-cancel.mjs",
     "test:browser-chain": "node tools/harness/test-browser-chain.mjs",
+    "test:browser-triggers": "node tools/harness/test-browser-triggers.mjs",
     "test:viewports": "node tools/harness/test-viewports.mjs",
     "test:multiplayer": "node --import ./tools/harness/ts-loader-register.mjs tools/harness/test-multiplayer.mjs",
     "test:connection": "node --import ./tools/harness/ts-loader-register.mjs tools/harness/test-connection.mjs",

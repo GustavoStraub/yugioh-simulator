@@ -21,6 +21,9 @@ import {
  * - `auto` — pergunta quando importa (ver `chainWindowSkip`);
  * - `always` — toda janela com resposta legal (o comportamento antigo);
  * - `never` — só quando encadear é obrigatório.
+ *
+ * Nenhum dos três cala os efeitos de gatilho das próprias cartas (ver
+ * `isTriggerWindow`): ativá-los ou não é decisão, não resposta.
  */
 export type ChainResponseMode = "auto" | "always" | "never";
 
@@ -46,8 +49,39 @@ export interface ChainWindowContext {
 const PASS: OcgResponse = { type: OcgResponseType.SELECT_CHAIN, index: null };
 
 /**
+ * O `spe_count` com que o core marca a janela de **efeitos de gatilho**.
+ *
+ * Quando vários gatilhos do mesmo jogador acontecem juntos (a Invocação-Link
+ * que ativa o efeito do Link E o do material que foi para o Cemitério), o core
+ * não pergunta "deseja responder?": ele monta a corrente (SEGOC) perguntando
+ * qual gatilho entra agora — um SELECT_CHAIN com `spe_count = 0x7f`
+ * (`processor.cpp`, `Processors::PointEvent`, passos 2 e 4). Escolhido um, ele
+ * pergunta de novo com os que sobraram, já com o primeiro na corrente. Um
+ * gatilho opcional sozinho, fora de corrente, vem como SELECT_EFFECTYN
+ * ("ativar o efeito?") — a mesma decisão, por outra mensagem.
+ *
+ * Nas janelas de resposta comuns o `spe_count` é uma contagem de candidatos
+ * (`core.spe_effect`), que nunca chega a 127.
+ */
+export const TRIGGER_WINDOW_SPE_COUNT = 0x7f;
+
+/** É a janela que monta a corrente com os gatilhos que acabaram de acontecer? */
+export function isTriggerWindow(message: OcgMessageSelectChain): boolean {
+  return message.spe_count === TRIGGER_WINDOW_SPE_COUNT;
+}
+
+/**
  * A resposta automática ("não responder") para uma janela que o modo manda
  * pular, ou `null` quando a pergunta deve chegar ao jogador.
+ *
+ * Janela de gatilhos (`isTriggerWindow`) sempre pergunta, em todo modo:
+ * passar nela não é "não responder", é **descartar** o efeito opcional — o
+ * core o tira da lista e não oferece de novo. Era o que sumia com o efeito do
+ * material: a Halqifibrax entrava como Elo 1, o core perguntava pelo Swap
+ * Cleric com o Elo 1 sendo "meu", e a regra do *Self Chain* abaixo respondia
+ * por mim. O modo decide quando a tela pergunta se quero **responder**; ativar
+ * o efeito da minha própria carta é outra pergunta, e a do gatilho único
+ * (SELECT_EFFECTYN) nunca passou pelo modo.
  *
  * No modo `auto`:
  * - obrigatório → pergunta (não há como pular);
@@ -70,6 +104,7 @@ export function chainWindowSkip(
   context: ChainWindowContext,
 ): OcgResponse | null {
   if (message.forced || message.selects.length === 0) return null;
+  if (isTriggerWindow(message)) return null;
   if (mode === "always") return null;
   if (mode === "never") return PASS;
 

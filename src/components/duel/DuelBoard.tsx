@@ -39,6 +39,7 @@ import {
   type EngineStringsDb,
 } from "@/lib/duel/engine-strings";
 import { actionReach, needsCardPicker } from "@/lib/duel/prompt-reach";
+import { isTriggerWindow } from "@/lib/duel/chain-mode";
 import type { BoardCard, BoardPlayer } from "@/lib/duel/board-state";
 import {
   fetchOfficialCardDb,
@@ -1770,6 +1771,7 @@ export function DuelBoard({
                 // Uma pergunta nova zera a escolha e o painel recolhido.
                 key={snapshot.promptId}
                 plan={plan}
+                trigger={isTriggerWindow(prompt)}
                 chain={snapshot.chain}
                 registry={registry}
                 me={me}
@@ -3433,6 +3435,7 @@ function ChainLinkPanel({
  */
 function ChainResponseBar({
   plan,
+  trigger,
   chain,
   registry,
   me,
@@ -3440,6 +3443,12 @@ function ChainResponseBar({
   onHover,
 }: {
   plan: PromptPlan;
+  /**
+   * Janela dos gatilhos (`isTriggerWindow`): as cartas listadas não respondem
+   * a nada — são efeitos que acabaram de ser acionados juntos, e o elo
+   * anunciado no topo é o que já entrou nesta mesma corrente.
+   */
+  trigger: boolean;
   chain: DuelChainLink | null;
   registry: CardRegistry | null;
   me: 0 | 1;
@@ -3455,7 +3464,9 @@ function ChainResponseBar({
   const cartas = [...plan.byCard.entries()];
   const jogadas = escolhida ? (plan.byCard.get(escolhida) ?? []) : [];
   const pergunta = chain
-    ? `${chain.playerName} ativou ${nome}. Ativar uma carta em resposta (corrente)?`
+    ? trigger
+      ? `${chain.playerName} ativou ${nome}. Ativar também um efeito de gatilho (mesma corrente)?`
+      : `${chain.playerName} ativou ${nome}. Ativar uma carta em resposta (corrente)?`
     : plan.instruction;
   const passar = plan.global.map((action, index) => (
     <button
@@ -3527,9 +3538,16 @@ function ChainResponseBar({
               )}
             </p>
             <p className="md-sheet-sub">
-              {cartas.length > 0
-                ? "Ativar uma carta em resposta (corrente)? Escolha abaixo — ou clique na que brilha na mesa."
-                : "Responder?"}
+              {trigger
+                ? plan.global.length === 0
+                  ? // Gatilhos obrigatórios: não há como passar, só a ordem.
+                    "Todos entram na corrente; você escolhe a ordem, um de cada vez."
+                  : chain
+                    ? "Outro efeito foi acionado junto: ativá-lo nesta corrente? Sem ativar agora, ele se perde."
+                    : "Acionados ao mesmo tempo: escolha qual entra primeiro na corrente. Sem ativar, o efeito se perde."
+                : cartas.length > 0
+                  ? "Ativar uma carta em resposta (corrente)? Escolha abaixo — ou clique na que brilha na mesa."
+                  : "Responder?"}
             </p>
           </div>
         </div>
