@@ -433,7 +433,16 @@
 
 .md-card-face {
   border-radius: 4px;
-  transition: transform 220ms ease-out;
+  transition:
+    transform 220ms ease-out,
+    filter 320ms ease-out;
+}
+
+/* Com o holograma aceso em cima, a carta escurece: o monstro se destaca dela
+   e do fundo (o `data-holo-on` vem de `MonsterHolograms.tsx`). Só a face da
+   carta — a zona, o halo e os selos em volta ficam como estão. */
+.md-card-plane[data-holo-on] .md-card-face {
+  filter: brightness(0.30) saturate(0.85);
 }
 
 /* De pé: a carta levanta sobre a zona, girando pela borda de baixo — menos

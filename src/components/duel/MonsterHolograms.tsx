@@ -90,6 +90,7 @@ export function MonsterHologramsLayer({
           <Hologram
             key={key}
             monster={m}
+            fieldRef={fieldRef}
             always={mode === "always"}
             hovered={hovered === m.zoneKey}
             arrived={!jaEstavam.has(key)}
@@ -113,6 +114,7 @@ export function MonsterHologramsLayer({
  */
 function Hologram({
   monster,
+  fieldRef,
   always,
   hovered,
   arrived,
@@ -124,6 +126,7 @@ function Hologram({
   layers,
 }: {
   monster: Placed;
+  fieldRef: RefObject<HTMLDivElement | null>;
   always: boolean;
   hovered: boolean;
   /** Montou porque o monstro acabou de chegar (e não porque a mesa abriu). */
@@ -153,6 +156,22 @@ function Hologram({
     return () => clearTimeout(timer);
   }, [momento]);
   const on = always || hovered || momento !== null;
+
+  // Holograma aceso, carta embaixo um pouco mais escura: o monstro se
+  // destaca dela e do fundo. Marca no DOM (`data-holo-on` no plano da carta),
+  // como a investida esconde a carta que voa: a carta é de outro componente,
+  // e uma classe posta por fora o React apagaria no próximo render — um
+  // atributo `data-` que ele não controla fica.
+  const { zoneKey } = monster;
+  useEffect(() => {
+    const plano = fieldRef.current?.querySelector<HTMLElement>(`[data-zone="${zoneKey}"] .md-card-plane`);
+    if (!plano) return;
+    if (on) plano.dataset.holoOn = "1";
+    else delete plano.dataset.holoOn;
+    return () => {
+      delete plano.dataset.holoOn;
+    };
+  }, [on, zoneKey, fieldRef]);
 
   const { side } = monster;
   // A perspectiva e a profundidade em proporção ao tamanho: o mesmo volume em
