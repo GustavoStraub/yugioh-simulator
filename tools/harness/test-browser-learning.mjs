@@ -153,6 +153,11 @@ async function main() {
     conferir(Boolean(andou), "o duelo anda sozinho (chegou ao turno 3)");
     conferir(!(await page.evaluate(`return Boolean(document.querySelector("[data-decision-dialog]"));`)), "e ninguém é perguntado");
     conferir(!/Sua vez/i.test(await page.evaluate(`return document.querySelector(".tf-playmat")?.innerText ?? "";`)), "o selo não diz 'Sua vez' a quem só assiste");
+    // E o botão de fase não abre o menu para quem só assiste.
+    conferir(
+      Boolean(await page.evaluate(`return document.querySelector("[data-phase-button]")?.disabled ?? true;`)),
+      "o botão de fase não joga por quem só assiste",
+    );
     const avisos = await page.evaluate(`return [...new Set(window.__avisos ?? [])];`);
     conferir(
       avisos.length > 0 && avisos.every((a) => a.startsWith("VEZ DE")),

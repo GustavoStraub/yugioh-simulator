@@ -32,31 +32,31 @@ export const TIPS: DuelTip[] = [
   {
     id: "corrente",
     text:
-      "Você pode responder ao que acabou de acontecer: as cartas que brilham respondem — clique numa, ou em \"Não responder\" na barra. No modo Automático (⛓ na trilha de fases) o jogo só pergunta nos momentos que importam; segure Ctrl para ser perguntado em toda janela.",
+      "Você pode responder ao que acabou de acontecer: escolha a carta que responde (na lista ou na mesa, onde ela brilha) e ative — ou \"Não responder\". O botão Auto, no canto de baixo à direita, decide quando o jogo pergunta; segure Ctrl para ser perguntado em toda janela.",
     when: (ctx) => ctx.chainWindow,
   },
   {
     id: "esconder",
     text:
-      "Precisa olhar a mesa antes de decidir? \"👁 Ver a mesa\" (ou Esc) esconde esta janela — a decisão continua esperando, e o Cemitério e o Extra Deck ficam clicáveis.",
+      "Precisa olhar a mesa antes de decidir? A seta para baixo (ou Esc) esconde esta janela — a decisão continua esperando, e o Cemitério e o Extra Deck ficam clicáveis.",
     when: (ctx) => ctx.decisionOpen && !ctx.chainWindow,
   },
   {
     id: "selecao",
     text:
-      "Escolha as cartas que brilham em azul e confirme na barra. Quando é uma carta só, clicar de novo nela já confirma.",
+      "Escolha as cartas que brilham em amarelo e confirme na barra. Quando é uma carta só, clicar de novo nela já confirma.",
     when: (ctx) => ctx.inlineSelection,
   },
   {
     id: "batalha",
     text:
-      "Battle Phase: clique num monstro seu que brilha e escolha Atacar. Quando terminar, avance com M2 ou EP na trilha de fases.",
+      "Battle Phase: clique num monstro seu que brilha e escolha Atacar. Quando terminar, avance pelo botão redondo de fase, à direita da mesa.",
     when: (ctx) => ctx.battle,
   },
   {
     id: "jogar",
     text:
-      "As cartas que brilham em amarelo têm jogada: clique numa para ver o que dá para fazer (Invocar, Baixar, Ativar). Para avançar de fase, use BP, M2 ou EP na trilha.",
+      "As cartas que brilham têm jogada — azul para Invocar, Baixar e Atacar; amarelo para ativar efeito. Clique numa para ver os comandos. Para avançar de fase, clique no botão redondo à direita da mesa.",
     when: (ctx) => ctx.canPlay,
   },
   {

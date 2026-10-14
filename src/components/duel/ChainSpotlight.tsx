@@ -82,81 +82,67 @@ export function ChainSpotlight({
       data-chain-link={spotlight.link}
       // A mesa escurece um pouco atrás da carta, como no Master Duel: o olho
       // vai para o elo, e o campo continua visível em volta.
-      className="tf-spotlight-backdrop pointer-events-none absolute inset-0 z-40 flex items-center justify-center"
-      style={{ animationDuration: `${spotlight.duration}ms` }}
+      className={`md-spot ${spotlight.mine ? "md-spot-me" : "md-spot-foe"} ${negada ? "md-spot-negated" : ""} tf-spotlight-backdrop pointer-events-none absolute inset-0 z-40`}
+      style={{ animationDuration: `${spotlight.duration}ms`, ["--md-spot-ms" as string]: `${spotlight.duration}ms` }}
     >
       <div
-        className={`tf-spotlight flex flex-col items-center gap-2 ${onSkip ? "pointer-events-auto cursor-pointer" : ""}`}
-        style={{ animationDuration: `${spotlight.duration}ms` }}
+        className={`md-spot-stage ${onSkip ? "pointer-events-auto cursor-pointer" : ""}`}
         onClick={onSkip}
         title={onSkip ? "Clique para pular" : undefined}
       >
-        {/* Na ativação a cor diz de quem é o elo (dourado = seu, vermelho =
-            do oponente — a mesma do número do elo); na negação o rótulo é
-            sempre vermelho, porque o que importa ali é o "negado", e o
-            número do elo continua dizendo de quem era. */}
-        <div
-          className={`rounded-full px-3 py-1 text-[12px] font-extrabold uppercase tracking-[0.2em] shadow-lg shadow-black/60 ${
-            negada
-              ? "bg-red-700 text-white ring-2 ring-red-400"
-              : spotlight.mine
-                ? "md-chain-mine"
-                : "md-chain-foe"
-          }`}
-        >
+        {/* Na ativação a cor diz de quem é o elo (azul seu, vermelho do
+            oponente — a mesma do número do elo); na negação o rótulo é
+            vermelho, e o número do elo continua dizendo de quem era. */}
+        <div className={`md-spot-label ${negada ? "md-spot-label-negated" : ""}`}>
           {negada
             ? spotlight.what === "activation"
               ? "Ativação negada"
               : "Efeito negado"
-            : `${quem} ativou`}
+            : `${quem} ativou${origem ? ` ${origem}` : ""}`}
         </div>
 
-        <div className="relative">
+        <div className="md-spot-card-wrap">
+          {/* A corrente do MD: o elo novo pendurado no anterior. */}
+          {spotlight.link > 1 && <span aria-hidden className="md-spot-chain" />}
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={imagem}
-            alt={nome}
-            className={`h-[min(42vh,320px)] w-auto rounded-md shadow-2xl ${
-              spotlight.mine ? "tf-spotlight-glow-mine" : "tf-spotlight-glow-foe"
-            } ${negada ? "grayscale" : ""}`}
-          />
-          {/* O número do elo, no canto da carta — o mesmo que aparece na
-              pilha da corrente e no slot da carta. */}
-          <span
-            className={`absolute -left-3 -top-3 flex h-10 w-10 items-center justify-center rounded-full border-2 border-black/70 text-[18px] font-black shadow-lg ${
-              spotlight.mine ? "md-chain-mine" : "md-chain-foe"
-            }`}
-          >
+          <img src={imagem} alt={nome} className={`md-spot-card ${negada ? "grayscale" : ""}`} draggable={false} />
+          {/* O número do elo, enorme e vazado, como os do MD. */}
+          <span aria-hidden className="md-spot-number">
             {spotlight.link}
           </span>
           {negada && (
-            <span className="tf-negated-stamp absolute inset-x-[-12%] top-1/2 -translate-y-1/2 -rotate-12 border-4 border-red-500 bg-black/70 py-2 text-center text-[28px] font-black uppercase tracking-[0.15em] text-red-400">
-              Negado
-            </span>
+            <>
+              <span aria-hidden className="md-spot-forbid" />
+              <span className="tf-negated-stamp md-spot-stamp">NEGATED</span>
+            </>
           )}
         </div>
 
-        <div className="max-w-[360px] rounded-md bg-black/80 px-3 py-1.5 text-center shadow-lg shadow-black/60">
-          <p className="text-[15px] font-bold leading-tight text-[color:var(--tf-gold-bright)]">{nome}</p>
-          <p className="mt-0.5 text-[11px] font-semibold uppercase tracking-wider text-zinc-300">
-            Elo {spotlight.link}
-            {!negada && origem ? ` · ${origem}` : ""}
-          </p>
+        <p className="md-spot-name">
+          {nome}
+          <span className="md-spot-link">Elo {spotlight.link}</span>
+        </p>
+      </div>
+
+      {/* O texto do efeito no canto de cima à direita, como o MD mostra o que
+          a carta ativada faz. O texto inteiro não cabe nem dá tempo de ler
+          aqui: três linhas para reconhecer a carta, e a leitura da esquerda
+          fica com ela (ver `DuelBoard`, "a leitura segue a ativação"). */}
+      {(efeito || textoDaCarta) && (
+        <div className="md-spot-effect">
+          <p className="md-spot-effect-name">{nome}</p>
           {efeito && (
-            <p data-spotlight-effect className="mt-1 text-[12px] font-semibold leading-snug text-sky-300">
+            <p data-spotlight-effect className="md-spot-effect-what">
               {efeito}
             </p>
           )}
-          {/* O texto inteiro não cabe nem dá tempo de ler aqui: três linhas
-              para reconhecer a carta, e a leitura da esquerda fica com ela
-              (ver `DuelBoard`, "a leitura segue a ativação"). */}
           {textoDaCarta && (
-            <p data-spotlight-text className="mt-1 line-clamp-3 text-left text-[11px] leading-snug text-zinc-300">
+            <p data-spotlight-text className="md-spot-effect-text">
               {textoDaCarta}
             </p>
           )}
         </div>
-      </div>
+      )}
     </div>
   );
 }

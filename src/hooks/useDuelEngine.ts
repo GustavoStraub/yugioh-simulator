@@ -47,6 +47,8 @@ export function useDuelEngine(config: DuelSessionConfig | null) {
         session.setChainPreference(humanSeatRef.current, preference),
       /** Ritmo das pausas entre jogadas (1 = normal). */
       setPace: (scale: number) => session.setPace(scale),
+      /** Cortes de invocação (a arte em tela cheia) ligados ou não. */
+      setCutIns: (on: boolean) => session.setCutIns(on),
       /** Encerra a pausa em curso — o clique que pula a animação. */
       hurry: () => session.hurry(),
     }),

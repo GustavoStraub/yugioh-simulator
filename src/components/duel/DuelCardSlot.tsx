@@ -1,6 +1,6 @@
 "use client";
 
-import { useLayoutEffect, useRef, useState, type RefObject } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type RefObject } from "react";
 import { createPortal } from "react-dom";
 
 import { OcgLocation } from "@n1xx1/ocgcore-wasm";
@@ -8,6 +8,7 @@ import { OcgLocation } from "@n1xx1/ocgcore-wasm";
 import type { BoardCard } from "@/lib/duel/board-state";
 import type { CardMark } from "@/lib/duel/card-marks";
 import { useCardText } from "@/hooks/useCardText";
+import { playSfx } from "@/lib/audio/sfx";
 import type { CardAction } from "@/lib/duel/duel-actions";
 import type { CardRegistry } from "@/lib/domain/card-registry";
 
@@ -18,45 +19,65 @@ import type { CardRegistry } from "@/lib/domain/card-registry";
  *
  * E também têm um TETO pela largura (`--tf-card-max-h`, que o campo define
  * em unidades do próprio contêiner): só pela altura, numa janela estreita e
- * alta a fileira saía mais larga que a coluna do campo e entrava por baixo
- * dos trilhos — numa de 1024×640 o Deck e o Cemitério ficavam sob a trilha
- * de fases. Fora do campo a variável não existe e o teto é 100% (nenhum).
+ * alta a fileira saía mais larga que a coluna do campo. Fora do campo a
+ * variável não existe e o teto é 100% (nenhum).
  */
 export const CARD_SHAPE =
   "h-full w-auto aspect-[59/86] shrink-0 max-h-[var(--tf-card-max-h,100%)]";
 
-/** Classe de realce por intenção — ver `intent` em DuelCardSlotProps. */
-const INTENT_CLASS = {
+/**
+ * O realce da carta, nas cores do Master Duel.
+ *
+ * - `activate` — amarelo: a carta ativa um efeito agora (ou é o alvo de uma
+ *   escolha — o MD usa o mesmo amarelo para "escolha esta");
+ * - `action` — azul: uma jogada comum (Invocar, Baixar, Atacar, mudar de
+ *   posição);
+ * - `both` — as duas cores juntas, como o MD faz quando a carta pode atacar E
+ *   ativar;
+ * - `select` — alvo de uma seleção;
+ * - `place` — zona vazia escolhível (destino).
+ */
+export type SlotIntent = "activate" | "action" | "both" | "select" | "place";
+
+const INTENT_CLASS: Record<SlotIntent, string> = {
   activate: "tf-slot-activate",
+  action: "tf-slot-activate md-glow-action",
+  both: "tf-slot-activate md-glow-both",
   select: "tf-slot-select",
   place: "tf-slot-place",
-} as const;
+};
+
+/**
+ * Tipo de zona — decide o desenho da zona vazia no tapete do MD (anel do
+ * monstro, placa da magia, hexágono do campo) e se a carta fica "de pé".
+ */
+export type ZoneKind = "monster" | "spell" | "field" | "emz";
 
 interface DuelCardSlotProps {
   card: BoardCard | null;
   registry: CardRegistry | null;
-  /** Rótulo da zona vazia (ex.: "M1"). */
+  /** Rótulo da zona vazia (só a Zona de Pêndulo ganha um "P"). */
   placeholder?: string;
+  /** Desenho da zona vazia (ver `ZoneKind`); ausente = sem zona (mão). */
+  zoneKind?: ZoneKind;
   /** Gira a carta 90° — monstro em defesa. */
   rotated?: boolean;
-  /** Vira a carta 180° — lado do oponente, como numa mesa física. */
-  upsideDown?: boolean;
+  /**
+   * A carta está do lado do oponente. Ela continua DE PÉ (o Master Duel não
+   * vira as cartas dele de cabeça para baixo), mas o ATK/DEF vai para cima da
+   * carta — o lado de lá — e as setas Link giram meia volta: elas apontam
+   * para casas da mesa, e a "de cima" dele aponta para o seu lado.
+   */
+  foeSide?: boolean;
   /** Cartas na mão sobem um pouco no hover. */
   inHand?: boolean;
   /** A zona/carta participa do prompt atual. */
   highlighted?: boolean;
-  /**
-   * Que tipo de destaque a carta merece.
-   *
-   * No Tag Force o realce diz o que vai acontecer se você clicar, e não só
-   * "dá para clicar": o dourado forte é uma jogada sua (ativar, invocar), o
-   * ciano é "escolha um alvo". Uma cor única para tudo obriga o jogador a
-   * abrir o menu de cada carta para descobrir o que ela oferece.
-   */
-  intent?: "activate" | "select" | "place";
+  /** Que tipo de destaque a carta merece — ver `SlotIntent`. */
+  intent?: SlotIntent;
   /** Marcada numa seleção múltipla. */
   selected?: boolean;
-  /** Ações abertas para esta carta — renderiza o menu de contexto. */
+  /** Ações abertas para esta carta — renderiza os comandos do MD. */
   menu?: CardAction[] | null;
   /**
    * Chave da zona (`cardKey`). Vira um `data-zone` no DOM para que as
@@ -70,7 +91,7 @@ interface DuelCardSlotProps {
   /**
    * Mostra Nível/Rank/Link de um monstro em campo.
    *
-   * No Goat o nível quase não pesa depois que o monstro desceu, e a selo
+   * No Goat o nível quase não pesa depois que o monstro desceu, e o selo
    * competiria com o ATK/DEF; no TCG ele decide Sincro e Xyz, e o Rank e o
    * Link são o que diferencia o monstro à primeira vista.
    */
@@ -127,19 +148,24 @@ const MARK_TONE: Record<CardMark["tone"], string> = {
 };
 
 /**
- * Uma zona do campo ou carta na mão. Mostra a arte quando a carta é conhecida,
- * o verso quando está virada para baixo, e a moldura vazia quando não há carta.
+ * Uma zona do campo ou carta na mão, no desenho do Master Duel.
  *
- * Quando o prompt atual permite alguma jogada com esta carta, ela ganha
- * destaque dourado e um clique abre o menu com as opções legais — é assim que
- * se joga, em vez de escolher numa lista solta de botões.
+ * No campo são duas camadas: a ZONA, deitada no tapete (anel, placa ou
+ * hexágono que brilha), e a CARTA, que fica levemente de pé sobre ela —
+ * menos achatada pela câmera, como as cartas do MD. O ATK/DEF grande mora
+ * fora da carta: embaixo dela do seu lado, em cima do lado do oponente.
+ *
+ * Quando o prompt atual permite alguma jogada com esta carta, ela ganha o
+ * contorno do MD (azul jogada comum, amarelo efeito) e um clique abre os
+ * comandos redondos em cima dela.
  */
 export function DuelCardSlot({
   card,
   registry,
   placeholder,
+  zoneKind,
   rotated = false,
-  upsideDown = false,
+  foeSide = false,
   inHand = false,
   highlighted = false,
   intent = "select",
@@ -160,7 +186,7 @@ export function DuelCardSlot({
   onLongPress,
 }: DuelCardSlotProps) {
   const pressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  /** A caixa da carta na tela — de onde o menu de jogadas se ancora. */
+  /** A caixa da carta na tela — de onde os comandos se ancoram. */
   const slotRef = useRef<HTMLDivElement | null>(null);
   /** O toque longo já abriu a leitura — o clique que vem junto não age. */
   const longPressed = useRef(false);
@@ -174,21 +200,10 @@ export function DuelCardSlot({
   const interactive = Boolean(onClick);
 
   // Cartas viradas para baixo aparecem como verso, mesmo sendo nossas — como
-  // no Tag Force. O conteúdo continua acessível no painel de detalhes.
+  // no Master Duel. O conteúdo continua acessível no painel de detalhes.
   const showBack = !card?.code || (card.faceDown && !inHand);
 
-  // ATK/DEF vêm do engine quando a carta está em campo (já com equipamentos e
-  // buffs aplicados) e do catálogo quando está na mão.
-  const atk = card?.attack ?? definition?.atk ?? null;
-  const def = card?.defenseValue ?? definition?.def ?? null;
-  const baseAtk = card?.baseAttack ?? definition?.atk ?? null;
-  const baseDef = card?.baseDefense ?? definition?.def ?? null;
 
-  const showStats = !showBack && atk !== null;
-
-  // Estrelas de nível na mão; em campo, só quando a mesa pede (`showLevel`).
-  const level = inHand && !showBack ? (definition?.level ?? 0) : 0;
-  const isXyzInHand = definition?.frameType?.includes("xyz") ?? false;
   const isTuner =
     definition?.type?.includes("Tuner") ||
     definition?.humanReadableCardType?.includes("Tuner") ||
@@ -203,8 +218,13 @@ export function DuelCardSlot({
       : null;
   const materials = !showBack ? (card?.overlays.length ?? 0) : 0;
 
-  // O giro de defesa (90°) e o do lado do oponente (180°) se somam.
-  const spin = (upsideDown ? 180 : 0) + (rotated ? 90 : 0);
+  // O MONSTRO fica "de pé" no campo (menos achatado pela câmera, como no
+  // MD); Magias e Armadilhas ficam deitadas na mesa — nas capturas do jogo a
+  // fileira de trás aparece mais achatada que a de monstros, mesmo estando
+  // mais perto da câmera. Em defesa o monstro também deita.
+  const deitada = rotated;
+  const dePe =
+    Boolean(card) && !inHand && !deitada && (zoneKind === "monster" || zoneKind === "emz");
 
   // Anima quando a zona passa de vazia para ocupada — é a carta "chegando".
   // Comparar durante o render evita um frame com a carta já parada no lugar.
@@ -215,7 +235,7 @@ export function DuelCardSlot({
     setWasEmpty(isEmpty);
     if (!isEmpty && !inHand) {
       setEntering(true);
-      setTimeout(() => setEntering(false), 300);
+      setTimeout(() => setEntering(false), 520);
     }
   }
 
@@ -223,33 +243,41 @@ export function DuelCardSlot({
     <div
       ref={slotRef}
       data-zone={zoneKey}
-      className={`relative ${CARD_SHAPE} ${
-        // Na mão a carta cresce e sobe ao passar o mouse — a carta "levantada"
-        // do Tag Force. Miniaturas de 100px não deixam ler a arte; crescer por
-        // cima do campo (sem empurrar as vizinhas) deixa.
-        // Com o menu aberto ela fica só levantada: crescida, o menu (filho
-        // dela) cresceria junto.
-        inHand
-          ? menu && menu.length > 0
-            ? "z-20 -translate-y-2"
-            : "origin-bottom transition-transform duration-150 hover:z-20 hover:-translate-y-2 hover:scale-[1.45]"
-          : ""
-      }`}
+      data-zone-kind={zoneKind}
+      className={`md-slot relative ${CARD_SHAPE} ${zoneKind ? `md-slot-${zoneKind}` : ""} ${
+        inHand ? "md-hand-card" : ""
+      } ${inHand && menu && menu.length > 0 ? "md-hand-card-up" : ""} ${foeSide ? "md-slot-foe" : ""}`}
     >
+      {/* A zona gravada no tapete — fica embaixo da carta, deitada. */}
+      {zoneKind && (
+        <span
+          aria-hidden
+          className={`md-zone md-zone-${zoneKind} ${card ? "md-zone-busy" : ""} ${
+            highlighted && !card ? "md-zone-lit" : ""
+          }`}
+        />
+      )}
+      {/* A carta chegando na zona: o anel de luz que se abre no tapete e a
+          coluna de luz subindo — a invocação do MD. */}
+      {entering && zoneKind && (
+        <span aria-hidden className={`md-arrive md-arrive-${zoneKind === "monster" || zoneKind === "emz" ? "monster" : "spell"}`}>
+          <span className="md-arrive-ring" />
+          <span className="md-arrive-pillar" />
+        </span>
+      )}
+
       <div
         title={linkedBy.length ? `Apontada por: ${linkedBy.join(", ")}` : undefined}
-        className={`tf-slot tf-touch-card h-full w-full rounded-[4px] ${entering ? "tf-anim-card-in" : ""} ${
-          linkedBy.length ? "tf-slot-linked" : ""
-        } ${disabledZone ? "tf-zone-disabled" : ""} ${
+        className={`tf-slot tf-touch-card md-card-plane h-full w-full ${card ? "md-card-on" : "md-card-empty"} ${
+          dePe ? "md-standing" : ""
+        } ${deitada && card ? "md-card-def" : ""} ${entering ? "md-anim-land" : ""} ${linkedBy.length ? "tf-slot-linked" : ""} ${
+          disabledZone ? "tf-zone-disabled" : ""
+        } ${
           // Uma classe só: a de intenção. Aplicar `tf-slot-active` junto fazia
           // duas regras disputarem a mesma `box-shadow`, e qual vencia dependia
           // da ordem no arquivo CSS — frágil e difícil de enxergar.
           highlighted ? `tf-slot-active ${INTENT_CLASS[intent]}` : ""
-        } ${
-          selected ? "tf-slot-picked" : ""
-        } ${
-          interactive ? "cursor-pointer hover:brightness-125" : ""
-        }`}
+        } ${selected ? "tf-slot-picked" : ""} ${interactive ? "cursor-pointer md-interactive" : ""}`}
         onMouseEnter={() => onHover?.(card)}
         onMouseLeave={() => onHover?.(null)}
         onPointerDown={(event) => {
@@ -280,7 +308,7 @@ export function DuelCardSlot({
         onClick={onClick}
         role={interactive ? "button" : undefined}
         tabIndex={interactive ? 0 : undefined}
-        aria-label={definition ? texto.name(definition) : placeholder}
+        aria-label={definition ? texto.name(definition) : placeholder || undefined}
         onKeyDown={
           interactive
             ? (event) => {
@@ -292,73 +320,61 @@ export function DuelCardSlot({
             : undefined
         }
       >
-        <div
-          className="h-full w-full overflow-hidden rounded-[3px] transition-transform duration-200"
-          style={
-            // O giro vale para a CARTA — é o que reproduz a mesa física, com o
-            // lado do oponente de cabeça para baixo e o monstro em defesa
-            // deitado. O rótulo da zona vazia é interface, não objeto de jogo:
-            // girado ele virava um "Mon1" de ponta-cabeça, que parece defeito
-            // de renderização e não dá para ler.
-            spin && card
-              ? {
-                  transform: `rotate(${spin}deg)${rotated ? " scale(0.72)" : ""}`,
-                }
-              : undefined
-          }
-        >
-          {card ? (
-            showBack ? (
-              <div className="tf-card-back h-full w-full rounded-[3px]" />
+        {card ? (
+          <div
+            className="md-card-face h-full w-full overflow-hidden"
+            style={
+              // O giro de defesa vale para a CARTA (deitada de lado); o rótulo
+              // e as marcas ficam fora dele, sempre legíveis.
+              rotated ? { transform: "rotate(90deg) scale(0.72)" } : undefined
+            }
+          >
+            {showBack ? (
+              <div className="tf-card-back h-full w-full" />
             ) : (
-              <>
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={image}
-                  alt={definition ? texto.name(definition) : "Carta"}
-                  loading="lazy"
-                  // Carta negada fica sem cor — como no EDOPro: o olho acha
-                  // de relance qual monstro está sem efeito.
-                  className={`h-full w-full object-cover ${card.negated ? "grayscale" : ""}`}
-                />
-                {/* Setas DENTRO do giro: elas são da carta, e um Link do
-                    oponente (de cabeça para baixo) aponta para o seu lado. */}
-                {card.link && <LinkArrows markers={card.link.markers} />}
-              </>
-            )
-          ) : (
-            <div className="flex h-full w-full items-center justify-center">
-              <span className="text-[10px] font-medium tracking-wider text-[color:var(--tf-gold-dim)]/60">
-                {placeholder}
-              </span>
-            </div>
-          )}
-        </div>
+              /* eslint-disable-next-line @next/next/no-img-element */
+              <img
+                src={image}
+                alt={definition ? texto.name(definition) : "Carta"}
+                loading="lazy"
+                draggable={false}
+                // Carta negada fica sem cor — o olho acha de relance qual
+                // monstro está sem efeito.
+                className={`h-full w-full object-cover ${card.negated ? "grayscale" : ""}`}
+              />
+            )}
+          </div>
+        ) : (
+          placeholder && (
+            <span className="md-zone-label flex h-full w-full items-center justify-center">{placeholder}</span>
+          )
+        )}
 
-        {/* Nível em estrelas, no topo da carta — só na mão. Acima de 6 vira
-            "★ ×N" porque 8 estrelas não cabem numa miniatura. Xyz tem Rank, de
-            estrela vazada. */}
-        {level > 0 && (
-          <span className="pointer-events-none absolute inset-x-0 top-0 flex justify-center">
-            <span className="rounded-b bg-black/85 px-1.5 text-[10px] font-bold leading-tight text-amber-300">
-              {isXyzInHand
-                ? `☆${level}`
-                : level <= 6
-                  ? "★".repeat(level)
-                  : `★×${level}`}
-            </span>
+        {/* Setas Link, na orientação da MESA: do lado do oponente giram meia
+            volta (a carta dele está de pé, mas a seta "de cima" dele aponta
+            para o seu lado). */}
+        {card?.link && !showBack && (
+          <span
+            className="pointer-events-none absolute inset-0"
+            style={foeSide ? { transform: "rotate(180deg)" } : undefined}
+          >
+            <LinkArrows markers={card.link.markers} />
           </span>
         )}
 
-        {/* Nível, Rank ou Link do monstro em campo (TCG). */}
+        {/* Proibido: a carta com o efeito negado ganha o símbolo do MD. */}
+        {card?.negated && !showBack && <span aria-hidden className="md-negated-icon" />}
+
+        {/* Nível/Rank/Link no pé da carta, como o MD — estrela amarela,
+            estrela escura do Rank, o "LINK-N" azul. */}
         {fieldBadge && (
-          <span className="pointer-events-none absolute inset-x-0 top-0 flex justify-center">
-            <span
-              className={`whitespace-nowrap rounded-b px-1 font-mono text-[10px] font-bold leading-tight ${fieldBadge.className}`}
-              title={fieldBadge.title}
-            >
-              {fieldBadge.text}
-            </span>
+          <span
+            className={`md-level-badge ${fieldBadge.className}`}
+            title={fieldBadge.title}
+            data-level-badge={fieldBadge.kind}
+          >
+            <span aria-hidden className="md-level-icon" />
+            {fieldBadge.text}
           </span>
         )}
 
@@ -378,15 +394,15 @@ export function DuelCardSlot({
         )}
 
         {/* Número do elo da corrente — fora do giro, como as marcas: tem que
-            se ler na carta do oponente (de cabeça para baixo) e na deitada. */}
+            se ler na carta deitada. */}
         {chainBadge && (
           <span
             data-chain-badge={chainBadge.link}
             data-chain-badge-state={chainBadge.state}
             title={`Elo ${chainBadge.link} da corrente`}
-            className={`pointer-events-none absolute -left-1.5 -top-1.5 z-20 flex h-6 w-6 items-center justify-center rounded-full border-2 border-black/70 text-[12px] font-black shadow-md shadow-black/60 ${
+            className={`md-chain-badge ${
               chainBadge.state === "negated" || chainBadge.state === "disabled"
-                ? "bg-zinc-700 text-red-300 line-through"
+                ? "md-chain-badge-off"
                 : chainBadge.mine
                   ? "md-chain-mine"
                   : "md-chain-foe"
@@ -432,29 +448,11 @@ export function DuelCardSlot({
               onOpenMaterials?.();
             }}
             title={`${materials} material(is) Xyz — clique para ver`}
-            className="absolute left-0.5 top-1/2 z-10 -translate-y-1/2 rounded bg-black/85 px-1 font-mono text-[10px] font-bold leading-tight text-violet-200 ring-1 ring-violet-400/70 hover:bg-violet-900"
+            className="md-materials"
           >
-            ◈{materials}
+            <span aria-hidden className="md-materials-icon" />
+            {materials}
           </button>
-        )}
-
-        {/* Placa de ATK/DEF: fica sempre legível na horizontal, mesmo com a
-            carta girada, para o jogador não precisar virar a cabeça. */}
-        {showStats && (
-          <span className="pointer-events-none absolute inset-x-0 bottom-0 flex justify-center">
-            <span className="rounded-t bg-black/85 px-1.5 font-mono text-[10px] font-bold leading-tight">
-              <StatValue value={atk} base={baseAtk} />
-              <span className="text-[color:var(--tf-gold-dim)]">/</span>
-              {/* Link não tem DEF: no lugar vai o rating, como na carta. */}
-              {card?.link || definition?.linkval ? (
-                <span className="text-sky-300">
-                  L{card?.link?.rating ?? definition?.linkval}
-                </span>
-              ) : (
-                <StatValue value={def} base={baseDef} />
-              )}
-            </span>
-          </span>
         )}
       </div>
 
@@ -477,38 +475,35 @@ export function DuelCardSlot({
 function levelBadge(
   card: BoardCard,
   /**
-   * Regulador: o selo fica amarelo, como no Tag Force 4 — é o que decide a
-   * Invocação-Sincro, e achar o Regulador da mesa não pode exigir abrir carta.
+   * Regulador: o selo fica com o "R" — é o que decide a Invocação-Sincro, e
+   * achar o Regulador da mesa não pode exigir abrir carta.
    */
   isTuner = false,
-): { text: string; title: string; className: string } | null {
+): { text: string; title: string; className: string; kind: "link" | "rank" | "level" } | null {
   if (card.location !== OcgLocation.MZONE) return null;
   if (card.link) {
     return {
-      text: `LINK-${card.link.rating}`,
+      text: `${card.link.rating}`,
       title: `Link ${card.link.rating}`,
-      className: "bg-sky-950/95 text-sky-200",
+      className: "md-level-link",
+      kind: "link",
     };
   }
   if (card.rank) {
     return {
-      text: `☆${card.rank}`,
+      text: `${card.rank}`,
       title: `Rank ${card.rank}`,
-      className: "bg-zinc-950/95 text-zinc-100 ring-1 ring-zinc-400/40",
+      className: "md-level-rank",
+      kind: "rank",
     };
   }
   if (card.level) {
-    return isTuner
-      ? {
-          text: `★${card.level} R`,
-          title: `Nível ${card.level} — Regulador`,
-          className: "bg-amber-300 text-black",
-        }
-      : {
-          text: `★${card.level}`,
-          title: `Nível ${card.level}`,
-          className: "bg-black/85 text-amber-300",
-        };
+    return {
+      text: isTuner ? `${card.level}R` : `${card.level}`,
+      title: isTuner ? `Nível ${card.level} — Regulador` : `Nível ${card.level}`,
+      className: isTuner ? "md-level-star md-level-tuner" : "md-level-star",
+      kind: "level",
+    };
   }
   return null;
 }
@@ -554,7 +549,8 @@ function LinkArrows({ markers }: { markers: number }) {
 
 /**
  * Um valor de ATK ou DEF, colorido conforme o desvio do valor impresso:
- * azul quando um efeito aumentou, vermelho quando reduziu.
+ * azul-claro quando um efeito aumentou, vermelho quando reduziu — as cores
+ * do Master Duel.
  */
 export function StatValue({
   value,
@@ -570,18 +566,9 @@ export function StatValue({
 
   return (
     <span
-      className={
-        boosted
-          ? "text-sky-400"
-          : weakened
-            ? "text-red-400"
-            : "text-[color:var(--tf-gold-bright)]"
-      }
-      title={
-        base !== null && base !== value
-          ? `Original: ${base}`
-          : undefined
-      }
+      data-stat={boosted ? "up" : weakened ? "down" : undefined}
+      className={boosted ? "md-stat-up" : weakened ? "md-stat-down" : undefined}
+      title={base !== null && base !== value ? `Original: ${base}` : undefined}
     >
       {value}
     </span>
@@ -589,29 +576,29 @@ export function StatValue({
 }
 
 /**
- * Ícone de cada comando, como os botões ao lado da carta no Master Duel: o
- * olho acha "Invocar" e "Baixar" pela forma antes de ler. Casa pelo rótulo —
+ * O tipo de cada comando, para a cor e o ícone do botão redondo do MD:
+ * amarelo para ativar efeito, azul para as jogadas comuns. Casa pelo rótulo —
  * o mesmo verbo que os testes e o `duel-actions.ts` usam.
  */
-function commandIcon(label: string): string {
-  if (/^atacar/i.test(label)) return "⚔";
-  if (/^invoca[çc][aã]o-especial/i.test(label)) return "✦";
-  if (/^invocar/i.test(label)) return "▲";
-  if (/^baixar/i.test(label)) return "▼";
-  if (/^mudar posi/i.test(label)) return "⟲";
-  if (/^ativar/i.test(label)) return "⚡";
-  return "●";
+export function commandKind(label: string): "attack" | "summon" | "special" | "set" | "position" | "activate" | "other" {
+  if (/^atacar/i.test(label)) return "attack";
+  if (/^invoca[çc][aã]o-especial/i.test(label)) return "special";
+  if (/^invocar/i.test(label)) return "summon";
+  if (/^baixar/i.test(label)) return "set";
+  if (/^mudar posi/i.test(label)) return "position";
+  if (/^ativar/i.test(label)) return "activate";
+  return "other";
 }
 
 /**
- * Menu flutuante com as jogadas legais da carta clicada — os comandos do
- * Master Duel, em pé ao lado da carta.
+ * Os comandos da carta clicada — os botões redondos do Master Duel, em
+ * fileira em cima da carta: o ícone num disco (amarelo para ativar efeito,
+ * azul para Invocar, Baixar, Atacar…) e o nome embaixo.
  *
- * Vai para o `body` por portal, ancorado na caixa da carta NA TELA. Morando
- * dentro da carta, ele herdava a inclinação 3D da mesa (texto deitado, em
- * trapézio) e o `fixed` do "clique fora fecha" deixava de cobrir a tela: um
- * ancestral com `transform` vira o contêiner de todo `position: fixed` abaixo
- * dele, e o pano invisível encolhia para o tamanho do campo.
+ * Vão para o `body` por portal, ancorados na caixa da carta NA TELA. Morando
+ * dentro da carta, eles herdavam a inclinação 3D da mesa e o `fixed` do
+ * "clique fora fecha" deixava de cobrir a tela: um ancestral com `transform`
+ * vira o contêiner de todo `position: fixed` abaixo dele.
  */
 function CardActionMenu({
   actions,
@@ -625,7 +612,12 @@ function CardActionMenu({
   onClose: () => void;
 }) {
   const menuRef = useRef<HTMLDivElement | null>(null);
-  const [pos, setPos] = useState<{ left: number; top: number } | null>(null);
+  const [pos, setPos] = useState<{ left: number; top: number; below: boolean } | null>(null);
+
+  // O "pop" dos comandos aparecendo, uma vez por abertura.
+  useEffect(() => {
+    playSfx("open");
+  }, []);
 
   // Mede depois de montar (precisa da largura do próprio menu para não sair
   // pela borda) e de novo quando a janela muda. A carta não anda com o menu
@@ -635,7 +627,9 @@ function CardActionMenu({
       const anchor = anchorRef.current;
       const menu = menuRef.current;
       if (!anchor || !menu) return;
-      const r = anchor.getBoundingClientRect();
+      // A carta de pé é o que se vê; a zona deitada é menor na tela.
+      const plano = anchor.querySelector<HTMLElement>(".md-card-plane") ?? anchor;
+      const r = plano.getBoundingClientRect();
       const w = menu.offsetWidth;
       const h = menu.offsetHeight;
       const margem = 8;
@@ -647,7 +641,7 @@ function CardActionMenu({
       // no campo (pedido do Gustavo: ao responder na corrente, o "Ativar"
       // abrindo para baixo caía sobre a fileira de trás e a mão). Só desce
       // quando não cabe em cima (carta no alto da tela).
-      let top = r.top - h - 6;
+      let top = r.top - h + Math.min(18, r.height * 0.18);
       // Barras de decisão sobre a mesa ("Não responder", seleção) marcam-se
       // com `data-menu-avoid`: o menu sobe acima delas em vez de tapar o
       // botão que é a outra metade da mesma decisão.
@@ -657,8 +651,12 @@ function CardActionMenu({
           left < b.right && left + w > b.left && top < b.bottom && top + h > b.top;
         if (cruza) top = b.top - h - 6;
       }
-      if (top < margem) top = Math.min(r.bottom + 6, window.innerHeight - h - margem);
-      setPos({ left, top });
+      let below = false;
+      if (top < margem) {
+        top = Math.min(r.bottom + 6, window.innerHeight - h - margem);
+        below = true;
+      }
+      setPos({ left, top, below });
     };
     medir();
     window.addEventListener("resize", medir);
@@ -680,31 +678,33 @@ function CardActionMenu({
           visibility: pos ? "visible" : "hidden",
         }}
       >
-        <div className="tf-anim-menu-in md-command-menu flex w-max min-w-[176px] max-w-[300px] flex-col gap-1">
-          {actions.map((action, index) => (
-            <button
-              key={index}
-              type="button"
-              data-menu-item
-              onClick={() => onChoose(action)}
-              className="tf-menu-item md-command group flex w-full items-start gap-2.5 px-3 py-2 text-left"
-            >
-              {/* O ícone vem por `::before` (ver `.md-command-icon`): fora do
-                  `innerText`, o texto do botão continua começando pelo verbo —
-                  é por ele que os testes escolhem a jogada ("Invocar"…). */}
-              <span aria-hidden className="md-command-icon" data-icon={commandIcon(action.label)} />
-              <span className="min-w-0 flex-1">
-                <span className="block text-[13px] font-bold leading-tight">{action.label}</span>
+        <div
+          className={`tf-anim-menu-in md-commands ${pos?.below ? "md-commands-below" : ""} flex w-max max-w-[min(92vw,560px)] flex-wrap items-start justify-center`}
+        >
+          {actions.map((action, index) => {
+            const kind = commandKind(action.label);
+            return (
+              <button
+                key={index}
+                type="button"
+                data-menu-item
+                data-command={kind}
+                onClick={() => onChoose(action)}
+                className={`tf-menu-item md-command md-command-${kind === "activate" ? "effect" : "normal"}`}
+              >
+                {/* O ícone vem por CSS (`data-command`): fora do `innerText`,
+                    o texto do botão continua começando pelo verbo — é por ele
+                    que os testes escolhem a jogada ("Invocar"…). */}
+                <span aria-hidden className="md-command-disc">
+                  <span className="md-command-glyph" />
+                </span>
+                <span className="md-command-label">{action.label}</span>
                 {/* Qual efeito — duas jogadas "Ativar" na mesma carta deixam de
                     ser iguais (ver `CardAction.detail`). */}
-                {action.detail && (
-                  <span className="md-command-detail mt-0.5 block text-[11px] font-medium leading-snug">
-                    {action.detail}
-                  </span>
-                )}
-              </span>
-            </button>
-          ))}
+                {action.detail && <span className="md-command-detail">{action.detail}</span>}
+              </button>
+            );
+          })}
         </div>
       </div>
     </>,
@@ -712,29 +712,37 @@ function CardActionMenu({
   );
 }
 
+/** Que pilha é — decide o desenho (deck de pé, poço redondo do Cemitério…). */
+export type PileKind = "deck" | "extra" | "grave" | "banished";
+
 /**
- * Pilha (deck, cemitério, banidas, extra) com contador — cantos da mesa.
+ * Pilha (deck, cemitério, banidas, extra) com contador.
+ *
+ * No Master Duel o Deck e o Extra Deck são a pilha de versos de pé nos cantos
+ * da mesa, e o Cemitério e as banidas são poços redondos ao lado da fileira de
+ * monstros — com a arte da carta do topo dentro do círculo, aqui.
+ *
  * Recebe `onOpen` quando o conteúdo pode ser consultado; nesse caso vira botão.
  */
 export function DuelPile({
   label,
+  kind = "deck",
   count,
   onOpen,
   openTitle,
   topCard,
   registry,
-  upsideDown = false,
   dataPile,
   badge,
   actionable = false,
   warnLow = false,
 }: {
   label: string;
+  kind?: PileKind;
   count: number;
   /**
    * Pilha que acaba o duelo quando zera (o Deck): o contador fica vermelho
-   * com 5 ou menos — é quando o número vira informação (o Master Duel nem o
-   * mostra antes de 10).
+   * com 5 ou menos — é quando o número vira informação.
    */
   warnLow?: boolean;
   /**
@@ -755,20 +763,23 @@ export function DuelPile({
   /** Carta do topo, quando a pilha é aberta (cemitério e banidas). */
   topCard?: BoardCard | null;
   registry?: CardRegistry | null;
-  upsideDown?: boolean;
 }) {
   const texto = useCardText();
   const openable = Boolean(onOpen) && (count > 0 || actionable);
+  const poco = kind === "grave" || kind === "banished";
 
-  // O cemitério fica com as cartas para cima numa mesa real, então mostramos
-  // a do topo em vez de um verso genérico.
+  // O cemitério fica com as cartas para cima numa mesa real: o poço mostra a
+  // arte da carta do topo.
   const topDefinition =
     topCard?.code != null ? registry?.get(topCard.code) : undefined;
-  const topImage = topDefinition?.images[0]?.image_url_small;
+  const topImage = poco
+    ? (topDefinition?.images[0]?.image_url_cropped ?? topDefinition?.images[0]?.image_url_small)
+    : undefined;
 
   return (
     <div
       data-pile={dataPile}
+      data-pile-kind={kind}
       data-actionable={actionable || undefined}
       role={openable ? "button" : undefined}
       tabIndex={openable ? 0 : undefined}
@@ -777,7 +788,7 @@ export function DuelPile({
           ? `${label}: há jogadas aqui agora`
           : openable
             ? (openTitle ?? `Ver ${label} (${count})`)
-            : label
+            : `${label} (${count})`
       }
       onClick={openable ? onOpen : undefined}
       onKeyDown={
@@ -790,44 +801,39 @@ export function DuelPile({
             }
           : undefined
       }
-      className={`relative overflow-hidden rounded-[4px] ${CARD_SHAPE} ${
-        topImage ? "tf-slot" : count > 0 ? "tf-card-back" : "tf-slot"
-      } ${openable ? "cursor-pointer hover:brightness-125 hover:ring-1 hover:ring-[color:var(--tf-gold)]" : ""} ${
-        actionable ? "tf-slot-active tf-slot-activate" : ""
-      }`}
+      className={`md-pile md-pile-${kind} relative ${poco ? "" : CARD_SHAPE} ${count > 0 ? "md-pile-full" : "md-pile-empty"} ${
+        openable ? "cursor-pointer md-interactive" : ""
+      } ${actionable ? "tf-slot-active tf-slot-activate" : ""}`}
     >
-      {topImage ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          src={topImage}
-          alt={topDefinition ? texto.name(topDefinition) : label}
-          loading="lazy"
-          className="h-full w-full object-cover"
-          style={upsideDown ? { transform: "rotate(180deg)" } : undefined}
-        />
-      ) : (
-        <span className="absolute inset-x-0 top-1/2 -translate-y-1/2 text-center text-[9px] uppercase leading-tight tracking-wider text-[color:var(--tf-gold-dim)]">
-          {label}
+      {poco ? (
+        <span className="md-well">
+          {topImage ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={topImage}
+              alt={topDefinition ? texto.name(topDefinition) : label}
+              loading="lazy"
+              draggable={false}
+              className="md-well-art"
+            />
+          ) : (
+            <span aria-hidden className="md-well-core" />
+          )}
         </span>
+      ) : (
+        <span className={`md-pile-stack ${count > 0 ? "tf-card-back" : "md-pile-hole"}`} />
       )}
       {count > 0 && (
         <span
           data-pile-count={count}
           title={warnLow && count <= 5 ? `Só ${count} carta(s) no Deck` : undefined}
-          className={`absolute bottom-0.5 right-0.5 rounded px-1.5 text-[11px] font-bold ${
-            warnLow && count <= 5
-              ? "bg-red-600 text-white ring-1 ring-red-300"
-              : "bg-black/85 text-[color:var(--tf-gold-bright)]"
-          }`}
+          className={`md-pile-count ${warnLow && count <= 5 ? "md-pile-count-low" : ""}`}
         >
           {count}
         </span>
       )}
       {badge && (
-        <span
-          title={badge.title}
-          className="absolute left-0.5 top-0.5 rounded bg-emerald-900/90 px-1 text-[10px] font-bold text-emerald-200"
-        >
+        <span title={badge.title} className="md-pile-badge">
           {badge.text}
         </span>
       )}

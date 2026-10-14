@@ -25,6 +25,19 @@ export const ATTACK_FLIGHT_MS =
 /** Carta chegando na zona (`tf-anim-card-in` no globals.css). */
 export const CARD_IN_MS = 260;
 
+/**
+ * Virada de turno: a faixa "TURN CHANGE" é a maior do duelo — e é quando o
+ * jogador troca de "assisto" para "jogo" (ou o contrário).
+ */
+export const TURN_BEAT = 760;
+
+/**
+ * O corte de invocação do Master Duel: a arte do monstro em tela cheia, com o
+ * nome e o ATK/DEF (`SummonCutIn`). A sessão espera ele inteiro — o clique
+ * pula, como qualquer pausa (`hurry`).
+ */
+export const CUT_IN_MS = 1700;
+
 /** Tremor da mesa e clarão de dano (`tf-shake` / `tf-hit-flash`). */
 export const HIT_MS = 420;
 
@@ -62,6 +75,7 @@ const BEAT: Partial<Record<OcgMessageType, number>> = {
   // Negação é o desfecho da corrente: o carimbo "NEGADO" fica à vista.
   [OcgMessageType.CHAIN_NEGATED]: 900,
   [OcgMessageType.CHAIN_DISABLED]: 900,
+  [OcgMessageType.NEW_TURN]: TURN_BEAT,
   [OcgMessageType.SUMMONING]: 420,
   [OcgMessageType.SPSUMMONING]: 420,
   [OcgMessageType.FLIPSUMMONING]: 420,
@@ -90,8 +104,8 @@ const BEAT: Partial<Record<OcgMessageType, number>> = {
  * Deck é só um deslize.
  */
 export const LEAVE_MS = {
-  battle: 520,
-  destroy: 520,
+  battle: 640,
+  destroy: 640,
   tribute: 360,
   material: 300,
   grave: 360,
@@ -105,8 +119,14 @@ export function leaveBeat(why: keyof typeof LEAVE_MS, ownTurn: boolean): number 
   return Math.round(LEAVE_MS[why] * (ownTurn ? OWN_TURN_SCALE : 1));
 }
 
-/** Troca de fase — mais curto que uma jogada, mas não instantâneo. */
-const PHASE_BEAT = 200;
+/**
+ * Troca de fase — o tempo de a faixa do Master Duel ("DRAW PHASE", "BATTLE
+ * PHASE") atravessar a tela antes de o campo seguir. Era 200 ms, quando a fase
+ * só acendia um botão da trilha; com a faixa, menos que isso a próxima a
+ * atropelava antes de ser lida.
+ */
+const PHASE_BEAT = 340;
+
 
 /**
  * Fração do tempo aplicada às jogadas do **próprio** jogador.

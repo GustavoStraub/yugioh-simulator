@@ -7,49 +7,67 @@
 > exemplo dele: cliquei "Invocar", o jogo pede a zona — ali devia dar para
 > desistir).
 >
-> Este documento é a investigação, o que a primeira entrega já mudou, o que
-> ficou de propósito diferente do MD e as próximas fases. O plano anterior de
-> UI/UX (`docs/ui-ux-plano.md`) copiou o **comportamento** do MD e do Tag
-> Force sobre a arte de mesa do Tag Force; este troca a **aparência** inteira
-> e volta ao comportamento onde o MD faz diferente.
+> Segundo pedido, no mesmo dia: "uma geral no duelo em questão de UI/UX —
+> praticamente uma refatoração visual completa; eu queria que ficasse
+> **idêntico** ao Yu-Gi-Oh! Master Duel; estude o jogo em questão visuais",
+> "o que você conseguir trazer de efeitos especiais também é muito bem-vindo",
+> "qualquer dúvida, não adivinhe, me pergunte" — e tudo num branch separado,
+> com PR no fim (§6).
+>
+> Este documento é a investigação, o que cada entrega mudou, o que ficou de
+> propósito diferente do MD e as próximas fases. O plano anterior de UI/UX
+> (`docs/ui-ux-plano.md`) copiou o **comportamento** do MD e do Tag Force
+> sobre a arte de mesa do Tag Force; este troca a **aparência** inteira e
+> volta ao comportamento onde o MD faz diferente.
 
 ## 1. Resumo
 
-- **Primeira entrega feita** (branch `visual-master-duel`): mesa em
-  perspectiva 3D, paleta azul-noite/ciano, placas de LP nos cantos com o LP
-  correndo, mão grande na borda de baixo, comandos em pé ao lado da carta,
-  registro do duelo em gaveta, leitura da carta azul (sua) / vermelha (do
-  oponente), corrente nas mesmas cores, "luz de quem decide", faixa de virada
-  de turno.
-- **Jogabilidade:** "Invocar"/"Baixar"/"Ativar" da mão agora pedem a zona
-  **antes** de falar com o motor, com **Cancelar** (e Esc) — §4. E a janela
-  de resposta na corrente deixou de ser um popup: as cartas que respondem
-  brilham e uma barra diz a que se responde, com "Não responder" (§5).
+- **Segunda entrega** (branch `visual-master-duel-2`, §6): a mesa inteira
+  refeita sobre **capturas reais** do jogo (~90 telas de jogadores na Steam,
+  olhadas uma a uma — a primeira entrega só tinha lido texto). Tela cheia,
+  campo neon em 3D com as cartas de pé, HUD dos cantos (placas de LP com
+  dígitos quadrados, botão redondo de fase, botões Auto / "i" / "!" /
+  registro), painel de leitura da carta do MD, comandos redondos, a "lista de
+  cartas" de baixo para toda escolha e para a resposta na corrente, faixas de
+  fase ("TURN CHANGE", "BATTLE PHASE"), corte de invocação, seta de ataque,
+  "Final Blow!", estilhaço, corrente com o número enorme, tela de VICTORY /
+  LOSE, rachaduras na mesa conforme o LP cai.
+- **Decisões do Gustavo** (perguntadas antes de começar): faixas e carimbos
+  em **inglês estilizado** como no MD; mesa no estilo **neon/cibernético**
+  (desenhada em código, sem arte da Konami); **botão único de fase** do MD
+  (abandona a trilha DP…EP sempre à vista); **corte de invocação** nas
+  invocações do Extra Deck, de Ritual e por Tributo.
+- **Primeira entrega** (branch `visual-master-duel`, §3): a câmera 3D, a
+  paleta azul-noite, as placas nos cantos, a zona escolhida antes do comando
+  (cancelável, §4).
 - **Limite do motor:** a escolha de zona e de posição **não têm cancelamento
   no ygopro-core** (só tributos e algumas seleções de carta têm). Por isso o
   cancelar da invocação funciona escolhendo a zona antes do comando, e só
   onde as zonas são previsíveis pela mesa (§4).
-- **O que ainda é inferência:** a pesquisa só leu texto (guias, notas de
-  atualização, wiki); nenhum vídeo ou captura foi visto. Posições e regras de
-  cor estão documentadas; tempos de animação, formato exato do número do elo,
-  o desenho da quebra do elo e o texto da tela de vitória não estão (§2).
 
-## 2. O que o Master Duel faz — documentado × inferido
+## 2. O que o Master Duel mostra — visto nas capturas
 
-Pesquisa de 13/10/2026 (fontes no fim). **Documentado** = está escrito em
-fonte; *(inferido)* = memória do jogo ou dedução, a conferir em vídeo.
+Primeiro levantamento (13/10/2026, de manhã): só texto — guias, notas de
+atualização, wiki. Segundo (à tarde): as 8 capturas da página da Steam e ~450
+capturas de jogadores na Steam Community, das quais ~90 telas de duelo foram
+olhadas em resolução cheia (mesas de vários temas, o painel da carta, a lista
+de cartas, a corrente, as faixas de fase, o "Final Blow!", a tela de vitória,
+os cortes de invocação). O que segue é o que as capturas **mostram**; o que
+continua sem confirmação está marcado.
 
-| Tema | Documentado | *(inferido)* |
+| Tema | O que as capturas mostram | Ainda não confirmado |
 |---|---|---|
-| Mesa | 3D; cada um vê o próprio lado embaixo. Deck no canto inferior direito, Cemitério num círculo acima dele, banidas acima do Cemitério; Extra Deck no inferior esquerdo, Zona de Campo acima dele. A mesa vai se "quebrando" conforme o LP cai. | Inclinação moderada (`rotateX` 30–40°), lado de lá ~80% da largura do lado de cá. |
-| Cores | **Azul = você, vermelho = oponente**: fundo da leitura da carta, ícones de local, luz de "quem age". Moldura **azul e amarela** = dois tipos de jogada (as duas juntas quando a carta pode atacar e ativar). | Qual é qual (azul = ativar? amarelo = atacar?) — **não confirmado**. |
-| HUD | Engrenagem no canto superior esquerdo; no inferior direito: Registro do Duelo, "!" (cartas limitando ações), "i" (passo da batalha), Confirmação de Ativação (Automático/Ligado/Desligado). Botão de fase azul à direita. Luz de quem decide: "passa do vermelho em cima para o azul do nosso lado". Banco de tempo por jogador. Texto do efeito ativado no canto superior direito. | LP do jogador embaixo à esquerda, do oponente em cima à direita; LP correndo ~0,5–1 s. |
-| Mão | Sua embaixo, a do oponente em cima; molduras coloridas nas jogáveis. | Cartas grandes, encavalando conforme cresce; carta sobe ao passar o mouse. |
-| Comandos | Arrastar a carta (ou o próprio comando) para a zona; símbolo de "proibido" em comando bloqueado; duplo clique confirma. | Pilha vertical de botões em pé, logo acima da carta. |
-| Leitura da carta | Valores **atuais** no duelo (um botão alterna para os originais); fundo azul/vermelho por dono; ícone de "efeito já usado neste turno"; efeitos ativáveis agora destacados em azul no texto; ícones de estado (negado, não pode atacar…); "Cartas relacionadas". | Painel alto à esquerda: arte, nome + atributo, estrelas, [Tipo/Efeito], ATK/DEF, texto rolável. |
-| Corrente | **Sem popup de sim/não**: a luz vem para o seu lado, as cartas ativáveis brilham, um "Cancelar" passa. Ajustes Automático/Ligado/Desligado, "Self Chain", ordem de ativação de gatilhos simultâneos. Animação de ativação; texto do efeito no canto superior direito. Monstro negado ganha símbolo de proibido. | Ativação da mão voa ao centro; número do elo brilhante na carta; resolução de cima para baixo com o número se quebrando. Carimbo "NEGADO" grande **não confirmado**. |
-| Escolhas | Lista de cartas horizontal **ou** vertical; ícones de local azul/vermelho; duplo clique confirma; moeda na cor de quem lançou. | Faixa escura no meio com a fileira de cartas, contador x/y e Confirmar; alvo no campo com o resto escurecido e faixa de instrução no topo. |
-| Batalha / turno | Tela de "Duel Start"; moeda decide quem começa. | Faixa atravessando o centro na virada de turno (azul seu, vermelha dele); estilhaço na destruição; número de dano grande. |
+| Mesa | Tela inteira, sem moldura de interface. Câmera alta atrás do jogador: as zonas do chão bem achatadas, as **cartas quase de pé** sobre elas (pouco achatadas). Cartas do oponente **de pé, legíveis** (não de cabeça para baixo); as setas Link dele são indicadores da mesa. Deck de pé no canto de baixo à direita, Extra Deck no de baixo à esquerda; **Cemitério e banidas são dois poços redondos** à direita da fileira de monstros (banidas em cima). A metade de quem perde LP **racha**. A borda da metade de quem joga acende (azul/vermelho). | — |
+| ATK/DEF | Número grande embaixo das suas cartas e **em cima** das do oponente; ATK maior que o "/DEF"; valor acima do impresso em azul-claro. Estrela + Nível no pé direito da carta; material Xyz no pé esquerdo. | A cor do valor abaixo do impresso (usamos vermelho). |
+| Cores | **Azul = jogada comum** (Invocar, Baixar, posição; atacar na Battle Phase) e **amarelo = ativar efeito** — na mão e no campo; as duas juntas quando a carta tem as duas. Alvo de escolha no campo: amarelo. | — |
+| HUD | Engrenagem redonda em cima à esquerda; placa do oponente em cima à direita (nome numa faixa com fio vermelho, "LP 8000" grande, avatar sextavado); a sua embaixo à esquerda (avatar redondo); embaixo à direita os botões redondos Auto (ON/OFF), "i", "!" (com a contagem em cima) e registro. **Botão de fase**: disco "Turn N / Main1", azul com aro dourado no seu turno, sextavado vermelho no do oponente, na direita, na altura da linha do meio. LP fica **vermelho** quando baixo (≤ 1000 nas capturas). Relógio de turno em círculo à esquerda. | O desenho exato do menu do botão de fase (usamos pílulas ao lado dele). |
+| Leitura da carta | Painel alto no canto de cima à esquerda, **por cima** do cenário: nome numa faixa com o círculo do atributo (kanji, em qualquer idioma), a carta à esquerda, Nível/ATK/DEF com ícones ao lado, faixa do tipo **na cor da moldura** ("[Dragão/Sincro/Efeito]"), texto rolável. Fundo vermelho na carta do oponente. | — |
+| Escolhas | "Lista de cartas" num painel escuro **embaixo, no meio**: instrução no topo (palavra-chave em amarelo), "N cartas", a faixa azul de cartas com rolagem e setas, o botão de confirmar no pé (pílula escura com o fio verde-limão); abas no canto (grade, seta para baixo). Alvo no campo: faixa translúcida atravessando a mesa com a instrução. | — |
+| Corrente | Ao responder: o mesmo painel de baixo, "O oponente ativou X. Ativar um efeito (corrente)?", com as cartas que respondem e Cancelar / Ativar. Elos: as cartas ativadas grandes, inclinadas, **ligadas por correntes de metal**, com o **número do elo enorme, vazado e brilhante**. Texto do efeito ativado numa caixa no canto de cima à direita. | Como o número "se quebra" na resolução; o carimbo da negação (usamos o "proibido" + NEGATED). |
+| Faixas | "TURN CHANGE", "STANDBY PHASE", "BATTLE PHASE": faixa atravessando a tela, letras itálicas grossas metálicas — em inglês mesmo no jogo em outros idiomas. | A cor da faixa no seu turno (só vimos as vermelhas do oponente; usamos azul). |
+| Invocação | Corte em tela cheia: a arte do monstro grande com raios de luz, as estrelas (ou "LINK-2"), o nome em itálico e "ATK 2400 DEF 1500" numa barra azul-escura. | Quais invocações ganham o corte — decidido pelo Gustavo: Extra Deck, Ritual e Tributo. |
+| Batalha | Seta segmentada **azul** do atacante ao alvo. "**Final Blow !**" em duas faixas verde-limão verticais nas laterais quando o ataque é letal. Dano em número grande vermelho junto do LP. | — |
+| Fim | A mesa desfocada, "**VICTORY**" (ou "FINISHED") gigante com um traço de luz, uma faixa com o motivo, as placas dos dois com a **coroa** do vencedor e o "OK". | A palavra da derrota (usamos "LOSE"). |
 
 ## 3. Primeira entrega — o que mudou na tela
 
@@ -150,6 +168,11 @@ ataque) e marcar/desmarcar (`SELECT_UNSELECT_CARD`).
 
 ## 5. Janela de resposta sem popup
 
+> Substituída na segunda entrega (§6): as capturas mostram que o MD pergunta
+> num painel de baixo, com as cartas que respondem. O painel novo **não
+> bloqueia** a mesa — a carta que brilha continua ativável pelo menu dela,
+> como aqui embaixo.
+
 `SELECT_CHAIN` passou a `presentation: "inline"`: as cartas que podem
 responder brilham onde estão (mão, campo; pilha brilhando para Cemitério,
 banidas e Extra; "Outras jogadas" para o resto) e se ativam pelo menu da
@@ -158,42 +181,167 @@ elo do topo ("O oponente ativou Reforço do Exército", com a miniatura), quanta
 jogadas respondem e "Não responder". O modo Automático/Sempre/Nunca e o Ctrl
 continuam decidindo **quando** a janela aparece.
 
-## 6. Desvios deliberados do Master Duel
+## 6. Segunda entrega — a mesa inteira refeita
 
-- **Fases sempre à vista** (DP…EP na coluna da direita) em vez do botão
-  único que abre um menu: um clique em vez de dois, e os testes de navegador
-  avançam a fase pelo texto do botão.
+Branch `visual-master-duel-2`. Arquivos novos: `DuelHud.tsx` (placas, botão de
+fase, botões redondos), `DuelInfo.tsx` (os painéis "i" e "!", as rachaduras),
+`FieldStats.tsx` (o ATK/DEF grande), `MdCardList.tsx` (a lista de cartas),
+`MdBanners.tsx` (faixas e "Final Blow!"), `SummonCutIn.tsx` e
+`src/app/md-duel.css` (todo o desenho da mesa, importado no `layout.tsx`
+depois do `globals.css`).
+
+**Tela e HUD.**
+
+1. **Tela cheia**: a raiz da mesa é `fixed inset-0` e cobre o cabeçalho do
+   site (que fica montado por baixo — o PT/EN e a saída foram para a
+   engrenagem). As fontes do MD não são livres; as mais próximas: **Exo 2**
+   itálica pesada nas faixas e no botão de fase, **Oxanium** (dígitos
+   quadrados com cantos cortados) no LP e nos números (`next/font`).
+2. **Placas de LP** (`LifePlate`): avatar redondo (seu) / sextavado (do
+   oponente) com a inicial, nome numa faixa escura com o fio na cor do lado
+   (acende no turno de quem é), "LP" e o número correndo; vermelho a partir de
+   1000. Sem barra de vida — o MD não tem.
+3. **Botão de fase** (`PhaseButton`): o disco "Turn N / Main1" (sextavado
+   vermelho no turno do oponente) à direita, alinhado à linha do meio da mesa
+   (medida: `data-center-line`). No seu turno, com fase para onde ir, ele
+   pulsa; o clique abre ao lado as pílulas Battle Phase / Main Phase 2 / End
+   Phase — só as que o core oferece. O botão em si é controle da mesa
+   (`data-table-control`) e diz em `data-phase-options` para onde dá para ir:
+   os testes juntam isso à lista de botões (`FASES_DISPONIVEIS`) e o
+   `clickAction("EP")` abre o menu e clica.
+4. **Botões redondos** (`HudButtons`): Auto/ON/OFF (a confirmação de
+   ativação — Automático/Sempre/Nunca; "Hold" com Ctrl), "i" (ATK em campo e o
+   tamanho das pilhas de cada um), "!" (os avisos de jogador do core, com a
+   contagem em cima — antes pendurados nas placas) e o registro.
+5. **Engrenagem** em cima à esquerda: confirmação de ativação, velocidade,
+   **corte de invocação** (liga/desliga; preferência nova `cutIns`), som (o
+   antigo 🔊 virou seção), idioma das cartas, dicas, atalhos, **Render-se** e
+   **Sair** (com confirmação).
+
+**Mesa.**
+
+6. **Campo neon**: o salão escuro com névoa azul e circuitos (`.md-arena`), o
+   tapete com malha sextavada e borda neon, a metade do oponente puxando para o
+   vermelho. Zonas desenhadas no tapete: o anel que brilha (monstro e Zona
+   Extra), a placa com fio interno (Magia/Armadilha), o hexágono (Campo).
+7. **Câmera**: `rotateX(38deg)` com perspectiva em `vh` (a conta vale em
+   qualquer tela) e a carta medida pela câmera — o menor entre o teto pela
+   largura (sete colunas) e o teto pela altura (as fileiras, desfeito o
+   achatamento com `cos()`). As cartas ficam **de pé** sobre a zona
+   (`rotateX(-16deg)` pela borda de baixo, `transform-style: preserve-3d`), um
+   pouco acima do tapete (`translateZ`) para não brigar com ele pelo pixel.
+8. **Cartas do oponente de pé**, como no MD; só as setas Link dele giram meia
+   volta (apontam para casas da mesa).
+9. **ATK/DEF grande** numa camada plana por cima da mesa (`FieldStatsLayer`):
+   dentro do plano 3D o número ficava atrás das cartas de pé da fileira da
+   frente (profundidade decide quem tapa, não o `z-index`) e saía cortado.
+   Embaixo da sua carta, em cima da do oponente; azul-claro acima do impresso,
+   vermelho abaixo.
+10. **Poços** do Cemitério e das banidas, um sobre o outro na coluna ao lado
+    dos monstros (a arte da carta do topo dentro do círculo); Deck e Extra
+    Deck como pilhas de versos de pé.
+11. **Realce do MD**: azul jogada comum, amarelo efeito, as duas cores
+    alternando quando a carta tem as duas (`intent` "action"/"activate"/"both",
+    pelo verbo de cada `CardAction`); alvo amarelo; zona escolhível com o anel
+    aceso.
+12. **Mãos**: a sua grande e cortada pela borda de baixo (sobe inteira ao
+    passar o mouse); a do oponente, versos cortados pela borda de cima.
+13. **Luz de turno** na borda da metade de quem joga; **rachaduras** na metade
+    de quem tem ≤ 6000, 4000 e 2000 LP (o traço novo "corre" e a metade dá um
+    clarão).
+
+**Decisões.**
+
+14. **Comandos redondos** em cima da carta (disco amarelo para ativar efeito,
+    azul para o resto), com o nome embaixo e o efeito, quando há mais de um.
+15. **Lista de cartas** (`DecisionSheet` + `CardStrip`/`CardTile`): o painel de
+    baixo para buscar no Deck, escolher do Cemitério, consultar pilhas e
+    responder — com setas, aba de grade e a **seta para baixo**, que esconde o
+    painel para ver a mesa (o "Ver a mesa" de antes; Esc também). Continua
+    sendo diálogo com rótulo e montado mesmo escondido (a regra de nunca
+    prender a mesa).
+16. **Resposta na corrente**: "O oponente ativou X. Ativar uma carta em
+    resposta (corrente)?" no painel de baixo, com as cartas que respondem
+    (clique escolhe, clique de novo ativa) e "Não responder"; **não bloqueia**
+    a mesa, e a seta recolhe o painel numa faixa.
+17. **Faixas de instrução** atravessando a mesa: seleção no campo, escolha de
+    zona (agora também a de uma zona só, que não tinha instrução nenhuma),
+    decisão escondida.
+
+**Efeitos.**
+
+18. **Faixas** "DUEL START" / "TURN CHANGE" e uma por fase (DRAW, STANDBY,
+    MAIN PHASE 1, BATTLE PHASE, MAIN PHASE 2, END PHASE), azuis no seu turno e
+    vermelhas no do oponente, numa fila curta (a fase que ficou para trás sai).
+    A sessão pausa um pouco mais na fase (200 → 340 ms) e na virada de turno
+    (760 ms) para elas se lerem.
+19. **Corte de invocação**: a arte recortada em tela cheia, raios na cor do
+    atributo, faíscas, "SYNCHRO SUMMON" etc., as estrelas (ou Rank, ou LINK),
+    o nome e o ATK/DEF. A sessão decide (`cutInFor`: Fusão, Sincro, Xyz, Link,
+    Ritual; Nível 5+ por Invocação-Normal) e pausa 1,7 s (o clique pula); sem a
+    arte recortada, a carta inteira ocupa o lugar.
+20. **Ataque**: a seta segmentada do atacante ao alvo, o atacante brilhando na
+    cor do dono e o impacto no alvo. **"Final Blow !"** nas laterais quando o
+    ataque declarado tira todos os LP (direto com ATK ≥ LP, ou contra monstro
+    em ataque com a diferença ≥ LP; contra defesa não).
+21. **Estilhaço**: a carta destruída se parte em doze cacos que voam girando,
+    com um clarão (pausa 520 → 640 ms).
+22. **Corrente**: a carta ativada grande em 3D com o número do elo enorme e
+    vazado, a corrente de metal pendurando o elo novo no anterior, a caixa do
+    efeito no canto de cima à direita; negação com o "proibido" e o carimbo
+    NEGATED. A pilha de elos (à esquerda) com os números vazados e os elos de
+    metal.
+23. **Dano** em número grande vermelho (cura verde) junto da placa; **fim de
+    duelo** com VICTORY / LOSE / DRAW (FINISHED para quem só assiste), o
+    motivo, as placas com a coroa e os botões do MD.
+24. **Sons** refeitos no caráter do MD (pedido do Gustavo no meio da entrega;
+    ele escolheu síntese em vez de arquivos de banco livre — o áudio do jogo é
+    da Konami). O motor (`sfx.ts`) ganhou uma mesa de mixagem: cada som vai
+    seco e em parte para uma reverberação gerada (ruído caindo em curva — a
+    "sala" do MD), e tudo passa por um compressor (cinco cartas destruídas ao
+    mesmo tempo não estouram). Sons em camadas: o "whoosh" com o baque e o
+    brilho de cristal na invocação; a subida, o estrondo e o arpejo na
+    Invocação-Especial; o ar sendo puxado, o estrondo e o acorde de serras no
+    corte; o cristal inarmônico na ativação; os elos de metal (FM) na corrente;
+    o vidro estilhaçando em cacos espalhados no estéreo; o estrondo do dano
+    com o LP escorrendo em tique-tique (e subindo na cura); a faixa passando;
+    a moeda tremulando e o dado chacoalhando; a fanfarra e a derrota. Cada
+    toque varia um pouco a afinação. Os impactos têm uma camada no meio do
+    espectro — o grave puro some em caixa de notebook. A engrenagem tem
+    "Ouvir os sons", com um botão por som; e `test:sfx` renderiza cada um num
+    `OfflineAudioContext` e confere que soa, não estoura e acaba a tempo (eu
+    não consigo ouvir — os níveis foram acertados pela medida, o ouvido do
+    Gustavo dá a palavra final).
+
+## 7. Desvios deliberados do Master Duel
+
 - **A zona é perguntada** quando há escolha (o MD, por padrão, põe a carta
   sozinha). No TCG a zona decide setas Link e Zonas Extra; no Goat quase não
-  importa, mas perguntar é o que dá o momento de cancelar.
-- **Banidas como pilha** ao lado do Cemitério, não como círculo acima dele.
-- **Sem avatar/Mate**: o avatar é a inicial do nome.
+  importa, mas perguntar é o que dá o momento de cancelar (§4).
+- **Sem avatar/Mate nem relógio de turno**: o avatar é a inicial do nome; o
+  duelo não tem limite de tempo.
+- **O poço do Cemitério mostra a arte da carta do topo** (o MD mostra um
+  orbe): é informação que se consulta a toda hora.
+- **A pilha de elos à esquerda** continua, além das cartas grandes: no MD a
+  corrente se acompanha pelo registro.
+- **Rótulos em português** onde não são faixa nem carimbo ("Você ativou", "Não
+  responder", "Confirmar") — o resto da interface segue em português.
+- **No Goat não há Zona Extra**: o meio da mesa é só o corredor com a linha de
+  luz (o MD sempre tem a fileira, porque é Master Rule).
 
-## 7. Próximas fases
+## 8. Próximas fases
 
-- **B — Escolhas.** Seletor de cartas em faixa horizontal (a "Card List" do
-  MD) com ícone de local azul/vermelho e contador x/y; posição (ATK em pé /
-  DEF deitada, lado a lado); atributo e tipo em grade de ícones; alvo no
-  campo com o resto escurecido e a instrução numa faixa no topo.
-- **C — Corrente e resolução.** Ativação da mão voando ao centro; do campo, a
-  carta acende no lugar; elos ligados por uma corrente desenhada; resolução de
-  cima para baixo com o número se quebrando; negação com o símbolo de
-  proibido na carta; texto do efeito ativado no canto superior direito.
-- **D — Leitura da carta.** Alternar atuais/originais; "efeito já usado neste
-  turno"; ícones de estado; efeitos ativáveis agora destacados no texto;
-  "Cartas relacionadas".
-- **E — Batalha.** Seta de ataque, impacto, estilhaço na destruição, número de
-  dano grande; a mesa se desgastando com o LP.
-- **F — Canto inferior direito do MD.** "!" (o que limita ações — hoje
-  `PlayerHints` e as marcas das cartas), "i" (passo da batalha), estado do
-  campo.
-- **G — Jogabilidade.** Arrastar a carta para a zona; ordem de ativação de
-  gatilhos simultâneos (opcional, como no MD); "Self Chain"; banco de tempo
-  no online.
-- **H — Telas estreitas** no visual novo (hoje passam no `test:viewports`, mas
-  foram pouco olhadas).
+- **Jogabilidade do MD**: arrastar a carta para a zona; ordem de ativação de
+  gatilhos simultâneos; "Self Chain"; banco de tempo no online.
+- **Leitura**: alternar valores atuais/originais; "efeito já usado neste
+  turno"; "Cartas relacionadas".
+- **Resolução da corrente** com o número se quebrando a cada elo.
+- **Temas de mesa** (o Gustavo escolheu o neon; a troca de tema não foi
+  pedida).
 
-## 8. Verificação desta entrega
+## 9. Verificação
+
+### Primeira entrega
 
 Testes novos ou ajustados (o ajuste é sempre de seletor/espera, nunca de
 critério):
@@ -217,8 +365,29 @@ Achados no caminho:
 - `test:browser-announce` imprimiu o resultado e ficou pendurado depois do
   fim (o processo não saía); a bateria final roda cada teste com vigia.
 
+### Segunda entrega
+
+- `tsc`, `lint` e `npm run build` limpos (o único aviso do build já existia).
+- Navegador, contra o **build de produção** num servidor próprio (porta
+  3210): os 15 testes de navegador e o `test:sfx` novo — 16/16.
+- Motor: os 23 testes de motor e `test:presets` (110 duelos bot × bot) —
+  tudo verde; `test:connection` contra o servidor de produção.
+- Testes ajustados, sempre o seletor e nunca o critério: o fantasma do ataque
+  (`.md-attack-ghost`), os selos de Nível/Rank/material, a carta do oponente
+  de pé (as setas Link giram), "Sua vez" → dono do botão de fase, o carimbo
+  NEGATED e as fases no menu do botão redondo (`FASES_DISPONIVEIS`).
+
+Achado no caminho: num `npm run dev` aberto há horas, o Tailwind deixou de
+gerar classes novas de valor arbitrário (`h-[clamp(…)]`) — o CSS servido
+ficava sem elas e a mão do oponente sumia (altura 0, por ser contêiner de
+tamanho). A altura dela foi para o `md-duel.css`; no build de produção as
+classes saem todas. Reiniciar o dev server resolve.
+
 ## Fontes
 
+- Steam — as 8 capturas da página do jogo e ~450 capturas de jogadores na
+  Steam Community (mais votadas, mais recentes, do ano), ~90 delas olhadas em
+  resolução cheia (13/10/2026).
 - gameplay.tips — Duel screen info guide (field, menu and icons)
 - outof.games — board guide; Activation Confirmation toggle; news 5582
 - YGOrganization — notas de atualização (fev/2025, 1.5.1, ago/2022, ago/2024,

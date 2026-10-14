@@ -6,7 +6,7 @@
  * a tela usa para começar um duelo local) e confere no DOM:
  *
  * - a fileira das Zonas de Monstro Extra existe, com um Link de cada lado (o
- *   do oponente na zona compartilhada, de cabeça para baixo);
+ *   do oponente na zona compartilhada, de pé, com as setas giradas);
  * - as setas do Link chegam à carta, e as zonas para onde elas apontam ficam
  *   marcadas — pela geometria certa, inclusive a do Link do oponente;
  * - as escalas de Pêndulo aparecem nas zonas 1 e 5 da fileira de magias;
@@ -99,8 +99,10 @@ const LER_MESA = `
     apontadas: [...document.querySelectorAll(".tf-slot-linked")].map((el) => el.closest("[data-zone]")?.dataset.zone).sort(),
     escalaEsq: texto("0:8:0"),
     escalaDir: texto("0:8:4"),
-    rankUtopia: texto("0:4:2"),
-    nivelElf: texto("0:4:0"),
+    // O selo do MD no pé da carta: o ícone (estrela, estrela escura do Rank,
+    // o do Link) vem por CSS; o texto é só o número.
+    rankUtopia: (() => { const b = zona("0:4:2")?.querySelector("[data-level-badge]"); return b ? b.dataset.levelBadge + ":" + b.innerText.trim() : ""; })(),
+    nivelElf: (() => { const b = zona("0:4:0")?.querySelector("[data-level-badge]"); return b ? b.dataset.levelBadge + ":" + b.innerText.trim() : ""; })(),
     extraDele: [...document.querySelectorAll("[title*='Pêndulos virados para cima']")].map((el) => el.innerText),
     rolagemHorizontal: document.documentElement.scrollWidth > document.documentElement.clientWidth + 1,
   };
@@ -154,7 +156,10 @@ async function main() {
       "a ficha sem arte aparece com imagem e com o nome",
       JSON.stringify(ficha),
     );
-    conferir(mesa.linkDeleGirado, "e de cabeça para baixo, como carta do oponente");
+    // Na mesa do MD a carta do oponente fica de pé; as setas do Link dele
+    // giram meia volta (apontam para casas da mesa, e a "de cima" dele aponta
+    // para o seu lado).
+    conferir(mesa.linkDeleGirado, "e as setas do Link dele giram meia volta, como carta do oponente");
     // Link Spider (Zona Extra esquerda, seta para baixo) → minha zona 2 (índice 1).
     // Decode Talker do oponente (zona 5 dele = Zona Extra direita na minha
     // tela; setas cima, baixo-esq., baixo-dir. NA ÓTICA DELE) → minha zona 4
@@ -166,8 +171,8 @@ async function main() {
     );
     conferir(mesa.escalaEsq.includes("◂4"), "a escala esquerda (Odd-Eyes, 4) aparece na zona 1", mesa.escalaEsq);
     conferir(mesa.escalaDir.includes("8▸"), "a escala direita (Timegazer, 8) aparece na zona 5", mesa.escalaDir);
-    conferir(mesa.rankUtopia.includes("☆4"), "o Utopia mostra Rank 4", mesa.rankUtopia);
-    conferir(mesa.nivelElf.includes("★4"), "o Mystical Elf mostra Nível 4", mesa.nivelElf);
+    conferir(mesa.rankUtopia === "rank:4", "o Utopia mostra Rank 4", mesa.rankUtopia);
+    conferir(mesa.nivelElf === "level:4", "o Mystical Elf mostra Nível 4", mesa.nivelElf);
     conferir(!mesa.rolagemHorizontal, "sem rolagem horizontal");
 
     // A leitura da carta diz o número antes dos símbolos — Nível, Rank e Link.
@@ -178,16 +183,18 @@ async function main() {
         return true;
       `);
       await new Promise((r) => setTimeout(r, 300));
+      // O número e o tipo (na dica): a leitura do MD é o ícone e o número.
       return page.evaluate(
-        `return document.querySelector("[${attr}]")?.innerText.replace(/\\s+/g, " ").trim() ?? "";`,
+        `const el = document.querySelector("[${attr}]");
+         return el ? (el.getAttribute("title") ?? "") + " | " + el.innerText.replace(/\\s+/g, " ").trim() : "";`,
       );
     };
     const leituraElf = await lerLeitura("0:4:0", "data-preview-level");
-    conferir(/^Nv\. 4 ★★★★$/.test(leituraElf), "a leitura do Mystical Elf diz \"Nv. 4\" antes das estrelas", leituraElf);
+    conferir(/^Nível 4 \| 4$/.test(leituraElf), "a leitura do Mystical Elf mostra o Nível 4 em número", leituraElf);
     const leituraUtopia = await lerLeitura("0:4:2", "data-preview-rank");
-    conferir(/^Rank 4 ☆☆☆☆$/.test(leituraUtopia), "a do Utopia diz \"Rank 4\" antes das estrelas", leituraUtopia);
+    conferir(/^Rank 4 \| 4$/.test(leituraUtopia), "a do Utopia mostra o Rank 4 em número", leituraUtopia);
     const leituraSpider = await lerLeitura("0:4:5", "data-preview-link");
-    conferir(/^Link 1/.test(leituraSpider), "a do Link Spider diz \"Link 1\" antes das setas", leituraSpider);
+    conferir(/^Link 1 \| LINK-1/.test(leituraSpider), "a do Link Spider diz \"LINK-1\" antes das setas", leituraSpider);
 
     // Marcas: o Breaker invocado ganha o Marcador de Magia, e ele aparece no
     // slot (selo) e na leitura da carta (frase).

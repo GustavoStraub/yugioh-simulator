@@ -99,7 +99,7 @@ function DuelPlayInner({
   /** O assento de quem joga — 1 quando o bot começa. */
   const me: 0 | 1 = config?.humanSeat === 1 ? 1 : 0;
 
-  const { snapshot, respond, surrender, subscribeEvents, setChainPreference, setPace, hurry } =
+  const { snapshot, respond, surrender, subscribeEvents, setChainPreference, setPace, setCutIns, hurry } =
     useDuelEngine(mounted ? config : null);
 
   // Preferências da mesa → sessão: o modo de resposta e o ritmo valem já na
@@ -111,6 +111,9 @@ function DuelPlayInner({
   useEffect(() => {
     setPace(SPEED_SCALE[prefs.speed]);
   }, [prefs.speed, setPace]);
+  useEffect(() => {
+    setCutIns(prefs.cutIns);
+  }, [prefs.cutIns, setCutIns]);
   const forceAsk = useCallback(
     (held: boolean) => setChainPreference({ forceAsk: held }),
     [setChainPreference],

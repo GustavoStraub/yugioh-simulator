@@ -24,8 +24,7 @@ import type {
   DuelEvent,
   DuelEventListener,
   DuelZoneRef,
-  LeaveReason,
-} from "@/lib/duel/duel-events";
+  LeaveReason, CutInKind} from "@/lib/duel/duel-events";
 import {
   readBoardState,
   type BoardState,
@@ -38,7 +37,7 @@ import {
 } from "@/lib/duel/card-adapter";
 import { findPromptMessage } from "@/lib/duel/bot-responder";
 import { BotBrain, type BotContext } from "@/lib/duel/bot/bot-brain";
-import { beatFor, leaveBeat, phaseBeat, MAX_BEAT_PER_BATCH_MS } from "@/lib/duel/pacing";
+import { beatFor, CUT_IN_MS, leaveBeat, phaseBeat, MAX_BEAT_PER_BATCH_MS } from "@/lib/duel/pacing";
 import { phaseLabel } from "@/lib/duel/phase-labels";
 import {
   EMPTY_ENGINE_STRINGS,
@@ -137,6 +136,8 @@ export interface DuelSessionConfig {
    * duelo online: só quem monta o duelo por código.
    */
   scenario?: ScenarioCard[];
+  /** Cortes de invocação (ver `DuelSession.setCutIns`); padrão: ligados. */
+  cutIns?: boolean;
   /**
    * Multiplicador das pausas entre jogadas (ver `pacing.ts`): 1 = ritmo
    * normal, menos = mais rápido, 0 = sem pausa nenhuma (testes). Trocável no
@@ -559,6 +560,17 @@ export class DuelSession {
    * zona de onde saiu. Zerado a cada lote.
    */
   private leaveBeatWanted = 0;
+  /**
+   * Pausa pedida pelo corte de invocação deste lote (ver `cutInFor`). Zerada
+   * a cada lote, como a das saídas.
+   */
+  private cutInBeatWanted = 0;
+  /**
+   * Os cortes de invocação estão ligados? No duelo local é a preferência de
+   * quem joga (desligado, a sessão nem pausa por eles); no online a pausa é da
+   * sala e fica ligada.
+   */
+  private cutIns = true;
 
   subscribe(listener: (snapshot: DuelSnapshot) => void): () => void {
     this.listeners.add(listener);
@@ -580,6 +592,13 @@ export class DuelSession {
     for (const listener of this.eventListeners) listener(event);
   }
 
+  /** Uma invocação — com o corte do MD quando ela merece (e a pausa dele). */
+  private emitSummon(player: number, code: number, special: boolean): void {
+    const cutIn = this.cutIns ? this.cutInFor(code, special) : undefined;
+    if (cutIn) this.cutInBeatWanted = Math.max(this.cutInBeatWanted, CUT_IN_MS);
+    this.emit({ kind: "summon", player, code, special, ...(cutIn ? { cutIn } : {}) });
+  }
+
   async start(config: DuelSessionConfig): Promise<void> {
     if (this.started) return;
     this.started = true;
@@ -595,6 +614,7 @@ export class DuelSession {
       this.seats[1].chainMode ?? this.chainModes[1],
     ];
     this.setPace(config.pace ?? this.pace);
+    if (config.cutIns !== undefined) this.cutIns = config.cutIns;
     this.assets = config.assets ?? browserAssets;
     const format = config.format ?? DEFAULT_FORMAT;
     const rules = FORMAT_RULES[format];
@@ -803,6 +823,32 @@ export class DuelSession {
     this.pace = Number.isFinite(scale) ? Math.min(2, Math.max(0, scale)) : 1;
   }
 
+  /** Liga/desliga os cortes de invocação no meio do duelo (ver `cutIns`). */
+  setCutIns(on: boolean): void {
+    this.cutIns = on;
+  }
+
+  /**
+   * A invocação ganha o corte do Master Duel? As do Extra Deck (Fusão,
+   * Sincro, Xyz, Link), a de Ritual e a por Tributo (Nível 5 ou mais por
+   * Invocação-Normal) — a regra que o Gustavo escolheu. Ficha nunca.
+   */
+  private cutInFor(code: number, special: boolean): CutInKind | undefined {
+    const card = this.registry?.get(code);
+    if (!card) return undefined;
+    const frame = card.frameType ?? "";
+    if (frame.includes("token")) return undefined;
+    if (special) {
+      if (frame.includes("fusion")) return "fusion";
+      if (frame.includes("synchro")) return "synchro";
+      if (frame.includes("xyz")) return "xyz";
+      if (frame.includes("link")) return "link";
+      if (frame.includes("ritual")) return "ritual";
+      return undefined;
+    }
+    return (card.level ?? 0) >= 5 ? "tribute" : undefined;
+  }
+
   /**
    * Entrega a resposta do assento que estava sendo perguntado.
    *
@@ -983,7 +1029,7 @@ export class DuelSession {
           if (changedPhase) {
             wanted = Math.max(wanted, phaseBeat(isOwnTurn));
           }
-          wanted = Math.max(wanted, this.leaveBeatWanted);
+          wanted = Math.max(wanted, this.leaveBeatWanted, this.cutInBeatWanted);
 
           // O teto vale por LOTE, não pelo turno inteiro. Com um teto por
           // turno as primeiras jogadas gastavam a cota e o resto do turno
@@ -1118,6 +1164,7 @@ export class DuelSession {
 
   private consumeMessages(messages: OcgMessage[]): void {
     this.leaveBeatWanted = 0;
+    this.cutInBeatWanted = 0;
     for (const message of messages) {
       switch (message.type) {
         // HINT carrega códigos internos do core (ids de efeito, timings) que
@@ -1162,7 +1209,7 @@ export class DuelSession {
             kind: "turn",
             actor: seatOf(message.player),
           });
-          this.emit({ kind: "turn", player: message.player });
+          this.emit({ kind: "turn", player: message.player, count: turnCount });
           break;
         }
         case OcgMessageType.NEW_PHASE:
@@ -1181,12 +1228,7 @@ export class DuelSession {
             null,
             { codes: [message.code], actor: message.controller },
           );
-          this.emit({
-            kind: "summon",
-            player: message.controller,
-            code: message.code,
-            special: false,
-          });
+          this.emitSummon(message.controller, message.code, false);
           break;
         case OcgMessageType.SPSUMMONING:
           this.summoning = { code: message.code, player: message.controller };
@@ -1195,12 +1237,7 @@ export class DuelSession {
             null,
             { codes: [message.code], actor: message.controller },
           );
-          this.emit({
-            kind: "summon",
-            player: message.controller,
-            code: message.code,
-            special: true,
-          });
+          this.emitSummon(message.controller, message.code, true);
           break;
         case OcgMessageType.FLIPSUMMONING:
           this.summoning = { code: message.code, player: message.controller };

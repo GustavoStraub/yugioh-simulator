@@ -9,7 +9,7 @@
  *
  * Uso: node tools/harness/test-browser-online.mjs [--headed]
  */
-import { launchChrome, openPage } from "./browser.mjs";
+import { FASES_DISPONIVEIS, launchChrome, openPage } from "./browser.mjs";
 
 const APP_URL = process.env.APP_URL ?? "http://127.0.0.1:3000";
 /**
@@ -57,7 +57,7 @@ const LER_ESTADO = `
   const texto = mesa.innerText;
   return {
     naMesa: true,
-    botoes: [...document.querySelectorAll("button")].filter(util).map((b) => b.innerText.trim()).filter(Boolean),
+    botoes: [...document.querySelectorAll("button")].filter(util).map((b) => b.innerText.trim()).filter(Boolean).concat(${FASES_DISPONIVEIS}),
     cartas: document.querySelectorAll(".tf-slot-active").length,
     aguardando: /aguardando /i.test(texto),
     processando:

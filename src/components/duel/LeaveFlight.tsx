@@ -45,7 +45,6 @@ export function LeaveFlightLayer({
                 `/card-images/small/${leave.code}.jpg`)
               : null
           }
-          upsideDown={leave.from.controller !== me}
           me={me}
         />
       ))}
@@ -103,17 +102,84 @@ const TINT: Record<LeaveReason, string> = {
   deck: "ring-emerald-300 shadow-black/70",
 };
 
+/**
+ * Os cacos da carta destruída: uma grade irregular de quadriláteros (em % da
+ * carta) que cobre a carta inteira. Cada um voa para fora do centro, girando.
+ */
+const CACOS: [number, number][][] = (() => {
+  const xs = [
+    [0, 35, 68, 100],
+    [0, 40, 72, 100],
+    [0, 30, 62, 100],
+    [0, 42, 70, 100],
+    [0, 33, 66, 100],
+  ];
+  const ys = [
+    [0, 0, 0, 0],
+    [30, 24, 32, 26],
+    [52, 58, 50, 57],
+    [78, 82, 76, 84],
+    [100, 100, 100, 100],
+  ];
+  const cacos: [number, number][][] = [];
+  for (let linha = 0; linha < 4; linha += 1) {
+    for (let coluna = 0; coluna < 3; coluna += 1) {
+      cacos.push([
+        [xs[linha][coluna], ys[linha][coluna]],
+        [xs[linha][coluna + 1], ys[linha][coluna + 1]],
+        [xs[linha + 1][coluna + 1], ys[linha + 1][coluna + 1]],
+        [xs[linha + 1][coluna], ys[linha + 1][coluna]],
+      ]);
+    }
+  }
+  return cacos;
+})();
+
+/**
+ * A destruição do Master Duel: a carta trinca e se estilhaça — os cacos voam
+ * do centro para fora, girando e apagando, com um clarão no meio.
+ */
+function Estilhaco({ image, duration }: { image: string | null; duration: number }) {
+  return (
+    <span className="md-shatter" style={{ ["--md-shatter-ms" as string]: `${duration}ms` }}>
+      <span className="md-shatter-flash" />
+      {CACOS.map((caco, index) => {
+        const cx = caco.reduce((t, [x]) => t + x, 0) / 4;
+        const cy = caco.reduce((t, [, y]) => t + y, 0) / 4;
+        // Para fora do centro da carta, mais longe quanto mais na borda; um
+        // giro diferente para cada caco (determinístico — sem `Math.random`
+        // no render).
+        const dx = (cx - 50) * 1.6;
+        const dy = (cy - 50) * 1.3 + 10;
+        const giro = ((index * 47) % 90) - 45;
+        return (
+          <span
+            key={index}
+            className={`md-shard ${image ? "" : "tf-card-back"}`}
+            style={{
+              clipPath: `polygon(${caco.map(([x, y]) => `${x}% ${y}%`).join(", ")})`,
+              backgroundImage: image ? `url("${image}")` : undefined,
+              ["--md-dx" as string]: `${dx}%`,
+              ["--md-dy" as string]: `${dy}%`,
+              ["--md-rot" as string]: `${giro}deg`,
+              animationDelay: `${(index % 4) * 14}ms`,
+            }}
+          />
+        );
+      })}
+    </span>
+  );
+}
+
 function LeaveGhost({
   leave,
   fieldRef,
   image,
-  upsideDown,
   me,
 }: {
   leave: LeaveGhostData;
   fieldRef: RefObject<HTMLDivElement | null>;
   image: string | null;
-  upsideDown: boolean;
   me: 0 | 1;
 }) {
   const [box, setBox] = useState<{ x: number; y: number; w: number; h: number } | null>(null);
@@ -134,25 +200,42 @@ function LeaveGhost({
     if (!zone) return;
     const fieldBox = field.getBoundingClientRect();
     const zoneBox = zone.getBoundingClientRect();
+    // A carta estava de pé sobre a zona (ver `.md-standing`): um pouco mais
+    // alta na tela que a zona deitada — o fantasma nasce do tamanho dela.
+    const alta = location === 4 || location === 8 ? zoneBox.height * 0.1 : 0;
     setBox({
       x: zoneBox.left - fieldBox.left,
-      y: zoneBox.top - fieldBox.top,
+      y: zoneBox.top - fieldBox.top - alta,
       w: zoneBox.width,
-      h: zoneBox.height,
+      h: zoneBox.height + alta,
     });
   }, [leave, fieldRef, me]);
 
+  const estilhaca = leave.why === "battle" || leave.why === "destroy";
+
   useEffect(() => {
-    if (!node) return;
-    const animation = node.animate(framesFor(leave.why, upsideDown ? "rotate(180deg)" : ""), {
+    if (!node || estilhaca) return;
+    const animation = node.animate(framesFor(leave.why, ""), {
       duration: leave.duration,
       easing: "cubic-bezier(0.3, 0, 0.3, 1)",
       fill: "forwards",
     });
     return () => animation.cancel();
-  }, [node, leave, upsideDown]);
+  }, [node, leave, estilhaca]);
 
   if (!box) return null;
+
+  if (estilhaca) {
+    return (
+      <div
+        data-leave-ghost={leave.why}
+        className="pointer-events-none absolute z-30"
+        style={{ left: box.x, top: box.y, width: box.w, height: box.h }}
+      >
+        <Estilhaco image={image} duration={leave.duration} />
+      </div>
+    );
+  }
 
   return (
     <div

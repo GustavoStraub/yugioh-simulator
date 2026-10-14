@@ -66,20 +66,22 @@ export function ChainStack({
   const terminada = links.length === 0;
 
   return (
+    // A corrente do Master Duel: os elos empilhados, o último (o primeiro a
+    // resolver) em cima, cada um com o número grande e a carta, ligados por
+    // uma corrente desenhada. O que resolve acende; o negado ganha o
+    // "proibido".
     <section
       data-chain-stack={mostradas.length}
-      className={`mb-2 shrink-0 rounded-lg border border-[color:var(--tf-slot-border)] bg-black/40 p-2 transition-opacity duration-500 ${
-        terminada ? "opacity-60" : "opacity-100"
-      }`}
+      className={`md-chain-stack ${terminada ? "md-chain-stack-done" : ""}`}
     >
-      <h3 className="mb-1.5 flex items-center justify-between text-[11px] font-bold uppercase tracking-[0.18em] text-[color:var(--tf-gold)]">
-        <span>⛓ Corrente</span>
-        <span className="text-zinc-400">
+      <h3 className="md-chain-stack-title">
+        <span>Chain</span>
+        <span className="md-chain-stack-count">
           {terminada ? "terminou" : `${mostradas.length} elo${mostradas.length > 1 ? "s" : ""}`}
         </span>
       </h3>
-      <ol className="flex flex-col gap-1">
-        {[...mostradas].reverse().map((link) => {
+      <ol className="md-chain-list">
+        {[...mostradas].reverse().map((link, index) => {
           const def = registry?.get(link.code);
           const nome = def ? texto.name(def) : "Carta";
           const meu = link.player === me;
@@ -91,32 +93,24 @@ export function ChainStack({
               key={link.link}
               data-chain-row={link.link}
               data-chain-state={link.state}
-              className={`flex items-center gap-2 rounded-md px-1.5 py-1 ${
-                link.state === "resolving"
-                  ? "bg-[color:var(--tf-gold)]/15 ring-1 ring-[color:var(--tf-gold)]"
-                  : negado
-                    ? "bg-red-950/40"
-                    : "bg-white/[0.03]"
-              }`}
+              className={`md-chain-row ${meu ? "md-chain-row-me" : "md-chain-row-foe"} md-chain-row-${link.state}`}
             >
-              <span
-                className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[12px] font-black ${
-                  meu ? "md-chain-mine" : "md-chain-foe"
-                }`}
-              >
+              {index > 0 && <span aria-hidden className="md-chain-links" />}
+              <span aria-hidden className="md-chain-digit">
                 {link.link}
               </span>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={def?.images[0]?.image_url_small ?? `/card-images/small/${link.code}.jpg`}
-                alt=""
-                className={`h-10 w-auto shrink-0 rounded-[2px] ${negado ? "grayscale" : ""}`}
-              />
+              <span className="md-chain-thumb">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={def?.images[0]?.image_url_small ?? `/card-images/small/${link.code}.jpg`}
+                  alt=""
+                  className={negado ? "grayscale" : undefined}
+                />
+                {negado && <span aria-hidden className="md-chain-forbid" />}
+              </span>
               <div className="min-w-0 flex-1">
-                <p className={`truncate text-[12px] font-semibold text-zinc-100 ${negado ? "line-through decoration-red-400/80" : ""}`}>
-                  {nome}
-                </p>
-                <p className="truncate text-[10px] text-zinc-400">
+                <p className={`md-chain-name ${negado ? "line-through decoration-red-400/80" : ""}`}>{nome}</p>
+                <p className="md-chain-meta">
                   {meu ? "Você" : "Oponente"}
                   {origem ? ` · ${origem}` : ""}
                   {" · "}

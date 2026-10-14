@@ -5,14 +5,13 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   OcgLocation,
   OcgMessageType,
-  OcgPhase,
   type OcgResponse,
   type SelectFieldPlace,
 } from "@n1xx1/ocgcore-wasm";
 
 import { useCardRegistry } from "@/context/CardRegistryProvider";
 import { useCardText } from "@/hooks/useCardText";
-import { prefersReducedMotion, useDuelFeedback, type DuelFlash } from "@/hooks/useDuelFeedback";
+import { useDuelFeedback, type DuelFlash } from "@/hooks/useDuelFeedback";
 import { NARROW_TABLE_QUERY, useMediaQuery } from "@/hooks/useMediaQuery";
 import { useTips } from "@/hooks/useTips";
 import { nextTip } from "@/lib/duel/tips";
@@ -24,7 +23,6 @@ import {
   translateRace,
   translateType,
 } from "@/lib/card-labels";
-import { PHASE_TRACK, phaseLabel } from "@/lib/duel/phase-labels";
 import {
   buildPromptPlan,
   cardKey,
@@ -59,11 +57,15 @@ import type { CardRegistry } from "@/lib/domain/card-registry";
 
 import {
   CARD_SHAPE,
+  commandKind,
   DuelCardSlot,
   DuelPile,
   StatValue,
+  type SlotIntent,
 } from "@/components/duel/DuelCardSlot";
-import { SoundControl } from "@/components/duel/SoundControl";
+import { HudButtons, LifePlate, PhaseButton } from "@/components/duel/DuelHud";
+import { DuelInfo, EffectsPanel, FieldCracks } from "@/components/duel/DuelInfo";
+import { FieldStatsLayer, type FieldStat } from "@/components/duel/FieldStats";
 import { AttackFlightLayer } from "@/components/duel/AttackFlight";
 import { ChainSpotlight, ORIGEM } from "@/components/duel/ChainSpotlight";
 import { ChainStack } from "@/components/duel/ChainStack";
@@ -71,16 +73,18 @@ import type { ChainBadge } from "@/components/duel/DuelCardSlot";
 import { DrawFlightLayer } from "@/components/duel/DrawFlight";
 import { SortCardModal } from "@/components/duel/SortCardModal";
 import { AnnounceCardModal } from "@/components/duel/AnnounceCardModal";
-import { DecisionShell, PeekButton } from "@/components/duel/DecisionShell";
+import { DecisionSheet, DecisionShell, PeekButton } from "@/components/duel/DecisionShell";
+import { CardStrip, CardTile, GridTab } from "@/components/duel/MdCardList";
+import { FinalBlow, PhaseBanner } from "@/components/duel/MdBanners";
+import { SummonCutIn } from "@/components/duel/SummonCutIn";
 import { GlossaryText } from "@/components/duel/GlossaryText";
 import { LeaveFlightLayer } from "@/components/duel/LeaveFlight";
-import { ChainModeButton, DuelSettings } from "@/components/duel/DuelSettings";
+import { DuelSettings } from "@/components/duel/DuelSettings";
 import {
   DEFAULT_DUEL_PREFS,
   SPEED_SCALE,
   type DuelPrefs,
 } from "@/lib/duel/duel-prefs";
-import type { ChainResponseMode } from "@/lib/duel/chain-mode";
 
 interface DuelBoardProps {
   snapshot: DuelSnapshot;
@@ -255,8 +259,20 @@ export function DuelBoard({
    * muda. No online as pausas são da sala, em ritmo normal.
    */
   const animationScale = pacing === "local" ? SPEED_SCALE[prefs.speed] : 1;
-  const { flashes, shake, toss, flight, reveal, draw, spotlight, leaves, dismissSpotlight } =
-    useDuelFeedback(
+  const {
+    flashes,
+    shake,
+    toss,
+    flight,
+    reveal,
+    draw,
+    spotlight,
+    leaves,
+    banner,
+    cutIn,
+    dismissSpotlight,
+    dismissCutIn,
+  } = useDuelFeedback(
       subscribeEvents,
       me,
       animationScale,
@@ -265,6 +281,8 @@ export function DuelBoard({
         : undefined,
     );
   const fieldRef = useRef<HTMLDivElement | null>(null);
+  /** A área abaixo da faixa do topo — a régua do HUD (botão de fase). */
+  const stageRef = useRef<HTMLDivElement | null>(null);
   const { registry, cards } = useCardRegistry();
   /**
    * A carta em leitura no painel da esquerda.
@@ -379,6 +397,17 @@ export function DuelBoard({
   const estreita = useMediaQuery(NARROW_TABLE_QUERY);
   const [folhaAberta, setFolhaAberta] = useState(false);
   const [historicoAberto, setHistoricoAberto] = useState(false);
+  /** O "i" do Master Duel: ATK em campo e o tamanho das pilhas de cada um. */
+  const [infoAberta, setInfoAberta] = useState(false);
+  /** O "!" do Master Duel: o que está limitando as jogadas agora. */
+  const [efeitosAbertos, setEfeitosAbertos] = useState(false);
+  /**
+   * Altura (na tela) da linha do meio da mesa — onde o botão de fase do MD
+   * fica, à direita. Medida, e não fixa: depende da inclinação da câmera, do
+   * formato (o TCG tem a fileira das Zonas Extra no meio) e do tamanho da
+   * janela.
+   */
+  const [centroDaMesa, setCentroDaMesa] = useState<number | null>(null);
   /** Dicas de primeira vez (`tips.ts`) — desligáveis na engrenagem. */
   const dicas = useTips();
 
@@ -793,11 +822,19 @@ export function DuelBoard({
       !isLocked &&
       (Boolean(placeResponse) || hasActions || placeSelectionIndex >= 0);
 
-    // O realce diz QUAL é a oferta, não só que existe uma. Uma carta com
-    // efeito ativável brilha dourado e forte — é o que se procura ao varrer a
-    // mesa; um alvo de seleção brilha ciano; uma zona vazia só ganha contorno.
-    const intent: "activate" | "select" | "place" = hasActions
-      ? "activate"
+    // O realce diz QUAL é a oferta, como no Master Duel: amarelo é efeito a
+    // ativar, azul é jogada comum (Invocar, Baixar, Atacar, mudar posição) —
+    // e as duas cores juntas quando a carta tem as duas. Alvo de seleção e
+    // zona vazia têm realce próprio.
+    const acoes = hasActions ? (plan?.byCard.get(key) ?? []) : [];
+    const temEfeito = acoes.some((acao) => commandKind(acao.label) === "activate");
+    const temComum = acoes.some((acao) => commandKind(acao.label) !== "activate");
+    const intent: SlotIntent = hasActions
+      ? temEfeito && temComum
+        ? "both"
+        : temEfeito
+          ? "activate"
+          : "action"
       : selectionIndex >= 0
         ? "select"
         : "place";
@@ -886,6 +923,68 @@ export function DuelBoard({
   }, [snapshot.chainLinks, me]);
   const chainBadgeOf = useCallback((key: string) => chainAt.get(key), [chainAt]);
 
+  /**
+   * O ATK/DEF grande de cada monstro de face para cima — desenhado numa camada
+   * plana por cima da mesa inclinada (ver `FieldStatsLayer`).
+   */
+  const statsDaMesa = useMemo((): FieldStat[] => {
+    const lista: FieldStat[] = [];
+    const incluir = (card: BoardCard | null, foeSide: boolean) => {
+      if (!card || card.code === null || card.faceDown || card.attack === null) return;
+      const definition = registry?.get(card.code);
+      lista.push({
+        zoneKey: cardKey(card.controller, OcgLocation.MZONE, card.sequence),
+        atk: card.attack,
+        def: card.defenseValue,
+        baseAtk: card.baseAttack ?? definition?.atk ?? null,
+        baseDef: card.baseDefense ?? definition?.def ?? null,
+        isLink: Boolean(card.link || definition?.linkval),
+        foeSide,
+      });
+    };
+    you.monsters.forEach((card) => incluir(card, false));
+    foe.monsters.forEach((card) => incluir(card, true));
+    return lista;
+  }, [you.monsters, foe.monsters, registry]);
+
+  /**
+   * O ataque que acabou de ser declarado tira todos os LP de quem o recebe?
+   * É o "Final Blow!" do Master Duel. Conta com a mesa de agora: ataque direto
+   * com ATK ≥ LP, ou contra monstro em posição de ataque com a diferença ≥ LP.
+   * Contra defesa não há dano (perfurar é exceção rara) e não há anúncio.
+   */
+  const [golpeFinal, setGolpeFinal] = useState<number | null>(null);
+  const [ataqueVisto, setAtaqueVisto] = useState<number | null>(null);
+  if (flight && flight.token !== ataqueVisto) {
+    setAtaqueVisto(flight.token);
+    const lado = (controller: number) => (controller === me ? you : foe);
+    const atacante = lado(flight.from.controller).monsters[flight.from.sequence];
+    const defensor = (flight.mine ? foeSeat : me) as 0 | 1;
+    const lp = snapshot.lifePoints[defensor];
+    const atk = atacante?.attack ?? null;
+    let letal = false;
+    if (atk !== null && lp > 0) {
+      if (!flight.to) {
+        letal = atk >= lp;
+      } else {
+        const alvo = lado(flight.to.controller).monsters[flight.to.sequence];
+        letal =
+          Boolean(alvo) &&
+          !alvo!.faceDown &&
+          !alvo!.defense &&
+          alvo!.attack !== null &&
+          atk - alvo!.attack >= lp;
+      }
+    }
+    if (letal) setGolpeFinal(flight.token);
+  }
+  useEffect(() => {
+    if (golpeFinal === null) return;
+    playSfx("finalBlow");
+    const timer = setTimeout(() => setGolpeFinal(null), Math.round(1900 * animationScale));
+    return () => clearTimeout(timer);
+  }, [golpeFinal, animationScale]);
+
   /** Toque longo numa carta: na mesa estreita, a leitura sobe numa folha. */
   const abrirLeitura = useCallback(
     (card: BoardCard) => {
@@ -946,8 +1045,9 @@ export function DuelBoard({
       <DuelCardSlot
         card={card}
         registry={registry}
-        placeholder="Extra"
-        upsideDown={owner === foeSeat}
+        placeholder=""
+        zoneKind="emz"
+        foeSide={owner === foeSeat}
         zoneKey={key}
         onHover={showPreview}
         onLongPress={onLongPress}
@@ -1110,6 +1210,32 @@ export function DuelBoard({
     };
   }, []);
 
+  // O botão de fase acompanha a linha do meio da mesa. Medida depois de cada
+  // render que muda a mesa (formato, janela, mão que cresce e empurra a
+  // câmera): um ResizeObserver na área e na própria linha cobre os dois.
+  useEffect(() => {
+    const stage = stageRef.current;
+    const field = fieldRef.current;
+    if (!stage || !field) return;
+    const medir = () => {
+      const linha = field.querySelector<HTMLElement>("[data-center-line]");
+      if (!linha) return;
+      const s = stage.getBoundingClientRect();
+      const r = linha.getBoundingClientRect();
+      const y = Math.round(r.top + r.height / 2 - s.top);
+      setCentroDaMesa((atual) => (atual === y ? atual : y));
+    };
+    medir();
+    const observador = new ResizeObserver(medir);
+    observador.observe(stage);
+    observador.observe(field);
+    window.addEventListener("resize", medir);
+    return () => {
+      observador.disconnect();
+      window.removeEventListener("resize", medir);
+    };
+  }, [isTcg, estreita]);
+
   /**
    * Jogadas em cartas FORA da mesa desenhada (Extra Deck, Cemitério, banidas,
    * Deck, materiais), num prompt em que se joga clicando na carta.
@@ -1178,125 +1304,130 @@ export function DuelBoard({
       ? `${opponentName} está jogando…`
       : null;
 
-  /** As placas de LP e o que vai junto delas (marcas do jogador, avisos de dano). */
+  /** As placas de LP, nos cantos — como no Master Duel. */
   const placaMinha = (
-    <>
-      <LifeBar
-        name={playerName}
-        role={spectating ? "Bot" : "Você"}
-        lp={snapshot.lifePoints[me]}
-        active={snapshot.turnPlayer === me}
-        mine={!spectating}
-        acting={minhaPergunta}
-      />
-      <PlayerHints hints={snapshot.playerHints[me]} up={!estreita} />
-      <FlashLayer flashes={flashes} anchor="player" up={!estreita} />
-    </>
+    <LifePlate
+      name={playerName}
+      role={spectating ? "Bot" : "Você"}
+      lp={snapshot.lifePoints[me]}
+      side="me"
+      active={snapshot.turnPlayer === me}
+      acting={minhaPergunta}
+    />
   );
   const placaDoOponente = (
-    <>
-      <LifeBar
-        name={opponentName}
-        role="Oponente"
-        lp={snapshot.lifePoints[foeSeat]}
-        active={snapshot.turnPlayer === foeSeat}
-        align="right"
-        acting={waitingForFoe || foeIsPlaying}
-      />
-      <PlayerHints hints={snapshot.playerHints[foeSeat]} align="right" />
-      <FlashLayer flashes={flashes} anchor="opponent" />
-    </>
+    <LifePlate
+      name={opponentName}
+      role="Oponente"
+      lp={snapshot.lifePoints[foeSeat]}
+      side="foe"
+      active={snapshot.turnPlayer === foeSeat}
+      acting={waitingForFoe || foeIsPlaying}
+    />
   );
-  /** Engrenagem, som e — na mesa larga — o registro do duelo. */
-  const controlesDaMesa = (
-    <>
-      {!estreita && (
-        <button
-          type="button"
-          data-table-control
-          data-open-log
-          aria-expanded={historicoAberto}
-          onClick={() => setHistoricoAberto((aberto) => !aberto)}
-          title="Registro do duelo — tudo o que aconteceu até aqui"
-          className={`tf-panel rounded-md px-2.5 py-1.5 text-[12px] font-bold leading-none transition hover:brightness-125 ${
-            historicoAberto ? "text-white ring-1 ring-[color:var(--tf-gold)]" : "text-[color:var(--tf-gold-bright)]"
-          }`}
-        >
-          📜 Registro
-        </button>
-      )}
-      {onPrefsChange && (
-        <DuelSettings
-          prefs={prefs}
-          onChange={onPrefsChange}
-          pacing={pacing}
-          tips={spectating ? undefined : { on: !dicas.tips.off, onToggle: (on) => dicas.setOff(!on), onReset: dicas.reset }}
-        />
-      )}
-      <SoundControl />
-    </>
+
+  /** Quantos avisos de jogador ("não pode Invocar…") estão valendo — o "!" do MD. */
+  const efeitosAtivos = snapshot.playerHints[me].length + snapshot.playerHints[foeSeat].length;
+
+  /** A engrenagem: modo de resposta, velocidade, som, idioma, dicas e saída. */
+  const engrenagem = (
+    <DuelSettings
+      prefs={prefs}
+      onChange={onPrefsChange}
+      pacing={pacing}
+      tips={spectating ? undefined : { on: !dicas.tips.off, onToggle: (on) => dicas.setOff(!on), onReset: dicas.reset }}
+      onSurrender={onSurrender && snapshot.winner === null ? onSurrender : undefined}
+      leave={{ href: ending.backHref, label: ending.backLabel, confirm: snapshot.winner === null && !spectating }}
+    />
+  );
+
+  const botoesDaMesa = (
+    <HudButtons
+      chainMode={onPrefsChange && !spectating ? prefs.chainMode : null}
+      forcing={ctrlHeld}
+      onChainMode={(chainMode) => onPrefsChange?.({ chainMode })}
+      infoOpen={infoAberta}
+      onInfo={() => setInfoAberta((aberta) => !aberta)}
+      effectsCount={efeitosAtivos}
+      effectsOpen={efeitosAbertos}
+      onEffects={() => setEfeitosAbertos((abertos) => !abertos)}
+      logOpen={historicoAberto}
+      onLog={() => setHistoricoAberto((aberto) => !aberto)}
+    />
+  );
+
+  const botaoDeFase = (
+    <PhaseButton
+      phase={snapshot.phase}
+      turn={snapshot.turnCount}
+      mine={snapshot.turnPlayer === me}
+      actions={plan?.global ?? []}
+      // Escolhendo a zona de uma jogada, a fase não anda: primeiro termina
+      // (ou cancela) a jogada.
+      disabled={busy || zonaAntes !== null || spectating}
+      onRespond={respond}
+    />
   );
 
   return (
     <div
-      className="tf-playmat md-duel relative flex min-h-0 flex-1 flex-col overflow-hidden"
+      // Tela cheia, como o Master Duel: a mesa cobre o cabeçalho do site (que
+      // fica montado por baixo) e a largura máxima da página. Sair do duelo é
+      // pela engrenagem — e, no fim, pelo resultado.
+      className={`tf-playmat md-duel fixed inset-0 z-30 flex flex-col overflow-hidden ${
+        estreita ? "md-narrow" : "md-wide"
+      }`}
       // Estado do motor para quem observa a mesa de fora (os testes de
       // navegador): o turno do bot é ritmado — cada ataque espera a investida
       // inteira —, e sem isto um turno longo dele parecia "nada clicável, mesa
       // parada". O texto "Processando" que o teste procurava já não existe.
       data-processing={snapshot.isProcessing ? "1" : undefined}
       data-waiting-foe={waitingForFoe ? "1" : undefined}
+      // De quem é o turno: a borda da metade dele acende na cor dele (azul
+      // seu, vermelho do oponente) — a luz de turno do MD.
+      data-turn-side={snapshot.turnCount > 0 ? (snapshot.turnPlayer === me ? "me" : "foe") : undefined}
+      data-format={snapshot.format}
     >
-      {/* Mesa estreita (sem trilhos): as placas de LP numa faixa no topo. Na
-          mesa larga elas moram nos cantos, como no Master Duel — a sua
-          embaixo à esquerda, a do oponente em cima à direita. */}
+      {/* O cenário: o fundo que no MD é o ambiente 3D em volta da mesa. */}
+      <div aria-hidden className="md-arena" />
+
+      {/* As faixas do MD atravessando a tela inteira ("TURN CHANGE", "BATTLE
+          PHASE") e o corte de invocação — por cima do HUD, por baixo das
+          decisões. */}
+      <PhaseBanner banner={banner} />
+      <FinalBlow token={golpeFinal} duration={Math.round(1900 * animationScale)} />
+      <SummonCutIn
+        cutIn={pacing === "room" || prefs.cutIns ? cutIn : null}
+        registry={registry}
+        onSkip={() => {
+          dismissCutIn();
+          onHurry?.();
+        }}
+      />
+
+      {/* Mesa estreita (celular, tablet em pé): as placas numa faixa no
+          topo — nos cantos elas cobririam a mesa. */}
       {estreita && (
-        <div className="flex shrink-0 items-stretch gap-2 px-2 pt-1.5">
-          <div className="relative flex min-w-0 flex-1">{placaMinha}</div>
-          <div className="relative flex min-w-0 flex-1">{placaDoOponente}</div>
-          {controlesDaMesa}
+        <div className="md-narrow-top relative z-20 flex shrink-0 items-stretch gap-1.5 px-1.5 pt-1.5">
+          <div className="shrink-0">{engrenagem}</div>
+          <div className="relative flex min-w-0 flex-1">
+            {placaMinha}
+            <FlashLayer flashes={flashes} anchor="player" />
+          </div>
+          <div className="relative flex min-w-0 flex-1">
+            {placaDoOponente}
+            <FlashLayer flashes={flashes} anchor="opponent" />
+          </div>
         </div>
       )}
 
-      <div className="relative flex min-h-0 flex-1 overflow-hidden">
-        {/*
-          Leitura da carta à esquerda (o painel de detalhes do Master Duel),
-          com a corrente em cima e a sua placa de LP embaixo; à direita, a
-          placa do oponente, as fases e os botões da mesa. O histórico virou
-          gaveta (o "Registro do duelo" do MD): a coluna que ele ocupava
-          voltou para o campo, que é o que cresce — as cartas são limitadas
-          também pela largura (ver `CARD_SHAPE`).
-        */}
-        {!estreita && (
-          <aside className="flex w-[var(--tf-rail-left)] shrink-0 flex-col gap-2 overflow-hidden p-2">
-            <ChainStack links={snapshot.chainLinks ?? []} me={me} registry={registry} />
-            <CardPreview
-              card={cartaEmLeitura}
-              registry={registry}
-              marksOf={marksOf}
-              activation={ativacaoEmLeitura}
-              viewer={me}
-            />
-            <div className="relative flex shrink-0">{placaMinha}</div>
-          </aside>
-        )}
-
+      <div ref={stageRef} className="md-stage relative flex min-h-0 flex-1 overflow-hidden">
         {/* -------- campo -------- */}
         <div
           ref={fieldRef}
-          className={`md-field relative flex min-h-0 min-w-0 flex-1 flex-col gap-1 p-1.5 ${
-            shake !== null ? "tf-shake" : ""
-          }`}
-          // Teto das cartas pela LARGURA do campo (ver `CARD_SHAPE`): uma
-          // fileira ocupa 7 larguras de carta + 36 px de vãos, e as banidas
-          // ficam penduradas FORA dela (`GraveCorner`), 0,62 carta + 4 px de
-          // cada lado — a de cima à esquerda, a de baixo à direita. Sem contar
-          // as duas, no Goat em 1440×900 (fileiras mais altas, logo cartas
-          // mais largas) a pilha de banidas caía sobre os botões BP/M2 da
-          // trilha de fases. `cqw` é a largura deste contêiner.
-          // O teto mora no CSS (`.md-field`): com a mesa deitada, as fileiras
-          // de longe encolhem e a conta muda — e em tela baixa (mesa plana)
-          // volta a ser a de antes.
+          className={`md-field relative flex min-h-0 min-w-0 flex-1 flex-col ${shake !== null ? "tf-shake" : ""}`}
+          // Teto das cartas pela LARGURA do campo (ver `CARD_SHAPE`): o
+          // `.md-field` faz a conta em `cqw` deste contêiner.
           style={{ containerType: "inline-size" }}
           data-field
         >
@@ -1314,17 +1445,16 @@ export function DuelBoard({
           {/* Dica de primeira vez — acima dos diálogos (é deles que ela fala),
               no canto, sem tapar a jogada. */}
           {dica && (
-            <div
-              data-tip={dica.id}
-              className="tf-panel absolute left-2 top-16 z-[55] w-[min(300px,80%)] rounded-md border-sky-400/40 p-2.5 shadow-xl shadow-black/60"
-            >
-              <p className="text-[12px] leading-snug text-zinc-100 [@media(max-height:500px)]:text-[11px]">💡 {dica.text}</p>
+            <div data-tip={dica.id} className="md-tip absolute left-2 top-[12%] z-[55] w-[min(300px,80%)] p-2.5">
+              <p className="text-[12px] leading-snug text-zinc-100 [@media(max-height:500px)]:text-[11px]">
+                {dica.text}
+              </p>
               <div className="mt-2 flex gap-2">
                 <button
                   type="button"
                   data-table-control
                   onClick={() => dicas.markSeen(dica.id)}
-                  className="rounded bg-sky-600 px-2.5 py-1 text-[11px] font-bold text-white hover:bg-sky-500"
+                  className="md-pill md-pill-primary px-3 py-1 text-[11px]"
                 >
                   Entendi
                 </button>
@@ -1356,8 +1486,8 @@ export function DuelBoard({
           {toss && <TossOverlay toss={toss} />}
           {reveal && <RevealOverlay reveal={reveal} registry={registry} />}
 
-          {/* Mão do oponente: versos, para se saber quantas ele tem — e as
-              faces das que o core marcou como públicas (Olho Mágico da
+          {/* Mão do oponente: versos no alto, cortados pela borda da tela — e
+              as faces das que o core marcou como públicas (Olho Mágico da
               Verdade). */}
           <OpponentHand
             cards={foe.hand}
@@ -1369,181 +1499,206 @@ export function DuelBoard({
 
           {/* A câmera do Master Duel: a mesa vista de trás e de cima do
               jogador, deitada em perspectiva — o campo do oponente fica mais
-              longe e menor, o seu mais perto. Só as quatro fileiras (e as
-              Zonas Extra) entram no plano inclinado; mãos, avisos, voos e
-              diálogos ficam em pé, na tela. As animações de voo leem a caixa
-              de cada zona com `getBoundingClientRect`, que já devolve a
-              posição projetada — continuam acertando o lugar certo. */}
+              longe e menor, o seu mais perto. Só as fileiras entram no plano
+              inclinado; mãos, avisos, voos e diálogos ficam em pé, na tela. As
+              animações de voo leem a caixa de cada zona com
+              `getBoundingClientRect`, que já devolve a posição projetada. */}
           <div data-board-camera className="md-camera flex min-h-0 flex-1 flex-col">
-          <div data-board3d className="md-board flex min-h-0 flex-1 flex-col justify-center gap-1.5">
-            {/* Oponente — espelhado e de cabeça para baixo. */}
-            <FieldRow
-              cards={foe.spells}
-              owner={foeSeat}
-              zone="spell"
-              mirrored
-              left={
-                <DuelPile
-                  label="Deck"
-                  count={foe.deckSize}
-                  warnLow
-                  // Índice ABSOLUTO: o voo da compra procura a pilha por
-                  // `[data-pile="deck-${player}"]`, com o número que o engine
-                  // usa. Fixar "deck-1" aqui mandava a carta do assento 1 para
-                  // o deck errado quando ele é quem assiste.
-                  dataPile={`deck-${foeSeat}`}
-                />
-              }
-              right={
-                <DuelPile
-                  label="Extra"
-                  dataPile={`extra-${foeSeat}`}
-                  count={foe.extraSize}
-                  badge={faceUpBadge(foe.extraFaceUp)}
-                  // Do Extra Deck do oponente só se vê o que é público: os
-                  // Pêndulos virados para cima.
-                  onOpen={
-                    foe.extraFaceUp > 0
-                      ? openWith("Extra Deck do oponente — viradas para cima", (p) => p.foe.extra)
-                      : undefined
-                  }
-                  openTitle="Ver os Pêndulos virados para cima no Extra Deck do oponente"
-                />
-              }
-              {...shared}
-            />
-            <FieldRow
-              cards={foe.monsters.slice(0, 5)}
-              owner={foeSeat}
-              zone="monster"
-              mirrored
-              left={
-                <GraveCorner
-                  banished={
-                    <DuelPile
-                      label="Banidas"
-                      dataPile={`banished-${foeSeat}`}
-                      count={foe.banishedSize}
-                      onOpen={openWith("Banidas do oponente", (p) => p.foe.banished)}
-                    />
-                  }
-                  grave={
-                    <DuelPile
-                      label="Cemit."
-                      dataPile={`grave-${foeSeat}`}
-                      count={foe.graveSize}
-                      onOpen={openWith("Cemitério do oponente", (p) => p.foe.grave)}
-                      topCard={foe.graveTop}
-                      registry={registry}
-                      upsideDown
-                    />
-                  }
-                  paraFora="left"
-                />
-              }
-              right={<FieldSpellSlot player={foe} owner={foeSeat} upsideDown {...shared} />}
-              {...shared}
-            />
+            <div data-board3d className="md-board flex min-h-0 flex-col justify-center">
+              {/* A Magia de Campo muda a mesa, como no MD: a arte dela tinge a
+                  metade de quem a controla. */}
+              <FieldSpellArt card={foe.field} registry={registry} side="foe" />
+              <FieldSpellArt card={you.field} registry={registry} side="me" />
+              <FieldCracks lp={snapshot.lifePoints[foeSeat]} side="foe" />
+              <FieldCracks lp={snapshot.lifePoints[me]} side="me" />
+              {/* Oponente — espelhado (a zona 1 dele fica à direita de quem
+                  olha), mas com as cartas de pé, como no MD. */}
+              <FieldRow
+                cards={foe.spells}
+                owner={foeSeat}
+                zone="spell"
+                mirrored
+                left={
+                  <DuelPile
+                    label="Deck"
+                    kind="deck"
+                    count={foe.deckSize}
+                    warnLow
+                    // Índice ABSOLUTO: o voo da compra procura a pilha por
+                    // `[data-pile="deck-${player}"]`, com o número que o engine
+                    // usa. Fixar "deck-1" aqui mandava a carta do assento 1 para
+                    // o deck errado quando ele é quem assiste.
+                    dataPile={`deck-${foeSeat}`}
+                  />
+                }
+                right={
+                  <DuelPile
+                    label="Extra"
+                    kind="extra"
+                    dataPile={`extra-${foeSeat}`}
+                    count={foe.extraSize}
+                    badge={faceUpBadge(foe.extraFaceUp)}
+                    // Do Extra Deck do oponente só se vê o que é público: os
+                    // Pêndulos virados para cima.
+                    onOpen={
+                      foe.extraFaceUp > 0
+                        ? openWith("Extra Deck do oponente — viradas para cima", (p) => p.foe.extra)
+                        : undefined
+                    }
+                    openTitle="Ver os Pêndulos virados para cima no Extra Deck do oponente"
+                  />
+                }
+                {...shared}
+              />
+              <FieldRow
+                cards={foe.monsters.slice(0, 5)}
+                owner={foeSeat}
+                zone="monster"
+                mirrored
+                left={
+                  <GraveColumn
+                    // Do lado de lá, espelhado: o Cemitério em cima (perto do
+                    // Deck dele), as banidas embaixo, perto do meio da mesa.
+                    order="grave-first"
+                    grave={
+                      <DuelPile
+                        label="Cemit."
+                        kind="grave"
+                        dataPile={`grave-${foeSeat}`}
+                        count={foe.graveSize}
+                        onOpen={openWith("Cemitério do oponente", (p) => p.foe.grave)}
+                        topCard={foe.graveTop}
+                        registry={registry}
+                      />
+                    }
+                    banished={
+                      <DuelPile
+                        label="Banidas"
+                        kind="banished"
+                        dataPile={`banished-${foeSeat}`}
+                        count={foe.banishedSize}
+                        onOpen={openWith("Banidas do oponente", (p) => p.foe.banished)}
+                        topCard={foe.banished[foe.banished.length - 1] ?? null}
+                        registry={registry}
+                      />
+                    }
+                  />
+                }
+                right={<FieldSpellSlot player={foe} owner={foeSeat} {...shared} />}
+                {...shared}
+              />
 
-            {/* No TCG, a fileira das Zonas Extra entre os dois campos: as
-                duas zonas ficam exatamente sobre as colunas 2 e 4, que é o que
-                faz as setas Link de quem está nelas se lerem — por isso o vão
-                do meio é uma carta vazia. A trilha de fases, que morava nesse
-                vão (do tamanho de uma carta, ilegível), tem coluna própria ao
-                lado do histórico. No Goat, só um fio separando os campos. */}
-            {isTcg ? (
-              <div
-                data-row="extra-monster-zones"
-                className="flex min-h-0 flex-1 items-center justify-center gap-1.5"
-              >
-                <div className={CARD_SHAPE} />
-                <div className={CARD_SHAPE} />
-                {extraZone("left")}
-                <div className={CARD_SHAPE} />
-                {extraZone("right")}
-                <div className={CARD_SHAPE} />
-                <div className={CARD_SHAPE} />
-              </div>
-            ) : (
-              <div className="mx-10 h-px shrink-0 bg-gradient-to-r from-transparent via-[color:var(--tf-gold-dim)] to-transparent" />
-            )}
+              {/* O meio da mesa. No TCG, a fileira das Zonas Extra: as duas
+                  zonas ficam exatamente sobre as colunas 2 e 4, que é o que faz
+                  as setas Link de quem está nelas se lerem. No Goat, só a linha
+                  que separa os dois campos. O botão de fase se alinha por ela
+                  (`data-center-line`). */}
+              {isTcg ? (
+                <div
+                  data-row="extra-monster-zones"
+                  data-center-line
+                  className="md-row md-row-center flex min-h-0 items-center justify-center"
+                >
+                  <div className={`${CARD_SHAPE} md-row-spacer`} />
+                  <div className={`${CARD_SHAPE} md-row-spacer`} />
+                  {extraZone("left")}
+                  <div className={`${CARD_SHAPE} md-row-spacer`} />
+                  {extraZone("right")}
+                  <div className={`${CARD_SHAPE} md-row-spacer`} />
+                  <div className={`${CARD_SHAPE} md-row-spacer`} />
+                </div>
+              ) : (
+                <div data-center-line className="md-center-line shrink-0" />
+              )}
 
-            <FieldRow
-              cards={you.monsters.slice(0, 5)}
-              owner={me}
-              zone="monster"
-              left={<FieldSpellSlot player={you} owner={me} {...shared} />}
-              right={
-                <GraveCorner
-                  grave={
-                    <DuelPile
-                      label="Cemit."
-                      dataPile={`grave-${me}`}
-                      count={you.graveSize}
-                      onOpen={openWith("Seu Cemitério", (p) => p.you.grave)}
-                      topCard={you.graveTop}
-                      registry={registry}
-                      actionable={pilhaAcionavel(me, OcgLocation.GRAVE)}
-                    />
-                  }
-                  banished={
-                    <DuelPile
-                      label="Banidas"
-                      dataPile={`banished-${me}`}
-                      count={you.banishedSize}
-                      onOpen={openWith("Suas banidas", (p) => p.you.banished)}
-                      actionable={pilhaAcionavel(me, OcgLocation.REMOVED)}
-                    />
-                  }
-                />
-              }
-              {...shared}
-            />
-            <FieldRow
-              cards={you.spells}
-              owner={me}
-              zone="spell"
-              left={
-                <DuelPile
-                  label="Extra"
-                  dataPile={`extra-${me}`}
-                  count={you.extraSize}
-                  badge={faceUpBadge(you.extraFaceUp)}
-                  onOpen={openWith("Seu Extra Deck", (p) => p.you.extra)}
-                  actionable={pilhaAcionavel(me, OcgLocation.EXTRA)}
-                />
-              }
-              right={
-                <DuelPile
-                  label="Deck"
-                  count={you.deckSize}
-                  warnLow
-                  dataPile={`deck-${me}`}
-                  // O deck é a única pilha que não se abre para consulta — o
-                  // conteúdo é secreto. Sobra como o lugar natural para o
-                  // gesto que encerra a partida, como empurrar o deck na mesa.
-                  onOpen={
-                    onSurrender && snapshot.winner === null
-                      ? () => setDeckAberto(true)
-                      : undefined
-                  }
-                  openTitle="Seu Deck — desistir do duelo"
-                />
-              }
-              {...shared}
-            />
+              <FieldRow
+                cards={you.monsters.slice(0, 5)}
+                owner={me}
+                zone="monster"
+                left={<FieldSpellSlot player={you} owner={me} {...shared} />}
+                right={
+                  <GraveColumn
+                    order="banished-first"
+                    banished={
+                      <DuelPile
+                        label="Banidas"
+                        kind="banished"
+                        dataPile={`banished-${me}`}
+                        count={you.banishedSize}
+                        onOpen={openWith("Suas banidas", (p) => p.you.banished)}
+                        topCard={you.banished[you.banished.length - 1] ?? null}
+                        registry={registry}
+                        actionable={pilhaAcionavel(me, OcgLocation.REMOVED)}
+                      />
+                    }
+                    grave={
+                      <DuelPile
+                        label="Cemit."
+                        kind="grave"
+                        dataPile={`grave-${me}`}
+                        count={you.graveSize}
+                        onOpen={openWith("Seu Cemitério", (p) => p.you.grave)}
+                        topCard={you.graveTop}
+                        registry={registry}
+                        actionable={pilhaAcionavel(me, OcgLocation.GRAVE)}
+                      />
+                    }
+                  />
+                }
+                {...shared}
+              />
+              <FieldRow
+                cards={you.spells}
+                owner={me}
+                zone="spell"
+                left={
+                  <DuelPile
+                    label="Extra"
+                    kind="extra"
+                    dataPile={`extra-${me}`}
+                    count={you.extraSize}
+                    badge={faceUpBadge(you.extraFaceUp)}
+                    onOpen={openWith("Seu Extra Deck", (p) => p.you.extra)}
+                    actionable={pilhaAcionavel(me, OcgLocation.EXTRA)}
+                  />
+                }
+                right={
+                  <DuelPile
+                    label="Deck"
+                    kind="deck"
+                    count={you.deckSize}
+                    warnLow
+                    dataPile={`deck-${me}`}
+                    // O deck é a única pilha que não se abre para consulta — o
+                    // conteúdo é secreto. Sobra como o lugar natural para o
+                    // gesto que encerra a partida, como empurrar o deck na mesa
+                    // (a engrenagem também tem a rendição, como no MD).
+                    onOpen={
+                      onSurrender && snapshot.winner === null
+                        ? () => setDeckAberto(true)
+                        : undefined
+                    }
+                    openTitle="Seu Deck — desistir do duelo"
+                  />
+                }
+                {...shared}
+              />
+            </div>
           </div>
-          </div>
+
+          <FieldStatsLayer stats={statsDaMesa} fieldRef={fieldRef} />
 
           <Hand cards={you.hand} seat={me} {...shared} />
 
-          {/* Janela de resposta na corrente, sem popup (Master Duel): as cartas
-              que respondem brilham, e a barra diz a quê e oferece passar. */}
+          {/* Janela de resposta na corrente (Master Duel): as cartas que
+              respondem brilham, e a barra diz a quê e oferece passar. */}
           {plan &&
             prompt?.type === OcgMessageType.SELECT_CHAIN &&
             snapshot.promptPlayer === me &&
             !busy && (
               <ChainResponseBar
+                // Uma pergunta nova zera a escolha e o painel recolhido.
+                key={snapshot.promptId}
                 plan={plan}
                 chain={snapshot.chain}
                 registry={registry}
@@ -1556,12 +1711,9 @@ export function DuelBoard({
           {/* Escolhendo a zona de uma jogada (ver `zone-first.ts`): nada foi
               enviado ao core ainda, então "Cancelar" de fato desiste. */}
           {zonaAntes && (
-            <div className="pointer-events-none absolute inset-x-0 bottom-[19%] z-40 flex justify-center">
-              <div
-                data-zone-first
-                className="md-prompt-bar pointer-events-auto flex items-center gap-3 rounded-full px-4 py-2"
-              >
-                <span className="text-[13px] text-zinc-100">
+            <div className="md-banner-wrap pointer-events-none absolute inset-x-0 z-40 flex justify-center">
+              <div data-zone-first data-menu-avoid className="md-banner pointer-events-auto">
+                <span className="md-banner-text">
                   {(() => {
                     const definition = registry?.get(zonaAntes.action.code);
                     const nome = definition ? texto.name(definition) : "a carta";
@@ -1575,7 +1727,7 @@ export function DuelBoard({
                     playSfx("click");
                     setZonaAntes(null);
                   }}
-                  className="rounded-full border border-[color:var(--tf-slot-border)] px-4 py-1.5 text-[13px] text-[color:var(--tf-gold-bright)] hover:bg-black/50"
+                  className="md-pill md-pill-ghost px-4 py-1.5 text-[13px]"
                 >
                   Cancelar <span className="opacity-60">(Esc)</span>
                 </button>
@@ -1583,8 +1735,8 @@ export function DuelBoard({
             </div>
           )}
 
-          {/* Barra flutuante da seleção múltipla: fica sobre o campo, centrada,
-              porque o jogador precisa continuar vendo as cartas que marca. */}
+          {/* A barra da seleção no campo: fica sobre a mesa, centrada, porque
+              o jogador precisa continuar vendo as cartas que marca. */}
           {selection && !needsPicker && (
             <SelectionBar
               instruction={selectionInstruction}
@@ -1609,6 +1761,17 @@ export function DuelBoard({
             />
           )}
 
+          {/* A pergunta de uma zona só (SELECT_PLACE): as zonas brilham na mesa
+              e a faixa diz o que se escolhe — antes não havia instrução
+              nenhuma, só as zonas acesas. */}
+          {plan && plan.places.length > 0 && !placeSelection && !zonaAntes && !busy && (
+            <div className="md-banner-wrap pointer-events-none absolute inset-x-0 z-40 flex justify-center">
+              <div data-place-banner data-menu-avoid className="md-banner pointer-events-auto">
+                <span className="md-banner-text">{selectionInstruction || "Escolha uma zona"}</span>
+              </div>
+            </div>
+          )}
+
           {/* SELECT_PLACE/SELECT_DISFIELD com mais de 1 zona: todo candidato é
               sempre uma zona do campo (nunca "fora do tabuleiro"), então só
               precisa da barra — nunca do modal de busca. */}
@@ -1626,96 +1789,107 @@ export function DuelBoard({
               onRespond={respond}
             />
           )}
+
+          {outrasJogadas.length > 0 && !outrasAbertas && (
+            <div className="md-banner-wrap pointer-events-none absolute inset-x-0 z-40 flex justify-center">
+              <button
+                type="button"
+                data-other-actions={outrasJogadas.length}
+                onClick={() => setOutrasAbertas(true)}
+                className="md-pill md-pill-primary pointer-events-auto px-4 py-2 text-[13px]"
+              >
+                ⚡ Outras jogadas ({outrasJogadas.length})
+              </button>
+            </div>
+          )}
         </div>
 
-        {outrasJogadas.length > 0 && !outrasAbertas && (
-          <div className="pointer-events-none absolute bottom-[19%] left-1/2 z-40 -translate-x-1/2">
-            <button
-              type="button"
-              data-other-actions={outrasJogadas.length}
-              onClick={() => setOutrasAbertas(true)}
-              className="tf-panel pointer-events-auto rounded-full px-4 py-2 text-[13px] font-bold text-[color:var(--tf-gold-bright)] shadow-xl shadow-black/60 hover:brightness-125"
-            >
-              ⚡ Outras jogadas ({outrasJogadas.length})
-            </button>
-          </div>
-        )}
+        {/* -------- HUD (mesa larga) --------
+            Os cantos do Master Duel: a engrenagem em cima à esquerda, a placa
+            do oponente em cima à direita, a sua embaixo à esquerda, os botões
+            redondos embaixo à direita e o botão de fase à direita, na altura
+            da linha do meio da mesa. A leitura da carta flutua à esquerda. */}
+        {!estreita && (
+          <>
+            <div className="md-hud-gear absolute z-[45]">{engrenagem}</div>
 
-        {/* -------- trilho direito: placa do oponente e fases --------
-            A trilha de fases é o que o jogador consulta antes de cada jogada
-            ("ainda estou na Main 1?") e o botão que a avança. No MD ela é o
-            botão de fase à direita do campo; aqui as transições ficam todas à
-            vista (um clique, e não "abrir o menu de fases e escolher"). Em
-            cima, a placa de LP do oponente — o canto de cima à direita do MD. */}
-        <aside
-          className={`flex w-[var(--tf-rail-right)] shrink-0 gap-2 overflow-hidden p-2 ${
-            estreita ? "" : "flex-col"
-          }`}
-        >
-          {!estreita && (
-            <>
-              <div className="flex shrink-0 items-center justify-end gap-1.5">{controlesDaMesa}</div>
-              <div className="relative flex shrink-0">{placaDoOponente}</div>
+            <aside className="md-detail-rail absolute z-[44] flex flex-col gap-2">
+              <ChainStack links={snapshot.chainLinks ?? []} me={me} registry={registry} />
+              <CardPreview
+                card={cartaEmLeitura}
+                registry={registry}
+                marksOf={marksOf}
+                activation={ativacaoEmLeitura}
+                viewer={me}
+                hideEmpty
+              />
+            </aside>
+
+            <div className="md-hud-foe absolute z-[45]">
+              {placaDoOponente}
+              <FlashLayer flashes={flashes} anchor="opponent" />
               {/* Altura reservada: o aviso entra e sai a cada jogada do
-                  oponente, e sem a reserva as fases pulavam junto. */}
-              <div className="flex h-6 shrink-0 justify-end">
+                  oponente, e sem a reserva o resto pulava junto. */}
+              <div className="flex h-6 justify-end pr-2 pt-1">
                 {avisoDeEspera && <WaitingBanner text={avisoDeEspera} place="rail" />}
               </div>
-            </>
-          )}
-          <div className={`flex min-h-0 ${estreita ? "" : "flex-1 justify-center"}`}>
-          <PhaseTrack
-            phase={snapshot.phase}
-            turn={snapshot.turnCount}
-            mine={snapshot.turnPlayer === me}
-            actions={plan?.global ?? []}
-            // Escolhendo a zona de uma jogada, a fase não anda: primeiro
-            // termina (ou cancela) a jogada.
-            disabled={busy || zonaAntes !== null}
-            onRespond={respond}
-            chainMode={onPrefsChange && !spectating ? prefs.chainMode : null}
-            forcing={ctrlHeld}
-            onChainMode={(chainMode) => onPrefsChange?.({ chainMode })}
-            extras={
-              estreita ? (
-                <div className="flex flex-col gap-1">
-                  <button
-                    type="button"
-                    data-table-control
-                    data-open-log
-                    onClick={() => setHistoricoAberto(true)}
-                    className="tf-phase-pip rounded-md py-1 text-[10px] font-bold text-[color:var(--tf-gold-bright)]"
-                  >
-                    📜 Histórico
-                  </button>
-                  <button
-                    type="button"
-                    data-table-control
-                    data-open-card
-                    onClick={() => setFolhaAberta(true)}
-                    className="tf-phase-pip rounded-md py-1 text-[10px] font-bold text-[color:var(--tf-gold-bright)]"
-                  >
-                    🔍 Carta
-                  </button>
-                </div>
-              ) : null
-            }
-          />
-          </div>
-        </aside>
+            </div>
 
-        {/* Registro do duelo, em gaveta ao lado do trilho direito — o "Duel
-            Log" do Master Duel, que fica a um botão de distância em vez de
-            ocupar uma coluna da mesa o tempo todo. Fica MONTADO fechado: o
-            que se lê dele (testes, leitores de tela) continua lá, e abrir não
-            perde a rolagem. Sem pano escuro: dá para jogar com ele aberto. */}
+            <div className="md-hud-me absolute z-[45]">
+              {placaMinha}
+              <FlashLayer flashes={flashes} anchor="player" up />
+            </div>
+
+            <div className="md-hud-phase absolute z-[46]" style={{ top: centroDaMesa ?? undefined }}>
+              {botaoDeFase}
+            </div>
+
+            <div className="md-hud-corner absolute z-[46]">{botoesDaMesa}</div>
+          </>
+        )}
+
+        {/* -------- mesa estreita: coluna da direita -------- */}
+        {estreita && (
+          <aside className="md-narrow-rail relative z-20 flex shrink-0 flex-col items-center justify-center gap-2 p-1.5">
+            {botaoDeFase}
+            {botoesDaMesa}
+            <button
+              type="button"
+              data-table-control
+              data-open-card
+              onClick={() => setFolhaAberta(true)}
+              className="md-round"
+              title="Ler a carta em foco"
+            >
+              <span aria-hidden className="md-round-i">🔍</span>
+            </button>
+            {avisoDeEspera && <span className="sr-only">{avisoDeEspera}</span>}
+          </aside>
+        )}
+
+        {/* Informações do duelo ("i") e o que limita as jogadas ("!"). */}
+        {infoAberta && (
+          <DuelInfo
+            you={you}
+            foe={foe}
+            estreita={estreita}
+            onClose={() => setInfoAberta(false)}
+          />
+        )}
+        {efeitosAbertos && (
+          <EffectsPanel
+            mine={snapshot.playerHints[me]}
+            theirs={snapshot.playerHints[foeSeat]}
+            onClose={() => setEfeitosAbertos(false)}
+          />
+        )}
+
+        {/* Registro do duelo, à direita — o "Duel Log" do Master Duel, a um
+            botão de distância. Fica MONTADO fechado: o que se lê dele
+            (testes, leitores de tela) continua lá, e abrir não perde a
+            rolagem. Sem pano escuro: dá para jogar com ele aberto. */}
         {!estreita && (
-          <div
-            data-log-drawer
-            hidden={!historicoAberto}
-            className="md-log-drawer absolute bottom-2 top-2 z-[45] flex w-[min(340px,40vw)] flex-col"
-            style={{ right: "var(--tf-rail-right)" }}
-          >
+          <div data-log-drawer hidden={!historicoAberto} className="md-log-drawer absolute z-[47] flex flex-col">
             <DuelLog
               entries={snapshot.log}
               reveals={minhasRevelacoes}
@@ -1723,14 +1897,13 @@ export function DuelBoard({
               me={me}
               onHover={showPreview}
               registry={registry}
+              onClose={() => setHistoricoAberto(false)}
             />
           </div>
         )}
 
         {/* Mesa estreita: o histórico e a leitura em painéis que se abrem —
-            sem os trilhos, a largura inteira fica para as cartas. Os botões
-            moram na coluna das fases (ver `PhaseTrack.extras`): flutuando
-            sobre a mesa eles cobriam a primeira carta da mão ou o "EP". */}
+            sem os trilhos, a largura inteira fica para as cartas. */}
         {estreita && historicoAberto && (
           <div
             data-log-sheet
@@ -1743,13 +1916,6 @@ export function DuelBoard({
               className="flex h-full w-[min(340px,88vw)] flex-col gap-2 p-2"
               onClick={(event) => event.stopPropagation()}
             >
-              <button
-                type="button"
-                onClick={() => setHistoricoAberto(false)}
-                className="tf-panel self-end rounded-md px-3 py-1 text-[12px] text-zinc-300"
-              >
-                ✕ Fechar
-              </button>
               <ChainStack links={snapshot.chainLinks ?? []} me={me} registry={registry} />
               <DuelLog
                 entries={snapshot.log}
@@ -1758,6 +1924,7 @@ export function DuelBoard({
                 me={me}
                 onHover={showPreview}
                 registry={registry}
+                onClose={() => setHistoricoAberto(false)}
               />
             </div>
           </div>
@@ -1777,7 +1944,7 @@ export function DuelBoard({
               <button
                 type="button"
                 onClick={() => setFolhaAberta(false)}
-                className="tf-panel self-end rounded-md px-3 py-1 text-[12px] text-zinc-300"
+                className="md-pill md-pill-ghost self-end px-3 py-1 text-[12px]"
               >
                 ✕ Fechar
               </button>
@@ -1792,12 +1959,11 @@ export function DuelBoard({
           </div>
         )}
 
-        {/* Os modais nascem AQUI, dentro da linha central, e não na raiz da
-            mesa: assim o escurecimento cobre só a coluna do campo. Os trilhos
-            laterais continuam nítidos e clicáveis, que é o ponto — é com um
-            modal aberto (conferindo o cemitério, escolhendo alvo) que mais se
-            precisa ler o texto da carta. O fim de duelo é a exceção e segue
-            cobrindo a tela toda. */}
+        {/* Os diálogos nascem AQUI, por cima do campo e entre as margens da
+            tela (`.tf-modal-area`): a leitura da carta, à esquerda, continua
+            nítida e clicável — é com um diálogo aberto (conferindo o
+            cemitério, escolhendo alvo) que mais se precisa ler a carta. O fim
+            de duelo é a exceção e cobre a tela toda. */}
         {deckAberto && (
           <PainelDoDeck
             restantes={you.deckSize}
@@ -1957,11 +2123,12 @@ export function DuelBoard({
             turns={snapshot.turnCount}
             lifePoints={snapshot.lifePoints}
             onPeek={() => setResultadoEspiado(true)}
+            spectating={spectating}
           />
         ))}
 
       {snapshot.error && (
-        <p className="shrink-0 border-t border-red-900/50 bg-red-950/80 px-4 py-2 text-sm text-red-200">
+        <p className="relative z-20 shrink-0 border-t border-red-900/50 bg-red-950/80 px-4 py-2 text-sm text-red-200">
           {snapshot.error}
         </p>
       )}
@@ -1976,6 +2143,7 @@ type SlotPropsFn = (
   zone: SelectFieldPlace,
 ) => {
   highlighted: boolean;
+  intent: SlotIntent;
   selected: boolean;
   onClick?: () => void;
   menu: CardAction[] | null;
@@ -2041,7 +2209,10 @@ function FieldRow({
   const location = zone === "monster" ? OcgLocation.MZONE : OcgLocation.SZONE;
 
   return (
-    <div className="flex min-h-0 flex-1 items-center justify-center gap-1.5">
+    <div
+      data-row={`${mirrored ? "foe" : "me"}-${zone}`}
+      className={`md-row md-row-${zone} md-row-${mirrored ? "foe" : "me"} flex min-h-0 flex-1 items-center justify-center`}
+    >
       {left}
       {ordered.map(({ card, sequence }) => {
         const key = cardKey(owner, location, sequence);
@@ -2060,8 +2231,12 @@ function FieldRow({
             // engenharia, não de jogo. Só a Zona de Pêndulo ganha um "P" —
             // é o que muda o que se pode pôr ali.
             placeholder={pendulumZone ? "P" : ""}
+            zoneKind={zone === "monster" ? "monster" : "spell"}
             rotated={zone === "monster" && Boolean(card?.defense)}
-            upsideDown={mirrored}
+            // Do lado de lá as cartas ficam DE PÉ, como no Master Duel (que
+            // não as vira de cabeça para baixo): só as setas Link giram, porque
+            // elas apontam para casas da mesa.
+            foeSide={mirrored}
             zoneKey={key}
             onHover={onHover}
             onLongPress={onLongPress}
@@ -2088,49 +2263,68 @@ function FieldRow({
 }
 
 /**
- * Canto do cemitério com as **banidas** penduradas ao lado.
+ * A coluna do Cemitério e das banidas — os dois "poços" redondos do Master
+ * Duel, um sobre o outro, ao lado da fileira de monstros.
  *
- * As banidas já eram lidas do engine e listadas em `BoardPlayer`, mas não
- * tinham lugar na mesa: dava para tirar uma carta de jogo e nunca mais saber
- * quantas eram nem quais — e no Goat isso decide partida (Ninja Furtivo, Volta
- * da Dimensão Diferente, Espada da Luz, todos os "bane" do formato).
+ * Ocupam o lugar de UMA carta: a coluna tem a largura e a altura de uma zona,
+ * e cada poço fica com metade da altura. Antes as banidas ficavam penduradas
+ * para fora da fileira, e a conta da largura da mesa tinha de reservar esse
+ * pedaço dos dois lados.
  *
- * A pilha é **posicionada fora do fluxo**, e isso é o ponto: as quatro fileiras
- * são centralizadas na mesa, então um elemento a mais numa delas empurra as
- * cinco zonas para o lado e desalinha a fileira de monstros da de magias. Fora
- * do fluxo, o canto continua com a largura de uma carta e o alinhamento das
- * quatro fileiras fica intacto — as banidas ficam como um aparte, na folga que
- * sobra na borda da mesa.
- *
- * `paraFora` diz de que lado é a folga: no campo de cima o cemitério fica na
- * borda esquerda, no de baixo na direita.
+ * `order` diz quem fica em cima: do seu lado, as banidas em cima (como no MD);
+ * do lado do oponente, espelhado — o Cemitério em cima, perto do Deck dele.
  */
-function GraveCorner({
+function GraveColumn({
   grave,
   banished,
-  paraFora = "right",
+  order,
 }: {
   grave: React.ReactNode;
   banished: React.ReactNode;
-  paraFora?: "left" | "right";
+  order: "banished-first" | "grave-first";
 }) {
   return (
-    <div className="relative h-full shrink-0">
-      {grave}
-      <div
-        title="Cartas fora de jogo"
-        // 62% da CARTA, não da fileira: com as cartas limitadas pela largura
-        // (mesa estreita) a fileira fica mais alta que elas, e 62% dela fazia
-        // a pilha quase do tamanho de uma carta — maior que a folga calculada
-        // para ela, encostando na borda.
-        style={{ height: "min(62%, calc(var(--tf-card-max-h, 100%) * 0.62))" }}
-        className={`absolute top-1/2 -translate-y-1/2 ${
-          paraFora === "left" ? "right-full mr-1" : "left-full ml-1"
-        }`}
-      >
-        {banished}
-      </div>
+    <div className={`md-wells relative ${CARD_SHAPE}`}>
+      {order === "banished-first" ? (
+        <>
+          <div className="md-well-slot md-well-slot-small">{banished}</div>
+          <div className="md-well-slot">{grave}</div>
+        </>
+      ) : (
+        <>
+          <div className="md-well-slot">{grave}</div>
+          <div className="md-well-slot md-well-slot-small">{banished}</div>
+        </>
+      )}
     </div>
+  );
+}
+
+/**
+ * A arte da Magia de Campo ativa tingindo a metade da mesa de quem a controla
+ * — o ambiente do MD mudando com o campo. Some quando a carta sai (ou está
+ * baixada). A troca entre duas artes faz um esmaecer.
+ */
+function FieldSpellArt({
+  card,
+  registry,
+  side,
+}: {
+  card: BoardCard | null;
+  registry: CardRegistry | null;
+  side: "me" | "foe";
+}) {
+  if (!card || card.code === null || card.faceDown) return null;
+  const definition = registry?.get(card.code);
+  const arte = definition?.images[0]?.image_url_cropped ?? `/card-images/cropped/${card.code}.jpg`;
+  return (
+    <div
+      key={card.code}
+      aria-hidden
+      data-field-art={side}
+      className={`md-field-art md-field-art-${side}`}
+      style={{ backgroundImage: `url("${arte}")` }}
+    />
   );
 }
 
@@ -2138,7 +2332,6 @@ function GraveCorner({
 function FieldSpellSlot({
   player,
   owner,
-  upsideDown = false,
   registry,
   onHover,
   onLongPress,
@@ -2151,20 +2344,14 @@ function FieldSpellSlot({
 > & {
   player: BoardPlayer;
   owner: 0 | 1;
-  /**
-   * Do lado do oponente (de cabeça para baixo). Vinha de `owner === 1`, que
-   * só vale quando quem olha é o assento 0 — no online, e agora também quando
-   * o bot começa, quem olha pode ser o 1.
-   */
-  upsideDown?: boolean;
 }) {
   return (
     <DuelCardSlot
       card={player.field}
       registry={registry}
-      placeholder="Campo"
+      placeholder=""
+      zoneKind="field"
       zoneKey={cardKey(owner, OcgLocation.SZONE, FIELD_ZONE_SEQUENCE)}
-      upsideDown={upsideDown}
       onHover={onHover}
       onLongPress={onLongPress}
       marks={slotChips(marksOf(player.field))}
@@ -2186,9 +2373,12 @@ function FieldSpellSlot({
  * altura da mão, então a largura dela é 59/86 = 68,6% dessa altura. O piso
  * (-52cqh) deixa sempre uma tira de cada carta à mostra para clicar.
  */
-function passoDaMao(n: number, vao: string): string {
+function passoDaMao(n: number, vao: string, altura = 1): string {
   if (n <= 1) return vao;
-  return `max(-52cqh, min(${vao}, calc((100cqw - 24px - ${n} * 68.6cqh) / ${n - 1})))`;
+  // A carta tem `altura` vezes a altura da mão (a do MD passa da borda da
+  // tela): a largura dela é 59/86 disso.
+  const largura = 68.6 * altura;
+  return `max(${-(largura * 0.76).toFixed(1)}cqh, min(${vao}, calc((100cqw - 24px - ${n} * ${largura.toFixed(1)}cqh) / ${n - 1})))`;
 }
 
 function Hand({
@@ -2207,19 +2397,21 @@ function Hand({
   // encolher (encolher de novo era a mão de 100 px que não deixava ler a arte).
   // O passo é medido em `cqh` (altura da própria mão): a carta tem a altura
   // dela, então a sobreposição acompanha o tamanho em qualquer tela.
-  const passo = passoDaMao(cards.length, "1.5cqh");
+  // A carta é 32% mais alta que a faixa da mão: o pé dela passa da borda de
+  // baixo da tela, como no Master Duel, e sobe inteira ao passar o mouse.
+  const passo = passoDaMao(cards.length, "1.5cqh", 1.32);
   return (
     <div
       // Índice ABSOLUTO — ver o comentário no `dataPile` da fileira acima.
       data-hand={seat}
       // Tela baixa (celular deitado): a mão encolhe para sobrar fileira de
       // campo — com 104 px fixos as cartas da mesa ficavam com 24 px.
-      className="md-hand z-10 flex h-[17%] min-h-[104px] shrink-0 items-end justify-center px-3 pb-1 [@media(max-height:500px)]:min-h-[60px] [@media(max-height:500px)]:pb-0.5"
+      className="md-hand md-hand-mine z-10 flex h-[15%] min-h-[92px] shrink-0 items-start justify-center px-3 [@media(max-height:500px)]:min-h-[56px]"
       style={{
         ["--md-hand-step" as string]: passo,
         // Sem o teto de largura do campo: na mão as cartas encavalam em vez
         // de encolher, então só a altura da mão manda.
-        ["--tf-card-max-h" as string]: "100%",
+        ["--tf-card-max-h" as string]: "none",
       }}
     >
       {cards.length === 0 ? (
@@ -2246,133 +2438,6 @@ function Hand({
           />
         ))
       )}
-    </div>
-  );
-}
-
-/**
- * Trilha de fases entre os campos. Cada pip que corresponde a uma transição
- * permitida pelo engine vira botão — é assim que se avança de fase, sem
- * botões soltos num canto.
- */
-const PHASE_ACTION_MATCH: { short: string; test: RegExp }[] = [
-  { short: "BP", test: /battle phase/i },
-  { short: "M2", test: /main phase 2/i },
-  { short: "EP", test: /encerrar turno/i },
-];
-
-/** Passos da Battle Phase que o engine anuncia — todos acendem o "BP". */
-const BATTLE_STEPS =
-  OcgPhase.BATTLE_START | OcgPhase.BATTLE_STEP | OcgPhase.DAMAGE | OcgPhase.DAMAGE_CAL | OcgPhase.BATTLE;
-
-function PhaseTrack({
-  phase,
-  turn,
-  mine,
-  actions,
-  disabled,
-  onRespond,
-  chainMode,
-  forcing,
-  onChainMode,
-  extras,
-}: {
-  phase: number | null;
-  /** Turnos já iniciados. 0 = o duelo ainda não começou. */
-  turn: number;
-  /** O turno é de quem olha a mesa? */
-  mine: boolean;
-  actions: GlobalAction[];
-  disabled?: boolean;
-  onRespond: (response: OcgResponse) => void;
-  /** Modo de resposta atual; `null` esconde o botão (sem quem o aplique). */
-  chainMode: ChainResponseMode | null;
-  forcing: boolean;
-  onChainMode: (mode: ChainResponseMode) => void;
-  /** Botões a mais no fim da coluna (o histórico e a leitura, na mesa estreita). */
-  extras?: React.ReactNode;
-}) {
-  const actionFor = (short: string) => {
-    const match = PHASE_ACTION_MATCH.find((entry) => entry.short === short);
-    if (!match) return null;
-    return actions.find((action) => match.test.test(action.label)) ?? null;
-  };
-  // A Battle Phase passa por vários passos (Battle Step, Damage Step…): o
-  // "BP" fica aceso em todos — antes só no instante em que ela começava.
-  const isActive = (value: number) =>
-    phase !== null &&
-    (phase === value || (value === OcgPhase.BATTLE_START && (phase & BATTLE_STEPS) !== 0));
-
-  return (
-    <div
-      data-phase-track
-      // z-50: os avisos grandes (SEU TURNO, dano) passam por cima da mesa em
-      // z-40. A fase é a informação consultada para decidir a jogada — ela
-      // nunca pode sumir debaixo de um deles.
-      // Em tela baixa (celular deitado) a coluna não cabe centrada: começa no
-      // topo e rola, em vez de cortar a contagem de turno e os botões do fim.
-      className="relative z-50 flex w-[var(--tf-rail-phase)] shrink-0 flex-col justify-center gap-1.5 [@media(max-height:500px)]:justify-start [@media(max-height:500px)]:gap-1 [@media(max-height:500px)]:overflow-y-auto"
-    >
-      {/* Contagem de turno junto das fases: as duas respondem "em que ponto do
-          duelo estamos", e é o número que as cartas de contagem (Espada da
-          Luz, Reckless Greed, Mensagem do Espírito) cobram. A cor diz de quem
-          é o turno — o mesmo que a barra de LP indica, aqui ao alcance do
-          olho que está nas fases. */}
-      <div
-        title={turn > 0 ? `Turno ${turn} — ${mine ? "seu" : "do oponente"}` : "Duelo começando"}
-        className={`tf-phase-pip flex flex-col items-center rounded-md py-1.5 [@media(max-height:500px)]:py-0.5 ${
-          mine ? "tf-phase-turn-mine" : "tf-phase-turn-foe"
-        }`}
-      >
-        <span className="text-[9px] font-semibold uppercase tracking-[0.18em] opacity-80">Turno</span>
-        <span className="font-mono text-[22px] font-bold leading-none">{turn > 0 ? turn : "—"}</span>
-        {turn > 0 && (
-          <span className="mt-0.5 text-[9px] font-semibold uppercase tracking-wider opacity-80">
-            {mine ? "Você" : "Oponente"}
-          </span>
-        )}
-      </div>
-
-      <div className="flex flex-col gap-1.5">
-        {PHASE_TRACK.map((entry) => {
-          const action = actionFor(entry.short);
-          const active = isActive(entry.value);
-          return (
-            <button
-              key={entry.value}
-              type="button"
-              data-phase={entry.short}
-              data-phase-active={active ? "1" : undefined}
-              disabled={!action || disabled}
-              onClick={() => action && onRespond(action.response)}
-              title={action ? action.label : phaseLabel(entry.value)}
-              className={`h-9 w-full rounded-md text-[15px] font-bold tracking-wide transition [@media(max-height:500px)]:h-6 [@media(max-height:500px)]:text-[12px] ${
-                active
-                  ? "tf-phase-pip tf-phase-pip-active"
-                  : action
-                    ? "tf-phase-pip cursor-pointer text-[color:var(--tf-gold-bright)] hover:bg-[color:var(--tf-gold)] hover:text-black"
-                    : "tf-phase-pip cursor-default text-[color:var(--tf-gold-dim)]/50"
-              }`}
-            >
-              {entry.short}
-            </button>
-          );
-        })}
-      </div>
-
-      {/* O nome da fase atual por extenso — "BP" não diz nada a quem está
-          começando; "Battle Phase" diz. */}
-      <span className="min-h-[2lh] px-0.5 text-center text-[10px] font-semibold leading-tight text-[color:var(--tf-gold-bright)] [@media(max-height:500px)]:hidden">
-        {phase !== null ? phaseLabel(phase) : ""}
-      </span>
-
-      {/* O modo de resposta, junto das fases: é a outra coisa que se ajusta
-          no meio do turno, e precisa estar à vista (quem esqueceu o "Nunca"
-          ligado tem de ver isso antes de perder a janela da armadilha). */}
-      {chainMode && (
-        <ChainModeButton mode={chainMode} forcing={forcing} onChange={onChainMode} />
-      )}
-      {extras}
     </div>
   );
 }
@@ -2416,6 +2481,7 @@ function CardPickerModal({
   onPeek: () => void;
 }) {
   const texto = useCardText();
+  const [grade, setGrade] = useState(false);
   const canConfirm =
     picked.length >= selection.min &&
     picked.length <= selection.max &&
@@ -2457,170 +2523,120 @@ function CardPickerModal({
   const misturado =
     selection.candidates.some((candidate) => candidate.controller === me) &&
     selection.candidates.some((candidate) => candidate.controller !== me);
+  const temVerso = selection.candidates.some((candidate) => candidate.code === 0);
 
   return (
-    <DecisionShell
+    <DecisionSheet
       label={instruction}
       hidden={hidden}
-      className="flex max-h-full w-[min(860px,95%)] flex-col overflow-hidden"
-    >
-        <header className="tf-modal-head shrink-0 px-5 py-2.5">
-          <p className="text-center text-base font-semibold text-[color:var(--tf-gold-bright)]">
-            {instruction}
-          </p>
-          <p className="mt-0.5 text-center text-[11px] text-[color:var(--tf-gold-dim)]">
-            {selection.candidates.some((candidate) => candidate.code === 0)
+      onPeek={onPeek}
+      tabs={<GridTab grid={grade} onToggle={() => setGrade((g) => !g)} />}
+      head={
+        <>
+          <p className="md-sheet-title">{instruction}</p>
+          <p className="md-sheet-sub">
+            <span className="md-sheet-count">{progress}</span>
+            {temVerso
               ? "Cartas de verso são as que você ainda não pode ver — escolha e a face aparece."
-              : "Apenas as cartas elegíveis são mostradas. O deck é reembaralhado depois da escolha."}
-            {umaSo ? " Clique de novo na carta marcada para confirmar." : ""}
+              : `${selection.candidates.length} carta${selection.candidates.length === 1 ? "" : "s"}`}
+            {umaSo ? " · clique de novo na marcada para confirmar" : ""}
           </p>
-        </header>
-
-        <div className="min-h-0 flex-1 overflow-y-auto p-4">
-          {/* Obrigatórias (SELECT_SUM: `selects_must`) — já contam para o alvo
-              sem o jogador marcar, então aparecem à parte e não são clicáveis. */}
-          {selection.locked && selection.locked.length > 0 && (
-            <div className="mb-3">
-              <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-[color:var(--tf-gold-dim)]">
-                Já incluídas (obrigatórias)
-              </p>
-              <div className="flex flex-wrap gap-2">
-                {selection.locked.map((candidate, index) => {
-                  const definition = registry?.get(candidate.code);
-                  const image = definition?.images[0]?.image_url_small;
-                  return (
-                    <div
-                      key={`locked-${candidate.code}-${index}`}
-                      onMouseEnter={() => onHover({ code: candidate.code })}
-                      title={definition ? texto.name(definition) : undefined}
-                      className="relative w-[72px] shrink-0 overflow-hidden rounded border-2 border-emerald-400/80 brightness-90"
-                    >
-                      {image ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img
-                          src={image}
-                          alt={(definition ? texto.name(definition) : "Carta")}
-                          className="aspect-[59/86] w-full object-cover"
-                        />
-                      ) : (
-                        <div className="tf-card-back aspect-[59/86] w-full" />
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
+        </>
+      }
+      foot={
+        <>
+          {extras.map((action, index) => (
+            <button
+              key={index}
+              type="button"
+              onClick={() => onRespond(action.response)}
+              className="md-pill md-pill-ghost px-5 py-2 text-[13px]"
+            >
+              {action.label}
+            </button>
+          ))}
+          {!imediata && (
+            <button
+              type="button"
+              disabled={!canConfirm}
+              onClick={() => {
+                playSfx("click");
+                onConfirm();
+              }}
+              className="md-pill md-pill-ok min-w-[180px] px-6 py-2 text-[13px]"
+            >
+              Confirmar
+            </button>
           )}
-
-          <div className="grid grid-cols-[repeat(auto-fill,minmax(104px,1fr))] gap-2.5">
-            {ordem.map(({ candidate, index }) => {
-              // `code: 0` é o candidato que este assento não tem direito de ver
-              // (`maskHiddenCards`) — carta na mão do adversário, virada para
-              // baixo no campo dele. Escolhe-se pelo verso, e a face aparece
-              // depois, quando o efeito revelar.
-              const oculta = candidate.code === 0;
-              const definition = oculta ? undefined : registry?.get(candidate.code);
-              const image = definition?.images[0]?.image_url_small;
-              const jaEscolhida = selection.alreadyChosen?.includes(index) ?? false;
-              // Clicar numa já escolhida desfaz: a marca inverte.
-              const isPicked = imediata ? jaEscolhida : picked.includes(index) !== jaEscolhida;
-              const doOponente = candidate.controller !== me;
+        </>
+      }
+    >
+      {/* Obrigatórias (SELECT_SUM: `selects_must`) — já contam para o alvo
+          sem o jogador marcar, então aparecem à parte e não são clicáveis. */}
+      {selection.locked && selection.locked.length > 0 && (
+        <div className="mb-2 flex items-center gap-2 px-3">
+          <span className="text-[11px] font-semibold uppercase tracking-wide text-[color:var(--md-text-dim)]">
+            Já incluídas
+          </span>
+          <div className="flex gap-1.5">
+            {selection.locked.map((candidate, index) => {
+              const definition = registry?.get(candidate.code);
               return (
-                <button
-                  key={`${candidate.code}-${index}`}
-                  type="button"
-                  data-picker-card={index}
-                  data-picker-owner={doOponente ? "foe" : "me"}
-                  onClick={() => {
-                    playSfx("click");
-                    if (imediata) {
-                      onRespond(selection.build([index]));
-                      return;
-                    }
-                    if (umaSo && canConfirm && picked.length === 1 && picked[0] === index) {
-                      onConfirm();
-                      return;
-                    }
-                    onToggle(index);
-                  }}
-                  onMouseEnter={() =>
-                    onHover(oculta ? null : { code: candidate.code })
-                  }
-                  title={(definition ? texto.name(definition) : oculta ? "Carta oculta" : undefined)}
-                  className={`relative aspect-[59/86] overflow-hidden rounded border-2 transition ${
-                    isPicked
-                      ? "border-emerald-400 brightness-110"
-                      : misturado && doOponente
-                        ? "border-red-500/60 hover:border-[color:var(--tf-gold)]"
-                        : "border-[color:var(--tf-slot-border)] hover:border-[color:var(--tf-gold)]"
-                  }`}
-                >
-                  {image ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={image}
-                      alt={(definition ? texto.name(definition) : "Carta")}
-                      loading="lazy"
-                      className="h-full w-full object-cover"
-                    />
-                  ) : oculta ? (
-                    <div className="tf-card-back h-full w-full" />
-                  ) : (
-                    <span className="flex h-full items-center justify-center bg-black/60 p-1 text-[9px] text-zinc-300">
-                      {definition ? texto.name(definition) : candidate.code}
-                    </span>
-                  )}
-
-                  <span className="absolute inset-x-0 bottom-0 bg-black/80 px-1 py-0.5 text-[9px] font-semibold text-[color:var(--tf-gold-bright)]">
-                    {locationLabel(candidate.location)}
-                    {misturado ? (doOponente ? " · oponente" : " · sua") : ""}
-                  </span>
-
-                  {isPicked && (
-                    <span className="absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-full bg-emerald-400 text-[11px] font-bold text-black">
-                      ✓
-                    </span>
-                  )}
-                </button>
+                <CardTile
+                  key={`locked-${candidate.code}-${index}`}
+                  image={definition?.images[0]?.image_url_small}
+                  alt={definition ? texto.name(definition) : "Carta"}
+                  picked
+                  onHover={() => onHover({ code: candidate.code })}
+                  title={definition ? texto.name(definition) : undefined}
+                />
               );
             })}
           </div>
         </div>
+      )}
 
-        <footer className="flex shrink-0 items-center justify-between gap-3 border-t border-[color:var(--tf-slot-border)] px-5 py-3">
-          <div className="flex items-center gap-3">
-            <span className="font-mono text-[13px] text-[color:var(--tf-gold-dim)]">
-              {progress}
-            </span>
-            <PeekButton onPeek={onPeek} />
-          </div>
-          <div className="flex gap-2">
-            {extras.map((action, index) => (
-              <button
-                key={index}
-                type="button"
-                onClick={() => onRespond(action.response)}
-                className="rounded border border-[color:var(--tf-slot-border)] px-4 py-2 text-[13px] text-[color:var(--tf-gold-bright)] hover:bg-black/50"
-              >
-                {action.label}
-              </button>
-            ))}
-            {!imediata && (
-              <button
-                type="button"
-                disabled={!canConfirm}
-                onClick={() => {
-                  playSfx("click");
+      <CardStrip grid={grade}>
+        {ordem.map(({ candidate, index }) => {
+          // `code: 0` é o candidato que este assento não tem direito de ver
+          // (`maskHiddenCards`) — carta na mão do adversário, virada para
+          // baixo no campo dele. Escolhe-se pelo verso, e a face aparece
+          // depois, quando o efeito revelar.
+          const oculta = candidate.code === 0;
+          const definition = oculta ? undefined : registry?.get(candidate.code);
+          const jaEscolhida = selection.alreadyChosen?.includes(index) ?? false;
+          // Clicar numa já escolhida desfaz: a marca inverte.
+          const isPicked = imediata ? jaEscolhida : picked.includes(index) !== jaEscolhida;
+          const doOponente = candidate.controller !== me;
+          return (
+            <CardTile
+              key={`${candidate.code}-${index}`}
+              data={{ "data-picker-card": index, "data-picker-owner": doOponente ? "foe" : "me" }}
+              image={definition?.images[0]?.image_url_small}
+              alt={definition ? texto.name(definition) : oculta ? "Carta oculta" : "Carta"}
+              faceDown={oculta}
+              place={`${locationLabel(candidate.location)}${misturado ? (doOponente ? " · oponente" : " · sua") : ""}`}
+              owner={misturado ? (doOponente ? "foe" : "me") : null}
+              picked={isPicked}
+              title={definition ? texto.name(definition) : oculta ? "Carta oculta" : undefined}
+              onHover={() => onHover(oculta ? null : { code: candidate.code })}
+              onClick={() => {
+                playSfx("click");
+                if (imediata) {
+                  onRespond(selection.build([index]));
+                  return;
+                }
+                if (umaSo && canConfirm && picked.length === 1 && picked[0] === index) {
                   onConfirm();
-                }}
-                className="rounded bg-[color:var(--tf-gold)] px-5 py-2 text-[13px] font-bold text-black transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-40"
-              >
-                Confirmar
-              </button>
-            )}
-          </div>
-        </footer>
-    </DecisionShell>
+                  return;
+                }
+                onToggle(index);
+              }}
+            />
+          );
+        })}
+      </CardStrip>
+    </DecisionSheet>
   );
 }
 
@@ -2649,22 +2665,24 @@ function OpponentHand({
   onLongPress?: (card: BoardCard) => void;
 }) {
   const revelada = cards.some((card) => card.code !== null);
-  // Como a mão do Master Duel: versos encavalados no alto da mesa, sem caixa
-  // em volta. Passa de seis e as cartas se sobrepõem mais, em vez de
-  // empurrar a contagem para fora.
-  const passo = passoDaMao(cards.length, "4cqh");
+  // Como a mão do Master Duel: versos encavalados no alto da tela, com a
+  // borda de cima cortada pela tela (a carta tem 1,25× a faixa; o pé dela
+  // encosta no pé da faixa). Do tamanho de carta de verdade — pedido do
+  // Gustavo: miúda, ela sumia perto do resto. Passa de seis e as cartas se
+  // sobrepõem mais, em vez de empurrar a contagem para fora.
+  const passo = passoDaMao(cards.length, "3cqh", 1.25);
 
   return (
     <div
       data-hand={seat}
-      className={`md-hand z-10 flex shrink-0 items-start justify-center gap-0 px-3 ${
-        // Do tamanho de uma carta de verdade, e não de um ícone: 48 px
-        // ficavam miúdos perto da mão de baixo e do campo.
-        revelada
-          ? "h-[clamp(80px,12vh,120px)] [@media(max-height:500px)]:h-[64px]"
-          : "h-[clamp(56px,9vh,84px)] [@media(max-height:500px)]:h-[32px]"
+      // A altura mora no CSS (`.md-hand-foe`): do tamanho de uma carta de
+      // verdade, e não de um ícone — 48 px ficavam miúdos perto da mão de
+      // baixo e do campo. A revelada (Olho Mágico da Verdade) desce mais,
+      // para a arte se ler.
+      className={`md-hand md-hand-foe z-10 flex shrink-0 items-start justify-center gap-0 px-3 ${
+        revelada ? "md-hand-foe-revealed" : ""
       }`}
-      style={{ ["--md-hand-step" as string]: passo, ["--tf-card-max-h" as string]: "100%" }}
+      style={{ ["--md-hand-step" as string]: passo, ["--tf-card-max-h" as string]: "none" }}
     >
       {cards.length === 0 ? (
         <span className="self-center text-[11px] text-zinc-500">Mão do oponente vazia</span>
@@ -2711,34 +2729,30 @@ function RevealOverlay({
 }) {
   const texto = useCardText();
   return (
-    <div className="pointer-events-none absolute inset-x-0 top-[18%] z-40 flex justify-center">
-      <div className="tf-panel tf-anim-card-in flex flex-col items-center gap-2 rounded-lg px-5 py-3 shadow-2xl shadow-black/80">
-        <span className="text-[12px] font-bold uppercase tracking-[0.15em] text-[color:var(--tf-gold)]">
-          {reveal.title}
-        </span>
-        <div className="flex gap-2">
-          {reveal.codes.map((code, index) => {
-            const definition = registry?.get(code);
-            const image = definition?.images[0]?.image_url_small;
-            return (
-              <div key={`${code}-${index}`} className="flex flex-col items-center gap-1">
-                {image ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={image}
-                    alt={(definition ? texto.name(definition) : "Carta")}
-                    className="h-32 w-auto rounded border border-[color:var(--tf-gold)] shadow-lg"
-                  />
-                ) : (
-                  <div className="tf-card-back h-32 w-[88px] rounded" />
-                )}
-                <span className="max-w-[100px] truncate text-[10px] text-zinc-200">
-                  {definition ? texto.name(definition) : code}
-                </span>
-              </div>
-            );
-          })}
-        </div>
+    // As cartas mostradas grandes no meio da mesa, com o brilho do MD — o
+    // que um efeito "revelando" põe à vista.
+    <div data-reveal className="md-reveal pointer-events-none absolute inset-x-0 top-[12%] z-40 flex flex-col items-center gap-3">
+      <span className="md-reveal-title">{reveal.title}</span>
+      <div className="flex items-start justify-center gap-4">
+        {reveal.codes.map((code, index) => {
+          const definition = registry?.get(code);
+          const image = definition?.images[0]?.image_url ?? definition?.images[0]?.image_url_small;
+          return (
+            <div
+              key={`${code}-${index}`}
+              className="md-reveal-card flex flex-col items-center gap-1.5"
+              style={{ animationDelay: `${index * 90}ms` }}
+            >
+              {image ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={image} alt={definition ? texto.name(definition) : "Carta"} className="md-reveal-img" />
+              ) : (
+                <div className="tf-card-back md-reveal-img" />
+              )}
+              <span className="md-reveal-name">{definition ? texto.name(definition) : code}</span>
+            </div>
+          );
+        })}
       </div>
     </div>
   );
@@ -2750,20 +2764,26 @@ function TossOverlay({
 }: {
   toss: { kind: "coin" | "dice"; results: (boolean | number)[]; duration: number };
 }) {
+  // O giro acompanha a velocidade escolhida (a sessão espera o mesmo).
+  const giro = Math.round((toss.duration * 1200) / 1900);
   return (
-    <div className="pointer-events-none absolute inset-0 z-40 flex items-center justify-center gap-4">
+    <div data-toss={toss.kind} className="md-toss pointer-events-none absolute inset-0 z-40 flex items-center justify-center gap-8">
       {toss.results.map((result, index) => (
-        <div
-          key={index}
-          // O giro acompanha a velocidade escolhida (a sessão espera o mesmo).
-          style={{
-            animationDelay: `${index * 120}ms`,
-            animationDuration: `${Math.round((toss.duration * 1200) / 1900)}ms`,
-          }}
-          // Classes estáticas: o Tailwind não enxerga nomes montados em runtime.
-          className={`${toss.kind === "coin" ? "tf-coin rounded-full" : "tf-dice rounded-xl"} flex h-24 w-24 items-center justify-center border-4 border-[color:var(--tf-gold)] bg-gradient-to-br from-[color:var(--tf-gold-bright)] to-[color:var(--tf-gold-dim)] font-black text-black shadow-2xl shadow-black/70`}
-        >
-          <span className={toss.kind === "coin" ? "text-base" : "text-4xl"}>
+        <div key={index} className="flex flex-col items-center gap-3">
+          <div
+            style={{ animationDelay: `${index * 120}ms`, animationDuration: `${giro}ms` }}
+            // Classes estáticas: o Tailwind não enxerga nomes montados em runtime.
+            className={toss.kind === "coin" ? "tf-coin md-coin" : "tf-dice md-die"}
+          >
+            {toss.kind === "coin" ? (
+              <span aria-hidden className="md-coin-face">
+                {result ? "★" : "✦"}
+              </span>
+            ) : (
+              <span className="md-die-face">{String(result)}</span>
+            )}
+          </div>
+          <span className="md-toss-result" style={{ animationDelay: `${giro + index * 120}ms` }}>
             {toss.kind === "coin" ? (result ? "CARA" : "COROA") : String(result)}
           </span>
         </div>
@@ -2772,7 +2792,11 @@ function TossOverlay({
   );
 }
 
-/** Avisos grandes no centro do campo — turno, dano, ataque direto. */
+/**
+ * Os números que saltam na mesa: o dano grande e vermelho (e a cura verde) do
+ * Master Duel, junto da placa de LP de quem foi atingido; e os avisos do
+ * centro, quando houver.
+ */
 function FlashLayer({
   flashes,
   anchor,
@@ -2785,57 +2809,34 @@ function FlashLayer({
 }) {
   const visible = flashes.filter((flash) => flash.anchor === anchor);
   if (visible.length === 0) return null;
-
-  // No centro o aviso é grande; junto ao LP ele fica logo abaixo da barra,
-  // menor, para dizer com clareza de quem é o dano.
   const centered = anchor === "center";
 
   return (
     <div
-      className={`pointer-events-none absolute z-40 flex justify-center ${
-        // Fica no centro mesmo — é onde o olho está. Para não esconder o
-        // indicador de fase, que passa exatamente ali, quem sobe de camada é
-        // a trilha de fases (z-50), e não o aviso que sai de cena em 1 s.
+      className={`pointer-events-none absolute z-40 flex ${
         centered
-          ? "inset-0 items-center"
+          ? "inset-0 items-center justify-center"
           : up
-            ? "inset-x-0 bottom-full items-end pb-1"
-            : "inset-x-0 top-full items-start pt-1"
+            ? "bottom-full left-0 right-0 items-end justify-center pb-2"
+            : "left-0 right-0 top-full items-start justify-center pt-1"
       }`}
     >
-      <div className="flex w-full flex-col items-center gap-1">
-        {visible.map((flash) =>
-          flash.band ? (
-            <div
+      <div className="flex flex-col items-center gap-1">
+        {visible.map((flash) => {
+          const cura = flash.text.startsWith("+");
+          return (
+            <span
               key={flash.id}
-              data-turn-band={flash.band}
+              data-flash={cura ? "recover" : centered ? "center" : "damage"}
               style={{ ["--tf-flash-duration" as string]: `${flash.duration}ms` }}
-              className={`md-turn-band md-turn-band-${flash.band} tf-flash-text w-full select-none py-3 text-center`}
+              className={`tf-flash-text select-none whitespace-nowrap ${
+                centered ? "md-flash-center" : cura ? "md-flash-number md-flash-recover" : "md-flash-number md-flash-damage"
+              }`}
             >
-              <span className="tf-hud-text font-black italic tracking-[0.18em] text-white text-2xl sm:text-5xl">
-                {flash.text}
-              </span>
-            </div>
-          ) : (
-          <span
-            key={flash.id}
-            style={{ ["--tf-flash-duration" as string]: `${flash.duration}ms` }}
-            className={`tf-flash-text tf-hud-text select-none whitespace-nowrap font-mono font-black tracking-wider ${
-              // Em tela estreita o aviso grande ("TURNO DO OPONENTE") passava
-              // da largura da mesa.
-              centered ? "text-2xl sm:text-5xl" : "text-xl sm:text-3xl"
-            } ${
-              flash.tone === "good"
-                ? "text-emerald-300"
-                : flash.tone === "bad"
-                  ? "text-red-400"
-                  : "text-[color:var(--tf-gold-bright)]"
-            }`}
-          >
-            {flash.text}
-          </span>
-          ),
-        )}
+              {flash.text}
+            </span>
+          );
+        })}
       </div>
     </div>
   );
@@ -2870,95 +2871,72 @@ function PileModal({
 }) {
   const texto = useCardText();
   const [escolhida, setEscolhida] = useState<string | null>(null);
+  const [grade, setGrade] = useState(false);
   const jogadas = escolhida ? (actions?.get(escolhida) ?? []) : [];
   const temJogada = (card: BoardCard) =>
     Boolean(actions?.get(cardKey(card.controller, card.location, card.sequence))?.length);
   const quantasComJogada = cards.filter(temJogada).length;
 
   return (
-    <div
-      className="tf-modal-scrim tf-modal-area z-50 flex items-center justify-center p-6"
-      onClick={onClose}
-    >
+    // A lista de cartas do MD, aberta sobre a parte de baixo do campo. Fecha
+    // no X, no clique fora e no Esc.
+    <div className="md-sheet-area md-sheet-scrim tf-modal-area z-50 flex items-end justify-center" onClick={onClose}>
       <div
         data-pile-modal
-        className="tf-panel flex max-h-full w-[min(720px,92%)] flex-col overflow-hidden rounded-lg"
+        role="dialog"
+        aria-label={title}
+        className="tf-panel md-sheet md-sheet-neutral pointer-events-auto"
         onClick={(event) => event.stopPropagation()}
       >
-        <header className="tf-modal-head flex shrink-0 items-center justify-between px-4 py-2">
-          <h3 className="text-base font-bold text-[color:var(--tf-gold-bright)]">
-            {title}{" "}
-            <span className="text-[color:var(--tf-gold-dim)]">({cards.length})</span>
-            {quantasComJogada > 0 && (
-              <span className="ml-2 text-[12px] font-semibold text-amber-300">
-                · {quantasComJogada} com jogada agora
-              </span>
-            )}
-          </h3>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Fechar"
-            className="rounded px-2 py-1 text-sm text-zinc-400 hover:bg-black/50 hover:text-zinc-100"
-          >
+        <div className="md-sheet-tabs">
+          <GridTab grid={grade} onToggle={() => setGrade((g) => !g)} />
+          <button type="button" onClick={onClose} aria-label="Fechar" className="md-sheet-tab">
             ✕
           </button>
+        </div>
+        <header className="md-sheet-head">
+          <h3 className="md-sheet-title">
+            {title} <span className="md-sheet-count">({cards.length})</span>
+          </h3>
+          {quantasComJogada > 0 && (
+            <p className="md-sheet-sub">
+              {quantasComJogada} com jogada agora — clique numa que brilha
+            </p>
+          )}
         </header>
 
-        <div className="min-h-0 flex-1 overflow-y-auto p-3">
+        <div className="md-sheet-body">
           {cards.length === 0 ? (
             <p className="py-8 text-center text-[13px] text-zinc-500">Vazio.</p>
           ) : (
-            <div className="grid grid-cols-[repeat(auto-fill,minmax(88px,1fr))] gap-2">
+            <CardStrip grid={grade}>
               {cards.map((card, index) => {
                 const definition = card.code ? registry?.get(card.code) : undefined;
-                const image = definition?.images[0]?.image_url_small;
                 const key = cardKey(card.controller, card.location, card.sequence);
                 const acionavel = temJogada(card);
                 return (
-                  <div
+                  <CardTile
                     key={`${card.sequence}-${index}`}
-                    data-pile-card={key}
-                    data-actionable={acionavel || undefined}
-                    onMouseEnter={() => onHover(card)}
-                    onClick={acionavel ? () => setEscolhida(key) : undefined}
-                    role={acionavel ? "button" : undefined}
+                    data={{ "data-pile-card": key, "data-actionable": acionavel || undefined, role: acionavel ? "button" : undefined }}
+                    image={definition?.images[0]?.image_url_small}
+                    alt={definition ? texto.name(definition) : "Carta"}
+                    faceDown={!definition}
                     title={definition ? texto.name(definition) : undefined}
-                    className={`relative aspect-[59/86] overflow-hidden rounded-[3px] border ${
-                      escolhida === key
-                        ? "border-emerald-400 ring-2 ring-emerald-400"
-                        : acionavel
-                          ? "tf-slot-active tf-slot-activate cursor-pointer border-[color:var(--tf-gold-bright)]"
-                          : quantasComJogada > 0
-                            ? "border-[color:var(--tf-slot-border)] opacity-60"
-                            : "border-[color:var(--tf-slot-border)]"
-                    }`}
-                  >
-                    {image ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={image}
-                        alt={(definition ? texto.name(definition) : "Carta")}
-                        loading="lazy"
-                        className="h-full w-full object-cover"
-                      />
-                    ) : (
-                      <div className="tf-card-back h-full w-full" />
-                    )}
-                    {card.location === OcgLocation.EXTRA && !card.faceDown && (
-                      <span className="absolute left-0.5 top-0.5 rounded bg-emerald-900/90 px-1 text-[9px] font-bold text-emerald-200">
-                        ↑ face para cima
-                      </span>
-                    )}
-                  </div>
+                    picked={escolhida === key}
+                    actionable={acionavel && escolhida !== key}
+                    dimmed={quantasComJogada > 0 && !acionavel}
+                    place={card.location === OcgLocation.EXTRA && !card.faceDown ? "↑ face para cima" : undefined}
+                    onHover={() => onHover(card)}
+                    onClick={acionavel ? () => setEscolhida(key) : undefined}
+                  />
                 );
               })}
-            </div>
+            </CardStrip>
           )}
         </div>
 
         {jogadas.length > 0 && (
-          <footer className="flex shrink-0 flex-wrap items-center justify-end gap-2 border-t border-[color:var(--tf-slot-border)] px-4 py-3">
+          <footer className="md-sheet-foot">
             {jogadas.map((action, index) => (
               <button
                 key={index}
@@ -2967,11 +2945,13 @@ function PileModal({
                   playSfx("click");
                   onChoose?.(action);
                 }}
-                className="rounded bg-[color:var(--tf-gold)] px-4 py-2 text-left text-[13px] font-bold text-black transition hover:brightness-110"
+                className={`md-pill px-5 py-2 text-left text-[13px] ${
+                  commandKind(action.label) === "activate" ? "md-pill-effect" : "md-pill-primary"
+                }`}
               >
                 {action.label}
                 {action.detail && (
-                  <span className="block max-w-[260px] text-[11px] font-semibold opacity-75">
+                  <span className="block max-w-[260px] text-[11px] font-semibold opacity-80">
                     {action.detail}
                   </span>
                 )}
@@ -3131,23 +3111,52 @@ function PromptModal({
   // idênticos empilhados só empurram as opções para fora da tela.
   const subjectCode = plan.subject?.code ?? promptCard;
   const subject = subjectCode === chain?.code ? null : subjectCode;
+  const temCorpo = Boolean(announce) || Boolean(chain) || subject !== null || cardChoices.length > 0;
 
   return (
-    <DecisionShell
+    <DecisionSheet
       label={plan.instruction}
       hidden={hidden}
-      className="flex max-h-full w-[min(520px,94%)] flex-col overflow-hidden"
+      onPeek={onPeek}
+      className="md-sheet-prompt"
+      head={<p className="md-sheet-title">{plan.instruction}</p>}
+      foot={
+        announce ? (
+          <>
+            <span className="md-sheet-count">
+              {picked.length}/{announce.count} marcado(s)
+            </span>
+            <button
+              type="button"
+              disabled={picked.length !== announce.count}
+              onClick={() => {
+                playSfx("click");
+                onRespond(announce.build(picked.map((index) => announce.options[index].value)));
+              }}
+              className="md-pill md-pill-ok min-w-[180px] px-6 py-2 text-[13px]"
+            >
+              Confirmar
+            </button>
+          </>
+        ) : (
+          plan.global.map((action, index) => (
+            <ModalButton
+              key={`global-${index}`}
+              tone={cardChoices.length === 0 ? action.tone : "default"}
+              label={action.label}
+              onClick={() => onRespond(action.response)}
+            />
+          ))
+        )
+      }
     >
-        <p className="tf-modal-head shrink-0 px-5 py-2.5 text-center text-[15px] font-semibold text-[color:var(--tf-gold-bright)]">
-          {plan.instruction}
-        </p>
-
-        <div className="min-h-0 flex-1 space-y-1.5 overflow-y-auto p-3.5">
+      {temCorpo ? (
+        <div className="max-h-[38vh] space-y-1.5 overflow-y-auto px-3 pb-1">
           {announce ? (
             // ANNOUNCE_RACE / ANNOUNCE_ATTRIB: não são cartas, são valores
             // abstratos — cada botão alterna a marcação, e o core só recebe a
             // resposta quando `count` valores estiverem marcados.
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-[repeat(auto-fill,minmax(140px,1fr))] gap-2">
               {announce.options.map((option, index) => {
                 const isPicked = picked.includes(index);
                 return (
@@ -3158,11 +3167,7 @@ function PromptModal({
                       playSfx("click");
                       onTogglePick(index);
                     }}
-                    className={`rounded border px-3 py-2 text-[13px] font-semibold transition ${
-                      isPicked
-                        ? "border-[color:var(--tf-gold)] bg-[color:var(--tf-gold)]/20 text-[color:var(--tf-gold-bright)]"
-                        : "border-[color:var(--tf-slot-border)] bg-black/40 text-zinc-200 hover:bg-black/70"
-                    }`}
+                    className={`md-option ${isPicked ? "md-option-on" : ""}`}
                   >
                     {option.label}
                   </button>
@@ -3174,13 +3179,7 @@ function PromptModal({
               {/* A que se está respondendo. O core pergunta "deseja responder
                   com algum efeito?" sem nunca repetir o que foi ativado, e a
                   linha do log já rolou para longe quando o modal aparece. */}
-              {chain && (
-                <ChainLinkPanel
-                  chain={chain}
-                  registry={registry}
-                  onHover={onHover}
-                />
-              )}
+              {chain && <ChainLinkPanel chain={chain} registry={registry} onHover={onHover} />}
 
               {/* O prompt costuma ser sobre uma carta. Mostrar a carta e o
                   texto do efeito é o que transforma "Efeito 1 / Efeito 2" em
@@ -3211,37 +3210,8 @@ function PromptModal({
             </>
           )}
         </div>
-
-        <div className="flex shrink-0 flex-col gap-2 border-t border-[color:var(--tf-slot-border)] p-4">
-          {announce ? (
-            <>
-              <span className="text-center font-mono text-[12px] text-[color:var(--tf-gold-dim)]">
-                {picked.length}/{announce.count} marcado(s)
-              </span>
-              <ModalButton
-                tone="primary"
-                label="Confirmar"
-                disabled={picked.length !== announce.count}
-                onClick={() =>
-                  onRespond(
-                    announce.build(picked.map((index) => announce.options[index].value)),
-                  )
-                }
-              />
-            </>
-          ) : (
-            plan.global.map((action, index) => (
-              <ModalButton
-                key={`global-${index}`}
-                tone={cardChoices.length === 0 ? action.tone : "default"}
-                label={action.label}
-                onClick={() => onRespond(action.response)}
-              />
-            ))
-          )}
-          <PeekButton onPeek={onPeek} />
-        </div>
-    </DecisionShell>
+      ) : undefined}
+    </DecisionSheet>
   );
 }
 
@@ -3380,13 +3350,13 @@ function ChainLinkPanel({
 }
 
 /**
- * A janela de resposta do Master Duel: sem diálogo por cima da mesa.
+ * A janela de resposta do Master Duel: "O oponente ativou X. Ativar uma carta
+ * em resposta?" — o painel de baixo com as cartas que podem responder, o
+ * botão de ativar a escolhida e "Não responder".
  *
- * O que pode responder brilha no lugar onde está (mão, campo, pilha) e se
- * ativa pelo menu da carta, como qualquer jogada; a barra só diz A QUE se
- * responde (o elo do topo da corrente, que também está na leitura da
- * esquerda) e oferece passar. O diálogo de antes tapava exatamente o campo
- * que decide se vale encadear.
+ * Não bloqueia a mesa: as mesmas cartas brilham onde estão (mão, campo,
+ * pilha) e se ativam clicando nelas, como qualquer jogada. A seta do canto
+ * recolhe o painel numa faixa, para ver o campo que decide se vale encadear.
  */
 function ChainResponseBar({
   plan,
@@ -3404,56 +3374,149 @@ function ChainResponseBar({
   onHover: (card: PreviewCard | null) => void;
 }) {
   const texto = useCardText();
+  const [recolhida, setRecolhida] = useState(false);
+  const [escolhida, setEscolhida] = useState<string | null>(null);
   const definition = chain ? registry?.get(chain.code) : undefined;
   const nome = definition ? texto.name(definition) : chain ? `Carta ${chain.code}` : null;
-  const opcoes = [...plan.byCard.values()].reduce((total, acoes) => total + acoes.length, 0);
   const doOponente = chain ? chain.player !== me : false;
+  const cartas = [...plan.byCard.entries()];
+  const jogadas = escolhida ? (plan.byCard.get(escolhida) ?? []) : [];
+  const pergunta = chain
+    ? `${chain.playerName} ativou ${nome}. Ativar uma carta em resposta (corrente)?`
+    : plan.instruction;
+  const passar = plan.global.map((action, index) => (
+    <button
+      key={index}
+      type="button"
+      onClick={() => {
+        playSfx("click");
+        onRespond(action.response);
+      }}
+      className="md-pill md-pill-ghost min-w-[150px] px-5 py-2 text-[13px]"
+    >
+      {action.label}
+    </button>
+  ));
+
+  if (recolhida) {
+    return (
+      <div className="md-banner-wrap pointer-events-none absolute inset-x-0 z-40 flex justify-center px-2">
+        <div
+          data-chain-response
+          data-menu-avoid
+          className={`md-banner pointer-events-auto ${doOponente ? "md-banner-foe" : ""}`}
+        >
+          <span className="md-banner-text">⛓ {pergunta}</span>
+          <button
+            type="button"
+            data-table-control
+            onClick={() => setRecolhida(false)}
+            className="md-pill md-pill-primary px-4 py-1.5 text-[13px]"
+          >
+            Ver as cartas
+          </button>
+          {passar}
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="pointer-events-none absolute inset-x-0 bottom-[19%] z-40 flex justify-center px-2">
-      <div
-        data-chain-response
-        data-menu-avoid
-        className={`md-prompt-bar pointer-events-auto flex max-w-full items-center gap-3 rounded-full py-1.5 pl-2 pr-2 ${
-          doOponente ? "md-prompt-bar-foe" : ""
-        }`}
-      >
-        {chain && definition ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={definition.images[0]?.image_url_small}
-            alt={nome ?? "Carta"}
-            onMouseEnter={() => onHover({ code: chain.code })}
-            className="h-10 w-auto shrink-0 rounded-[3px] shadow-md shadow-black/60"
-          />
-        ) : null}
-        <div className="min-w-0 pl-1">
-          <p className="truncate text-[13px] font-semibold text-white">
-            {chain
-              ? `${chain.playerName} ativou ${nome}`
-              : plan.instruction}
-          </p>
-          <p className="truncate text-[11px] text-[color:var(--md-text-dim)]">
-            {opcoes > 0
-              ? `${opcoes === 1 ? "1 carta pode" : `${opcoes} jogadas podem`} responder — clique na que brilha`
-              : "Responder?"}
-          </p>
+    <DecisionSheet
+      label={pergunta}
+      modal={false}
+      tone={doOponente ? "foe" : "neutral"}
+      onPeek={() => setRecolhida(true)}
+      className="md-sheet-chain"
+      sheetProps={{ "data-chain-response": true, "data-menu-avoid": true }}
+      head={
+        <div className="flex items-center gap-3">
+          {chain && definition && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={definition.images[0]?.image_url_small}
+              alt={nome ?? "Carta"}
+              onMouseEnter={() => onHover({ code: chain.code })}
+              className="md-sheet-chain-thumb"
+            />
+          )}
+          <div className="min-w-0 text-left">
+            <p className="md-sheet-title">
+              {chain ? (
+                <>
+                  <span className={doOponente ? "text-[color:var(--md-red-bright)]" : "text-[color:var(--md-blue-bright)]"}>
+                    {chain.playerName}
+                  </span>{" "}
+                  ativou <span className="text-[color:var(--md-yellow)]">{nome}</span>.
+                </>
+              ) : (
+                plan.instruction
+              )}
+            </p>
+            <p className="md-sheet-sub">
+              {cartas.length > 0
+                ? "Ativar uma carta em resposta (corrente)? Escolha abaixo — ou clique na que brilha na mesa."
+                : "Responder?"}
+            </p>
+          </div>
         </div>
-        {plan.global.map((action, index) => (
-          <button
-            key={index}
-            type="button"
-            onClick={() => {
-              playSfx("click");
-              onRespond(action.response);
-            }}
-            className="shrink-0 rounded-full bg-[color:var(--md-blue)] px-4 py-1.5 text-[13px] font-bold text-white transition hover:brightness-110"
-          >
-            {action.label}
-          </button>
-        ))}
-      </div>
-    </div>
+      }
+      foot={
+        <>
+          {jogadas.map((action, index) => (
+            <button
+              key={index}
+              type="button"
+              onClick={() => {
+                playSfx("click");
+                onRespond(action.response);
+              }}
+              className="md-pill md-pill-effect px-5 py-2 text-left text-[13px]"
+            >
+              {action.label}
+              {action.detail && (
+                <span className="block max-w-[280px] text-[11px] font-semibold opacity-80">{action.detail}</span>
+              )}
+            </button>
+          ))}
+          {passar}
+        </>
+      }
+    >
+      {cartas.length > 0 && (
+        <CardStrip>
+          {cartas.map(([key, acoes]) => {
+            const primeira = acoes[0];
+            const def = registry?.get(primeira.code);
+            const [controller] = key.split(":").map(Number);
+            return (
+              <CardTile
+                key={key}
+                data={{ "data-chain-card": key }}
+                image={def?.images[0]?.image_url_small}
+                alt={def ? texto.name(def) : "Carta"}
+                title={def ? texto.name(def) : undefined}
+                place={locationLabel(primeira.location)}
+                owner={controller === me ? "me" : "foe"}
+                picked={escolhida === key}
+                actionable={escolhida !== key}
+                onHover={() => onHover({ code: primeira.code })}
+                onClick={() => {
+                  playSfx("click");
+                  // Clicar de novo na escolhida, com um efeito só, ativa — o
+                  // duplo clique do MD.
+                  if (escolhida === key && acoes.length === 1) {
+                    onRespond(primeira.response);
+                    return;
+                  }
+                  setEscolhida(key);
+                }}
+              />
+            );
+          })}
+        </CardStrip>
+      )}
+    </DecisionSheet>
   );
 }
 
@@ -3479,17 +3542,15 @@ function PendingDecisionBar({
   const definition = chain ? registry?.get(chain.code) : undefined;
 
   return (
-    <div className="pointer-events-none absolute inset-x-0 bottom-[19%] z-40 flex justify-center">
-      <div className="tf-panel pointer-events-auto flex items-center gap-3 rounded-full px-4 py-2 shadow-xl shadow-black/60">
-        <span className="text-[13px] text-zinc-100">
+    <div className="md-banner-wrap pointer-events-none absolute inset-x-0 z-40 flex justify-center">
+      <div data-menu-avoid className="md-banner pointer-events-auto">
+        <span className="md-banner-text">
           {chain ? "⛓ " : ""}
           {instruction}
+          {definition && (
+            <span className="ml-2 text-[color:var(--md-yellow)]">{texto.name(definition)}</span>
+          )}
         </span>
-        {definition && (
-          <span className="text-[12px] font-semibold text-[color:var(--tf-gold-bright)]">
-            {texto.name(definition)}
-          </span>
-        )}
         <button
           type="button"
           data-table-control
@@ -3497,7 +3558,7 @@ function PendingDecisionBar({
             playSfx("click");
             onBack();
           }}
-          className="rounded-full bg-[color:var(--tf-gold)] px-4 py-1.5 text-[13px] font-bold text-black transition hover:brightness-110"
+          className="md-pill md-pill-ok px-5 py-1.5 text-[13px]"
         >
           Voltar à decisão
         </button>
@@ -3525,10 +3586,8 @@ function ModalButton({
         playSfx("click");
         onClick();
       }}
-      className={`w-full rounded px-3 py-2.5 text-[14px] font-semibold transition disabled:cursor-not-allowed disabled:opacity-40 ${
-        tone === "primary"
-          ? "bg-[color:var(--tf-gold)] text-black hover:brightness-110"
-          : "border border-[color:var(--tf-slot-border)] bg-black/40 text-[color:var(--tf-gold-bright)] hover:bg-black/70"
+      className={`md-pill min-w-[150px] px-6 py-2.5 text-[14px] ${
+        tone === "primary" ? "md-pill-ok" : "md-pill-ghost"
       }`}
     >
       {label}
@@ -3585,23 +3644,23 @@ function SelectionBar({
           }`;
 
   return (
-    <div className="pointer-events-none absolute inset-x-0 bottom-[19%] z-40 flex justify-center">
+    // A faixa de instrução do MD sobre a mesa ("Selecione a carta a destruir"):
+    // as cartas escolhíveis brilham em amarelo no próprio campo.
+    <div className="md-banner-wrap pointer-events-none absolute inset-x-0 z-40 flex justify-center">
       <div
         data-menu-avoid
         data-selection-bar
-        // `tf-panel` fica: os testes acham a barra por `.tf-panel.rounded-full`.
-        className="tf-panel md-prompt-bar pointer-events-auto flex items-center gap-3 rounded-full px-4 py-2"
+        // `tf-panel rounded-full` ficam: os testes acham a barra por eles.
+        className="tf-panel md-banner pointer-events-auto rounded-full"
       >
-        <span className="text-[13px] text-zinc-100">{instruction}</span>
-        <span className="font-mono text-[13px] text-[color:var(--tf-gold-dim)]">
-          {progress}
-        </span>
+        <span className="md-banner-text">{instruction}</span>
+        <span className="md-sheet-count">{progress}</span>
         {chosen === undefined && (
           <button
             type="button"
             disabled={!canConfirm}
             onClick={onConfirm}
-            className="rounded-full bg-[color:var(--tf-gold)] px-4 py-1.5 text-[13px] font-bold text-black transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-40"
+            className="md-pill md-pill-ok px-5 py-1.5 text-[13px]"
           >
             Confirmar
           </button>
@@ -3611,11 +3670,7 @@ function SelectionBar({
             key={index}
             type="button"
             onClick={() => onRespond(action.response)}
-            className={
-              chosen !== undefined
-                ? "rounded-full bg-[color:var(--tf-gold)] px-4 py-1.5 text-[13px] font-bold text-black transition hover:brightness-110"
-                : "rounded-full border border-[color:var(--tf-slot-border)] px-4 py-1.5 text-[13px] text-[color:var(--tf-gold-bright)] hover:bg-black/50"
-            }
+            className={`md-pill px-4 py-1.5 text-[13px] ${chosen !== undefined ? "md-pill-ok" : "md-pill-ghost"}`}
           >
             {action.label}
           </button>
@@ -3705,7 +3760,7 @@ function WaitingBanner({ text, place }: { text: string; place: "rail" | "field" 
   // Mesa estreita: logo abaixo da mão do oponente (a altura dela, ver
   // `OpponentHand`), nunca por cima.
   return (
-    <div className="pointer-events-none absolute inset-x-0 top-[calc(clamp(56px,9vh,84px)+10px)] z-30 flex justify-center px-2 [@media(max-height:500px)]:top-[40px]">
+    <div className="md-waiting-narrow pointer-events-none absolute inset-x-0 z-30 flex justify-center px-2">
       {aviso}
     </div>
   );
@@ -3721,6 +3776,7 @@ function ResultOverlay({
   turns,
   lifePoints,
   onPeek,
+  spectating = false,
 }: {
   winner: number;
   /** Por que o duelo acabou, quando se sabe — ver `DuelSnapshot.winReason`. */
@@ -3735,6 +3791,8 @@ function ResultOverlay({
   lifePoints: [number, number];
   /** Encolhe o resultado para ver a mesa final. */
   onPeek: () => void;
+  /** Quem só assiste não ganhou nem perdeu: "FINISHED", como o MD. */
+  spectating?: boolean;
 }) {
   // `winner` é o assento absoluto que o core declarou; 2 é empate.
   const text =
@@ -3744,52 +3802,70 @@ function ResultOverlay({
         ? `${playerName} venceu!`
         : `${opponentName} venceu!`;
   const foe = (1 - me) as 0 | 1;
+  /** A palavra grande do MD — em inglês estilizado, como no jogo. */
+  const palavra =
+    winner === 2 ? "DRAW" : spectating ? "FINISHED" : winner === me ? "VICTORY" : "LOSE";
+  const tom = winner === 2 || spectating ? "draw" : winner === me ? "win" : "lose";
+
+  const placa = (lado: "me" | "foe") => {
+    const seat = lado === "me" ? me : foe;
+    const nome = lado === "me" ? playerName : opponentName;
+    const venceu = winner === seat;
+    return (
+      <div className={`md-result-player md-result-player-${lado} ${venceu ? "md-result-player-won" : ""}`}>
+        {venceu && <span aria-hidden className="md-result-crown" />}
+        <span aria-hidden className="md-result-avatar">
+          {nome.trim().charAt(0).toUpperCase() || "?"}
+        </span>
+        <span className="min-w-0">
+          <span className="md-result-name">{nome}</span>
+          <span className="md-result-lp">
+            LP <b>{lifePoints[seat]}</b>
+          </span>
+        </span>
+      </div>
+    );
+  };
 
   return (
-    <div className="tf-modal-scrim absolute inset-0 z-50 flex items-center justify-center">
-      <div
-        role="dialog"
-        aria-modal="true"
-        aria-label={text}
-        data-result
-        className="tf-panel rounded-lg px-10 py-6 text-center"
-      >
-        <p className="text-2xl font-bold text-[color:var(--tf-gold-bright)]">{text}</p>
-        {/* O motivo embaixo do nome: nos finais que não passam por dano (deck
-            vazio, rendição, Exodia) a tela não dizia nada sobre o que
-            aconteceu, e a barra de LP não conta essa história. */}
-        {reason && (
-          <p className="mt-1 text-[13px] text-[color:var(--tf-gold-dim)]">{reason}</p>
-        )}
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-label={text}
+      data-result
+      data-result-word={palavra}
+      className={`md-result md-result-${tom}`}
+    >
+      <div aria-hidden className="md-result-veil" />
+      <div className="md-result-content">
+        <p aria-hidden className="md-result-word" data-text={palavra}>
+          {palavra}
+        </p>
+        {/* O motivo embaixo da palavra: nos finais que não passam por dano
+            (deck vazio, rendição, Exodia) a tela não dizia nada sobre o que
+            aconteceu. */}
+        <p className="md-result-reason">
+          <span className="sr-only">{text} </span>
+          {reason ?? text}
+        </p>
 
-        {/* O resumo que o Tag Force mostrava ao fim: quanto durou e como cada
-            um terminou. */}
-        <dl className="mx-auto mt-3 grid max-w-[18rem] grid-cols-3 gap-2 text-[12px]">
-          <div className="rounded border border-[color:var(--tf-slot-border)] px-2 py-1">
-            <dt className="text-[10px] uppercase tracking-wider text-[color:var(--tf-gold-dim)]">Turnos</dt>
-            <dd className="font-mono text-base font-bold text-zinc-100">{turns}</dd>
-          </div>
-          <div className="rounded border border-[color:var(--tf-slot-border)] px-2 py-1">
-            <dt className="truncate text-[10px] uppercase tracking-wider text-[color:var(--tf-gold-dim)]">Seus LP</dt>
-            <dd className="font-mono text-base font-bold text-zinc-100">{lifePoints[me]}</dd>
-          </div>
-          <div className="rounded border border-[color:var(--tf-slot-border)] px-2 py-1">
-            <dt className="truncate text-[10px] uppercase tracking-wider text-[color:var(--tf-gold-dim)]">Oponente</dt>
-            <dd className="font-mono text-base font-bold text-zinc-100">{lifePoints[foe]}</dd>
-          </div>
-        </dl>
+        <div className="md-result-players">
+          {placa("me")}
+          <span aria-hidden className="md-result-vs">VS</span>
+          {placa("foe")}
+        </div>
+        {/* O resumo que o Tag Force mostrava ao fim: quanto durou. */}
+        <p className="md-result-turns">
+          {turns} turno{turns === 1 ? "" : "s"}
+        </p>
 
-        <div className="mt-4 flex flex-col items-center gap-2">
+        <div className="md-result-actions">
           {ending.onBackToRoom && (
             <>
-              <button
-                type="button"
-                onClick={ending.onBackToRoom}
-                className="rounded bg-[color:var(--tf-gold)] px-4 py-2 text-sm font-bold text-black hover:brightness-110"
-              >
+              <button type="button" onClick={ending.onBackToRoom} className="md-pill md-pill-ok min-w-[240px] px-6 py-2.5 text-[14px]">
                 Voltar à sala
               </button>
-              <p className="max-w-[19rem] text-[12px] leading-snug text-[color:var(--tf-gold-dim)]">
+              <p className="max-w-[22rem] text-center text-[12px] leading-snug text-[color:var(--md-text-dim)]">
                 Na sala dá para trocar de deck e ficar pronto de novo — a
                 próxima partida começa quando os dois estiverem prontos.
               </p>
@@ -3797,14 +3873,13 @@ function ResultOverlay({
           )}
 
           {/* Revanche contra o bot: os mesmos decks, um clique. Trocar de deck
-              é o "voltar ao lobby" logo abaixo — o caminho do Tag Force, que
-              depois de uma derrota oferecia trocar de deck para a revanche. */}
+              é o "voltar ao lobby" logo abaixo. */}
           {ending.onRematch && (
             <button
               type="button"
               data-rematch
               onClick={ending.onRematch}
-              className="rounded bg-[color:var(--tf-gold)] px-4 py-2 text-sm font-bold text-black hover:brightness-110"
+              className="md-pill md-pill-ok min-w-[240px] px-6 py-2.5 text-[14px]"
             >
               {ending.rematchLabel ?? "Revanche"}
             </button>
@@ -3812,10 +3887,8 @@ function ResultOverlay({
 
           <a
             href={ending.backHref}
-            className={`rounded px-4 py-2 text-sm font-bold ${
-              ending.onBackToRoom || ending.onRematch
-                ? "text-[color:var(--tf-gold-dim)] hover:text-[color:var(--tf-gold-bright)]"
-                : "bg-[color:var(--tf-gold)] text-black hover:brightness-110"
+            className={`md-pill min-w-[240px] px-6 py-2.5 text-center text-[14px] ${
+              ending.onBackToRoom || ending.onRematch ? "md-pill-ghost" : "md-pill-ok"
             }`}
           >
             {ending.onRematch && !ending.rematchLabel ? "Trocar de deck" : ending.backLabel}
@@ -3825,7 +3898,7 @@ function ResultOverlay({
             type="button"
             data-table-control
             onClick={onPeek}
-            className="text-[12px] text-[color:var(--tf-gold-dim)] hover:text-[color:var(--tf-gold-bright)]"
+            className="mt-1 text-[12px] text-[color:var(--md-text-dim)] hover:text-white"
           >
             👁 Ver a mesa final <span className="opacity-60">(Esc)</span>
           </button>
@@ -3850,16 +3923,14 @@ function ResultPeekBar({
 }) {
   const texto = winner === 2 ? "Empate" : winner === me ? "Vitória" : "Derrota";
   return (
-    <div className="pointer-events-none absolute inset-x-0 top-12 z-50 flex justify-center">
-      <div className="tf-panel pointer-events-auto flex items-center gap-3 rounded-full px-4 py-2 shadow-xl shadow-black/60">
-        <span className="text-[13px] font-bold text-[color:var(--tf-gold-bright)]">
-          Duelo encerrado — {texto}
-        </span>
+    <div className="pointer-events-none absolute inset-x-0 top-[12%] z-50 flex justify-center">
+      <div className="md-banner pointer-events-auto">
+        <span className="md-banner-text">Duelo encerrado — {texto}</span>
         <button
           type="button"
           data-table-control
           onClick={onBack}
-          className="rounded-full bg-[color:var(--tf-gold)] px-4 py-1.5 text-[13px] font-bold text-black transition hover:brightness-110"
+          className="md-pill md-pill-ok px-5 py-1.5 text-[13px]"
         >
           Voltar ao resultado
         </button>
@@ -3869,141 +3940,11 @@ function ResultPeekBar({
 }
 
 /**
- * O número de LP correndo até o valor novo, como no Master Duel: o dano se lê
- * no contador descendo, e não num salto de um quadro para o outro. Com
- * "menos movimento" ligado, salta direto.
+ * O registro do duelo — o "Duel Log" do Master Duel: um painel escuro à
+ * direita, com o turno em faixa (azul o seu, vermelho o do oponente), as fases
+ * em letra miúda e cada jogada com a miniatura da carta e um fio na cor de
+ * quem jogou.
  */
-function useContagem(alvo: number, duracao = 650): number {
-  const [mostrado, setMostrado] = useState(alvo);
-  const deRef = useRef(alvo);
-  useEffect(() => {
-    const de = deRef.current;
-    if (de === alvo) return;
-    // Menos movimento: um quadro só, já no valor final.
-    const total = prefersReducedMotion() ? 0 : duracao;
-    const inicio = performance.now();
-    let quadro = 0;
-    const passo = (agora: number) => {
-      const t = total === 0 ? 1 : Math.min(1, (agora - inicio) / total);
-      // Começa rápido e freia no fim — o último dígito "assenta".
-      const suave = 1 - Math.pow(1 - t, 3);
-      const valor = Math.round(de + (alvo - de) * suave);
-      deRef.current = valor;
-      setMostrado(valor);
-      if (t < 1) quadro = requestAnimationFrame(passo);
-    };
-    quadro = requestAnimationFrame(passo);
-    return () => cancelAnimationFrame(quadro);
-  }, [alvo, duracao]);
-  return mostrado;
-}
-
-/**
- * Placa de LP do Master Duel: avatar com o anel da cor do lado (azul seu,
- * vermelho do oponente), nome, "LP" e o número grande correndo.
- *
- * Mora nos cantos — a sua embaixo à esquerda, a do oponente em cima à
- * direita, como no MD — e, na mesa estreita (sem trilhos), numa faixa no topo.
- */
-function LifeBar({
-  name,
-  role,
-  lp,
-  active,
-  align = "left",
-  mine = false,
-  acting = false,
-}: {
-  name: string;
-  role: string;
-  lp: number;
-  active: boolean;
-  align?: "left" | "right";
-  /** A barra de quem olha a mesa — muda o texto do selo de vez. */
-  mine?: boolean;
-  /**
-   * O jogo está esperando ESTE jogador decidir — a luz de "quem age" do
-   * Master Duel: acende do lado de quem tem a vez de responder, que nem
-   * sempre é o dono do turno (a janela de resposta na corrente).
-   */
-  acting?: boolean;
-}) {
-  const ratio = Math.max(0, Math.min(1, lp / 8000));
-  const low = ratio <= 0.25;
-  const mostrado = useContagem(lp);
-  // O lado de baixo (quem olha) é azul; o de cima, vermelho — inclusive no
-  // bot × bot, em que "mine" é falso mas a placa de baixo continua sendo a do
-  // assento assistido.
-  const lado = role === "Oponente" ? "foe" : "me";
-
-  // Um "bump" curto sempre que o valor muda, para o dano não passar batido.
-  const [bump, setBump] = useState(false);
-  const [shownLp, setShownLp] = useState(lp);
-  if (shownLp !== lp) {
-    setShownLp(lp);
-    setBump(true);
-    setTimeout(() => setBump(false), 360);
-  }
-
-  return (
-    <div
-      data-lp-bar
-      data-lp-side={lado}
-      title={name}
-      className={`md-lp md-lp-${lado} relative flex min-w-0 flex-1 items-center gap-2.5 px-2.5 py-1.5 [@media(max-height:500px)]:py-1 ${
-        align === "right" ? "flex-row-reverse text-right" : ""
-      } ${active ? "md-lp-active" : ""}`}
-    >
-      <span aria-hidden className="md-lp-avatar relative shrink-0">
-        {name.trim().charAt(0).toUpperCase() || "?"}
-        {acting && <span data-acting className="md-acting-light" title="Decidindo agora" />}
-      </span>
-
-      <div className="min-w-0 flex-1">
-        {/* Em tela baixa (celular deitado) o nome sai: três linhas de placa
-            comiam a altura das fileiras do campo, e o avatar com a inicial
-            já diz de quem é. O nome continua no `title`. */}
-        <p className="min-w-0 truncate text-[12px] font-semibold text-[color:var(--md-text)] [@media(max-height:500px)]:hidden">
-          {name}
-        </p>
-        {/* De quem é a vez, como estado e não como rótulo: uma aba no alto da
-            placa — fora da linha do nome, que no trilho estreito ficava
-            cortado ("Opo…"). No celular a placa tem ~140 px e a aba não
-            cabe: lá a vez fica com o contorno aceso da placa e com o
-            "Turno N" da trilha de fases. */}
-        {active ? (
-          <span
-            data-turn-badge
-            className={`absolute -top-2 rounded-sm px-1.5 py-px text-[9px] font-extrabold uppercase tracking-wider shadow-md shadow-black/60 max-[520px]:hidden ${
-              align === "right" ? "right-14" : "left-14"
-            } ${lado === "me" ? "bg-[color:var(--md-blue)] text-white" : "bg-[color:var(--md-red)] text-white"}`}
-          >
-            {mine ? "Sua vez" : role === "Oponente" ? "Vez do oponente" : "Na vez"}
-          </span>
-        ) : null}
-        <p className={`flex items-baseline gap-1.5 ${align === "right" ? "justify-end" : ""}`}>
-          <span className="text-[11px] font-black italic text-[color:var(--md-text-dim)]">LP</span>
-          <span
-            className={`tf-hud-text inline-block font-mono text-[26px] font-black leading-none tabular-nums [@media(max-height:500px)]:text-[18px] ${
-              bump ? "tf-lp-bump" : ""
-            } ${low ? "text-red-300" : "text-white"}`}
-          >
-            {mostrado}
-          </span>
-        </p>
-        <div className="md-lp-track mt-1 h-1 w-full overflow-hidden rounded-full [@media(max-height:500px)]:mt-0.5">
-          <div
-            className={`h-full rounded-full transition-[width] duration-700 ${
-              low ? "tf-lp-fill-low" : lado === "me" ? "md-lp-fill-me" : "md-lp-fill-foe"
-            }`}
-            style={{ width: `${ratio * 100}%`, marginLeft: align === "right" ? "auto" : undefined }}
-          />
-        </div>
-      </div>
-    </div>
-  );
-}
-
 function DuelLog({
   entries,
   reveals,
@@ -4011,6 +3952,7 @@ function DuelLog({
   me,
   onHover,
   registry,
+  onClose,
 }: {
   entries: DuelLogEntry[];
   /** Revelações desta ótica — o botão só existe quando houve alguma. */
@@ -4022,6 +3964,7 @@ function DuelLog({
   onHover: (card: PreviewCard | null) => void;
   /** Para escrever os nomes de carta no idioma escolhido (ver `log-names.ts`). */
   registry: CardRegistry | null;
+  onClose?: () => void;
 }) {
   const texto = useCardText();
   const noIdioma = (entry: DuelLogEntry) =>
@@ -4040,33 +3983,38 @@ function DuelLog({
   const linhas = entries.filter((entry) => entry.kind !== "system" && entry.kind !== "hint");
 
   return (
-    // Em coluna própria, à direita: não disputa mais altura com a leitura da
-    // carta, então pode usar tudo o que tem — um duelo gera muita linha e
-    // rolar para trás é como se confere o que o oponente fez.
-    <div className="tf-panel flex min-h-0 flex-1 flex-col rounded-md p-2">
-      <div className="mb-1 flex shrink-0 items-center justify-between gap-2">
-        <h3 className="text-[10px] font-bold uppercase tracking-[0.15em] text-[color:var(--tf-gold)]">
-          Histórico
-        </h3>
-        {reveals.length > 0 && (
-          <button
-            type="button"
-            data-table-control
-            onClick={onOpenReveals}
-            title="Ver as cartas que foram reveladas"
-            className="rounded border border-[color:var(--tf-slot-border)] px-1.5 py-0.5 text-[10px] font-semibold text-[color:var(--tf-gold-bright)] hover:bg-black/50"
-          >
-            👁 {reveals.length}
-          </button>
-        )}
+    <div className="md-log flex min-h-0 flex-1 flex-col">
+      <div className="md-log-head flex shrink-0 items-center justify-between gap-2">
+        <h3>Duel Log</h3>
+        <div className="flex items-center gap-1.5">
+          {reveals.length > 0 && (
+            <button
+              type="button"
+              data-table-control
+              onClick={onOpenReveals}
+              title="Ver as cartas que foram reveladas"
+              className="md-pill md-pill-ghost px-2 py-0.5 text-[10px]"
+            >
+              👁 {reveals.length}
+            </button>
+          )}
+          {onClose && (
+            <button
+              type="button"
+              data-table-control
+              onClick={onClose}
+              aria-label="Fechar o registro"
+              className="md-info-close"
+            >
+              ✕
+            </button>
+          )}
+        </div>
       </div>
       {/* `flex-col-reverse` com a lista invertida gruda a rolagem embaixo: a
           linha mais nova fica sempre visível sem precisar de scroll manual,
           que é justamente a linha que importa. */}
-      <div
-        data-duel-log
-        className="flex min-h-0 flex-1 flex-col-reverse overflow-y-auto pr-1 text-[11px] leading-snug text-zinc-300"
-      >
+      <div data-duel-log className="md-log-list flex min-h-0 flex-1 flex-col-reverse overflow-y-auto">
         {linhas
           .slice(-80)
           .map((entry, index) => ({ entry, index }))
@@ -4082,11 +4030,7 @@ function DuelLog({
                 <p
                   key={`${index}-${entry.text}`}
                   data-log-kind="turn"
-                  className={`mt-2 border-t pt-1 text-[10px] font-extrabold uppercase tracking-wider ${
-                    lado === "foe"
-                      ? "border-red-500/40 text-red-300"
-                      : "border-[color:var(--tf-gold)]/50 text-[color:var(--tf-gold)]"
-                  }`}
+                  className={`md-log-turn ${lado === "foe" ? "md-log-turn-foe" : "md-log-turn-me"}`}
                 >
                   {noIdioma(entry)}
                 </p>
@@ -4094,26 +4038,34 @@ function DuelLog({
             }
             if (entry.kind === "phase") {
               return (
-                <p key={`${index}-${entry.text}`} data-log-kind="phase" className="text-[10px] text-zinc-500">
+                <p key={`${index}-${entry.text}`} data-log-kind="phase" className="md-log-phase">
                   {entry.text}
                 </p>
               );
             }
+            const definicao = carta ? registry?.get(carta) : undefined;
             return (
-              <p
+              <div
                 key={`${index}-${entry.text}`}
                 data-log-card={carta}
                 onMouseEnter={carta ? () => onHover({ code: carta }) : undefined}
-                className={`border-l-2 pb-0.5 pl-1.5 ${
-                  lado === "mine"
-                    ? "border-[color:var(--tf-gold)]/70"
-                    : lado === "foe"
-                      ? "border-red-500/70"
-                      : "border-transparent"
-                } ${carta ? "cursor-help hover:bg-white/5" : ""}`}
+                className={`md-log-entry ${
+                  lado === "mine" ? "md-log-mine" : lado === "foe" ? "md-log-foe" : ""
+                } ${carta ? "cursor-help" : ""}`}
               >
-                {noIdioma(entry)}
-              </p>
+                {definicao ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={definicao.images[0]?.image_url_small}
+                    alt=""
+                    loading="lazy"
+                    className="md-log-thumb"
+                  />
+                ) : (
+                  <span aria-hidden className="md-log-thumb md-log-thumb-none" />
+                )}
+                <p className="md-log-text">{noIdioma(entry)}</p>
+              </div>
             );
           })}
       </div>
@@ -4121,7 +4073,6 @@ function DuelLog({
   );
 }
 
-/** Leitura da carta em foco — o painel grande do canto esquerdo do Tag Force. */
 /**
  * "⛓ Elo 2 — Oponente ativou (da mão)" no topo da leitura, com o efeito que o
  * core diz ter sido ativado. O texto completo da carta vem logo abaixo, como
@@ -4134,37 +4085,70 @@ function ActivationBanner({ activation }: { activation: ActivationHeader }) {
   return (
     <div
       data-preview-activation={activation.link}
-      className={`shrink-0 rounded border px-2 py-1.5 ${
-        negado
-          ? "border-red-500/60 bg-red-950/40"
-          : activation.mine
-            ? "border-[color:var(--tf-gold)]/50 bg-black/40"
-            : "border-red-500/40 bg-black/40"
-      }`}
+      className={`md-detail-activation ${negado ? "md-detail-activation-off" : activation.mine ? "md-detail-activation-me" : "md-detail-activation-foe"}`}
     >
-      <p className="text-[11px] font-bold uppercase tracking-wider text-[color:var(--tf-gold)]">
-        ⛓ Elo {activation.link} — {activation.who} ativou{origem ? ` ${origem}` : ""}
+      <p className="md-detail-activation-head">
+        <span aria-hidden className="md-detail-activation-link">
+          {activation.link}
+        </span>
+        Elo {activation.link} — {activation.who} ativou{origem ? ` ${origem}` : ""}
         {negado && (
-          <span className="ml-1.5 rounded bg-red-700 px-1 py-px text-[10px] text-white">
+          <span className="md-detail-activation-negated">
             {activation.state === "negated" ? "Ativação negada" : "Efeito negado"}
           </span>
         )}
       </p>
-      {activation.description && (
-        <p className="mt-0.5 text-[12px] font-semibold leading-snug text-sky-300">
-          {activation.description}
-        </p>
-      )}
+      {activation.description && <p className="md-detail-activation-effect">{activation.description}</p>}
     </div>
   );
 }
 
+/** O círculo do atributo, com o kanji — como o Master Duel mostra em qualquer idioma. */
+const ATTRIBUTE_KANJI: Record<string, string> = {
+  LIGHT: "光",
+  DARK: "闇",
+  FIRE: "炎",
+  WATER: "水",
+  WIND: "風",
+  EARTH: "地",
+  DIVINE: "神",
+};
+
+/** "Magia de Campo", "Armadilha de Resposta" — o subtipo, como o MD escreve. */
+function spellTrapSubtype(type: string, race: string | undefined): string {
+  const magia = /spell/i.test(type);
+  const sub: Record<string, string> = magia
+    ? {
+        Normal: "Magia Normal",
+        Continuous: "Magia Contínua",
+        Equip: "Magia de Equipamento",
+        Field: "Magia de Campo",
+        "Quick-Play": "Magia Rápida",
+        Ritual: "Magia de Ritual",
+      }
+    : {
+        Normal: "Armadilha Normal",
+        Continuous: "Armadilha Contínua",
+        Counter: "Armadilha de Resposta",
+      };
+  return (race && sub[race]) ?? (magia ? "Magia" : "Armadilha");
+}
+
+/**
+ * A leitura da carta — o painel do canto esquerdo do Master Duel: o nome numa
+ * faixa com o círculo do atributo, a carta à esquerda e, ao lado, Nível, ATK
+ * e DEF com os ícones do jogo (os valores ATUAIS, em azul se subiram e em
+ * vermelho se caíram); embaixo, a faixa do tipo na cor da moldura da carta e
+ * o texto rolável. O fundo diz de quem é a carta (azul sua, vermelho do
+ * oponente).
+ */
 function CardPreview({
   card,
   registry,
   marksOf,
   activation = null,
   viewer,
+  hideEmpty = false,
 }: {
   card: PreviewCard | null;
   registry: CardRegistry | null;
@@ -4173,6 +4157,8 @@ function CardPreview({
   activation?: ActivationHeader | null;
   /** Quem olha a mesa — decide o fundo azul (sua) ou vermelho (do oponente). */
   viewer: 0 | 1;
+  /** Sem carta para ler, não desenha nada (o painel do MD só aparece com carta). */
+  hideEmpty?: boolean;
 }) {
   const texto = useCardText();
   const definition = card?.code ? registry?.get(card.code) : undefined;
@@ -4187,8 +4173,9 @@ function CardPreview({
         : "foe";
 
   if (!definition) {
+    if (hideEmpty) return null;
     return (
-      <div className="tf-panel flex min-h-0 flex-1 items-center justify-center rounded-md p-3 text-center text-[13px] text-zinc-500">
+      <div className="md-detail md-detail-neutral flex min-h-0 flex-1 items-center justify-center p-3 text-center text-[13px] text-zinc-500">
         Passe o mouse sobre uma carta
         <br />
         para ver os detalhes
@@ -4196,12 +4183,14 @@ function CardPreview({
     );
   }
 
-  const image =
-    definition.images[0]?.image_url ?? definition.images[0]?.image_url_small;
+  const image = definition.images[0]?.image_url ?? definition.images[0]?.image_url_small;
   const isMonster = definition.type.includes("Monster");
   const isLink = Boolean(definition.linkval) || Boolean(card?.link);
   const isXyz = definition.frameType.includes("xyz");
   const isPendulum = definition.frameType.includes("pendulum");
+  const moldura = isPendulum ? "pendulum" : definition.frameType.replace(/_pendulum$/, "");
+  const isSpell = /spell/i.test(definition.type);
+  const isTrap = /trap/i.test(definition.type);
 
   // Linha de tipo no formato da carta: [Dragão/Sincro/Regulador/Efeito]
   const typeLine = isMonster
@@ -4226,151 +4215,161 @@ function CardPreview({
     card && "counters" in card && card.counters !== undefined
       ? marksOf(card as BoardCard)
       : [];
+  const kanji = isSpell ? "魔" : isTrap ? "罠" : ATTRIBUTE_KANJI[definition.attribute ?? ""];
+  const atributo = isSpell ? "spell" : isTrap ? "trap" : (definition.attribute ?? "").toLowerCase();
 
   return (
     <div
       data-preview-owner={dono}
-      className={`tf-panel md-detail md-detail-${dono} flex min-h-0 flex-1 flex-col gap-2 overflow-hidden rounded-md p-2.5`}
+      data-preview-frame={moldura}
+      className={`md-detail md-detail-${dono} md-frame-${moldura} flex min-h-0 flex-col overflow-hidden`}
     >
       {activation && <ActivationBanner activation={activation} />}
-      {image && (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          src={image}
-          alt={texto.name(definition)}
-          className="mx-auto max-h-[46%] w-auto shrink-0 rounded border border-[color:var(--tf-slot-border)] object-contain"
-        />
-      )}
 
-      {isMonster && (
-        <div className="flex shrink-0 items-baseline justify-center gap-4 font-mono text-base font-bold">
-          <span className="text-[color:var(--tf-gold-dim)]">
-            ATK/{" "}
-            <StatValue
-              value={card?.attack ?? definition.atk ?? null}
-              base={card?.baseAttack ?? definition.atk ?? null}
-            />
+      <header className="md-detail-name">
+        <h4>{texto.name(definition)}</h4>
+        {kanji && (
+          <span
+            className={`md-attr md-attr-${atributo}`}
+            title={isMonster ? (attributeLabel(definition.attribute) ?? undefined) : isSpell ? "Magia" : "Armadilha"}
+          >
+            {kanji}
           </span>
-          {isLink ? (
-            <span className="text-sky-300">LINK-{rating}</span>
+        )}
+      </header>
+
+      <div className="md-detail-top">
+        {image && (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={image} alt={texto.name(definition)} className="md-detail-art" />
+        )}
+        <div className="md-detail-stats">
+          {isMonster ? (
+            <>
+              {isLink ? (
+                <p data-preview-link={rating} className="md-detail-stat" title={`Link ${rating}`}>
+                  <span aria-hidden className="md-detail-icon md-icon-link" />
+                  <span className="md-detail-value">LINK-{rating}</span>
+                  <LinkArrowsGlyph markers={markers} />
+                </p>
+              ) : rank ? (
+                <p data-preview-rank={rank} className="md-detail-stat" title={`Rank ${rank}`}>
+                  <span aria-hidden className="md-detail-icon md-icon-rank" />
+                  <span className="md-detail-value">{rank}</span>
+                </p>
+              ) : level ? (
+                <p
+                  data-preview-level={level}
+                  className="md-detail-stat"
+                  title={levelBase && levelBase !== level ? `Nível ${level} (original ${levelBase})` : `Nível ${level}`}
+                >
+                  <span aria-hidden className="md-detail-icon md-icon-level" />
+                  {/* Nível mudado por efeito (Ruído Mental, Fusão do Nível…): a
+                      mesma cor do ATK/DEF alterado — azul subiu, vermelho desceu. */}
+                  <span
+                    className={`md-detail-value ${
+                      levelBase && level > levelBase
+                        ? "md-stat-up"
+                        : levelBase && level < levelBase
+                          ? "md-stat-down"
+                          : ""
+                    }`}
+                  >
+                    {level}
+                  </span>
+                </p>
+              ) : null}
+              <p className="md-detail-stat" title="ATK">
+                <span aria-hidden className="md-detail-icon md-icon-atk" />
+                <span className="md-detail-value">
+                  <StatValue
+                    value={card?.attack ?? definition.atk ?? null}
+                    base={card?.baseAttack ?? definition.atk ?? null}
+                  />
+                </span>
+              </p>
+              {!isLink && (
+                <p className="md-detail-stat" title="DEF">
+                  <span aria-hidden className="md-detail-icon md-icon-def" />
+                  <span className="md-detail-value">
+                    <StatValue
+                      value={card?.defenseValue ?? definition.def ?? null}
+                      base={card?.baseDefense ?? definition.def ?? null}
+                    />
+                  </span>
+                </p>
+              )}
+              {isPendulum && leftScale !== undefined && (
+                <p className="md-detail-stat md-detail-scales" title="Escalas de Pêndulo">
+                  <span className="text-sky-300">◂{leftScale}</span>
+                  <span className="text-zinc-500">·</span>
+                  <span className="text-rose-300">{rightScale}▸</span>
+                </p>
+              )}
+            </>
           ) : (
-            <span className="text-[color:var(--tf-gold-dim)]">
-              DEF/{" "}
-              <StatValue
-                value={card?.defenseValue ?? definition.def ?? null}
-                base={card?.baseDefense ?? definition.def ?? null}
-              />
-            </span>
+            <p className="md-detail-subtype">
+              <span aria-hidden className={`md-detail-icon ${isSpell ? "md-icon-spell" : "md-icon-trap"}`} />
+              {spellTrapSubtype(definition.type, definition.race)}
+            </p>
+          )}
+        </div>
+      </div>
+
+      <p className="md-detail-band">{typeLine}</p>
+
+      {(marks.length > 0 || materials.length > 0) && (
+        <div className="md-detail-extra">
+          {marks.length > 0 && (
+            <ul data-preview-marks className="space-y-0.5">
+              {marks.map((mark, index) => (
+                <li
+                  key={index}
+                  className={`text-[12px] leading-snug ${
+                    mark.tone === "negated"
+                      ? "font-semibold text-red-300"
+                      : mark.tone === "counter"
+                        ? "text-amber-200"
+                        : mark.tone === "declared"
+                          ? "text-fuchsia-200"
+                          : mark.tone === "link"
+                            ? "text-emerald-200"
+                            : mark.tone === "turn"
+                              ? "text-sky-200"
+                              : "text-zinc-200"
+                  }`}
+                >
+                  {mark.chip.replace(/\d+$/, "")} {mark.text}
+                </li>
+              ))}
+            </ul>
+          )}
+          {materials.length > 0 && (
+            <div className={marks.length > 0 ? "mt-1.5" : undefined}>
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-violet-300">
+                ◈ Materiais Xyz ({materials.length})
+              </p>
+              <div className="mt-1 flex flex-wrap gap-1">
+                {materials.map((code, index) => {
+                  const material = registry?.get(code);
+                  return (
+                    <span
+                      key={`${code}-${index}`}
+                      className="rounded bg-violet-950/70 px-1.5 py-0.5 text-[11px] text-violet-100"
+                    >
+                      {material ? texto.name(material) : `Carta ${code}`}
+                    </span>
+                  );
+                })}
+              </div>
+            </div>
           )}
         </div>
       )}
 
-      <div className="shrink-0">
-        <h4 className="text-[15px] font-bold leading-tight text-[color:var(--tf-gold-bright)]">
-          {texto.name(definition)}
-        </h4>
-        <p className="mt-1 text-[12px] font-semibold text-emerald-400">
-          {typeLine}
-        </p>
-        {isMonster && (
-          <p className="flex flex-wrap items-center gap-x-2 text-[12px] text-amber-300">
-            {/* O número vem antes dos símbolos, nos três: contar oito estrelas
-                (ou seis setas) para saber se dá Xyz ou Link é trabalho que a
-                tela pode fazer. É o mesmo "Nv." do construtor. */}
-            {isLink ? (
-              <span data-preview-link={rating} className="flex items-center gap-1.5 text-sky-300">
-                <span className="font-semibold">Link {rating}</span>
-                <LinkArrowsGlyph markers={markers} />
-              </span>
-            ) : rank ? (
-              <span data-preview-rank={rank} title={`Rank ${rank}`} className="flex items-center gap-1.5 text-zinc-100">
-                <span className="font-semibold">Rank {rank}</span>
-                <span>{"☆".repeat(Math.min(rank, 13))}</span>
-              </span>
-            ) : level ? (
-              <span
-                data-preview-level={level}
-                title={levelBase && levelBase !== level ? `Nível ${level} (original ${levelBase})` : `Nível ${level}`}
-                className="flex items-center gap-1.5"
-              >
-                {/* Nível mudado por efeito (Ruído Mental, Fusão do Nível…): a
-                    mesma cor do ATK/DEF alterado — azul subiu, vermelho desceu. */}
-                <span
-                  className={`font-semibold ${
-                    levelBase && level > levelBase
-                      ? "text-sky-400"
-                      : levelBase && level < levelBase
-                        ? "text-red-400"
-                        : ""
-                  }`}
-                >
-                  Nv. {level}
-                </span>
-                <span>{"★".repeat(Math.min(level, 12))}</span>
-              </span>
-            ) : null}
-            <span>{attributeLabel(definition.attribute) ?? ""}</span>
-          </p>
-        )}
-        {isPendulum && leftScale !== undefined && (
-          <p className="text-[12px] font-semibold">
-            <span className="text-sky-300">Escala ◂{leftScale}</span>
-            <span className="text-[color:var(--tf-gold-dim)]"> · </span>
-            <span className="text-rose-300">{rightScale}▸</span>
-          </p>
-        )}
-        {marks.length > 0 && (
-          <ul data-preview-marks className="mt-1.5 space-y-0.5">
-            {marks.map((mark, index) => (
-              <li
-                key={index}
-                className={`text-[12px] leading-snug ${
-                  mark.tone === "negated"
-                    ? "font-semibold text-red-300"
-                    : mark.tone === "counter"
-                      ? "text-amber-200"
-                      : mark.tone === "declared"
-                        ? "text-fuchsia-200"
-                        : mark.tone === "link"
-                          ? "text-emerald-200"
-                          : mark.tone === "turn"
-                            ? "text-sky-200"
-                            : "text-zinc-200"
-                }`}
-              >
-                {mark.chip.replace(/\d+$/, "")} {mark.text}
-              </li>
-            ))}
-          </ul>
-        )}
-        {materials.length > 0 && (
-          <div className="mt-1.5">
-            <p className="text-[11px] font-semibold uppercase tracking-wide text-violet-300">
-              ◈ Materiais Xyz ({materials.length})
-            </p>
-            <div className="mt-1 flex flex-wrap gap-1">
-              {materials.map((code, index) => {
-                const material = registry?.get(code);
-                return (
-                  <span
-                    key={`${code}-${index}`}
-                    className="rounded bg-violet-950/70 px-1.5 py-0.5 text-[11px] text-violet-100"
-                  >
-                    {material ? texto.name(material) : `Carta ${code}`}
-                  </span>
-                );
-              })}
-            </div>
-          </div>
-        )}
-      </div>
-
       {/* Termos de regra sublinhados, com a definição a um toque (glossário);
           as quebras de linha da carta (as listas "●") ficam como estão. */}
-      <GlossaryText
-        text={texto.desc(definition)}
-        className="min-h-0 flex-1 overflow-y-auto whitespace-pre-line pr-1 text-[13px] leading-relaxed text-zinc-200"
-      />
+      <GlossaryText text={texto.desc(definition)} className="md-detail-text" />
     </div>
   );
 }
@@ -4392,43 +4391,6 @@ function LinkArrowsGlyph({ markers }: { markers: number }) {
         />
       ))}
     </span>
-  );
-}
-
-/**
- * Avisos que valem para um jogador ("não pode Invocar-Especial neste turno"),
- * pendurados embaixo da barra de LP dele — é para lá que se olha para saber o
- * que cada um ainda pode fazer.
- */
-function PlayerHints({
-  hints,
-  align = "left",
-  up = false,
-}: {
-  hints: string[];
-  align?: "left" | "right";
-  /** A placa está no canto de baixo: as marcas sobem em vez de descer. */
-  up?: boolean;
-}) {
-  if (hints.length === 0) return null;
-  return (
-    <div
-      data-player-hints={hints.length}
-      className={`pointer-events-none absolute z-40 flex max-w-full flex-wrap gap-1 ${
-        up ? "bottom-full mb-0.5" : "top-full mt-0.5"
-      } ${
-        align === "right" ? "right-0 justify-end" : "left-0"
-      }`}
-    >
-      {hints.map((hint) => (
-        <span
-          key={hint}
-          className="rounded bg-zinc-900/95 px-1.5 py-0.5 text-[10px] font-semibold text-amber-100 ring-1 ring-amber-400/50"
-        >
-          ⓘ {hint}
-        </span>
-      ))}
-    </div>
   );
 }
 

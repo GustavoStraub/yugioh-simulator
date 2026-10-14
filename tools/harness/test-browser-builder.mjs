@@ -207,7 +207,9 @@ async function lobby(page) {
     `
     const maos = [...document.querySelectorAll(".tf-playmat [data-hand]")];
     const baixo = maos.at(-1);
-    return baixo?.getAttribute("data-hand") === "1" && /Sua vez/i.test(document.querySelector(".tf-playmat").innerText) && baixo.querySelectorAll(".tf-slot-active").length > 0 ? true : null;
+    // De quem é a vez, na mesa do MD, é o dono do botão de fase (o selo "Sua
+    // vez" da placa saiu com o HUD novo).
+    return baixo?.getAttribute("data-hand") === "1" && document.querySelector('[data-turn-owner="me"]') && baixo.querySelectorAll(".tf-slot-active").length > 0 ? true : null;
   `,
     { tentativas: 120, intervalo: 500 },
   );
