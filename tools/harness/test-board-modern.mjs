@@ -99,10 +99,12 @@ const LER_MESA = `
     apontadas: [...document.querySelectorAll(".tf-slot-linked")].map((el) => el.closest("[data-zone]")?.dataset.zone).sort(),
     escalaEsq: texto("0:8:0"),
     escalaDir: texto("0:8:4"),
-    // O selo do MD no pé da carta: o ícone (estrela, estrela escura do Rank,
-    // o do Link) vem por CSS; o texto é só o número.
-    rankUtopia: (() => { const b = zona("0:4:2")?.querySelector("[data-level-badge]"); return b ? b.dataset.levelBadge + ":" + b.innerText.trim() : ""; })(),
-    nivelElf: (() => { const b = zona("0:4:0")?.querySelector("[data-level-badge]"); return b ? b.dataset.levelBadge + ":" + b.innerText.trim() : ""; })(),
+    // O selo do MD no canto da carta (na camada plana do ATK/DEF): o ícone
+    // (estrela, estrela escura do Rank, o do Link) vem por CSS; o texto é só o
+    // número. Ao lado, o círculo do atributo ATUAL, lido do core.
+    rankUtopia: (() => { const b = document.querySelector('[data-tags-for="0:4:2"] [data-level-badge]'); return b ? b.dataset.levelBadge + ":" + b.innerText.trim() : ""; })(),
+    nivelElf: (() => { const b = document.querySelector('[data-tags-for="0:4:0"] [data-level-badge]'); return b ? b.dataset.levelBadge + ":" + b.innerText.trim() : ""; })(),
+    atributoElf: document.querySelector('[data-tags-for="0:4:0"] [data-attribute-tag]')?.dataset.attributeTag ?? "",
     extraDele: [...document.querySelectorAll("[title*='Pêndulos virados para cima']")].map((el) => el.innerText),
     rolagemHorizontal: document.documentElement.scrollWidth > document.documentElement.clientWidth + 1,
   };
@@ -173,6 +175,7 @@ async function main() {
     conferir(mesa.escalaDir.includes("8▸"), "a escala direita (Timegazer, 8) aparece na zona 5", mesa.escalaDir);
     conferir(mesa.rankUtopia === "rank:4", "o Utopia mostra Rank 4", mesa.rankUtopia);
     conferir(mesa.nivelElf === "level:4", "o Mystical Elf mostra Nível 4", mesa.nivelElf);
+    conferir(mesa.atributoElf === "LIGHT", "e o círculo de LUZ (o atributo que o core informa)", mesa.atributoElf);
     conferir(!mesa.rolagemHorizontal, "sem rolagem horizontal");
 
     // A leitura da carta diz o número antes dos símbolos — Nível, Rank e Link.

@@ -29,6 +29,11 @@ interface Flight {
   lunge: { x: number; y: number };
   /** Velocidade escolhida — a sessão espera o voo nesta mesma escala. */
   scale: number;
+  /**
+   * O atacante tem holograma na mesa (`MonsterHologramsLayer`): quem investe
+   * é ele, e a carta fica na zona. Sem holograma, a carta voa como sempre.
+   */
+  hologram: string | null;
 }
 
 // As durações vêm do módulo de ritmo: o laço de mensagens do duelo precisa
@@ -41,7 +46,8 @@ const {
 } = ATTACK_FLIGHT;
 
 /**
- * Anima o monstro atacante investindo contra o alvo.
+ * Anima o monstro atacante investindo contra o alvo — a carta, ou o holograma
+ * dele quando a mesa o desenha (a carta então fica na zona).
  *
  * Usa a Web Animations API em vez de `transition`: com transição CSS o
  * navegador frequentemente pinta o elemento já com o estilo final (o estado
@@ -124,10 +130,11 @@ export function AttackFlightLayer({
     const ux = dx / distance;
     const uy = dy / distance;
 
-    originRef.current = {
-      element: originEl,
-      zoneKey: cardKey(flight.from.controller, flight.from.location, flight.from.sequence),
-    };
+    const zoneKey = cardKey(flight.from.controller, flight.from.location, flight.from.sequence);
+    // Holograma desenhado para o atacante? É pelo DOM, como as zonas: a camada
+    // dos hologramas só desenha quem tem holograma e com a opção ligada.
+    const hologram = field.querySelector(`[data-holo-for="${zoneKey}"]`) ? zoneKey : null;
+    originRef.current = hologram ? null : { element: originEl, zoneKey };
 
     // A rotação mora no div interno do slot; copiar dali é mais confiável do
     // que recalcular a partir do estado da carta.
@@ -153,13 +160,59 @@ export function AttackFlightLayer({
       windUp: { x: -ux * originBox.height * 0.16, y: -uy * originBox.height * 0.16 },
       lunge: { x: ux * travel, y: uy * travel },
       scale: flight.scale,
+      hologram,
     });
   }, [flight, fieldRef]);
+
+  // O holograma investe no lugar da carta: os mesmos passos, no elemento dele.
+  useEffect(() => {
+    if (!active?.hologram) return;
+    const holo = fieldRef.current?.querySelector<HTMLElement>(`[data-holo-for="${active.hologram}"]`);
+    const total = WIND_UP_MS + LUNGE_MS + HOLD_MS + RETURN_MS;
+    const duracao = Math.max(1, Math.round(total * active.scale));
+    // Sem o elemento (a mesa mudou no meio), ainda há a seta e o impacto:
+    // eles somem no mesmo tempo da investida.
+    if (!holo) {
+      const timer = setTimeout(() => setActive(null), duracao);
+      return () => clearTimeout(timer);
+    }
+    // `translate` e `scale` avulsos, e não `transform`: o `transform` do
+    // holograma é o que o põe de pé sobre a carta (translate(-50%, -100%)), e
+    // animá-lo apagaria isso. As propriedades avulsas somam com ele.
+    const animation = holo.animate(
+      [
+        { translate: "0px 0px", scale: "1", offset: 0 },
+        {
+          translate: `${active.windUp.x}px ${active.windUp.y}px`,
+          scale: "0.96",
+          offset: WIND_UP_MS / total,
+          easing: "ease-out",
+        },
+        {
+          translate: `${active.lunge.x}px ${active.lunge.y}px`,
+          scale: "1.15",
+          offset: (WIND_UP_MS + LUNGE_MS) / total,
+          easing: "cubic-bezier(0.35, 0, 0.2, 1)",
+        },
+        {
+          translate: `${active.lunge.x}px ${active.lunge.y}px`,
+          scale: "1.1",
+          offset: (WIND_UP_MS + LUNGE_MS + HOLD_MS) / total,
+        },
+        { translate: "0px 0px", scale: "1", offset: 1, easing: "ease-in" },
+      ],
+      // Sem `fill`: no fim ele volta sozinho ao lugar (o último quadro já é
+      // o lugar), sem deixar efeito pendurado no elemento.
+      { duration: duracao },
+    );
+    animation.onfinish = () => setActive(null);
+    return () => animation.cancel();
+  }, [active, fieldRef]);
 
   // Roda a animação assim que o fantasma existe no DOM.
   useEffect(() => {
     const ghost = ghostRef.current;
-    if (!active || !ghost) return;
+    if (!active || active.hologram || !ghost) return;
 
     // Esconde a carta na zona: sem isso a original e o fantasma aparecem
     // ao mesmo tempo, como se houvesse duas cópias do monstro.
@@ -263,26 +316,28 @@ export function AttackFlightLayer({
           ["--md-impact-ms" as string]: `${Math.round(520 * active.scale)}ms`,
         }}
       />
-      <div
-        ref={ghostRef}
-        key={active.token}
-        className={`md-attack-ghost pointer-events-none absolute z-40 overflow-hidden rounded ${
-          active.mine ? "md-attack-ghost-me" : "md-attack-ghost-foe"
-        }`}
-        style={{
-          left: active.box.x,
-          top: active.box.y,
-          width: active.box.w,
-          height: active.box.h,
-        }}
-      >
-        {active.image ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={active.image} alt="" className="h-full w-full object-cover" />
-        ) : (
-          <div className="tf-card-back h-full w-full" />
-        )}
-      </div>
+      {!active.hologram && (
+        <div
+          ref={ghostRef}
+          key={active.token}
+          className={`md-attack-ghost pointer-events-none absolute z-40 overflow-hidden rounded ${
+            active.mine ? "md-attack-ghost-me" : "md-attack-ghost-foe"
+          }`}
+          style={{
+            left: active.box.x,
+            top: active.box.y,
+            width: active.box.w,
+            height: active.box.h,
+          }}
+        >
+          {active.image ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={active.image} alt="" className="h-full w-full object-cover" />
+          ) : (
+            <div className="tf-card-back h-full w-full" />
+          )}
+        </div>
+      )}
     </>
   );
 }

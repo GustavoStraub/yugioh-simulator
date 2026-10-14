@@ -15,6 +15,7 @@ import { useDuelFeedback, type DuelFlash } from "@/hooks/useDuelFeedback";
 import { NARROW_TABLE_QUERY, useMediaQuery } from "@/hooks/useMediaQuery";
 import { useTips } from "@/hooks/useTips";
 import { nextTip } from "@/lib/duel/tips";
+import { ATTRIBUTE_KANJI } from "@/lib/duel/attributes";
 import { playSfx } from "@/lib/audio/sfx";
 import type { DuelEventListener } from "@/lib/duel/duel-events";
 import {
@@ -65,7 +66,8 @@ import {
 } from "@/components/duel/DuelCardSlot";
 import { HudButtons, LifePlate, PhaseButton } from "@/components/duel/DuelHud";
 import { DuelInfo, EffectsPanel, FieldCracks } from "@/components/duel/DuelInfo";
-import { FieldStatsLayer, type FieldStat } from "@/components/duel/FieldStats";
+import { FieldStatsLayer, type FieldGrade, type FieldStat } from "@/components/duel/FieldStats";
+import { MonsterHologramsLayer, type HoloMonster } from "@/components/duel/MonsterHolograms";
 import { AttackFlightLayer } from "@/components/duel/AttackFlight";
 import { ChainSpotlight, ORIGEM } from "@/components/duel/ChainSpotlight";
 import { ChainStack } from "@/components/duel/ChainStack";
@@ -932,6 +934,23 @@ export function DuelBoard({
     const incluir = (card: BoardCard | null, foeSide: boolean) => {
       if (!card || card.code === null || card.faceDown || card.attack === null) return;
       const definition = registry?.get(card.code);
+      const isXyz = Boolean(definition?.frameType.includes("xyz"));
+      // Nível/Rank/Link ATUAIS do core; o impresso vem do catálogo (no Xyz o
+      // catálogo guarda o Rank em `level`).
+      const grade: FieldGrade | null = card.link
+        ? { kind: "link", value: card.link.rating, base: definition?.linkval ?? null, tuner: false }
+        : card.rank
+          ? { kind: "rank", value: card.rank, base: isXyz ? (definition?.level ?? null) : null, tuner: false }
+          : card.level
+            ? {
+                kind: "level",
+                value: card.level,
+                base: !isXyz ? (definition?.level ?? null) : null,
+                tuner: Boolean(
+                  definition?.type?.includes("Tuner") || definition?.humanReadableCardType?.includes("Tuner"),
+                ),
+              }
+            : null;
       lista.push({
         zoneKey: cardKey(card.controller, OcgLocation.MZONE, card.sequence),
         atk: card.attack,
@@ -940,6 +959,32 @@ export function DuelBoard({
         baseDef: card.baseDefense ?? definition?.def ?? null,
         isLink: Boolean(card.link || definition?.linkval),
         foeSide,
+        attribute: card.attribute ?? definition?.attribute ?? null,
+        baseAttribute: definition?.attribute ?? null,
+        grade,
+      });
+    };
+    you.monsters.forEach((card) => incluir(card, false));
+    foe.monsters.forEach((card) => incluir(card, true));
+    return lista;
+  }, [you.monsters, foe.monsters, registry]);
+
+  /**
+   * Os monstros de face para cima que podem ganhar holograma (ver
+   * `MonsterHologramsLayer`). Carta virada não tem: nem a do oponente (a mesa
+   * nem sabe o que é) nem a sua, que você vê translúcida.
+   */
+  const hologramas = useMemo((): HoloMonster[] => {
+    const lista: HoloMonster[] = [];
+    const incluir = (card: BoardCard | null, foeSide: boolean) => {
+      if (!card || card.code === null || card.faceDown) return;
+      lista.push({
+        zoneKey: cardKey(card.controller, OcgLocation.MZONE, card.sequence),
+        code: card.code,
+        foeSide,
+        defense: Boolean(card.defense),
+        // O brilho na cor do atributo ATUAL, o mesmo do círculo.
+        attribute: (card.attribute ?? registry?.get(card.code)?.attribute ?? "").toLowerCase(),
       });
     };
     you.monsters.forEach((card) => incluir(card, false));
@@ -1051,7 +1096,6 @@ export function DuelBoard({
         zoneKey={key}
         onHover={showPreview}
         onLongPress={onLongPress}
-        showLevel
         linkedBy={linkedBy.get(key)}
         onOpenMaterials={card?.overlays.length ? openMaterials(card) : undefined}
         marks={slotChips(marksOf(card))}
@@ -1686,6 +1730,15 @@ export function DuelBoard({
             </div>
           </div>
 
+          {/* Mesa estreita: sem câmera inclinada nem espaço entre as fileiras,
+              o holograma só cobriria a fileira de trás. */}
+          <MonsterHologramsLayer
+            monsters={hologramas}
+            fieldRef={fieldRef}
+            mode={estreita ? "off" : prefs.holograms}
+            flight={flight}
+            animationScale={animationScale}
+          />
           <FieldStatsLayer stats={statsDaMesa} fieldRef={fieldRef} />
 
           <Hand cards={you.hand} seat={me} {...shared} />
@@ -2241,7 +2294,6 @@ function FieldRow({
             zoneKey={key}
             onHover={onHover}
             onLongPress={onLongPress}
-            showLevel={isTcg && zone === "monster"}
             scaleSide={
               pendulumZone && isPendulum && !card?.faceDown
                 ? sequence === 0
@@ -4107,17 +4159,6 @@ function ActivationBanner({ activation }: { activation: ActivationHeader }) {
   );
 }
 
-/** O círculo do atributo, com o kanji — como o Master Duel mostra em qualquer idioma. */
-const ATTRIBUTE_KANJI: Record<string, string> = {
-  LIGHT: "光",
-  DARK: "闇",
-  FIRE: "炎",
-  WATER: "水",
-  WIND: "風",
-  EARTH: "地",
-  DIVINE: "神",
-};
-
 /** "Magia de Campo", "Armadilha de Resposta" — o subtipo, como o MD escreve. */
 function spellTrapSubtype(type: string, race: string | undefined): string {
   const magia = /spell/i.test(type);
@@ -4219,8 +4260,12 @@ function CardPreview({
     card && "counters" in card && card.counters !== undefined
       ? marksOf(card as BoardCard)
       : [];
-  const kanji = isSpell ? "魔" : isTrap ? "罠" : ATTRIBUTE_KANJI[definition.attribute ?? ""];
-  const atributo = isSpell ? "spell" : isTrap ? "trap" : (definition.attribute ?? "").toLowerCase();
+  // Em campo, o atributo ATUAL (um efeito pode tê-lo trocado); fora dele, o
+  // impresso.
+  const atributoAtual =
+    (card && "attribute" in card && card.attribute ? card.attribute : null) ?? definition.attribute;
+  const kanji = isSpell ? "魔" : isTrap ? "罠" : ATTRIBUTE_KANJI[atributoAtual ?? ""];
+  const atributo = isSpell ? "spell" : isTrap ? "trap" : (atributoAtual ?? "").toLowerCase();
 
   return (
     <div
@@ -4235,7 +4280,15 @@ function CardPreview({
         {kanji && (
           <span
             className={`md-attr md-attr-${atributo}`}
-            title={isMonster ? (attributeLabel(definition.attribute) ?? undefined) : isSpell ? "Magia" : "Armadilha"}
+            title={
+              isMonster
+                ? atributoAtual !== definition.attribute && definition.attribute
+                  ? `${attributeLabel(atributoAtual ?? undefined)} (original: ${attributeLabel(definition.attribute)})`
+                  : (attributeLabel(atributoAtual ?? undefined) ?? undefined)
+                : isSpell
+                  ? "Magia"
+                  : "Armadilha"
+            }
           >
             {kanji}
           </span>

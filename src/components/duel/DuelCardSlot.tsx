@@ -3,8 +3,6 @@
 import { useEffect, useLayoutEffect, useRef, useState, type RefObject } from "react";
 import { createPortal } from "react-dom";
 
-import { OcgLocation } from "@n1xx1/ocgcore-wasm";
-
 import type { BoardCard } from "@/lib/duel/board-state";
 import type { CardMark } from "@/lib/duel/card-marks";
 import { useCardText } from "@/hooks/useCardText";
@@ -91,14 +89,6 @@ interface DuelCardSlotProps {
   onChoose?: (action: CardAction) => void;
   onCloseMenu?: () => void;
   /**
-   * Mostra Nível/Rank/Link de um monstro em campo.
-   *
-   * No Goat o nível quase não pesa depois que o monstro desceu, e o selo
-   * competiria com o ATK/DEF; no TCG ele decide Sincro e Xyz, e o Rank e o
-   * Link são o que diferencia o monstro à primeira vista.
-   */
-  showLevel?: boolean;
-  /**
    * Esta carta está numa Zona de Pêndulo e vale como escala — qual delas. A
    * zona da esquerda usa a escala esquerda da carta, a da direita a direita.
    */
@@ -179,7 +169,6 @@ export function DuelCardSlot({
   onClick,
   onChoose,
   onCloseMenu,
-  showLevel = false,
   scaleSide = null,
   linkedBy = [],
   onOpenMaterials,
@@ -208,14 +197,6 @@ export function DuelCardSlot({
   const showFaceThroughBack = Boolean(card?.faceDown && !inHand && ownedFaceDown);
 
 
-  const isTuner =
-    definition?.type?.includes("Tuner") ||
-    definition?.humanReadableCardType?.includes("Tuner") ||
-    false;
-  const fieldBadge =
-    showLevel && !showBack && !card?.faceDown && !inHand && card
-      ? levelBadge(card, isTuner)
-      : null;
   const scale =
     scaleSide && !showBack && !card?.faceDown && card?.scales
       ? scaleSide === "left"
@@ -384,18 +365,6 @@ export function DuelCardSlot({
         {/* Proibido: a carta com o efeito negado ganha o símbolo do MD. */}
         {card?.negated && !showBack && !card.faceDown && <span aria-hidden className="md-negated-icon" />}
 
-        {/* Nível/Rank/Link no pé da carta, como o MD — estrela amarela,
-            estrela escura do Rank, o "LINK-N" azul. */}
-        {fieldBadge && (
-          <span
-            className={`md-level-badge ${fieldBadge.className}`}
-            title={fieldBadge.title}
-            data-level-badge={fieldBadge.kind}
-          >
-            <span aria-hidden className="md-level-icon" />
-            {fieldBadge.text}
-          </span>
-        )}
 
         {/* Escala de Pêndulo, na zona que a usa. Azul à esquerda, vermelho à
             direita — as cores das duas escalas impressas na carta. */}
@@ -487,45 +456,6 @@ export function DuelCardSlot({
   );
 }
 
-/**
- * Selo de Nível/Rank/Link de um monstro em campo, com os valores ATUAIS que o
- * core informa (um efeito que muda o nível aparece aqui).
- */
-function levelBadge(
-  card: BoardCard,
-  /**
-   * Regulador: o selo fica com o "R" — é o que decide a Invocação-Sincro, e
-   * achar o Regulador da mesa não pode exigir abrir carta.
-   */
-  isTuner = false,
-): { text: string; title: string; className: string; kind: "link" | "rank" | "level" } | null {
-  if (card.location !== OcgLocation.MZONE) return null;
-  if (card.link) {
-    return {
-      text: `${card.link.rating}`,
-      title: `Link ${card.link.rating}`,
-      className: "md-level-link",
-      kind: "link",
-    };
-  }
-  if (card.rank) {
-    return {
-      text: `${card.rank}`,
-      title: `Rank ${card.rank}`,
-      className: "md-level-rank",
-      kind: "rank",
-    };
-  }
-  if (card.level) {
-    return {
-      text: isTuner ? `${card.level}R` : `${card.level}`,
-      title: isTuner ? `Nível ${card.level} — Regulador` : `Nível ${card.level}`,
-      className: isTuner ? "md-level-star md-level-tuner" : "md-level-star",
-      kind: "level",
-    };
-  }
-  return null;
-}
 
 /**
  * As oito setas de um monstro Link, por cima da arte.

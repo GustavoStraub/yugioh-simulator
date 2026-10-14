@@ -313,7 +313,103 @@ depois do `globals.css`).
     não consigo ouvir — os níveis foram acertados pela medida, o ouvido do
     Gustavo dá a palavra final).
 
-## 7. Desvios deliberados do Master Duel
+**Atributo e Nível na carta em campo** (pedido depois da segunda entrega,
+olhando uma captura do MD): todo monstro de face para cima — Goat e TCG —
+mostra o círculo do atributo (kanji) e a estrela com o Nível (ou o Rank, ou o
+LINK) no canto da carta, do lado do ATK/DEF, na camada plana dele. Antes era
+um selo pequeno dentro da carta e só no TCG ("no Goat o nível quase não
+pesa"), e o atributo nem vinha do core: um DNA Surgery não aparecia. Agora os
+dois são os valores ATUAIS (`OcgQueryFlags.ATTRIBUTE`, conferido contra o
+binding antes de entrar), em azul/vermelho quando um efeito subiu/baixou o
+Nível e com um anel quando trocou o atributo; a leitura da carta também usa o
+atributo atual.
+
+## 7. Hologramas dos monstros (a Visão Sólida do anime)
+
+Não é do Master Duel — lá o monstro em campo é a carta. É do anime: o monstro
+saindo da carta, de pé sobre ela. Pedido do Gustavo em 13/10/2026.
+
+**A imagem só do monstro.** A arte recortada da YGOPRODeck é o monstro *com*
+o cenário pintado atrás, e não existe fonte pública de "só o monstro" para
+~9.800 cartas. O recorte é nosso, feito uma vez por carta por
+`npm run build:holograms` com dois modelos de IA (Apache-2.0), no processador:
+
+- **ISNet-anime** (`skytnt/anime-segmentation`) separa o monstro do fundo —
+  treinado em ilustração estilo anime, que é o que a arte do YGO é. A entrada
+  é a imagem em [0, 1] **sem** subtrair a média ImageNet; com ela a máscara
+  saía quase toda cinza (o Giant Soldier of Stone dava 4% de certeza).
+- **Depth Anything V2 Small** chuta quão perto está cada ponto. Com isso o
+  monstro vira **6 fatias de profundidade**: a de trás é o monstro inteiro, e
+  cada uma à frente guarda só o que está mais perto que o seu limiar. Assim
+  não abre buraco quando gira.
+
+Medido nos 58 monstros dos Baralhos Iniciais de Yugi e Kaiba: ~45 recortes
+limpos, ~8 com restos do fundo (o círculo mágico atrás do Dark Magician, os
+raios do Doma) e 5 que não separaram nada (monstro que ocupa a janela toda,
+como o Giant Soldier, ou fundo confundido com o corpo). Esses 5 são pegos pela
+própria máscara — sobrou mais de 85% da arte, ou mais de 75% com muita borda
+em dúvida — e viram **projeção**: a arte inteira esfumada em oval, em vez de
+um monstro com cenário colado em volta.
+
+Arquivos: `.cache/card-images/holo/<passcode>.webp` (as 6 fatias de 320 px
+empilhadas numa imagem só) e `index.json` (tipo e cobertura de cada um). A
+rota `/card-images/holo/…` só serve o que existe; a mesa pede a lista enxuta
+uma vez por partida (com ETag) e desenha holograma só para quem está nela.
+`--all` faz os ~9.800 monstros em ~75 min num M5 Pro (os dos decks prontos
+primeiro) e ocupa ~1 GB; o índice é gravado a cada 50 cartas, então dá para
+interromper e retomar. No Mac o recorte roda no CoreML (~0,2 s contra ~0,45 s
+no processador, máscara igual: IoU 0,991–0,9998); a profundidade fica no
+processador (no CoreML ela ficou mais lenta), os dois modelos rodam ao mesmo
+tempo, duas cartas por vez. Cada monstro guarda também o mapa de
+profundidade (`<passcode>-depth.webp`), que a mesa ainda não usa: é o que um
+desenho contínuo, sem fatias, precisaria.
+
+**Na mesa** (`MonsterHologramsLayer`): numa camada plana por cima da mesa,
+como o ATK/DEF — dentro do plano 3D o holograma de pé cruzaria o plano da
+própria carta (também de pé) e sairia cortado por ela. A base fica um pouco
+abaixo do meio da carta, com degradê embaixo: as pernas somem dentro da arte e
+o corpo sai por cima. Cada fatia num `translateZ` dentro de uma perspectiva só
+do holograma, e o conjunto balança ±10° a cada 4,2 s — é o giro que mostra o
+volume (a frente anda mais que o fundo; parado, as fatias seriam uma imagem
+chapada). Rasa de propósito (0,14 × o lado): as fatias são cumulativas, e com
+0,3 × o lado e ±14° cada uma ficava ~1,7 px da vizinha no fim do balanço — o
+contorno aparecia repetido em degraus (a asa do Curse of Dragon em "pente",
+apontado pelo Gustavo). Agora são ~0,6 px e as cópias se fundem numa borda
+macia; o ritmo subiu de 6 s para 4,2 s para compensar o giro menor. Brilho na cor do atributo, linhas de varredura, um reflexo que varre
+o monstro na forma dele, falha de sinal de vez em quando, cone de luz da carta
+até o monstro. Os efeitos ficam no elemento de fora: `filter`/`mask` num
+elemento `preserve-3d` achatam as fatias numa só. A subida (nasce achatado na
+carta e cresce) usa `@starting-style`, porque o holograma monta já aceso
+quando o monstro chega.
+
+Engrenagem → Animações → "Holograma do monstro":
+
+- **Sempre** (padrão — escolha do Gustavo depois de ver os dois modos): todo
+  monstro de face para cima tem o seu. O da fileira da frente sobe um pouco
+  por cima da parte de baixo das cartas do oponente; o tamanho (1,2 × a
+  largura da carta) foi acertado para os vizinhos não se atropelarem.
+- **Em momentos**: sobe na chegada ao campo (~2,6 s), no ataque (atacante e
+  alvo) e enquanto o mouse está na carta.
+- **Desligado.**
+
+Carta virada não tem holograma (nem a sua, translúcida). Mesa estreita
+(celular, tablet em pé) também não: sem câmera inclinada nem espaço entre as
+fileiras, ele só cobriria a fileira de trás.
+
+**No ataque quem investe é o holograma** (pedido do Gustavo): o mesmo recuo,
+investida e volta da carta-fantasma, nos mesmos tempos (a sessão espera esse
+tempo), e a carta fica na zona; a seta e o impacto não mudam. Sem holograma
+(carta sem arte gerada, opção "Desligado", mesa estreita) a carta voa como
+antes — o `AttackFlightLayer` decide pelo DOM, procurando o `[data-holo-for]`
+do atacante. O holograma anima com `translate`/`scale` avulsos: o `transform`
+dele é o que o põe de pé sobre a carta, e animá-lo apagaria isso.
+`test:attack` (que confere o giro da carta-fantasma) roda com os hologramas
+desligados.
+
+Limites conhecidos: os recortes com resto de fundo continuam com ele; ficha
+sem arte na YGOPRODeck não tem holograma.
+
+## 8. Desvios deliberados do Master Duel
 
 - **A zona é perguntada** quando há escolha (o MD, por padrão, põe a carta
   sozinha). No TCG a zona decide setas Link e Zonas Extra; no Goat quase não
@@ -329,7 +425,7 @@ depois do `globals.css`).
 - **No Goat não há Zona Extra**: o meio da mesa é só o corredor com a linha de
   luz (o MD sempre tem a fileira, porque é Master Rule).
 
-## 8. Próximas fases
+## 9. Próximas fases
 
 - **Jogabilidade do MD**: arrastar a carta para a zona; ordem de ativação de
   gatilhos simultâneos; "Self Chain"; banco de tempo no online.
@@ -339,7 +435,7 @@ depois do `globals.css`).
 - **Temas de mesa** (o Gustavo escolheu o neon; a troca de tema não foi
   pedida).
 
-## 9. Verificação
+## 10. Verificação
 
 ### Primeira entrega
 
@@ -382,6 +478,19 @@ gerar classes novas de valor arbitrário (`h-[clamp(…)]`) — o CSS servido
 ficava sem elas e a mão do oponente sumia (altura 0, por ser contêiner de
 tamanho). A altura dela foi para o `md-duel.css`; no build de produção as
 classes saem todas. Reiniciar o dev server resolve.
+
+### Hologramas
+
+- `tsc` e `lint` limpos; `test:board-modern`, `test:viewports` e
+  `test:browser-peek` verdes contra o dev server.
+- Uma mesa montada no Chrome (cenário com 3 monstros de Yugi e 3 de Kaiba):
+  "Sempre" acende os 6; "Em momentos" sobe os 6 na chegada e recolhe em
+  ~2,6 s, sobe com o mouse no Dark Magician (só ele) e desce ao tirar; no
+  turno do bot o ataque do Blue-Eyes acendeu ele e o alvo (Gaia), e o monstro
+  que o bot invocou subiu ao chegar. Fotos nos dois extremos do balanço
+  mostram o cajado (na frente) andando em relação ao corpo. 52 quadros por
+  segundo com 6 hologramas no Chrome sem GPU.
+- Não há teste automatizado dos hologramas na bateria ainda.
 
 ## Fontes
 

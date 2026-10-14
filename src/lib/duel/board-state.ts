@@ -1,3 +1,4 @@
+import { attributeFromBits } from "@/lib/duel/attributes";
 import {
   OcgLocation,
   OcgPosition,
@@ -59,6 +60,12 @@ export interface BoardCard {
   level: number | null;
   /** Rank atual de um Xyz; 0 nos outros. */
   rank: number | null;
+  /**
+   * Atributo **atual** ("DARK", "LIGHT"…), com efeitos aplicados — um DNA
+   * Surgery muda o círculo na mesa. `null` fora do campo ou numa carta que o
+   * observador não vê (o atributo de um monstro baixado já diz qual é).
+   */
+  attribute: string | null;
   /** Rating e setas de um Link (`OcgLinkMarker`); `null` nos outros. */
   link: { rating: number; markers: number } | null;
   /**
@@ -144,10 +151,15 @@ const ZONE_FLAGS = (OcgQueryFlags.CODE |
  * desserializar esse campo — sozinho ele lança `eof`, e junto de outros
  * desalinha a resposta inteira (zonas trocadas, `code` indefinido). O tipo da
  * carta vem do banco oficial/catálogo, que é estático e serve à tela.
+ *
+ * `ATTRIBUTE` foi conferido antes de entrar: com estes mesmos flags o core
+ * devolveu 0x20 para o Dark Magician e 0x10 para o Blue-Eyes, e código, Nível,
+ * ATK/DEF e status continuaram no lugar.
  */
 const FIELD_FLAGS = (ZONE_FLAGS |
   OcgQueryFlags.LEVEL |
   OcgQueryFlags.RANK |
+  OcgQueryFlags.ATTRIBUTE |
   OcgQueryFlags.LINK |
   OcgQueryFlags.LSCALE |
   OcgQueryFlags.RSCALE |
@@ -246,6 +258,7 @@ function toBoardCard(
     // baixado já dizem que carta ele é.
     level: visible ? num(raw, "level") : null,
     rank: visible ? num(raw, "rank") : null,
+    attribute: visible ? attributeFromBits(num(raw, "attribute")) : null,
     link: visible && link?.rating ? { rating: link.rating, markers: link.marker ?? 0 } : null,
     scales: visible && left !== null && right !== null ? { left, right } : null,
     overlays: visible && Array.isArray(raw.overlayCards) ? (raw.overlayCards as number[]) : [],
@@ -375,6 +388,7 @@ function readPlayer(
       baseDefense: null,
       level: null,
       rank: null,
+      attribute: null,
       link: null,
       scales: null,
       overlays: [],

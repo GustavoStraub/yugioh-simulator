@@ -19,6 +19,31 @@ export interface DuelPrefs {
    * duelo local, desligar também tira a pausa que a sessão faz por ele.
    */
   cutIns: boolean;
+  /** Quando o holograma do monstro sobe da carta — ver `HologramMode`. */
+  holograms: HologramMode;
+}
+
+/**
+ * Quando o holograma do monstro aparece sobre a carta.
+ *
+ * - `always`: todo monstro de face para cima fica com o seu — o padrão, a
+ *   escolha do Gustavo depois de ver os dois modos na mesa, mesmo sabendo que
+ *   o holograma da fileira da frente sobe um pouco por cima das cartas do
+ *   oponente.
+ * - `moments`: só na chegada ao campo, no ataque (atacante e alvo) e enquanto
+ *   o mouse está na carta — depois volta para dentro dela.
+ * - `off`: nenhum.
+ */
+export type HologramMode = "moments" | "always" | "off";
+
+export const HOLOGRAM_MODE_LABEL: Record<HologramMode, string> = {
+  always: "Sempre",
+  moments: "Em momentos",
+  off: "Desligado",
+};
+
+function isHologramMode(value: unknown): value is HologramMode {
+  return value === "moments" || value === "always" || value === "off";
 }
 
 /**
@@ -58,7 +83,12 @@ export const CHAIN_MODE_HINT: Record<ChainResponseMode, string> = {
   never: "Só pergunta quando encadear é obrigatório. Segure Ctrl para parar.",
 };
 
-export const DEFAULT_DUEL_PREFS: DuelPrefs = { chainMode: "auto", speed: "normal", cutIns: true };
+export const DEFAULT_DUEL_PREFS: DuelPrefs = {
+  chainMode: "auto",
+  speed: "normal",
+  cutIns: true,
+  holograms: "always",
+};
 
 export const DUEL_PREFS_KEY = "yugioh-goat-duel-prefs-v1";
 
@@ -77,6 +107,7 @@ export function parseDuelPrefs(raw: string | null): DuelPrefs {
         : DEFAULT_DUEL_PREFS.chainMode,
       speed: isSpeed(parsed.speed) ? parsed.speed : DEFAULT_DUEL_PREFS.speed,
       cutIns: typeof parsed.cutIns === "boolean" ? parsed.cutIns : DEFAULT_DUEL_PREFS.cutIns,
+      holograms: isHologramMode(parsed.holograms) ? parsed.holograms : DEFAULT_DUEL_PREFS.holograms,
     };
   } catch {
     return DEFAULT_DUEL_PREFS;

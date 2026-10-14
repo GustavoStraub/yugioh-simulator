@@ -80,12 +80,16 @@ async function main() {
     const page = await openPage(port);
     await page.goto(`${BASE}/duel`);
     // O perfil vem ANTES do deck: sem nome, a portaria (`PlayerProvider`)
-    // segura a aplicação na pergunta "como você quer ser chamado?".
+    // segura a aplicação na pergunta "como você quer ser chamado?". Hologramas
+    // desligados: com eles quem investe é o holograma, e a carta-fantasma — o
+    // assunto deste teste — nem nasce.
     await page.evaluate(
       `localStorage.setItem("yugioh-goat-profile-v1", ${JSON.stringify(
         JSON.stringify({ id: "harnessattackrot", name: "Testador" }),
       )});
-       localStorage.setItem("yugioh-goat-deck-v1", ${JSON.stringify(JSON.stringify(deck()))}); return true;`,
+       localStorage.setItem("yugioh-goat-deck-v1", ${JSON.stringify(JSON.stringify(deck()))});
+       localStorage.setItem("yugioh-goat-duel-prefs-v1", ${JSON.stringify(JSON.stringify({ holograms: "off" }))});
+       return true;`,
     );
     await page.goto(`${BASE}/duel`);
     for (let i = 0; i < 60; i += 1) {

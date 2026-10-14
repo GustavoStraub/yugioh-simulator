@@ -8,13 +8,16 @@ import { CHAIN_RESPONSE_MODES, type ChainResponseMode } from "@/lib/duel/chain-m
 import {
   CHAIN_MODE_HINT,
   CHAIN_MODE_LABEL,
+  HOLOGRAM_MODE_LABEL,
   SPEED_LABEL,
   type DuelPrefs,
   type DuelSpeed,
+  type HologramMode,
 } from "@/lib/duel/duel-prefs";
 import { LANGUAGE_OPTIONS } from "@/lib/i18n/language";
 
 const SPEEDS: DuelSpeed[] = ["normal", "fast", "faster"];
+const HOLOGRAM_MODES: HologramMode[] = ["always", "moments", "off"];
 
 /**
  * A engrenagem da mesa — o menu do canto de cima à esquerda do Master Duel.
@@ -175,6 +178,30 @@ export function DuelSettings({
                       </span>
                     </span>
                   </label>
+                  <div className="mt-3 text-[12px] text-zinc-200">
+                    Holograma do monstro
+                    <span className="block text-[11px] leading-snug text-zinc-400">
+                      O monstro sai da carta. “Em momentos”: só ao chegar ao campo, no
+                      ataque e com o mouse na carta.
+                    </span>
+                    <div className="mt-1.5 flex gap-1">
+                      {HOLOGRAM_MODES.map((mode) => (
+                        <button
+                          key={mode}
+                          type="button"
+                          data-hologram-mode={mode}
+                          aria-pressed={prefs.holograms === mode}
+                          onClick={() => {
+                            playSfx("click");
+                            onChange({ holograms: mode });
+                          }}
+                          className={`md-seg flex-1 ${prefs.holograms === mode ? "md-seg-on" : ""}`}
+                        >
+                          {HOLOGRAM_MODE_LABEL[mode]}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
                 </Section>
               )}
 
