@@ -41,6 +41,16 @@ function origensDeDesenvolvimento(): string[] {
 const nextConfig: NextConfig = {
   serverExternalPackages: ["@n1xx1/ocgcore-wasm"],
   allowedDevOrigins: origensDeDesenvolvimento(),
+  /**
+   * A biblioteca de decks (`.data/`) é dado do usuário, gravado em tempo de
+   * execução — não vai junto do pacote do servidor. O rastreamento de
+   * arquivos do build a pegava porque a pasta padrão é um caminho fixo
+   * (`.data/decks`, ver `src/server/decks/store.ts`): quem publicasse o
+   * build levaria os decks de todo mundo junto.
+   */
+  outputFileTracingExcludes: {
+    "/*": [".data/**/*"],
+  },
 };
 
 export default nextConfig;

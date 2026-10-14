@@ -24,6 +24,13 @@ import type { DeckList } from "@/lib/types";
  * de quantos níveis o arquivo está do topo, é o que o Turbopack consegue
  * analisar — com um caminho que ele não resolve, ele passa a rastrear o
  * projeto inteiro para o bundle do servidor.
+ *
+ * Mesmo assim o `DECKS_DIR` trocável por env é dinâmico, e o `readdir` dele
+ * fazia o build avisar "Dynamic filesystem access causes tracing of the whole
+ * project" (visto no `npm run public`). Por isso todo acesso a esta pasta leva
+ * `turbopackIgnore`: ela é dado do usuário, gravado em tempo de execução —
+ * nada aqui deve ir para o pacote do servidor, que é justamente o que o
+ * rastreamento faria.
  */
 const DECKS_DIR = process.env.DECKS_DIR ?? join(process.cwd(), ".data", "decks");
 
@@ -51,7 +58,7 @@ function fileFor(profileId: string): string {
 
 async function readProfile(profileId: string): Promise<ProfileFile | null> {
   try {
-    const raw = await readFile(fileFor(profileId), "utf8");
+    const raw = await readFile(/*turbopackIgnore: true*/ fileFor(profileId), "utf8");
     const parsed = JSON.parse(raw) as ProfileFile;
     if (!Array.isArray(parsed.decks)) return null;
     return parsed;
@@ -69,11 +76,11 @@ async function readProfile(profileId: string): Promise<ProfileFile | null> {
  * — que seria a biblioteca inteira perdida, não um deck.
  */
 async function writeProfile(file: ProfileFile): Promise<void> {
-  await mkdir(DECKS_DIR, { recursive: true });
+  await mkdir(/*turbopackIgnore: true*/ DECKS_DIR, { recursive: true });
   const destino = fileFor(file.profile.id);
   const temporario = `${destino}.${randomId().slice(0, 8)}.tmp`;
-  await writeFile(temporario, JSON.stringify(file, null, 2), "utf8");
-  await rename(temporario, destino);
+  await writeFile(/*turbopackIgnore: true*/ temporario, JSON.stringify(file, null, 2), "utf8");
+  await rename(/*turbopackIgnore: true*/ temporario, destino);
 }
 
 /**
@@ -125,7 +132,7 @@ async function moverPara(
   for (const origem of origens) {
     if (origem.profile.id === paraId) continue;
     await rename(
-      fileFor(origem.profile.id),
+      /*turbopackIgnore: true*/ fileFor(origem.profile.id),
       `${fileFor(origem.profile.id)}.absorvido.bak`,
     ).catch(() => {});
   }
@@ -227,7 +234,7 @@ async function candidatosPorNome(
 
   let arquivos: string[];
   try {
-    arquivos = await readdir(DECKS_DIR);
+    arquivos = await readdir(/*turbopackIgnore: true*/ DECKS_DIR);
   } catch {
     return [];
   }
