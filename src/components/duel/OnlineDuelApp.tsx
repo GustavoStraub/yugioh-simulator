@@ -9,8 +9,10 @@ import { useClientSnapshot } from "@/hooks/useClientSnapshot";
 import { useDeckEscolha } from "@/hooks/useDeckEscolha";
 import { useDuelPrefs } from "@/hooks/useDuelPrefs";
 import { DeckSelect } from "@/components/duel/DeckSelect";
+import { DeckSelectionLayout } from "@/components/duel/DeckSelectionLayout";
 import { JokenpoDisputa } from "@/components/duel/JokenpoDisputa";
 import { useOnlineDuel } from "@/hooks/useOnlineDuel";
+import type { CardRegistry } from "@/lib/domain/card-registry";
 import { ehLocalhost } from "@/lib/net/origem";
 import {
   loadOnlineSetup,
@@ -163,7 +165,7 @@ function OnlineDuelInner({ code }: { code: string }) {
     );
   }
 
-  return <SalaDeEspera code={code} duel={duel} escolha={escolha} me={me} />;
+  return <SalaDeEspera code={code} duel={duel} escolha={escolha} me={me} registry={registry} />;
 }
 
 function QuedaDeConexao() {
@@ -218,16 +220,19 @@ function SalaDeEspera({
   duel,
   escolha,
   me,
+  registry,
 }: {
   code: string;
   duel: ReturnType<typeof useOnlineDuel>;
   escolha: ReturnType<typeof useDeckEscolha>;
   me: 0 | 1 | null;
+  registry: CardRegistry;
 }) {
   const { seats, ready, setReady, setDeck, finished, status, error } = duel;
   const { jokenpo } = duel;
   const [copiado, setCopiado] = useState(false);
   const [convite, setConvite] = useState("");
+  const [hoveredCode, setHoveredCode] = useState<number | null>(null);
 
   // O link tem que apontar para o endereço da REDE, não para `localhost`: o
   // amigo não alcança o localhost desta máquina. Quando a página já foi aberta
@@ -283,7 +288,7 @@ function SalaDeEspera({
   }
 
   return (
-    <div className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-6 overflow-y-auto p-6">
+    <DeckSelectionLayout registry={registry} hoveredCode={hoveredCode}>
       <section className="rounded-2xl border border-amber-900/40 bg-zinc-950/80 p-6 text-center">
         <p className="text-xs uppercase tracking-[0.3em] text-zinc-500">Sala</p>
         <p className="mt-1 font-mono text-4xl tracking-[0.4em] text-amber-300">{code}</p>
@@ -322,7 +327,11 @@ function SalaDeEspera({
               ? "Pode trocar antes da próxima partida."
               : "Dá para trocar até os dois estarem prontos."}
           </p>
-          <DeckSelect escolha={escolha} onChange={(valor) => trocarDeck(valor)} />
+          <DeckSelect
+            escolha={escolha}
+            onChange={(valor) => trocarDeck(valor)}
+            onCardHover={setHoveredCode}
+          />
           {!escolha.pronto && (
             <p className="mt-3 text-sm text-amber-200">
               Este deck tem menos de 40 cartas — escolha outro para poder duelar.
@@ -427,7 +436,7 @@ function SalaDeEspera({
       <Link href="/duel/online" className="text-center text-sm text-zinc-500 hover:text-zinc-300">
         Sair da sala
       </Link>
-    </div>
+    </DeckSelectionLayout>
   );
 }
 

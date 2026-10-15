@@ -8,6 +8,7 @@ import { useCardRegistry } from "@/context/CardRegistryProvider";
 import { usePlayer } from "@/context/PlayerProvider";
 import { useDeckEscolha } from "@/hooks/useDeckEscolha";
 import { DeckSelect } from "@/components/duel/DeckSelect";
+import { DeckSelectionLayout } from "@/components/duel/DeckSelectionLayout";
 import { deckToDuelPayload } from "@/lib/domain/deck-serializer";
 import { isDeckDuelReady } from "@/lib/domain/deck-rules";
 import { kindGroupLabel, presetToDuelPayload } from "@/lib/domain/preset-decks";
@@ -48,6 +49,7 @@ export function DuelLobby() {
   const [primeiro, setPrimeiro] = useState<FirstTurnChoice>("me");
   const { profile } = usePlayer();
   const [opponentId, setOpponentId] = useState<string | null>(null);
+  const [hoveredCode, setHoveredCode] = useState<number | null>(null);
   // A biblioteca inteira do jogador, não só o deck aberto no construtor —
   // quem montou cinco decks escolhe qual leva para a mesa.
   const meuDeck = useDeckEscolha();
@@ -141,10 +143,10 @@ export function DuelLobby() {
   }
 
   return (
-    <div className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-6 overflow-y-auto p-6">
+    <DeckSelectionLayout registry={registry} hoveredCode={hoveredCode}>
       <section className="rounded-2xl border border-amber-900/40 bg-zinc-950/80 p-6">
         <h2 className="text-lg font-semibold text-amber-300">Seu deck</h2>
-        <DeckSelect escolha={meuDeck} onChange={meuDeck.setEscolha} />
+        <DeckSelect escolha={meuDeck} onChange={meuDeck.setEscolha} onCardHover={setHoveredCode} />
 
         <div className="mt-4 flex items-center justify-between gap-4">
           <span
@@ -201,7 +203,9 @@ export function DuelLobby() {
           </select>
         )}
 
-        {opponent && <DeckPreview deck={opponent.deck} registry={registry} />}
+        {opponent && (
+          <DeckPreview deck={opponent.deck} registry={registry} onCardHover={setHoveredCode} />
+        )}
       </section>
 
       <section className="rounded-2xl border border-amber-900/40 bg-zinc-950/80 p-6">
@@ -262,6 +266,6 @@ export function DuelLobby() {
       >
         Duelar contra outra pessoa na sua rede →
       </Link>
-    </div>
+    </DeckSelectionLayout>
   );
 }

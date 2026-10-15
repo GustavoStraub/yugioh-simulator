@@ -52,13 +52,13 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       lang="pt-BR"
       className={`${geistSans.variable} ${geistMono.variable} ${mdDisplay.variable} ${mdDigits.variable} h-full antialiased`}
     >
-      <body className="flex h-full flex-col overflow-hidden bg-zinc-950 text-zinc-100">
+      <body className="flex h-full flex-col overflow-x-hidden overflow-y-auto bg-zinc-950 text-zinc-100">
         {/* A portaria vive DENTRO do provider e por fora das páginas: o nome
             precisa existir antes de qualquer tela tocar na biblioteca. */}
         <PlayerProvider>
           <SiteHeader />
 
-          <main className="mx-auto flex min-h-0 w-full max-w-[1800px] flex-1 flex-col overflow-hidden">
+          <main className="mx-auto flex w-full max-w-[1800px] flex-1 flex-col overflow-visible">
             {children}
           </main>
         </PlayerProvider>

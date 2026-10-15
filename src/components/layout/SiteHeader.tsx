@@ -38,7 +38,7 @@ export function SiteHeader() {
   }
 
   return (
-    <header className="shrink-0 border-b border-amber-900/30 bg-zinc-950/95 px-4 py-4 backdrop-blur">
+    <header className="sticky top-0 z-40 shrink-0 border-b border-amber-900/30 bg-zinc-950/95 px-4 py-4 backdrop-blur">
       {/* No celular o título e a navegação empilham: lado a lado, o título
           ficava com metade da largura e a navegação rolava com "Online" fora
           de vista. */}

@@ -9,6 +9,7 @@ import { usePlayer } from "@/context/PlayerProvider";
 import { useClientSnapshot } from "@/hooks/useClientSnapshot";
 import { useDeckEscolha } from "@/hooks/useDeckEscolha";
 import { DeckSelect } from "@/components/duel/DeckSelect";
+import { DeckSelectionLayout } from "@/components/duel/DeckSelectionLayout";
 import {
   defaultPlayerName,
   ONLINE_TOKEN_KEY,
@@ -23,9 +24,10 @@ import { ehOrigemLocal } from "@/lib/net/origem";
 
 export function OnlineLobby({ initialRoom = "" }: { initialRoom?: string }) {
   const router = useRouter();
-  const { isLoading, error } = useCardRegistry();
+  const { isLoading, error, registry } = useCardRegistry();
   const { profile } = usePlayer();
   const deckEscolhido = useDeckEscolha();
+  const [hoveredCode, setHoveredCode] = useState<number | null>(null);
 
   // O nome do perfil é o sugerido; o token da aba é só a rede de segurança
   // para quem abrir uma segunda aba e quiser dois duelistas distintos.
@@ -93,7 +95,7 @@ export function OnlineLobby({ initialRoom = "" }: { initialRoom?: string }) {
   }
 
   return (
-    <div className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-6 overflow-y-auto p-6">
+    <DeckSelectionLayout registry={registry} hoveredCode={hoveredCode}>
       <section className="rounded-2xl border border-amber-900/40 bg-zinc-950/80 p-6">
         <h2 className="text-lg font-semibold text-amber-300">Seu nome</h2>
         <p className="mt-1 text-sm text-zinc-500">
@@ -113,6 +115,7 @@ export function OnlineLobby({ initialRoom = "" }: { initialRoom?: string }) {
         <DeckSelect
           escolha={deckEscolhido}
           onChange={(valor) => deckEscolhido.setEscolha(valor)}
+          onCardHover={setHoveredCode}
         />
         {!deckPronto && (
           <p className="mt-3 text-sm text-amber-200">
@@ -176,6 +179,6 @@ export function OnlineLobby({ initialRoom = "" }: { initialRoom?: string }) {
           </ul>
         </section>
       )}
-    </div>
+    </DeckSelectionLayout>
   );
 }
