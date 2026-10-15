@@ -256,6 +256,7 @@ export function DuelCardSlot({
 
       <div
         title={linkedBy.length ? `Apontada por: ${linkedBy.join(", ")}` : undefined}
+        data-previewable={card?.code ? "" : undefined}
         className={`tf-slot tf-touch-card md-card-plane h-full w-full ${card ? "md-card-on" : "md-card-empty"} ${
           dePe ? "md-standing" : ""
         } ${deitada && card ? "md-card-def" : ""} ${entering ? "md-anim-land" : ""} ${linkedBy.length ? "tf-slot-linked" : ""} ${
@@ -288,10 +289,15 @@ export function DuelCardSlot({
           if (onLongPress) event.preventDefault();
         }}
         onClickCapture={(event) => {
-          if (!longPressed.current) return;
-          longPressed.current = false;
-          event.stopPropagation();
-          event.preventDefault();
+          if (longPressed.current) {
+            longPressed.current = false;
+            event.stopPropagation();
+            event.preventDefault();
+            return;
+          }
+          // O clique também fixa a carta no painel, inclusive quando a mesa é
+          // controlada sem mouse (o hover continua atualizando a leitura).
+          if (card?.code) onHover?.(card);
         }}
         onClick={onClick}
         role={interactive ? "button" : undefined}
@@ -302,6 +308,7 @@ export function DuelCardSlot({
             ? (event) => {
                 if (event.key === "Enter" || event.key === " ") {
                   event.preventDefault();
+                  if (card?.code) onHover?.(card);
                   onClick?.();
                 }
               }

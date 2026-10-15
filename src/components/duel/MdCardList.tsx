@@ -138,6 +138,7 @@ export function CardTile({
       {...(onClick ? { type: "button" as const } : {})}
       {...data}
       onClick={onClick}
+      onClickCapture={() => onHover?.()}
       onMouseEnter={onHover}
       title={title}
       className={`md-tile ${picked ? "md-tile-picked" : ""} ${actionable ? "md-tile-actionable" : ""} ${

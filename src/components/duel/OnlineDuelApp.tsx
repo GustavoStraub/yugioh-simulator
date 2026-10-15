@@ -287,8 +287,8 @@ function SalaDeEspera({
     });
   }
 
-  return (
-    <DeckSelectionLayout registry={registry} hoveredCode={hoveredCode}>
+  const actions = (
+    <>
       <section className="rounded-2xl border border-amber-900/40 bg-zinc-950/80 p-6 text-center">
         <p className="text-xs uppercase tracking-[0.3em] text-zinc-500">Sala</p>
         <p className="mt-1 font-mono text-4xl tracking-[0.4em] text-amber-300">{code}</p>
@@ -308,9 +308,6 @@ function SalaDeEspera({
         )}
       </section>
 
-      {/* Com os dois prontos, a sala vira a disputa do primeiro turno: o deck
-          já está escolhido e ficar pronto de novo não faz sentido enquanto o
-          jokenpô não decide. */}
       {jokenpo ? (
         <JokenpoDisputa
           estado={jokenpo}
@@ -320,7 +317,45 @@ function SalaDeEspera({
         />
       ) : (
         <>
+          {error && (
+            <p className="rounded-xl border border-red-900/50 bg-red-950/40 px-4 py-3 text-center text-sm text-red-200">
+              {error}
+            </p>
+          )}
+          {status !== "conectado" && !error && (
+            <p className="text-center text-sm text-amber-200">Conectando…</p>
+          )}
           <section className="rounded-2xl border border-amber-900/40 bg-zinc-950/80 p-6">
+            <h2 className="text-lg font-semibold text-amber-300">Pronto para duelo</h2>
+            <p className="mt-1 text-sm text-zinc-500">
+              {ready ? "Você está pronto. Aguarde o outro duelista." : "Confirme quando estiver pronto para jogar."}
+            </p>
+            <button
+              type="button"
+              disabled={status !== "conectado" || !escolha.pronto || !meuAssento}
+              onClick={() => setReady(!ready)}
+              className={`mt-4 w-full rounded-xl px-6 py-3 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-40 ${
+                ready
+                  ? "border border-emerald-700/60 text-emerald-300 hover:bg-emerald-900/30"
+                  : "bg-amber-600 text-black hover:bg-amber-500"
+              }`}
+            >
+              {ready ? "Cancelar" : "Estou pronto"}
+            </button>
+          </section>
+        </>
+      )}
+
+      <Link href="/duel/online" className="text-center text-sm text-zinc-500 hover:text-zinc-300">
+        Sair da sala
+      </Link>
+    </>
+  );
+
+  return (
+    <DeckSelectionLayout registry={registry} hoveredCode={hoveredCode} actions={actions}>
+      {!jokenpo && (
+        <section className="rounded-2xl border border-amber-900/40 bg-zinc-950/80 p-6">
           <h2 className="text-lg font-semibold text-amber-300">Seu deck</h2>
           <p className="mt-1 text-sm text-zinc-500">
             {finished
@@ -338,6 +373,7 @@ function SalaDeEspera({
             </p>
           )}
         </section>
+      )}
 
         <section className="rounded-2xl border border-amber-900/40 bg-zinc-950/80 p-6">
           <h2 className="text-lg font-semibold text-amber-300">
@@ -401,41 +437,7 @@ function SalaDeEspera({
                 começa com os dois no mesmo formato — troque o deck acima.
               </p>
             )}
-
-          <p className="mt-4 text-xs text-zinc-500">
-            Com os dois prontos vem um pedra-papel-tesoura, e quem ganha escolhe
-            jogar primeiro ou por último — o primeiro turno vale demais para ser
-            sorteado.
-          </p>
         </section>
-
-        {error && (
-          <p className="rounded-xl border border-red-900/50 bg-red-950/40 px-4 py-3 text-center text-sm text-red-200">
-            {error}
-          </p>
-        )}
-        {status !== "conectado" && !error && (
-          <p className="text-center text-sm text-amber-200">Conectando…</p>
-        )}
-
-        <button
-          type="button"
-          disabled={status !== "conectado" || !escolha.pronto || !meuAssento}
-          onClick={() => setReady(!ready)}
-          className={`rounded-xl px-6 py-3 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-40 ${
-            ready
-              ? "border border-emerald-700/60 text-emerald-300 hover:bg-emerald-900/30"
-              : "bg-amber-600 text-black hover:bg-amber-500"
-          }`}
-        >
-          {ready ? "Cancelar" : "Estou pronto"}
-        </button>
-        </>
-      )}
-
-      <Link href="/duel/online" className="text-center text-sm text-zinc-500 hover:text-zinc-300">
-        Sair da sala
-      </Link>
     </DeckSelectionLayout>
   );
 }

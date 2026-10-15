@@ -142,8 +142,70 @@ export function DuelLobby() {
     );
   }
 
+  const actions = (
+    <>
+      <section className="rounded-2xl border border-amber-900/40 bg-zinc-950/80 p-6">
+        <h2 className="text-lg font-semibold text-amber-300">Opções do duelo</h2>
+        <p className="mt-1 text-sm text-zinc-500">Escolha quem começa e inicie a partida.</p>
+        <div role="radiogroup" aria-label="Quem começa" className="mt-4 grid grid-cols-3 gap-2">
+          {PRIMEIRO_TURNO.map((opcao) => (
+            <button
+              key={opcao.valor}
+              type="button"
+              role="radio"
+              aria-checked={primeiro === opcao.valor}
+              data-first-turn={opcao.valor}
+              onClick={() => setPrimeiro(opcao.valor)}
+              className={`rounded-lg border px-3 py-2 text-sm font-semibold transition ${
+                primeiro === opcao.valor
+                  ? "border-amber-500 bg-amber-600 text-black"
+                  : "border-zinc-700 bg-zinc-900 text-zinc-200 hover:border-amber-700"
+              }`}
+            >
+              {opcao.rotulo}
+            </button>
+          ))}
+        </div>
+        <p className="mt-2 text-xs text-zinc-500">
+          {PRIMEIRO_TURNO.find((opcao) => opcao.valor === primeiro)?.dica}
+        </p>
+        <button
+          type="button"
+          disabled={!duelReady || !opponent}
+          onClick={handleStart}
+          className="mt-5 w-full rounded-xl bg-amber-600 px-6 py-3 text-sm font-semibold text-black transition hover:bg-amber-500 disabled:cursor-not-allowed disabled:opacity-40"
+        >
+          Iniciar duelo vs bot
+        </button>
+      </section>
+
+      <section className="rounded-2xl border border-zinc-800 bg-zinc-950/60 p-5">
+        <h2 className="text-sm font-semibold text-zinc-200">Outras opções</h2>
+        <button
+          type="button"
+          data-spectate
+          disabled={!duelReady || !opponent}
+          onClick={handleSpectate}
+          title="O bot joga com o seu deck contra o deck escolhido — para ver como as cartas se usam"
+          className="mt-3 w-full rounded-lg border border-zinc-700 px-4 py-2 text-sm text-zinc-200 transition hover:border-amber-700 disabled:opacity-40"
+        >
+          👁 Assistir bot × bot
+        </button>
+        <Link
+          href="/duel/online"
+          className="mt-3 block rounded-lg border border-zinc-700 px-4 py-2 text-center text-sm text-amber-400 transition hover:border-amber-700"
+        >
+          Duelar contra outra pessoa na sua rede →
+        </Link>
+        <p className="mt-4 text-center text-xs text-zinc-600">
+          Engine ocgcore-wasm · {formato === "tcg" ? "TCG (Master Rule 2020)" : "Goat Format"} · bot joga automaticamente
+        </p>
+      </section>
+    </>
+  );
+
   return (
-    <DeckSelectionLayout registry={registry} hoveredCode={hoveredCode}>
+    <DeckSelectionLayout registry={registry} hoveredCode={hoveredCode} actions={actions}>
       <section className="rounded-2xl border border-amber-900/40 bg-zinc-950/80 p-6">
         <h2 className="text-lg font-semibold text-amber-300">Seu deck</h2>
         <DeckSelect escolha={meuDeck} onChange={meuDeck.setEscolha} onCardHover={setHoveredCode} />
@@ -207,65 +269,6 @@ export function DuelLobby() {
           <DeckPreview deck={opponent.deck} registry={registry} onCardHover={setHoveredCode} />
         )}
       </section>
-
-      <section className="rounded-2xl border border-amber-900/40 bg-zinc-950/80 p-6">
-        <h2 className="text-lg font-semibold text-amber-300">Quem começa</h2>
-        <div role="radiogroup" aria-label="Quem começa" className="mt-3 flex gap-2">
-          {PRIMEIRO_TURNO.map((opcao) => (
-            <button
-              key={opcao.valor}
-              type="button"
-              role="radio"
-              aria-checked={primeiro === opcao.valor}
-              data-first-turn={opcao.valor}
-              onClick={() => setPrimeiro(opcao.valor)}
-              className={`flex-1 rounded-lg border px-3 py-2 text-sm font-semibold transition ${
-                primeiro === opcao.valor
-                  ? "border-amber-500 bg-amber-600 text-black"
-                  : "border-zinc-700 bg-zinc-900 text-zinc-200 hover:border-amber-700"
-              }`}
-            >
-              {opcao.rotulo}
-            </button>
-          ))}
-        </div>
-        <p className="mt-2 text-xs text-zinc-500">
-          {PRIMEIRO_TURNO.find((opcao) => opcao.valor === primeiro)?.dica}
-        </p>
-      </section>
-
-      <button
-        type="button"
-        disabled={!duelReady || !opponent}
-        onClick={handleStart}
-        className="rounded-xl bg-amber-600 px-6 py-3 text-sm font-semibold text-black transition hover:bg-amber-500 disabled:cursor-not-allowed disabled:opacity-40"
-      >
-        Iniciar duelo vs bot
-      </button>
-
-      <div className="flex flex-wrap items-center justify-center gap-3 text-sm">
-        <button
-          type="button"
-          data-spectate
-          disabled={!duelReady || !opponent}
-          onClick={handleSpectate}
-          title="O bot joga com o seu deck contra o deck escolhido — para ver como as cartas se usam"
-          className="rounded-lg border border-zinc-700 px-4 py-2 text-zinc-200 transition hover:border-amber-700 disabled:opacity-40"
-        >
-          👁 Assistir bot × bot
-        </button>
-      </div>
-
-      <p className="text-center text-xs text-zinc-600">
-        Engine ocgcore-wasm · {formato === "tcg" ? "TCG (Master Rule 2020)" : "Goat Format"} · bot joga automaticamente
-      </p>
-
-      <Link
-        href="/duel/online"
-        className="text-center text-sm text-amber-400 underline-offset-2 hover:underline"
-      >
-        Duelar contra outra pessoa na sua rede →
-      </Link>
     </DeckSelectionLayout>
   );
 }

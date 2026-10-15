@@ -58,7 +58,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <PlayerProvider>
           <SiteHeader />
 
-          <main className="mx-auto flex w-full max-w-[1800px] flex-1 flex-col overflow-visible">
+          <main className="mx-auto flex w-full max-w-[1800px] flex-1 flex-col overflow-visible lg:min-h-0">
             {children}
           </main>
         </PlayerProvider>

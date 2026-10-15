@@ -74,7 +74,7 @@ export function DuelCardPreview({
     if (hideEmpty) return null;
     return (
       <div className="md-detail md-detail-neutral flex min-h-0 flex-1 items-center justify-center p-3 text-center text-[13px] text-zinc-500">
-        Passe o mouse sobre uma carta
+        Passe o mouse ou clique em uma carta
         <br />
         para ver os detalhes
       </div>

@@ -94,40 +94,8 @@ export function OnlineLobby({ initialRoom = "" }: { initialRoom?: string }) {
     );
   }
 
-  return (
-    <DeckSelectionLayout registry={registry} hoveredCode={hoveredCode}>
-      <section className="rounded-2xl border border-amber-900/40 bg-zinc-950/80 p-6">
-        <h2 className="text-lg font-semibold text-amber-300">Seu nome</h2>
-        <p className="mt-1 text-sm text-zinc-500">
-          Cada aba é um jogador — abra esta página numa segunda aba para duelar
-          contra você mesmo.
-        </p>
-        <input
-          value={nome}
-          onChange={(event) => setNomeDigitado(event.target.value)}
-          maxLength={24}
-          className="mt-4 w-full rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-amber-600"
-        />
-      </section>
-
-      <section className="rounded-2xl border border-amber-900/40 bg-zinc-950/80 p-6">
-        <h2 className="text-lg font-semibold text-amber-300">Seu deck</h2>
-        <DeckSelect
-          escolha={deckEscolhido}
-          onChange={(valor) => deckEscolhido.setEscolha(valor)}
-          onCardHover={setHoveredCode}
-        />
-        {!deckPronto && (
-          <p className="mt-3 text-sm text-amber-200">
-            Seu deck tem menos de 40 cartas.{" "}
-            <Link href="/" className="underline underline-offset-2">
-              Voltar ao deck builder
-            </Link>{" "}
-            ou escolha um deck pronto acima.
-          </p>
-        )}
-      </section>
-
+  const actions = (
+    <>
       <section className="rounded-2xl border border-amber-900/40 bg-zinc-950/80 p-6">
         <h2 className="text-lg font-semibold text-amber-300">Sala</h2>
         <p className="mt-1 text-sm text-zinc-500">
@@ -145,7 +113,7 @@ export function OnlineLobby({ initialRoom = "" }: { initialRoom?: string }) {
             type="button"
             disabled={!deckPronto || !isRoomCode(codigo)}
             onClick={() => entrar(normalizeRoomCode(codigo))}
-            className="flex-1 rounded-xl border border-amber-700/60 px-6 py-3 text-sm font-semibold text-amber-300 transition hover:bg-amber-900/30 disabled:cursor-not-allowed disabled:opacity-40"
+            className="flex-1 rounded-xl border border-amber-700/60 px-4 py-3 text-sm font-semibold text-amber-300 transition hover:bg-amber-900/30 disabled:cursor-not-allowed disabled:opacity-40"
           >
             Entrar na sala
           </button>
@@ -179,6 +147,43 @@ export function OnlineLobby({ initialRoom = "" }: { initialRoom?: string }) {
           </ul>
         </section>
       )}
+    </>
+  );
+
+  return (
+    <DeckSelectionLayout registry={registry} hoveredCode={hoveredCode} actions={actions}>
+      <section className="rounded-2xl border border-amber-900/40 bg-zinc-950/80 p-6">
+        <h2 className="text-lg font-semibold text-amber-300">Seu nome</h2>
+        <p className="mt-1 text-sm text-zinc-500">
+          Cada aba é um jogador — abra esta página numa segunda aba para duelar
+          contra você mesmo.
+        </p>
+        <input
+          value={nome}
+          onChange={(event) => setNomeDigitado(event.target.value)}
+          maxLength={24}
+          className="mt-4 w-full rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-amber-600"
+        />
+      </section>
+
+      <section className="rounded-2xl border border-amber-900/40 bg-zinc-950/80 p-6">
+        <h2 className="text-lg font-semibold text-amber-300">Seu deck</h2>
+        <DeckSelect
+          escolha={deckEscolhido}
+          onChange={(valor) => deckEscolhido.setEscolha(valor)}
+          onCardHover={setHoveredCode}
+        />
+        {!deckPronto && (
+          <p className="mt-3 text-sm text-amber-200">
+            Seu deck tem menos de 40 cartas.{" "}
+            <Link href="/" className="underline underline-offset-2">
+              Voltar ao deck builder
+            </Link>{" "}
+            ou escolha um deck pronto acima.
+          </p>
+        )}
+      </section>
+
     </DeckSelectionLayout>
   );
 }

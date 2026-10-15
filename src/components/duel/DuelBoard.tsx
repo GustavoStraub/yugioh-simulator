@@ -283,33 +283,28 @@ export function DuelBoard({
   /** A área abaixo da faixa do topo — a régua do HUD (botão de fase). */
   const stageRef = useRef<HTMLDivElement | null>(null);
   const { registry, cards } = useCardRegistry();
-  /**
-   * A carta em leitura no painel da esquerda.
-   *
-   * **Fica** na última carta lida: o painel do Tag Force nunca esvazia. Antes
-   * ele zerava ao tirar o mouse e passava a maior parte do duelo dizendo "passe
-   * o mouse sobre uma carta" — justamente quando o jogador olhava para o
-   * campo pensando na jogada. Quem quer outra carta passa o mouse nela.
-   */
+  /** A carta em foco; o painel fecha ao clicar fora dele. */
   const [preview, setPreview] = useState<PreviewCard | null>(null);
+  const [previewOpen, setPreviewOpen] = useState(false);
   /**
    * A ativação que pôs a carta em leitura, quando foi ela (e não o mouse).
    *
-   * A leitura segue a ativação, como no Master Duel: cada elo novo vai para o
-   * painel da esquerda com quem ativou e o efeito, e fica lá até o jogador
-   * passar o mouse em outra carta. Antes o texto do que foi ativado só
-   * aparecia no diálogo "deseja responder?" — que no modo Automático quase
-   * nunca abre —, e o destaque do centro some em um segundo: um Raigeki do
-   * oponente passava mostrando a carta e nada do que ela fazia.
+   * A leitura segue a ativação: cada elo novo abre o painel com quem ativou e
+   * o efeito. O jogador pode fechá-lo clicando fora.
    */
   const [ativacaoLida, setAtivacaoLida] = useState<ActivationRead | null>(null);
   const showPreview = useCallback((card: PreviewCard | null) => {
-    // Zona vazia e carta virada do oponente não têm o que ler — não apagam a
-    // leitura que está no painel.
+    // Zona vazia e carta virada do oponente não têm o que ler.
     if (card?.code) {
       setPreview(card);
       setAtivacaoLida(null);
+      setPreviewOpen(true);
     }
+  }, []);
+  const closePreview = useCallback(() => {
+    setPreviewOpen(false);
+    setPreview(null);
+    setAtivacaoLida(null);
   }, []);
   // Um destaque de ativação novo (token novo) leva a carta para a leitura.
   // Estado derivado durante o render — o padrão do React para "reagir a uma
@@ -330,6 +325,7 @@ export function DuelBoard({
           }
         : { code: spotlight.code },
     );
+    setPreviewOpen(true);
     setAtivacaoLida({
       code: spotlight.code,
       link: spotlight.link,
@@ -658,6 +654,22 @@ export function DuelBoard({
     () => snapshot.reveals.filter((reveal) => reveal.visibleTo === me),
     [snapshot.reveals, me],
   );
+  const [revelacaoLida, setRevelacaoLida] = useState<number | null>(
+    () => {
+      const visibles = snapshot.reveals.filter((reveal) => reveal.visibleTo === me);
+      return visibles[visibles.length - 1]?.id ?? null;
+    },
+  );
+  const revelacaoMaisRecente = minhasRevelacoes[minhasRevelacoes.length - 1];
+  if (revelacaoMaisRecente && revelacaoMaisRecente.id !== revelacaoLida) {
+    setRevelacaoLida(revelacaoMaisRecente.id);
+    const code = revelacaoMaisRecente.codes[0];
+    if (code) {
+      setPreview({ code });
+      setAtivacaoLida(null);
+      setPreviewOpen(true);
+    }
+  }
 
   /** O engine está esperando o outro assento — nada aqui é clicável. */
   const waitingForFoe =
@@ -1435,6 +1447,18 @@ export function DuelBoard({
       // seu, vermelho do oponente) — a luz de turno do MD.
       data-turn-side={snapshot.turnCount > 0 ? (snapshot.turnPlayer === me ? "me" : "foe") : undefined}
       data-format={snapshot.format}
+      onClickCapture={(event) => {
+        const target = event.target;
+        if (!(target instanceof Element)) return;
+        if (
+          target.closest(
+            ".tf-touch-card[data-previewable], [data-preview-owner], [data-card-sheet], [data-open-card]",
+          )
+        ) {
+          return;
+        }
+        closePreview();
+      }}
     >
       {/* O cenário: o fundo que no MD é o ambiente 3D em volta da mesa. */}
       <div aria-hidden className="md-arena" />
@@ -1879,14 +1903,16 @@ export function DuelBoard({
 
             <aside className="md-detail-rail absolute z-[44] flex flex-col gap-2">
               <ChainStack links={snapshot.chainLinks ?? []} me={me} registry={registry} />
-              <DuelCardPreview
-                card={cartaEmLeitura}
-                registry={registry}
-                marksOf={marksOf}
-                activation={ativacaoEmLeitura ? <ActivationBanner activation={ativacaoEmLeitura} /> : null}
-                viewer={me}
-                hideEmpty
-              />
+              {previewOpen && (
+                <DuelCardPreview
+                  card={cartaEmLeitura}
+                  registry={registry}
+                  marksOf={marksOf}
+                  activation={ativacaoEmLeitura ? <ActivationBanner activation={ativacaoEmLeitura} /> : null}
+                  viewer={me}
+                  hideEmpty
+                />
+              )}
             </aside>
 
             <div className="md-hud-foe absolute z-[45]">
@@ -1997,7 +2023,10 @@ export function DuelBoard({
           <div
             data-card-sheet
             className="tf-modal-scrim absolute inset-0 z-50 flex items-end justify-center"
-            onClick={() => setFolhaAberta(false)}
+            onClick={() => {
+              setFolhaAberta(false);
+              closePreview();
+            }}
           >
             <div
               role="dialog"
@@ -2007,7 +2036,10 @@ export function DuelBoard({
             >
               <button
                 type="button"
-                onClick={() => setFolhaAberta(false)}
+                onClick={() => {
+                  setFolhaAberta(false);
+                  closePreview();
+                }}
                 className="md-pill md-pill-ghost self-end px-3 py-1 text-[12px]"
               >
                 ✕ Fechar
@@ -3100,6 +3132,7 @@ function RevealHistoryModal({
                       return (
                         <div
                           key={`${reveal.id}-${code}-${index}`}
+                          onClickCapture={() => onHover({ code })}
                           onMouseEnter={() => onHover({ code })}
                           title={definition ? texto.name(definition) : undefined}
                           className="w-[64px] shrink-0 overflow-hidden rounded-[3px] border border-[color:var(--tf-slot-border)]"
@@ -4131,6 +4164,7 @@ function DuelLog({
               <div
                 key={`${index}-${entry.text}`}
                 data-log-card={carta}
+                onClickCapture={carta ? () => onHover({ code: carta }) : undefined}
                 onMouseEnter={carta ? () => onHover({ code: carta }) : undefined}
                 className={`md-log-entry ${
                   lado === "mine" ? "md-log-mine" : lado === "foe" ? "md-log-foe" : ""
