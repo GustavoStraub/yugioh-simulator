@@ -1,0 +1,411 @@
+/* Layout compartilhado. A altura acompanha as barras móveis de Safari/Chrome. */
+.app-body {
+  height: 100vh;
+  height: 100dvh;
+}
+
+.app-main { min-height: 0; }
+
+html[data-duel-screen="true"], html[data-duel-screen="true"] body {
+  background: #061226;
+  color-scheme: dark;
+}
+
+:root { --md-reader-width: clamp(156px, 22vw, 240px); }
+
+.md-landscape-reader {
+  width: var(--md-reader-width);
+  padding: 6px 4px 8px 8px;
+}
+
+.md-landscape-reader > .md-detail { flex: 1; }
+.md-landscape-reader:has([data-duel-settings-panel]) { z-index: 70; }
+.md-landscape-player { margin-bottom: 6px; }
+.md-landscape-player .md-plate, .md-landscape-opponent .md-plate { min-height: 44px; padding: 2px 0; gap: 0; }
+.md-landscape-player .md-plate-avatar, .md-landscape-opponent .md-plate-avatar { display: none; }
+.md-landscape-player .md-plate-body, .md-landscape-opponent .md-plate-body { padding: 2px 4px; }
+.md-landscape-opponent .md-plate-lp { justify-content: center; gap: 3px; }
+.md-landscape-opponent .md-plate-lp-label { font-size: 9px; }
+.md-landscape-opponent .md-plate-name { text-align: center; }
+.md-landscape-reader .md-detail-name { padding: 8px; gap: 6px; }
+.md-landscape-reader .md-detail-name h4 { font-size: 13px; }
+.md-landscape-reader .md-attr { width: 24px; height: 24px; font-size: 15px; }
+.md-landscape-reader .md-detail-top { gap: 8px; padding: 8px; }
+.md-landscape-reader .md-detail-art { max-height: 92px; max-width: 44%; width: auto; object-fit: contain; }
+.md-landscape-reader .md-detail-stats { gap: 5px; }
+.md-landscape-reader .md-detail-stat { gap: 5px; font-size: 15px; }
+.md-landscape-reader .md-detail-subtype { font-size: 12px; }
+.md-landscape-reader .md-detail-band { padding: 4px 8px; font-size: 11px; }
+.md-landscape-reader .md-detail-text { padding: 8px; font-size: 13px; line-height: 1.5; overscroll-behavior: contain; }
+.md-landscape-reader .md-detail-activation { max-height: 26%; overflow-y: auto; padding: 6px 8px; }
+.md-landscape-reader .md-detail-extra { max-height: 20%; overflow-y: auto; }
+
+.md-reader-empty {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 1px solid #244768;
+  border-radius: 8px;
+  padding: 12px;
+  background: #07152bcc;
+  color: #93acc8;
+  text-align: center;
+  font-size: 13px;
+}
+.md-reader-empty > span { font-size: 32px; color: #64d4ff; }
+.md-reader-empty > strong { color: #dff4ff; }
+.md-reader-notice { flex-shrink: 0; margin-top: 6px; padding: 8px; border: 1px solid #376388; border-radius: 8px; background: #0a213c; font-size: 12px; line-height: 1.4; }
+.md-reader-notice button { min-height: 44px; width: 100%; margin-top: 6px; }
+.md-reader-notice > button:first-child { margin-top: 0; }
+
+.md-fullscreen-help {
+  position: fixed;
+  right: max(12px, env(safe-area-inset-right));
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 90;
+  width: min(280px, calc(100vw - 24px));
+  max-height: calc(100dvh - 24px);
+  overflow-y: auto;
+  padding: 12px;
+  border: 1px solid #376388;
+  border-radius: 8px;
+  background: #081429;
+  color: #eef6ff;
+  box-shadow: 0 8px 24px #02050ccc;
+}
+
+@media (max-height: 360px) {
+  .md-landscape-reader .md-detail-art { max-height: 64px; }
+  .md-landscape-reader .md-detail-top { padding-block: 5px; }
+}
+
+/* Com altura para os cinco atalhos em coluna, o trilho devolve largura à mesa. */
+@media (min-height: 370px) and (max-height: 500px) and (orientation: landscape) {
+  .md-duel.md-narrow.md-landscape { --tf-rail-right: 76px; }
+  .md-landscape .md-narrow-rail { width: 76px; }
+  .md-duel.md-landscape .md-hud-buttons { display: flex; gap: 4px; }
+  .md-landscape .md-phase-btn { width: 56px; height: 56px; }
+}
+
+/* Escolhas deixam a leitura visível e podem usar a faixa dos controles. */
+.md-landscape .tf-modal-area { left: var(--md-reader-width); right: 0; }
+html:has(.md-landscape) .md-commands { max-width: calc(100vw - var(--md-reader-width) - env(safe-area-inset-left) - 24px); }
+.md-command.tf-menu-item { min-width: 0; }
+
+/* As sete colunas usam a largura útil, deixando espaço para números e hologramas. */
+.md-landscape .md-row { justify-content: space-between; }
+.md-narrow .md-tags { transform: translate(-50%, -100%); }
+.md-narrow .md-tags .md-tag-attr { width: 1.3em; height: 1.3em; font-size: 1em; }
+.md-narrow .md-stats {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  transform: translate(-50%, -100%);
+  border-radius: 3px;
+  padding: 1px 3px;
+  background: rgba(2, 5, 12, 0.85);
+  line-height: 1.05;
+}
+.md-narrow .md-stats-def { font-size: 0.82em; }
+.md-narrow .md-pile-count { min-width: 18px; padding: 0 3px; bottom: -3px; font-size: 10px; line-height: 14px; }
+.md-narrow .md-chain-badge { width: 18px; height: 18px; left: -5px; top: -5px; font-size: 10px; }
+.md-narrow .md-holo-view { filter: drop-shadow(0 0 2px var(--holo-glow)) brightness(1.08) saturate(1.12); }
+
+.site-header, .duel-site-header {
+  padding-top: max(12px, env(safe-area-inset-top));
+  padding-left: max(16px, env(safe-area-inset-left));
+  padding-right: max(16px, env(safe-area-inset-right));
+}
+
+button, a, summary { touch-action: manipulation; }
+.tf-touch-card { touch-action: manipulation; }
+
+:where(button, a, summary):focus-visible {
+  outline: 2px solid #7dd3fc;
+  outline-offset: 3px;
+}
+
+[data-virtual-grid], .builder-library, .builder-deck > :last-child,
+.card-reader .md-detail-text, [data-card-sheet] .md-detail-text {
+  overscroll-behavior: contain;
+}
+
+.builder-mobile-bar { display: none; }
+.builder-filters > summary { display: none; }
+.duel-orientation-note { display: none; }
+
+.card-reader-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: max(12px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right)) max(12px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left));
+  background: rgba(1, 4, 12, 0.82);
+}
+
+.card-reader {
+  display: flex;
+  width: min(100%, 620px);
+  height: min(760px, 100%);
+  min-height: 0;
+  flex-direction: column;
+  gap: 10px;
+  outline: none;
+}
+
+.card-reader-head {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.card-reader-head button, .card-reader-actions button { min-height: 44px; }
+.card-reader-actions {
+  display: flex;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid #244768;
+  border-radius: 10px;
+  background: #081429;
+}
+
+.duel-mobile-guide { display: none; }
+
+/* O duelo ocupa a área segura sem pôr controles sob câmera ou barra de gestos. */
+.md-duel.tf-playmat.fixed {
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+  height: 100dvh;
+  overflow: clip;
+}
+
+/* As mãos passam da borda de propósito. Focar uma carta não deve rolar a mesa. */
+.md-duel .md-stage { overflow: clip; }
+
+@media (max-width: 640px) {
+  .md-narrow .md-board {
+    --md-wcap: calc((100cqw - 16px - 6 * 0.6cqw) / 7.05);
+    padding-inline: 6px;
+  }
+  .md-narrow .md-row { gap: 0.6cqw; }
+}
+
+@media (max-width: 1023px) {
+  .site-header { padding-top: max(6px, env(safe-area-inset-top)); padding-bottom: 6px; }
+  .site-header-inner { gap: 4px; }
+  .site-header h1 { font-size: 17px; }
+  .site-subtitle { display: none; }
+  .site-header .app-nav { width: 100%; justify-content: space-between; }
+  .app-nav a, .app-nav button { min-height: 44px; display: inline-flex; align-items: center; justify-content: center; }
+  .app-nav button { min-width: 40px; }
+  .app-nav a { padding-inline: 12px; }
+  .duel-site-header .app-nav a { padding-inline: 8px; }
+
+  .deck-builder {
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  .builder-mobile-bar { display: block; flex-shrink: 0; padding: 8px 8px 0; }
+  .builder-mobile-bar > p { margin: 0 4px 6px; }
+  .builder-tabs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px; }
+  .builder-tabs button {
+    min-height: 44px;
+    padding: 6px;
+    border: 1px solid var(--tf-slot-border);
+    border-radius: 8px;
+    color: #a1a1aa;
+    background: #09090b;
+    font-size: 13px;
+    font-weight: 600;
+  }
+  .builder-tabs [aria-pressed="true"] { color: #fde68a; border-color: #a8862f; background: #382b13; }
+  .builder-layout { display: flex; flex-direction: column; }
+  .builder-library, .builder-workspace { flex: 1; }
+  .builder-library { overflow-y: auto; }
+  .builder-desktop-preview { display: none; }
+  [data-builder-tab="catalog"] .builder-library,
+  [data-builder-tab="deck"] .builder-library,
+  [data-builder-tab="library"] .builder-workspace,
+  [data-builder-tab="catalog"] .builder-deck,
+  [data-builder-tab="deck"] .builder-catalog { display: none; }
+  .builder-deck { height: auto; flex: 1; }
+  .builder-library button, .builder-library a, .builder-library select { min-height: 44px; }
+  .builder-library button { font-size: 12px; }
+  .builder-library input { min-height: 44px; }
+  .builder-search > h2 { display: none; }
+  .builder-search > input { flex-basis: 100%; min-height: 44px; }
+  .builder-categories { width: 100%; overflow-x: auto; padding: 2px 0; }
+  .builder-categories button { flex-shrink: 0; min-height: 44px; font-size: 12px; }
+  .builder-filters > summary {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+    min-height: 44px;
+    color: #fde68a;
+    font-size: 13px;
+    cursor: pointer;
+  }
+  .builder-filters > summary::before { content: "+"; font-size: 18px; }
+  .builder-filters[open] > summary::before { content: "−"; }
+  .builder-filters > summary span { margin-left: auto; font-size: 12px; color: #a1a1aa; }
+  .builder-filters:not([open]) > .builder-filter-options { display: none; }
+  .builder-filter-options { max-height: min(34dvh, 280px); overflow-y: auto; padding: 6px 2px 10px; }
+  .builder-filter-options label { flex: 1 1 140px; flex-wrap: wrap; }
+  .builder-filter-options select { min-width: 0; max-width: 100%; flex: 1; min-height: 44px; }
+  .builder-zone-tabs { padding: 8px; }
+  .builder-zone-tabs button { min-height: 44px; padding-inline: 10px; }
+  .builder-deck-hint { width: 100%; margin: 4px 0 0; text-align: center; font-style: normal; }
+
+  .deck-selection {
+    flex: none;
+    padding: 12px max(12px, env(safe-area-inset-right)) max(20px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left));
+    gap: 16px;
+  }
+  .deck-selection > div { gap: 16px; }
+  .deck-selection section { padding: 16px; min-width: 0; }
+  .deck-selection button, .deck-selection select, .deck-selection a { min-height: 44px; }
+  .deck-selection select { max-width: 100%; text-overflow: ellipsis; }
+  .deck-selection:has(.lobby-primary) { padding-bottom: calc(84px + env(safe-area-inset-bottom)); }
+  .lobby-primary {
+    position: fixed;
+    bottom: max(12px, env(safe-area-inset-bottom));
+    left: max(12px, env(safe-area-inset-left));
+    right: max(12px, env(safe-area-inset-right));
+    z-index: 35;
+    width: auto;
+    margin: 0;
+    box-shadow: 0 0 0 8px #09090bee, 0 -12px 25px #09090b;
+  }
+  .duel-orientation-note { display: block; }
+  .room-code-entry input { flex: 1 1 100px; min-width: 0; }
+  .room-code-entry button { flex: 1 1 140px; }
+
+  [data-deck-tool] button, [data-deck-tool] a { min-height: 44px; }
+}
+
+@media (pointer: coarse) {
+  /* 16px evita o zoom automático dos campos no iOS; o zoom manual segue livre. */
+  input:not([type="range"]):not([type="radio"]):not([type="checkbox"]), select, textarea { font-size: 16px; }
+  input, select { min-height: 44px; }
+  .app-nav a, .app-nav button, .builder-library button, .builder-library a { min-height: 44px; }
+  .app-nav a, .app-nav button { display: inline-flex; align-items: center; justify-content: center; }
+  .builder-library { overflow-y: auto; }
+  [data-deck-preview] button { -webkit-touch-callout: none; }
+  .builder-catalog button, .builder-deck button[draggable] { -webkit-touch-callout: none; user-select: none; }
+  .md-sheet-foot button, .md-sheet-tab, .md-info-close { min-height: 44px; }
+  .md-sheet-tab, .md-info-close { min-width: 44px; }
+}
+
+@media (max-width: 600px) and (orientation: portrait) {
+  .duel-mobile-guide {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 6px 8px;
+    border: 1px solid #244768;
+    border-radius: 10px;
+    padding: 4px 8px;
+    background: #081b32;
+    color: #c4e8ff;
+    font-size: 12px;
+    line-height: 1.5;
+  }
+  .duel-mobile-guide p { flex: 1; }
+  .duel-mobile-guide button { width: 44px; height: 44px; flex-shrink: 0; }
+  .card-reader-scrim { align-items: flex-end; }
+  .card-reader { height: 90%; }
+  .md-banner { gap: 8px; padding: 8px; flex-wrap: wrap; justify-content: center; }
+  .md-banner-text { font-size: 12px; }
+  .md-result-word { font-size: clamp(54px, 17vw, 100px); }
+}
+
+/* Paisagem baixa: recolhe os trilhos mesmo em telefones largos e tablets.
+   Os comandos laterais formam duas colunas para caberem a 320px de altura. */
+@media (max-height: 500px) and (orientation: landscape) {
+  .site-header-inner { flex-direction: row; align-items: center; }
+  .site-header .app-nav { width: auto; }
+  .builder-mobile-bar { display: flex; gap: 12px; align-items: center; padding-top: 4px; }
+  .builder-mobile-bar > p { flex: 1; margin: 0; }
+  .builder-tabs { flex: 2; }
+  .builder-filter-bar { padding-block: 4px; }
+  .builder-search { flex-wrap: nowrap; }
+  .builder-search > input { flex-basis: auto; }
+  .builder-categories { width: auto; max-width: 52%; }
+  .builder-filters > summary { min-height: 36px; }
+  .builder-filters[open] { position: absolute; left: 12px; right: 12px; z-index: 25; background: #0e1010; padding: 8px; border: 1px solid #8a7030; border-radius: 8px; }
+  .builder-filter-options { max-height: 40dvh; }
+  .builder-filters[open] > summary { min-height: 44px; }
+  .md-duel.md-narrow { --md-tilt: 0deg; --md-stand: 0deg; --tf-rail-right: 108px; }
+  .md-narrow-rail { width: 108px; gap: 6px; }
+  .md-narrow .md-hud-buttons { display: grid; grid-template-columns: repeat(2, 44px); gap: 6px; }
+  .md-narrow-top { padding-top: 4px; }
+  .md-narrow .md-plate-avatar { height: 28px; width: 28px; }
+  .md-narrow .md-plate { gap: 4px; }
+  .md-narrow .md-plate-name { display: block; font-size: 10px; }
+  .md-narrow .md-plate-body { padding-block: 0; }
+  .md-narrow .md-plate-lp-value { font-size: 19px; }
+  .md-narrow .md-hand-foe { height: 20px; }
+  .md-narrow .md-hand-mine { --md-hand-scale: 1.9; height: clamp(44px, 12dvh, 52px); min-height: 44px; }
+  .md-narrow .md-board {
+    --md-gapk: 0.07;
+    --md-hcap: calc((100cqh - 8px) / (var(--md-rows) + (var(--md-rows) - 1) * var(--md-gapk)));
+    padding-block: 4px;
+  }
+  .md-settings {
+    position: fixed;
+    top: max(8px, env(safe-area-inset-top));
+    bottom: max(8px, env(safe-area-inset-bottom));
+    left: max(8px, env(safe-area-inset-left));
+    margin-top: 0;
+    display: flex;
+    flex-direction: column;
+  }
+  .md-settings-body { min-height: 0; flex: 1; max-height: none; }
+  .md-settings-head, .md-settings-foot { flex-shrink: 0; }
+  .md-result { overflow-y: auto; align-items: flex-start; }
+  .md-result-content { gap: 5px; padding: 12px 16px; margin-block: auto; }
+  .md-result-word { font-size: 54px; }
+  .md-result-players { margin-top: 10px; }
+  .md-result-player { padding-block: 4px; }
+  .md-result-actions { flex-direction: row; flex-wrap: wrap; justify-content: center; margin-top: 0; }
+  .md-result-actions > :is(button, a) { min-width: 180px; min-height: 44px; }
+  [data-card-sheet] > [role="dialog"] { height: 100%; max-width: 680px; }
+  .md-sheet { max-height: 94%; }
+  .md-sheet-area { padding: 0 8px 8px; }
+  .md-sheet-head { padding-block: 8px; }
+  .md-sheet-foot { padding-block: 8px; }
+  .tf-modal-area { padding: 8px; }
+  .card-reader { max-width: 840px; }
+  .card-reader > .md-detail { min-height: 0; }
+  .card-reader .md-detail, [data-card-sheet] .md-detail { overflow-y: auto; }
+  .card-reader .md-detail-art, [data-card-sheet] .md-detail-art { max-height: 110px; width: auto; max-width: 40%; object-fit: contain; }
+  .card-reader .md-detail-text, [data-card-sheet] .md-detail-text { min-height: 80px; flex-shrink: 0; overflow-y: visible; }
+  .card-reader .md-detail {
+    display: grid;
+    grid-template-columns: minmax(150px, 30%) minmax(0, 1fr);
+    grid-template-rows: auto auto minmax(0, 1fr);
+    overflow: hidden;
+  }
+  .card-reader .md-detail-top { grid-column: 1; grid-row: 1 / 4; gap: 8px; padding: 8px; overflow-y: auto; }
+  .card-reader .md-detail-art { max-width: 48%; max-height: 110px; }
+  .card-reader .md-detail-name { grid-column: 2; grid-row: 1; padding: 6px 8px; }
+  .card-reader .md-detail-band { grid-column: 2; grid-row: 2; padding-inline: 8px; }
+  .card-reader .md-detail-text { grid-column: 2; grid-row: 3; min-height: 0; overflow-y: auto; padding: 6px 8px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card-reader { scroll-behavior: auto; }
+}

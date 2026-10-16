@@ -44,7 +44,7 @@
   --md-side: clamp(200px, 20.5vw, 410px);
   /* Inclinação da câmera e quanto a carta fica "de pé" sobre a zona. */
   --md-tilt: 38deg;
-  --md-stand: 16deg;
+  --md-stand: 0deg;
 
   font-family: var(--font-geist-sans), system-ui, sans-serif;
   color: var(--md-text);
@@ -203,7 +203,7 @@
      mora (embaixo dos seus monstros, em cima dos do oponente) e para onde o
      monstro de pé se estende. No MD as fileiras são bem espaçadas. */
   --md-gapk: 0.14;
-  --md-wcap: calc((100cqw - 40px - 6 * 0.9cqw) / 7.05 * 86 / 59);
+  --md-wcap: calc((100cqw - 40px - 6 * 0.9cqw) / 7.05);
   /* 0,9: a fileira de longe também encolhe e sobe na direção do ponto de
      fuga (a perspectiva) — sem a folga a borda de cima passava da câmera. */
   --md-hcap: calc(
@@ -335,7 +335,7 @@
     radial-gradient(circle at 50% 50%, rgba(170, 235, 255, 0.55) 0 7%, rgba(80, 190, 255, 0.18) 8% 22%, rgba(0, 0, 0, 0) 23%),
     radial-gradient(circle at 50% 50%, rgba(0, 0, 0, 0) 0 30%, rgba(90, 200, 255, 0.85) 31% 33.5%, rgba(40, 140, 255, 0.25) 35% 40%, rgba(0, 0, 0, 0) 41%),
     linear-gradient(180deg, rgba(20, 50, 96, 0.55), rgba(8, 20, 44, 0.65));
-  background-size: 100% 68.6%, 100% 68.6%, auto;
+  background-size: 100% 100%, 100% 100%, auto;
   background-position: center, center, center;
   background-repeat: no-repeat;
   border: 1px solid rgba(110, 200, 255, 0.4);
@@ -416,6 +416,18 @@
   transform: translateZ(3px);
 }
 
+/* A zona é quadrada; a carta conserva 59:86 em ataque e em defesa.
+   Só a face gira, sem reduzir: as duas orientações cabem na mesma casa. */
+.md-slot[data-zone-kind] > .md-card-on {
+  width: calc(100% * 59 / 86);
+  margin-inline: auto;
+}
+
+.md-slot[data-zone-kind] .md-card-face {
+  outline: 1px solid rgba(215, 238, 255, 0.8);
+  outline-offset: -1px;
+}
+
 .md-duel .tf-slot.md-card-empty {
   background: transparent;
   border-color: transparent;
@@ -442,7 +454,7 @@
    e do fundo (o `data-holo-on` vem de `MonsterHolograms.tsx`). Só a face da
    carta — a zona, o halo e os selos em volta ficam como estão. */
 .md-card-plane[data-holo-on] .md-card-face {
-  filter: brightness(0.30) saturate(0.85);
+  filter: brightness(0.65) saturate(0.9);
 }
 
 /* De pé: a carta levanta sobre a zona, girando pela borda de baixo — menos
@@ -856,7 +868,7 @@
 
 .md-pile-stack {
   position: absolute;
-  inset: 0;
+  inset: 0 calc((100% - 100% * 59 / 86) / 2);
   border-radius: 5px;
 }
 
@@ -1024,19 +1036,26 @@
 
 /* A sua mão: cartas grandes, cortadas pela borda de baixo da tela. */
 .md-hand-mine {
+  --md-hand-scale: 1.32;
   margin-top: -2.5%;
 }
 
 .md-hand-mine > .md-slot {
-  height: 132%;
+  height: calc(100% * var(--md-hand-scale));
   align-self: flex-start;
   transition: transform 160ms ease-out;
 }
 
-.md-hand-mine > .md-slot:hover,
 .md-hand-mine > .md-hand-card-up {
   z-index: 20;
   transform: translateY(-26%) scale(1.08);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .md-hand-mine > .md-slot:hover {
+    z-index: 20;
+    transform: translateY(-26%) scale(1.08);
+  }
 }
 
 .md-hand-card .tf-slot {

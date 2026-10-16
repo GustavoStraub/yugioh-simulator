@@ -23,12 +23,15 @@ export function useMediaQuery(query: string, serverValue = false): boolean {
 }
 
 /**
- * Mesa estreita: tablet em pé, celular. Os dois trilhos laterais (330 + 300
- * px) comeriam a mesa inteira; abaixo disto a leitura da carta vira uma folha
- * que sobe de baixo (toque longo numa carta) e o histórico vira um painel que
- * se abre por um botão, deixando a largura para as cartas.
+ * Mesa compacta: tablet e celular, inclusive os telefones largos deitados.
+ * Os dois trilhos laterais comeriam a mesa; com pouca largura OU altura,
+ * o histórico vira um painel que se abre por um botão. A leitura fica na
+ * lateral na horizontal; na vertical, sobe numa folha por toque longo.
  */
-export const NARROW_TABLE_QUERY = "(max-width: 900px)";
+export const NARROW_TABLE_QUERY = "(max-width: 1180px), (max-height: 600px)";
+
+/** Na horizontal a leitura ocupa a sobra lateral, sem reduzir a altura da mesa. */
+export const LANDSCAPE_READER_QUERY = "(min-width: 560px) and (orientation: landscape)";
 
 /**
  * Mesa baixa: celular deitado. A altura some antes da largura — os painéis por

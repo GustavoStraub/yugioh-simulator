@@ -1,9 +1,11 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 
 import { PresetDeckPicker } from "@/components/deck-builder/PresetDeckPicker";
+import { CardDetailsDialog } from "@/components/layout/CardDetailsDialog";
+import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { GlossaryText } from "@/components/duel/GlossaryText";
 import {
   DeckStatsDialog,
@@ -111,6 +113,10 @@ export function DeckBuilderApp() {
   const [feedback, setFeedback] = useState<string | null>(null);
   /** Ferramenta aberta: mão de teste, estatísticas, importar/exportar. */
   const [ferramenta, setFerramenta] = useState<"mao" | "stats" | "io" | null>(null);
+  const [mobileTab, setMobileTab] = useState<"catalog" | "deck" | "library">("catalog");
+  const touchReader = useMediaQuery("(max-width: 1023px), (pointer: coarse)");
+  const [reading, setReading] = useState<{ card: CardDefinition; zone: DeckZone } | null>(null);
+  const closeReading = useCallback(() => setReading(null), []);
 
   // Ctrl+Z (⌘Z no Mac) desfaz a última edição de carta — menos quando o foco
   // está num campo de texto, onde o desfazer é o do próprio campo.
@@ -198,10 +204,10 @@ export function DeckBuilderApp() {
   }
 
   return (
-    <div className="tf-playmat flex min-h-0 flex-1 flex-col overflow-hidden">
+    <div data-builder-tab={mobileTab} className="deck-builder tf-playmat flex min-h-0 flex-1 flex-col overflow-hidden">
       {activeFeedback && (
         <div className="flex shrink-0 items-center justify-between border-b border-red-900/50 bg-red-950/60 px-4 py-2 text-sm text-red-200">
-          <span>{activeFeedback}</span>
+          <span role="status">{activeFeedback}</span>
           <button
             type="button"
             onClick={() => {
@@ -215,9 +221,24 @@ export function DeckBuilderApp() {
         </div>
       )}
 
-      <div className="grid min-h-0 flex-1 gap-2 p-2 lg:grid-cols-[340px_1fr]">
+      <div className="builder-mobile-bar">
+        <p className="truncate text-sm font-semibold text-amber-200">{deck.name}</p>
+        <nav aria-label="Construtor de decks" className="builder-tabs">
+          {([
+            ["catalog", "Cartas"],
+            ["deck", `Meu deck · ${countInZone(deck, "main")}`],
+            ["library", "Biblioteca"],
+          ] as const).map(([value, label]) => (
+            <button key={value} type="button" aria-pressed={mobileTab === value} onClick={() => setMobileTab(value)} data-builder-nav={value}>
+              {label}
+            </button>
+          ))}
+        </nav>
+      </div>
+
+      <div className="builder-layout grid min-h-0 flex-1 gap-2 p-2 lg:grid-cols-[340px_minmax(0,1fr)]">
         {/* ---------- coluna de detalhe (estilo Tag Force) ---------- */}
-        <aside className="flex min-h-0 flex-col gap-2 overflow-hidden">
+        <aside className="builder-library flex min-h-0 flex-col gap-2 overflow-hidden">
           <DeckLibraryBar library={library} />
           <DeckHeader
             deck={deck}
@@ -235,11 +256,13 @@ export function DeckBuilderApp() {
               setFilters(EMPTY_FILTERS);
             }}
           />
-          <BigCardPreview card={preview} format={formato} />
+          <div className="builder-desktop-preview flex min-h-0 flex-1 flex-col">
+            <BigCardPreview card={preview} format={formato} />
+          </div>
         </aside>
 
         {/* ---------- deck + catálogo ---------- */}
-        <section className="flex min-h-0 flex-col gap-2 overflow-hidden">
+        <section className="builder-workspace flex min-h-0 min-w-0 flex-col gap-2 overflow-hidden">
           <DeckGrid
             deck={deck}
             zone={zone}
@@ -247,6 +270,7 @@ export function DeckBuilderApp() {
             registry={registry}
             foraDoPool={foraDoPool}
             onHover={setPreview}
+            onInspect={touchReader ? (card) => setReading({ card, zone }) : undefined}
             onRemove={(passcode) => {
               tryRemoveCard(passcode, zone);
               setFeedback(null);
@@ -273,7 +297,7 @@ export function DeckBuilderApp() {
               setFeedback(null);
               clearLastActionError();
             }}
-            className="tf-panel flex min-h-0 flex-1 flex-col overflow-hidden rounded-md"
+            className="builder-catalog tf-panel flex min-h-0 flex-1 flex-col overflow-hidden rounded-md"
           >
             <FilterBar
               filters={filters}
@@ -288,6 +312,7 @@ export function DeckBuilderApp() {
               resultCount={catalog.length}
             />
 
+            {catalog.length === 0 && <p role="status" className="p-6 text-center text-sm text-zinc-400">Nenhuma carta encontrada. Tente outro nome ou limpe os filtros.</p>}
             <VirtualCardGrid
               items={catalog}
               itemKey={(card) => card.passcode}
@@ -299,12 +324,39 @@ export function DeckBuilderApp() {
                   inDeck={countByPasscode.get(card.passcode) ?? 0}
                   onHover={setPreview}
                   onAdd={() => handleAdd(card)}
+                  onInspect={touchReader ? () => setReading({ card, zone: zone === "side" ? "side" : getDefaultZone(card) }) : undefined}
                 />
               )}
             />
           </div>
         </section>
       </div>
+
+      {reading && (
+        <CardDetailsDialog
+          code={reading.card.passcode}
+          registry={registry}
+          onClose={closeReading}
+          actions={
+            <>
+              <p role="status" className="w-full text-center text-sm text-zinc-300">
+                {ZONE_TABS.find((tab) => tab.value === reading.zone)?.label} · {deck[reading.zone].find((ref) => ref.passcode === reading.card.passcode)?.quantity ?? 0} cópia(s)
+              </p>
+              {activeFeedback && <p role="status" className="w-full text-center text-sm text-red-200">{activeFeedback}</p>}
+              <button type="button" data-reader-remove className="md-pill md-pill-ghost flex-1 px-4" disabled={!deck[reading.zone].some((ref) => ref.passcode === reading.card.passcode)} onClick={() => {
+                tryRemoveCard(reading.card.passcode, reading.zone);
+                setFeedback(null);
+                clearLastActionError();
+              }}>− Remover</button>
+              <button type="button" data-reader-add className="md-pill md-pill-primary flex-1 px-4" disabled={(countByPasscode.get(reading.card.passcode) ?? 0) >= MAX_COPIES_PER_CARD} onClick={() => {
+                clearLastActionError();
+                setFeedback(null);
+                tryAddCard(reading.card, reading.zone);
+              }}>+ Adicionar</button>
+            </>
+          }
+        />
+      )}
 
       {ferramenta === "mao" && (
         <TestHandDialog deck={deck} registry={registry} onClose={() => setFerramenta(null)} onHover={setPreview} />
@@ -447,14 +499,16 @@ function FilterBar({
   resultCount: number;
 }) {
   const active = activeFilterCount(filters);
+  const desktop = useMediaQuery("(min-width: 1024px)");
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const isMonsterScope =
     filters.category === "monster" ||
     filters.category === "extra" ||
     filters.category === "all";
 
   return (
-    <div className="shrink-0 space-y-1.5 border-b border-[color:var(--tf-slot-border)] px-3 py-2">
-      <div className="flex flex-wrap items-center gap-2">
+    <div className="builder-filter-bar shrink-0 space-y-1.5 border-b border-[color:var(--tf-slot-border)] px-3 py-2">
+      <div className="builder-search flex flex-wrap items-center gap-2">
         <h2 className="text-[11px] font-bold uppercase tracking-[0.15em] text-[color:var(--tf-gold)]">
           Catálogo
         </h2>
@@ -462,13 +516,16 @@ function FilterBar({
           value={filters.search}
           onChange={(event) => onPatch({ search: event.target.value })}
           placeholder="Buscar por nome ou texto do efeito..."
+          aria-label="Buscar cartas"
+          type="search"
           className="min-w-0 flex-1 rounded border border-[color:var(--tf-slot-border)] bg-black/50 px-2.5 py-1.5 text-[13px] text-zinc-100 outline-none placeholder:text-zinc-600 focus:border-[color:var(--tf-gold)]"
         />
-        <div className="flex gap-1">
+        <div className="builder-categories flex gap-1" role="group" aria-label="Categoria das cartas">
           {CATEGORY_OPTIONS.map((entry) => (
             <button
               key={entry.value}
               type="button"
+              aria-pressed={filters.category === entry.value}
               onClick={() =>
                 // Trocar de categoria invalida raça/nível da categoria anterior.
                 onPatch({
@@ -493,7 +550,11 @@ function FilterBar({
         </div>
       </div>
 
-      <div className="flex flex-wrap items-center gap-1.5">
+      <details className="builder-filters" open={desktop || filtersOpen} onToggle={(event) => {
+        if (!desktop) setFiltersOpen(event.currentTarget.open);
+      }}>
+        <summary>Filtros e ordem{active > 0 ? ` · ${active} ativo(s)` : ""} <span>{resultCount} cartas</span></summary>
+        <div className="builder-filter-options flex flex-wrap items-center gap-1.5">
         {isMonsterScope && (
           <FilterSelect
             label="Atributo"
@@ -613,7 +674,8 @@ function FilterBar({
         <span className="ml-auto text-[11px] text-zinc-500">
           {resultCount} cartas
         </span>
-      </div>
+        </div>
+      </details>
     </div>
   );
 }
@@ -965,6 +1027,7 @@ function DeckGrid({
   onHover,
   onRemove,
   onDropFromCatalog,
+  onInspect,
 }: {
   deck: DeckList;
   zone: DeckZone;
@@ -976,6 +1039,7 @@ function DeckGrid({
   foraDoPool: Set<number>;
   onHover: (card: CardDefinition | null) => void;
   onRemove: (passcode: number) => void;
+  onInspect?: (card: CardDefinition) => void;
 }) {
   const texto = useCardText();
   // Uma miniatura por cópia — é assim que o Tag Force mostra o deck, e deixa
@@ -1007,16 +1071,17 @@ function DeckGrid({
         event.preventDefault();
         onDropFromCatalog(arrasto.passcode);
       }}
-      className={`tf-panel flex h-[38%] min-h-0 shrink-0 flex-col overflow-hidden rounded-md ${
+      className={`builder-deck tf-panel flex h-[38%] min-h-0 shrink-0 flex-col overflow-hidden rounded-md ${
         alvoDoArrasto ? "ring-2 ring-[color:var(--tf-gold)]" : ""
       }`}
     >
-      <div className="flex shrink-0 items-center gap-1 border-b border-[color:var(--tf-slot-border)] px-3 py-2">
+      <div className="builder-zone-tabs flex shrink-0 flex-wrap items-center gap-1 border-b border-[color:var(--tf-slot-border)] px-3 py-2">
         {ZONE_TABS.map((tab) => (
           <button
             key={tab.value}
             type="button"
             onClick={() => onZoneChange(tab.value)}
+            aria-pressed={zone === tab.value}
             className={`rounded px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider transition ${
               zone === tab.value
                 ? "bg-[color:var(--tf-gold)] text-black"
@@ -1026,15 +1091,15 @@ function DeckGrid({
             {tab.label} {countInZone(deck, tab.value)}
           </button>
         ))}
-        <span className="ml-auto text-[11px] italic text-zinc-500">
-          clique ou arraste ao catálogo para remover
+        <span className="builder-deck-hint ml-auto text-[11px] italic text-zinc-500">
+          {onInspect ? "Toque para ler ou editar as cópias" : "clique ou arraste ao catálogo para remover"}
         </span>
       </div>
 
       <div className="min-h-0 flex-1 overflow-y-auto p-2">
         {entries.length === 0 ? (
           <p className="py-8 text-center text-[13px] text-zinc-600">
-            Nenhuma carta aqui. Clique numa carta do catálogo abaixo — ou arraste-a para cá.
+            Nenhuma carta aqui. Escolha uma carta no catálogo para adicionar.
           </p>
         ) : (
           <div className="grid grid-cols-[repeat(auto-fill,minmax(84px,1fr))] gap-1">
@@ -1051,7 +1116,8 @@ function DeckGrid({
                   event.dataTransfer.effectAllowed = "move";
                 }}
                 onMouseEnter={() => onHover(entry.card ?? null)}
-                onClick={() => onRemove(entry.passcode)}
+                onFocus={() => onHover(entry.card ?? null)}
+                onClick={() => onInspect && entry.card ? onInspect(entry.card) : onRemove(entry.passcode)}
                 title={
                   (entry.card ? texto.name(entry.card) : String(entry.passcode)) +
                   (foraDoPool.has(entry.passcode) ? " — fora do pool deste formato" : "")
@@ -1091,12 +1157,14 @@ function CatalogCard({
   inDeck,
   onHover,
   onAdd,
+  onInspect,
 }: {
   card: CardDefinition;
   format: DuelFormat;
   inDeck: number;
   onHover: (card: CardDefinition | null) => void;
   onAdd: () => void;
+  onInspect?: () => void;
 }) {
   const texto = useCardText();
   const image = card.images[0]?.image_url_small;
@@ -1115,8 +1183,9 @@ function CatalogCard({
         event.dataTransfer.effectAllowed = "copy";
       }}
       onMouseEnter={() => onHover(card)}
-      onClick={onAdd}
-      disabled={full}
+      onFocus={() => onHover(card)}
+      onClick={onInspect ?? onAdd}
+      disabled={full && !onInspect}
       title={
         full
           ? `${texto.name(card)} — limite atingido (${maxCopies})`

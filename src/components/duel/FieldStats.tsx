@@ -61,9 +61,11 @@ interface Placed extends FieldStat {
 export function FieldStatsLayer({
   stats,
   fieldRef,
+  compact = false,
 }: {
   stats: FieldStat[];
   fieldRef: RefObject<HTMLDivElement | null>;
+  compact?: boolean;
 }) {
   const [placed, setPlaced] = useState<Placed[]>([]);
   const [tick, setTick] = useState(0);
@@ -89,12 +91,12 @@ export function FieldStatsLayer({
         h: r.height,
         // Como no MD: o círculo do atributo sobre o canto da carta e o Nível
         // passando da borda dela, logo acima do ATK/DEF.
-        tagX: r.left - base.left + r.width * 0.56,
-        tagY: r.bottom - base.top - r.height * 0.05,
+        tagX: r.left - base.left + r.width * (compact ? 0.5 : 0.56),
+        tagY: compact ? r.top - base.top + r.height * 0.07 : r.bottom - base.top - r.height * 0.05,
       });
     }
     setPlaced((atual) => (mesmasPosicoes(atual, proximos) ? atual : proximos));
-  }, [stats, fieldRef, tick]);
+  }, [stats, fieldRef, tick, compact]);
 
   useEffect(() => {
     const timer = setTimeout(() => setTick((t) => t + 1), 480);
@@ -121,7 +123,7 @@ export function FieldStatsLayer({
           style={{
             left: stat.x,
             top: stat.y,
-            fontSize: `${Math.max(12, Math.round(stat.h * 0.155))}px`,
+            fontSize: `${compact ? Math.max(10, Math.min(13, Math.round(stat.h * 0.2))) : Math.max(12, Math.round(stat.h * 0.155))}px`,
           }}
         >
           <StatValue value={stat.atk} base={stat.baseAtk} />
@@ -141,7 +143,7 @@ export function FieldStatsLayer({
             style={{
               left: stat.tagX,
               top: stat.tagY,
-              fontSize: `${Math.max(10, Math.round(stat.h * 0.13))}px`,
+              fontSize: `${compact ? Math.max(7, Math.min(9, Math.round(stat.h * 0.16))) : Math.max(10, Math.round(stat.h * 0.13))}px`,
             }}
           >
             {stat.attribute && <AttributeTag attribute={stat.attribute} base={stat.baseAttribute} />}

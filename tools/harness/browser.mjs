@@ -231,13 +231,14 @@ export class Page {
   }
 
   /** Redimensiona a janela lógica — para conferir telas menores. */
-  setViewport(width, height) {
-    return this.send("Emulation.setDeviceMetricsOverride", {
+  async setViewport(width, height, { mobile = false, touch = false } = {}) {
+    await this.send("Emulation.setDeviceMetricsOverride", {
       width,
       height,
       deviceScaleFactor: 1,
-      mobile: false,
+      mobile,
     });
+    await this.send("Emulation.setTouchEmulationEnabled", { enabled: touch, maxTouchPoints: 1 });
   }
 
   /**

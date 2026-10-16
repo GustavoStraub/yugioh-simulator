@@ -11,6 +11,7 @@ import type { GlobalAction } from "@/lib/duel/duel-actions";
 import { CHAIN_MODE_HINT, CHAIN_MODE_LABEL } from "@/lib/duel/duel-prefs";
 import { mdPhaseShort, phaseLabel } from "@/lib/duel/phase-labels";
 import { nextChainMode } from "@/components/duel/DuelSettings";
+import { DuelFullscreenButton } from "@/components/duel/DuelScreenControls";
 
 /*
  * O HUD da mesa no desenho do Master Duel: as placas de LP nos cantos, o
@@ -351,6 +352,7 @@ export function HudButtons({
           <path d="M8 4.5h8M9 3h6v3H9zM6.5 5H5.5v15.5h13V5h-1M8.5 10h7M8.5 13.5h7M8.5 17h4.5" />
         </svg>
       </button>
+      <DuelFullscreenButton />
     </div>
   );
 }

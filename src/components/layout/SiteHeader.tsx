@@ -22,7 +22,7 @@ export function SiteHeader() {
 
   if (naMesa) {
     return (
-      <header className="flex shrink-0 items-center justify-between gap-2 border-b border-amber-900/30 bg-zinc-950/95 px-2 py-1.5 sm:px-4">
+      <header className="duel-site-header flex shrink-0 items-center justify-between gap-2 border-b border-amber-900/30 bg-zinc-950/95 px-2 py-1.5 sm:px-4">
         <Link
           href="/duel"
           className="shrink-0 whitespace-nowrap text-[13px] font-bold tracking-tight text-amber-400 transition hover:text-amber-300"
@@ -38,16 +38,16 @@ export function SiteHeader() {
   }
 
   return (
-    <header className="sticky top-0 z-40 shrink-0 border-b border-amber-900/30 bg-zinc-950/95 px-4 py-4 backdrop-blur">
+    <header className="site-header sticky top-0 z-40 shrink-0 border-b border-amber-900/30 bg-zinc-950/95 px-4 py-4 backdrop-blur">
       {/* No celular o título e a navegação empilham: lado a lado, o título
           ficava com metade da largura e a navegação rolava com "Online" fora
           de vista. */}
-      <div className="mx-auto flex max-w-[1600px] items-center justify-between gap-4 max-sm:flex-col max-sm:items-start max-sm:gap-2">
+      <div className="site-header-inner mx-auto flex max-w-[1600px] items-center justify-between gap-4 max-sm:flex-col max-sm:items-start max-sm:gap-2">
         <div className="min-w-0 shrink">
           <h1 className="text-xl font-bold tracking-tight text-amber-400">
             Yu-Gi-Oh! Goat
           </h1>
-          <p className="text-sm text-zinc-500">
+          <p className="site-subtitle text-sm text-zinc-500">
             Deck builder · duelo vs bot e online · Goat e TCG
           </p>
         </div>

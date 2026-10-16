@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 
 import { useCardText } from "@/hooks/useCardText";
+import { useCardInspection } from "@/components/duel/DeckSelectionLayout";
 import type { CardRegistry } from "@/lib/domain/card-registry";
 import { deckStats, type DeckEntry } from "@/lib/domain/deck-stats";
 import type { DuelDeckPayload, Passcode } from "@/lib/types";
@@ -18,6 +19,7 @@ export function DeckPreview({
   onCardHover?: (code: Passcode) => void;
 }) {
   const texto = useCardText();
+  const inspect = useCardInspection();
   const [listaAberta, setListaAberta] = useState(false);
   const stats = useMemo(() => deckStats(deck.main, deck.extra, registry), [deck, registry]);
   const zonas = [
@@ -53,6 +55,7 @@ export function DeckPreview({
                     type="button"
                     onMouseEnter={() => onCardHover?.(code)}
                     onFocus={() => onCardHover?.(code)}
+                    onClick={() => inspect?.(code)}
                     title={nome}
                     aria-label={nome}
                     className="aspect-[59/86] overflow-hidden rounded-[3px] border border-zinc-800 transition hover:ring-2 hover:ring-amber-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500"

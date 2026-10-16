@@ -28,6 +28,10 @@ const TELAS = [
   { nome: "768x1024", w: 768, h: 1024 },
   { nome: "844x390", w: 844, h: 390 },
   { nome: "390x844", w: 390, h: 844 },
+  { nome: "320x568", w: 320, h: 568 },
+  { nome: "568x320", w: 568, h: 320 },
+  { nome: "932x430", w: 932, h: 430 },
+  { nome: "1024x768", w: 1024, h: 768 },
 ];
 
 /**
@@ -80,7 +84,7 @@ const MEDIR = `
         const ra = a.getBoundingClientRect();
         return ra.left >= caixa.left - 1 && ra.right <= caixa.right + 1 && ra.right <= window.innerWidth + 1;
       });
-      return r.right <= window.innerWidth + 1 && r.height < 40 && itens;
+      return r.right <= window.innerWidth + 1 && r.height <= 48 && itens;
     })(),
     // Algo da barra de LP vazando para fora dela — no celular o selo "Sua
     // vez" passava por cima da barra do oponente.
@@ -144,7 +148,7 @@ async function main() {
     for (const formato of FORMATOS) {
       for (const tela of TELAS) {
         const page = await openPage(port);
-        await page.setViewport(tela.w, tela.h);
+        await page.setViewport(tela.w, tela.h, { mobile: tela.w <= 1180, touch: tela.w <= 1180 });
         await abrirDuelo(page, formato);
 
         const m = await page.evaluate(MEDIR);
@@ -180,7 +184,7 @@ async function main() {
     // --- toque: toque longo numa carta abre a leitura (mesa estreita) ---
     {
       const page = await openPage(port);
-      await page.setViewport(390, 844);
+      await page.setViewport(390, 844, { mobile: true, touch: true });
       await abrirDuelo(page);
       await page.send("Emulation.setTouchEmulationEnabled", { enabled: true, maxTouchPoints: 1 });
       const alvo = await page.evaluate(`

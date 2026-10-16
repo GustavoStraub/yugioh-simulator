@@ -315,15 +315,22 @@ function LeaveGhost({
     if (!zone) return;
     const fieldBox = field.getBoundingClientRect();
     const zoneBox = zone.getBoundingClientRect();
-    // A carta estava de pé sobre a zona (ver `.md-standing`): um pouco mais
-    // alta na tela que a zona deitada — o fantasma nasce do tamanho dela.
+    // A casa permanece quadrada depois da saída; o fantasma conserva a
+    // proporção da carta que estava no centro, sem virar uma imagem quadrada.
     const location = leave.from.location;
-    const alta = location === 4 || location === 8 ? zoneBox.height * 0.1 : 0;
+    const fieldCard = location === 4 || location === 8;
+    const cardWidth = fieldCard ? zoneBox.width * 59 / 86 : zoneBox.width;
+    const portrait = {
+      left: zoneBox.left + (zoneBox.width - cardWidth) / 2,
+      top: zoneBox.top,
+      width: cardWidth,
+      height: zoneBox.height,
+    };
     const box = {
-      x: zoneBox.left - fieldBox.left,
-      y: zoneBox.top - fieldBox.top - alta,
-      w: zoneBox.width,
-      h: zoneBox.height + alta,
+      x: portrait.left - fieldBox.left,
+      y: portrait.top - fieldBox.top,
+      w: portrait.width,
+      h: portrait.height,
     };
     const destino = destinationElement(field, leave, me);
     const dest = destino ? boxOf(destino, fieldBox) : null;
@@ -334,8 +341,7 @@ function LeaveGhost({
     let holoBox: Box | null = null;
     const zoneKey = cardKey(leave.from.controller, leave.from.location, leave.from.sequence);
     if (holo && (holo.mode === "always" || hologramWasLit(field, zoneKey))) {
-      const plano = zone.querySelector<HTMLElement>(".md-card-plane") ?? zone;
-      const a = hologramAnchor(plano.getBoundingClientRect(), fieldBox, deLa);
+      const a = hologramAnchor(portrait, fieldBox, deLa, Boolean(field.closest(".md-narrow")));
       holoBox = { x: a.x - a.side / 2, y: a.y - a.side, w: a.side, h: a.side };
     }
     setGeo({ box, dest, holo: holoBox });

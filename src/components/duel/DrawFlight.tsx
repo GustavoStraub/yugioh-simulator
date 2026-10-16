@@ -44,7 +44,7 @@ export function DrawFlightLayer({
     if (!deckEl || !handEl) return;
 
     const fieldBox = field.getBoundingClientRect();
-    const deckBox = deckEl.getBoundingClientRect();
+    const deckBox = (deckEl.querySelector(".md-pile-stack") ?? deckEl).getBoundingClientRect();
     const handBox = handEl.getBoundingClientRect();
 
     const from = {

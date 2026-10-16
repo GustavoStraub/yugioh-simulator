@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 
 import { usePlayer } from "@/context/PlayerProvider";
+import { DuelScreenHelp } from "@/components/duel/DuelScreenControls";
 import { getSfxSettings, playSfx, setSfxSettings, SFX_PREVIEW } from "@/lib/audio/sfx";
 import { CHAIN_RESPONSE_MODES, type ChainResponseMode } from "@/lib/duel/chain-mode";
 import {
@@ -113,8 +114,14 @@ export function DuelSettings({
             data-duel-settings-panel
             className="md-settings absolute left-0 top-full z-[70] mt-2 w-[min(320px,calc(100vw-24px))]"
           >
-            <header className="md-settings-head">Configurações do duelo</header>
+            <header className="md-settings-head flex items-center justify-between gap-2">
+              <span>Configurações do duelo</span>
+              <button type="button" onClick={fechar} aria-label="Fechar configurações" className="md-info-close">✕</button>
+            </header>
             <div className="md-settings-body">
+              <Section title="Tela">
+                <DuelScreenHelp />
+              </Section>
               {onChange && (
                 <Section title="Confirmação de ativação">
                   {CHAIN_RESPONSE_MODES.map((mode) => (

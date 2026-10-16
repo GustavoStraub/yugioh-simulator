@@ -12,7 +12,7 @@ import {
 import { useCardRegistry } from "@/context/CardRegistryProvider";
 import { useCardText } from "@/hooks/useCardText";
 import { useDuelFeedback, type DuelFlash } from "@/hooks/useDuelFeedback";
-import { NARROW_TABLE_QUERY, useMediaQuery } from "@/hooks/useMediaQuery";
+import { LANDSCAPE_READER_QUERY, NARROW_TABLE_QUERY, useMediaQuery } from "@/hooks/useMediaQuery";
 import { useTips } from "@/hooks/useTips";
 import { nextTip } from "@/lib/duel/tips";
 import { playSfx } from "@/lib/audio/sfx";
@@ -51,13 +51,14 @@ import type {
 import type { CardRegistry } from "@/lib/domain/card-registry";
 
 import {
-  CARD_SHAPE,
+  ZONE_SHAPE,
   commandKind,
   DuelCardSlot,
   DuelPile,
   type SlotIntent,
 } from "@/components/duel/DuelCardSlot";
 import { DuelCardPreview } from "@/components/duel/DuelCardPreview";
+import { DuelMobileGuide } from "@/components/duel/DuelMobileGuide";
 import { HudButtons, LifePlate, PhaseButton } from "@/components/duel/DuelHud";
 import { DuelInfo, EffectsPanel, FieldCracks } from "@/components/duel/DuelInfo";
 import { FieldStatsLayer, type FieldGrade, type FieldStat } from "@/components/duel/FieldStats";
@@ -390,13 +391,25 @@ export function DuelBoard({
    * da carta abre numa folha (toque longo) e o histórico num painel.
    */
   const estreita = useMediaQuery(NARROW_TABLE_QUERY);
-  /**
-   * Hologramas: na mesa estreita, nenhum — sem câmera inclinada nem espaço
-   * entre as fileiras, ele só cobriria a fileira de trás. O índice (quem tem
-   * holograma) é lido uma vez e serve à camada dos hologramas e à saída do
-   * campo (o holograma se estilhaça antes da carta).
-   */
-  const modoHolograma = estreita ? "off" : prefs.holograms;
+  const horizontal = useMediaQuery(LANDSCAPE_READER_QUERY);
+  const leituraLateral = estreita && horizontal;
+  useEffect(() => {
+    const previous = document.body.style.overflow;
+    const previousTheme = document.documentElement.dataset.duelScreen;
+    const theme = document.querySelector('meta[name="theme-color"]');
+    const previousColor = theme?.getAttribute("content");
+    document.body.style.overflow = "hidden";
+    document.documentElement.dataset.duelScreen = "true";
+    theme?.setAttribute("content", "#061226");
+    return () => {
+      document.body.style.overflow = previous;
+      if (previousTheme === undefined) delete document.documentElement.dataset.duelScreen;
+      else document.documentElement.dataset.duelScreen = previousTheme;
+      if (previousColor) theme?.setAttribute("content", previousColor);
+    };
+  }, []);
+  /** O mobile mantém a preferência de hologramas; a escala acompanha a carta. */
+  const modoHolograma = prefs.holograms;
   const holoIndex = useHologramIndex(modoHolograma !== "off");
   const [folhaAberta, setFolhaAberta] = useState(false);
   const [historicoAberto, setHistoricoAberto] = useState(false);
@@ -1054,7 +1067,7 @@ export function DuelBoard({
     },
     [showPreview],
   );
-  const onLongPress = estreita ? abrirLeitura : undefined;
+  const onLongPress = estreita && !leituraLateral ? abrirLeitura : undefined;
 
   const shared = {
     registry,
@@ -1429,6 +1442,8 @@ export function DuelBoard({
     />
   );
 
+  const zonaDoCore = plan && plan.places.length > 0 && !placeSelection && !zonaAntes && !busy;
+
   return (
     <div
       // Tela cheia, como o Master Duel: a mesa cobre o cabeçalho do site (que
@@ -1436,7 +1451,7 @@ export function DuelBoard({
       // pela engrenagem — e, no fim, pelo resultado.
       className={`tf-playmat md-duel fixed inset-0 z-30 flex flex-col overflow-hidden ${
         estreita ? "md-narrow" : "md-wide"
-      }`}
+      } ${leituraLateral ? "md-landscape" : ""}`}
       // Estado do motor para quem observa a mesa de fora (os testes de
       // navegador): o turno do bot é ritmado — cada ataque espera a investida
       // inteira —, e sem isto um turno longo dele parecia "nada clicável, mesa
@@ -1448,6 +1463,8 @@ export function DuelBoard({
       data-turn-side={snapshot.turnCount > 0 ? (snapshot.turnPlayer === me ? "me" : "foe") : undefined}
       data-format={snapshot.format}
       onClickCapture={(event) => {
+        // Na horizontal a consulta fica fixa, inclusive ao escolher um comando.
+        if (leituraLateral) return;
         const target = event.target;
         if (!(target instanceof Element)) return;
         if (
@@ -1479,7 +1496,7 @@ export function DuelBoard({
 
       {/* Mesa estreita (celular, tablet em pé): as placas numa faixa no
           topo — nos cantos elas cobririam a mesa. */}
-      {estreita && (
+      {estreita && !leituraLateral && (
         <div className="md-narrow-top relative z-20 flex shrink-0 items-stretch gap-1.5 px-1.5 pt-1.5">
           <div className="shrink-0">{engrenagem}</div>
           <div className="relative flex min-w-0 flex-1">
@@ -1493,12 +1510,52 @@ export function DuelBoard({
         </div>
       )}
 
+      <DuelMobileGuide />
+
       <div ref={stageRef} className="md-stage relative flex min-h-0 flex-1 overflow-hidden">
+        {leituraLateral && (
+          <aside data-landscape-reader aria-label="Carta em foco" className="md-landscape-reader relative z-20 flex min-h-0 shrink-0 flex-col">
+            <div className="md-landscape-player relative flex shrink-0 items-center gap-1.5">
+              {engrenagem}
+              {placaMinha}
+              <FlashLayer flashes={flashes} anchor="player" />
+            </div>
+            {cartaEmLeitura?.code ? (
+              <DuelCardPreview
+                card={cartaEmLeitura}
+                registry={registry}
+                marksOf={marksOf}
+                activation={ativacaoEmLeitura ? <ActivationBanner activation={ativacaoEmLeitura} /> : null}
+                viewer={me}
+              />
+            ) : (
+              <div className="md-reader-empty">
+                <span aria-hidden>▤</span>
+                <strong>Detalhes da carta</strong>
+                <p>Toque numa carta para ler aqui.</p>
+              </div>
+            )}
+            {(zonaAntes || zonaDoCore) && (
+              <div data-zone-first={zonaAntes ? true : undefined} data-place-banner={zonaDoCore ? true : undefined} className="md-reader-notice">
+                <p>{zonaAntes ? `${zonaAntes.action.label}: escolha uma zona no campo.` : selectionInstruction || "Escolha uma zona no campo."}</p>
+                {zonaAntes && <button type="button" data-cancel-zone-first className="md-pill md-pill-ghost" onClick={() => {
+                  playSfx("click");
+                  setZonaAntes(null);
+                }}>Cancelar</button>}
+              </div>
+            )}
+            {decision && modalEspiado && plan && (
+              <div className="md-reader-notice">
+                <button type="button" data-table-control data-return-decision className="md-pill md-pill-ok" onClick={() => setModalEspiado(false)}>Voltar à decisão</button>
+              </div>
+            )}
+          </aside>
+        )}
         {/* -------- campo -------- */}
         <div
           ref={fieldRef}
           className={`md-field relative flex min-h-0 min-w-0 flex-1 flex-col ${shake !== null ? "tf-shake" : ""}`}
-          // Teto das cartas pela LARGURA do campo (ver `CARD_SHAPE`): o
+          // Teto das zonas pela LARGURA do campo (ver `ZONE_SHAPE`): o
           // `.md-field` faz a conta em `cqw` deste contêiner.
           style={{ containerType: "inline-size" }}
           data-field
@@ -1678,13 +1735,13 @@ export function DuelBoard({
                   data-center-line
                   className="md-row md-row-center flex min-h-0 items-center justify-center"
                 >
-                  <div className={`${CARD_SHAPE} md-row-spacer`} />
-                  <div className={`${CARD_SHAPE} md-row-spacer`} />
+                  <div className={`${ZONE_SHAPE} md-row-spacer`} />
+                  <div className={`${ZONE_SHAPE} md-row-spacer`} />
                   {extraZone("left")}
-                  <div className={`${CARD_SHAPE} md-row-spacer`} />
+                  <div className={`${ZONE_SHAPE} md-row-spacer`} />
                   {extraZone("right")}
-                  <div className={`${CARD_SHAPE} md-row-spacer`} />
-                  <div className={`${CARD_SHAPE} md-row-spacer`} />
+                  <div className={`${ZONE_SHAPE} md-row-spacer`} />
+                  <div className={`${ZONE_SHAPE} md-row-spacer`} />
                 </div>
               ) : (
                 <div data-center-line className="md-center-line shrink-0" />
@@ -1773,7 +1830,7 @@ export function DuelBoard({
             flight={flight}
             animationScale={animationScale}
           />
-          <FieldStatsLayer stats={statsDaMesa} fieldRef={fieldRef} />
+          <FieldStatsLayer stats={statsDaMesa} fieldRef={fieldRef} compact={estreita} />
 
           <Hand cards={you.hand} seat={me} {...shared} />
 
@@ -1798,7 +1855,7 @@ export function DuelBoard({
 
           {/* Escolhendo a zona de uma jogada (ver `zone-first.ts`): nada foi
               enviado ao core ainda, então "Cancelar" de fato desiste. */}
-          {zonaAntes && (
+          {zonaAntes && !leituraLateral && (
             <div className="md-banner-wrap pointer-events-none absolute inset-x-0 z-40 flex justify-center">
               <div data-zone-first data-menu-avoid className="md-banner pointer-events-auto">
                 <span className="md-banner-text">
@@ -1840,7 +1897,7 @@ export function DuelBoard({
           {/* Decisão escondida: ela continua pendurada, e este é o caminho de
               volta. Vale para TODO diálogo de decisão — sem ele "ver a mesa"
               seria um beco sem saída. */}
-          {decision && modalEspiado && plan && (
+          {decision && modalEspiado && plan && !leituraLateral && (
             <PendingDecisionBar
               instruction={decision === "picker" ? selectionInstruction : plan.instruction}
               chain={snapshot.chain}
@@ -1852,7 +1909,7 @@ export function DuelBoard({
           {/* A pergunta de uma zona só (SELECT_PLACE): as zonas brilham na mesa
               e a faixa diz o que se escolhe — antes não havia instrução
               nenhuma, só as zonas acesas. */}
-          {plan && plan.places.length > 0 && !placeSelection && !zonaAntes && !busy && (
+          {zonaDoCore && !leituraLateral && (
             <div className="md-banner-wrap pointer-events-none absolute inset-x-0 z-40 flex justify-center">
               <div data-place-banner data-menu-avoid className="md-banner pointer-events-auto">
                 <span className="md-banner-text">{selectionInstruction || "Escolha uma zona"}</span>
@@ -1941,18 +1998,26 @@ export function DuelBoard({
         {/* -------- mesa estreita: coluna da direita -------- */}
         {estreita && (
           <aside className="md-narrow-rail relative z-20 flex shrink-0 flex-col items-center justify-center gap-2 p-1.5">
-            {botaoDeFase}
-            {botoesDaMesa}
-            <button
-              type="button"
-              data-table-control
-              data-open-card
-              onClick={() => setFolhaAberta(true)}
-              className="md-round"
-              title="Ler a carta em foco"
-            >
-              <span aria-hidden className="md-round-i">🔍</span>
-            </button>
+            {leituraLateral && (
+              <div className="md-landscape-opponent relative w-full shrink-0">
+                {placaDoOponente}
+                <FlashLayer flashes={flashes} anchor="opponent" />
+              </div>
+            )}
+            <div className="md-rail-actions flex min-h-0 flex-1 flex-col items-center justify-center gap-2">
+              {botaoDeFase}
+              {botoesDaMesa}
+              {!leituraLateral && <button
+                type="button"
+                data-table-control
+                data-open-card
+                onClick={() => setFolhaAberta(true)}
+                className="md-round"
+                title="Ler a carta em foco"
+              >
+                <span aria-hidden className="md-round-i">🔍</span>
+              </button>}
+            </div>
             {avisoDeEspera && <span className="sr-only">{avisoDeEspera}</span>}
           </aside>
         )}
@@ -2019,7 +2084,7 @@ export function DuelBoard({
             </div>
           </div>
         )}
-        {estreita && folhaAberta && (
+        {estreita && !leituraLateral && folhaAberta && (
           <div
             data-card-sheet
             className="tf-modal-scrim absolute inset-0 z-50 flex items-end justify-center"
@@ -2031,6 +2096,7 @@ export function DuelBoard({
             <div
               role="dialog"
               aria-label="Leitura da carta"
+              aria-modal="true"
               className="flex h-[78%] w-full max-w-[560px] flex-col gap-2 p-2"
               onClick={(event) => event.stopPropagation()}
             >
@@ -2380,7 +2446,7 @@ function GraveColumn({
   order: "banished-first" | "grave-first";
 }) {
   return (
-    <div className={`md-wells relative ${CARD_SHAPE}`}>
+    <div className={`md-wells relative ${ZONE_SHAPE}`}>
       {order === "banished-first" ? (
         <>
           <div className="md-well-slot md-well-slot-small">{banished}</div>
@@ -2472,12 +2538,12 @@ function FieldSpellSlot({
  * altura da mão, então a largura dela é 59/86 = 68,6% dessa altura. O piso
  * (-52cqh) deixa sempre uma tira de cada carta à mostra para clicar.
  */
-function passoDaMao(n: number, vao: string, altura = 1): string {
+function passoDaMao(n: number, vao: string, altura: number | string = 1): string {
   if (n <= 1) return vao;
   // A carta tem `altura` vezes a altura da mão (a do MD passa da borda da
   // tela): a largura dela é 59/86 disso.
-  const largura = 68.6 * altura;
-  return `max(${-(largura * 0.76).toFixed(1)}cqh, min(${vao}, calc((100cqw - 24px - ${n} * ${largura.toFixed(1)}cqh) / ${n - 1})))`;
+  const largura = typeof altura === "number" ? `${(68.6 * altura).toFixed(1)}cqh` : `calc(68.6cqh * ${altura})`;
+  return `max(calc(${largura} * -0.76), min(${vao}, calc((100cqw - 24px - ${n} * ${largura}) / ${n - 1})))`;
 }
 
 function Hand({
@@ -2498,7 +2564,7 @@ function Hand({
   // dela, então a sobreposição acompanha o tamanho em qualquer tela.
   // A carta é 32% mais alta que a faixa da mão: o pé dela passa da borda de
   // baixo da tela, como no Master Duel, e sobe inteira ao passar o mouse.
-  const passo = passoDaMao(cards.length, "1.5cqh", 1.32);
+  const passo = passoDaMao(cards.length, "1.5cqh", "var(--md-hand-scale)");
   return (
     <div
       // Índice ABSOLUTO — ver o comentário no `dataPile` da fileira acima.
@@ -3670,6 +3736,7 @@ function PendingDecisionBar({
         <button
           type="button"
           data-table-control
+          data-return-decision
           onClick={() => {
             playSfx("click");
             onBack();

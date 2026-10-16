@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Exo_2, Geist, Geist_Mono, Oxanium } from "next/font/google";
 
 import { SiteHeader } from "@/components/layout/SiteHeader";
@@ -10,6 +10,7 @@ import "./globals.css";
 // quem vem depois. Importado aqui (e não no componente) para a ordem ser
 // sempre esta — a recomendação do Next para CSS global.
 import "./md-duel.css";
+import "./mobile.css";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -44,6 +45,20 @@ export const metadata: Metadata = {
   title: "Yu-Gi-Oh! Goat — Deck Builder & Duelo",
   description:
     "Construtor de decks e duelos — Goat Format e TCG — com cartas em português.",
+  appleWebApp: {
+    capable: true,
+    title: "Yu-Gi-Oh! Goat",
+    statusBarStyle: "black-translucent",
+  },
+  icons: { apple: "/app-icon-180.png" },
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+  themeColor: "#09090b",
+  colorScheme: "dark",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
@@ -52,13 +67,13 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       lang="pt-BR"
       className={`${geistSans.variable} ${geistMono.variable} ${mdDisplay.variable} ${mdDigits.variable} h-full antialiased`}
     >
-      <body className="flex h-full flex-col overflow-x-hidden overflow-y-auto bg-zinc-950 text-zinc-100">
+      <body className="app-body flex flex-col overflow-x-hidden overflow-y-auto bg-zinc-950 text-zinc-100">
         {/* A portaria vive DENTRO do provider e por fora das páginas: o nome
             precisa existir antes de qualquer tela tocar na biblioteca. */}
         <PlayerProvider>
           <SiteHeader />
 
-          <main className="mx-auto flex w-full max-w-[1800px] flex-1 flex-col overflow-visible lg:min-h-0">
+          <main className="app-main mx-auto flex w-full min-w-0 max-w-[1800px] flex-1 flex-col">
             {children}
           </main>
         </PlayerProvider>

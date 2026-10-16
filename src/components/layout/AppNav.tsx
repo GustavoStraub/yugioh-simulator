@@ -21,7 +21,7 @@ export function AppNav() {
     // limite, rolam — nunca quebram linha. O PT/EN fica FORA da parte que
     // rola: dentro dela, um quarto item já o empurrava para fora da
     // janela num celular de 390 px.
-    <nav className="flex min-w-0 max-w-full items-center gap-1 whitespace-nowrap text-[12px] sm:gap-2 sm:text-sm">
+    <nav aria-label="Navegação principal" className="app-nav flex min-w-0 max-w-full items-center gap-1 whitespace-nowrap text-[12px] sm:gap-2 sm:text-sm">
       <div className="flex min-w-0 items-center gap-1 overflow-x-auto sm:gap-2">
         {NAV_ITEMS.map(({ href, label, short }) => {
           // O item mais específico ganha: sem isto `/duel/online` acenderia
@@ -41,6 +41,7 @@ export function AppNav() {
             <Link
               key={href}
               href={href}
+              aria-current={active ? "page" : undefined}
               className={`shrink-0 rounded-full px-2 py-1 transition sm:px-3 ${
                 active
                   ? "bg-amber-600/20 text-amber-300"

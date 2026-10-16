@@ -173,7 +173,7 @@ export function DuelLobby() {
           type="button"
           disabled={!duelReady || !opponent}
           onClick={handleStart}
-          className="mt-5 w-full rounded-xl bg-amber-600 px-6 py-3 text-sm font-semibold text-black transition hover:bg-amber-500 disabled:cursor-not-allowed disabled:opacity-40"
+          className="lobby-primary mt-5 w-full rounded-xl bg-amber-600 px-6 py-3 text-sm font-semibold text-black transition hover:bg-amber-500 disabled:cursor-not-allowed disabled:opacity-40"
         >
           Iniciar duelo vs bot
         </button>

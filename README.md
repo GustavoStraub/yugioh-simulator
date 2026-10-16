@@ -8,6 +8,50 @@ o bot ou online, contra um amigo.
 - `/duel` — duelo contra o bot
 - `/duel/online` — duelo online (salas com link de convite)
 
+## Telefone e tablet
+
+O construtor e os lobbies funcionam na vertical e na horizontal. No construtor,
+use **Cartas**, **Meu deck** e **Biblioteca**; toque numa carta para ler e escolha
+**Adicionar** ou **Remover**. Os filtros podem ser recolhidos para dar espaço ao
+catálogo.
+
+Para o duelo no telefone, **recomendamos a horizontal**. A mesa avisa ao entrar
+na vertical, sem impedir a partida. Na horizontal, **toque numa carta** para
+ler o texto na lateral esquerda e ver os comandos. Na vertical, toque e segure
+para abrir a leitura. Os hologramas seguem a preferência escolhida, com escala
+compacta; girar o aparelho preserva a partida e as escolhas em andamento.
+As zonas são quadradas também no desktop: a carta mantém o tamanho e gira
+90° em defesa, como num campo físico, com o contorno visível sob o holograma.
+
+Use o botão **⛶** junto de **Auto**, **Info** e do registro para entrar e sair de
+tela cheia. Nos navegadores sem suporte, ele mostra como abrir pela tela inicial.
+Também é possível adicionar o jogo à tela inicial e abri-lo pelo
+ícone, em uma janela sem barra de endereço. A barra do sistema depende do
+aparelho; as cores acompanham o azul da mesa onde o navegador permite.
+
+Testes de navegação e toque em Chrome, com o servidor rodando:
+
+```bash
+npm run test:mobile
+npm run test:viewports
+```
+
+Os testes cobrem telefones a partir de 320px de largura, paisagem a partir de
+568×320, tablets e desktop. As capturas ficam em `.cache/shots/mobile` e
+`.cache/shots`.
+
+Para repetir a validação no WebKit (motor do Safari), instale o ambiente de
+teste opcional na pasta de cache, sem alterar as dependências do app:
+
+```bash
+npm install --prefix .cache/mobile-webkit --no-package-lock playwright
+.cache/mobile-webkit/node_modules/.bin/playwright install webkit
+npm run test:mobile:webkit
+npm run test:mobile:field
+```
+
+A emulação em Chrome e WebKit não substitui a conferência em aparelhos físicos.
+
 ## Requisitos
 
 - **Node.js 22.18 ou mais novo** (desenvolvido no 26). O servidor roda

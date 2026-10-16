@@ -321,18 +321,21 @@ export function hologramAnchor(
   rect: { left: number; top: number; width: number; height: number },
   base: { left: number; top: number },
   foeSide: boolean,
+  compact = false,
 ): { x: number; y: number; side: number } {
   return {
     x: rect.left - base.left + rect.width / 2,
     // A base no meio da arte da carta: as pernas somem dentro dela (o degradê
     // de baixo) e o corpo sai por cima. A carta do oponente está de cabeça
     // para baixo — a arte dela fica na metade de baixo.
-    y: rect.top - base.top + rect.height * (foeSide ? 0.55 : 0.45),
+    y: rect.top - base.top + rect.height * (compact ? 0.65 : foeSide ? 0.55 : 0.45),
     // Pela LARGURA da carta: em defesa quem deita é a face dentro do plano, e
     // a caixa do plano fica igual. Pouco mais larga que a carta — com 1,45 ×
     // a altura os hologramas de zonas vizinhas se atropelavam, e 1,35 × a
     // largura ainda pedia "um pouquinho" menor.
-    side: Math.round(rect.width * 1.2),
+    // No mobile, nasce um pouco mais baixo e fica próximo da largura da carta:
+    // o corpo continua visível sem invadir a zona da fileira de trás.
+    side: Math.round(rect.width * (compact ? 1.08 : 1.2)),
   };
 }
 
@@ -359,7 +362,7 @@ function usePlacement(monsters: HoloMonster[], fieldRef: RefObject<HTMLDivElemen
       if (!plano) continue;
       const r = plano.getBoundingClientRect();
       if (r.width === 0 || r.height === 0) continue;
-      proximos.push({ ...monster, ...hologramAnchor(r, base, monster.foeSide) });
+      proximos.push({ ...monster, ...hologramAnchor(r, base, monster.foeSide, Boolean(field.closest(".md-narrow"))) });
     }
     setPlaced((atual) => (mesmasPosicoes(atual, proximos) ? atual : proximos));
     // `monsters` muda de identidade a cada render; `chave` é o que importa.

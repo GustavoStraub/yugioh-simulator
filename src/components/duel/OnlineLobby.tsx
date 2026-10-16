@@ -19,6 +19,7 @@ import {
   isRoomCode,
   normalizeRoomCode,
   randomRoomCode,
+  ROOM_CODE_LENGTH,
 } from "@/lib/net/duel-protocol";
 import { ehOrigemLocal } from "@/lib/net/origem";
 
@@ -102,11 +103,16 @@ export function OnlineLobby({ initialRoom = "" }: { initialRoom?: string }) {
           Crie uma sala e mande o link para o amigo, ou entre com o código dele.
         </p>
 
-        <div className="mt-4 flex gap-2">
+        <div className="room-code-entry mt-4 flex flex-wrap gap-2">
           <input
             value={codigo}
             onChange={(event) => setCodigo(normalizeRoomCode(event.target.value))}
             placeholder="CÓDIGO"
+            aria-label="Código da sala"
+            autoCapitalize="characters"
+            autoCorrect="off"
+            spellCheck={false}
+            maxLength={ROOM_CODE_LENGTH}
             className="w-32 rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-center font-mono text-lg tracking-[0.3em] text-zinc-100 outline-none focus:border-amber-600"
           />
           <button
@@ -140,7 +146,7 @@ export function OnlineLobby({ initialRoom = "" }: { initialRoom?: string }) {
           </p>
           <ul className="mt-3 space-y-1">
             {convites.map((url) => (
-              <li key={url} className="font-mono text-sm text-amber-300">
+              <li key={url} className="break-all font-mono text-sm text-amber-300">
                 {url}/duel/online
               </li>
             ))}

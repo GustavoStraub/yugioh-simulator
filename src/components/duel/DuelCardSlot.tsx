@@ -23,6 +23,10 @@ import type { CardRegistry } from "@/lib/domain/card-registry";
 export const CARD_SHAPE =
   "h-full w-auto aspect-[59/86] shrink-0 max-h-[var(--tf-card-max-h,100%)]";
 
+/** A casa quadrada comporta a mesma carta de pé ou deitada, sem encolhê-la. */
+export const ZONE_SHAPE =
+  "h-full w-auto aspect-square shrink-0 max-h-[var(--tf-card-max-h,100%)]";
+
 /**
  * O realce da carta, nas cores do Master Duel.
  *
@@ -191,6 +195,9 @@ export function DuelCardSlot({
   const definition = card?.code ? registry?.get(card.code) : undefined;
   const image = definition?.images[0]?.image_url_small;
   const interactive = Boolean(onClick);
+  // Ler também é uma ação. No toque, todas as cartas conhecidas precisam
+  // disputar o alvo igualmente, mesmo quando só a vizinha oferece uma jogada.
+  const pressable = interactive || Boolean(card?.code);
 
   // O dono reconhece a própria carta baixada pela arte sob transparência; do
   // outro lado, `code` já vem mascarado e só resta mostrar o verso.
@@ -232,7 +239,8 @@ export function DuelCardSlot({
       ref={slotRef}
       data-zone={zoneKey}
       data-zone-kind={zoneKind}
-      className={`md-slot relative ${CARD_SHAPE} ${zoneKind ? `md-slot-${zoneKind}` : ""} ${
+      data-card-position={card && (zoneKind === "monster" || zoneKind === "emz") ? (rotated ? "defense" : "attack") : undefined}
+      className={`md-slot relative ${zoneKind ? ZONE_SHAPE : CARD_SHAPE} ${zoneKind ? `md-slot-${zoneKind}` : ""} ${
         inHand ? "md-hand-card" : ""
       } ${inHand && menu && menu.length > 0 ? "md-hand-card-up" : ""} ${foeSide ? "md-slot-foe" : ""}`}
     >
@@ -295,16 +303,17 @@ export function DuelCardSlot({
             event.preventDefault();
             return;
           }
-          // O clique também fixa a carta no painel, inclusive quando a mesa é
-          // controlada sem mouse (o hover continua atualizando a leitura).
-          if (card?.code) onHover?.(card);
         }}
-        onClick={onClick}
-        role={interactive ? "button" : undefined}
-        tabIndex={interactive ? 0 : undefined}
-        aria-label={definition ? texto.name(definition) : placeholder || undefined}
+        onClick={pressable ? () => {
+          // O clique fixa a leitura mesmo sem uma jogada disponível.
+          if (card?.code) onHover?.(card);
+          onClick?.();
+        } : undefined}
+        role={pressable ? "button" : undefined}
+        tabIndex={pressable ? 0 : undefined}
+        aria-label={definition ? `${texto.name(definition)}${zoneKind === "monster" || zoneKind === "emz" ? ` — posição de ${rotated ? "defesa" : "ataque"}` : ""}` : placeholder || undefined}
         onKeyDown={
-          interactive
+          pressable
             ? (event) => {
                 if (event.key === "Enter" || event.key === " ") {
                   event.preventDefault();
@@ -324,7 +333,7 @@ export function DuelCardSlot({
               // fora dele, sempre legíveis. A investida copia este giro para a
               // carta que voa (`AttackFlight`) — tem de estar AQUI, no estilo.
               rotated
-                ? { transform: `rotate(${foeSide ? 270 : 90}deg) scale(0.72)` }
+                ? { transform: `rotate(${foeSide ? 270 : 90}deg)` }
                 : foeSide
                   ? { transform: "rotate(180deg)" }
                   : undefined
@@ -596,8 +605,10 @@ function CardActionMenu({
       const w = menu.offsetWidth;
       const h = menu.offsetHeight;
       const margem = 8;
+      const leitor = document.querySelector("[data-landscape-reader]")?.getBoundingClientRect();
+      const esquerda = leitor ? leitor.right + margem : margem;
       const left = Math.min(
-        Math.max(r.left + r.width / 2 - w / 2, margem),
+        Math.max(r.left + r.width / 2 - w / 2, esquerda),
         window.innerWidth - w - margem,
       );
       // Sempre para CIMA da carta, como os comandos do Master Duel — também
@@ -764,7 +775,7 @@ export function DuelPile({
             }
           : undefined
       }
-      className={`md-pile md-pile-${kind} relative ${poco ? "" : CARD_SHAPE} ${count > 0 ? "md-pile-full" : "md-pile-empty"} ${
+      className={`md-pile md-pile-${kind} relative ${poco ? "" : ZONE_SHAPE} ${count > 0 ? "md-pile-full" : "md-pile-empty"} ${
         openable ? "cursor-pointer md-interactive" : ""
       } ${actionable ? "tf-slot-active tf-slot-activate" : ""}`}
     >

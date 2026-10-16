@@ -334,7 +334,7 @@ function SalaDeEspera({
               type="button"
               disabled={status !== "conectado" || !escolha.pronto || !meuAssento}
               onClick={() => setReady(!ready)}
-              className={`mt-4 w-full rounded-xl px-6 py-3 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-40 ${
+              className={`lobby-primary mt-4 w-full rounded-xl px-6 py-3 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-40 ${
                 ready
                   ? "border border-emerald-700/60 text-emerald-300 hover:bg-emerald-900/30"
                   : "bg-amber-600 text-black hover:bg-amber-500"
