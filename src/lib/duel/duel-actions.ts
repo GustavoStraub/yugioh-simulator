@@ -649,6 +649,9 @@ export function buildPromptPlan(
       // A janela dos gatilhos (`isTriggerWindow`) usa a mesma mensagem, mas a
       // pergunta é outra: não é "responder a algo", é "ativar o efeito que a
       // minha carta acabou de acionar" — e passar o descarta de vez.
+      // Fora dela, `forced` também pode misturar um efeito contínuo
+      // obrigatório (a contagem da Espada na End Phase) com cartas opcionais.
+      // É uma escolha de ordem, não necessariamente uma ativação/corrente.
       const gatilho = isTriggerWindow(message);
       const plan = emptyPlan(
         gatilho
@@ -656,14 +659,14 @@ export function buildPromptPlan(
             ? "Efeitos obrigatórios ao mesmo tempo: escolha qual entra agora na corrente."
             : "Efeitos de gatilho disponíveis — qual ativar?"
           : message.forced
-            ? "Você precisa encadear um efeito."
+            ? "Efeito obrigatório pendente — escolha o que acontece primeiro."
             : "Deseja responder com algum efeito?",
         "inline",
       );
 
       message.selects.forEach((card, index) => {
         push(plan.byCard, card, {
-          label: gatilho ? "Ativar" : "Ativar em resposta",
+          label: gatilho ? "Ativar" : message.forced ? "Usar efeito" : "Ativar em resposta",
           detail: effectDetail(card.description, engineStrings),
           response: { type: OcgResponseType.SELECT_CHAIN, index },
         });

@@ -53,7 +53,10 @@ export function autoResponseFor(
         return { type: OcgResponseType.SELECT_CHAIN, index: null };
       }
       if (message.forced && message.selects.length === 1) {
-        // Encadear é obrigatório e só há um candidato.
+        // Efeito obrigatório e sem escolha de ordem. SELECT_CHAIN também
+        // inclui ações que não abrem corrente, como a contagem da Espada
+        // das Luzes Reveladoras. Com mais candidatos, o jogador pode querer
+        // usar outra carta ANTES dessa ação; não escolher a ordem por ele.
         return { type: OcgResponseType.SELECT_CHAIN, index: 0 };
       }
       return null;

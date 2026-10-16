@@ -1857,6 +1857,7 @@ export function DuelBoard({
                 key={snapshot.promptId}
                 plan={plan}
                 trigger={isTriggerWindow(prompt)}
+                mandatory={prompt.forced}
                 chain={snapshot.chain}
                 registry={registry}
                 me={me}
@@ -3573,6 +3574,7 @@ function ChainLinkPanel({
 function ChainResponseBar({
   plan,
   trigger,
+  mandatory,
   chain,
   registry,
   me,
@@ -3586,6 +3588,8 @@ function ChainResponseBar({
    * anunciado no topo é o que já entrou nesta mesma corrente.
    */
   trigger: boolean;
+  /** Não permite passar; fora dos gatilhos pode ser uma escolha de ordem. */
+  mandatory: boolean;
   chain: DuelChainLink | null;
   registry: CardRegistry | null;
   me: 0 | 1;
@@ -3686,9 +3690,11 @@ function ChainResponseBar({
                   : chain
                     ? "Outro efeito foi acionado junto: ativá-lo nesta corrente? Sem ativar agora, ele se perde."
                     : "Acionados ao mesmo tempo: escolha qual entra primeiro na corrente. Sem ativar, o efeito se perde."
-                : cartas.length > 0
-                  ? "Ativar uma carta em resposta (corrente)? Escolha abaixo — ou clique na que brilha na mesa."
-                  : "Responder?"}
+                : mandatory
+                  ? "Você pode usar outra carta antes do efeito obrigatório, mas não pulá-lo. Sem outra escolha, o jogo segue automaticamente."
+                  : cartas.length > 0
+                    ? "Ativar uma carta em resposta (corrente)? Escolha abaixo — ou clique na que brilha na mesa."
+                    : "Responder?"}
             </p>
           </div>
         </div>
