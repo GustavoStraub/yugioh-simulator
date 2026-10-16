@@ -41,7 +41,7 @@
 
   /* Margens laterais da mesa larga: a leitura da carta à esquerda, o botão
      de fase e o registro à direita — o campo fica no meio, como no MD. */
-  --md-side: clamp(200px, 20.5vw, 410px);
+  --md-side: clamp(200px, 16vw, 360px);
   /* Inclinação da câmera e quanto a carta fica "de pé" sobre a zona. */
   --md-tilt: 38deg;
   --md-stand: 0deg;
@@ -191,6 +191,12 @@
      da mesa (abaixo) vale igual num notebook e num monitor grande. */
   perspective: var(--md-persp, 240vh);
   perspective-origin: 50% -30%;
+}
+
+/* Com zonas quadradas, a largura limita a altura da mesa. Centralizá-la
+   na câmera distribui a folga entre as mãos, sem prender o campo ao rodapé. */
+.md-wide .md-camera {
+  justify-content: center;
 }
 
 .md-board {
