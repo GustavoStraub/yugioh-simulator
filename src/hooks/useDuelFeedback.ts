@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { playSfx, type SfxName } from "@/lib/audio/sfx";
-import type { ChainSpotlightState } from "@/components/duel/ChainSpotlight";
+import type { ChainEffectNoticeState, ChainSpotlightState } from "@/components/duel/ChainSpotlight";
 import type { DuelBanner } from "@/components/duel/MdBanners";
 import type {
   CutInKind,
@@ -12,7 +12,7 @@ import type {
   DuelZoneRef,
   LeaveReason,
 } from "@/lib/duel/duel-events";
-import { CUT_IN_MS, LEAVE_MS, TOSS_MS, TURN_BEAT } from "@/lib/duel/pacing";
+import { CUT_IN_MS, EFFECT_READ_MS, LEAVE_MS, LIFE_POINT_MS, TOSS_MS, TURN_BEAT } from "@/lib/duel/pacing";
 import { mdPhaseBanner } from "@/lib/duel/phase-labels";
 
 /** Quanto o destaque de uma ativação fica no centro. */
@@ -228,6 +228,9 @@ export function useDuelFeedback(
   } | null>(null);
   /** A carta em destaque no centro (ativação ou negação de um elo). */
   const [spotlight, setSpotlight] = useState<ChainSpotlightState | null>(null);
+  /** A leitura do canto tem seu próprio relógio e não segura o engine. */
+  const [effectNotice, setEffectNotice] = useState<ChainEffectNoticeState | null>(null);
+  const effectNoticeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   /** Cartas saindo do campo agora — várias de uma vez num Raigeki. */
   const [leaves, setLeaves] = useState<LeaveGhost[]>([]);
   /** A faixa do MD atravessando a tela ("TURN CHANGE", "BATTLE PHASE"). */
@@ -341,6 +344,22 @@ export function useDuelFeedback(
           spotlightTimer.current = setTimeout(() => {
             setSpotlight((current) => (current?.token === token ? null : current));
           }, duration);
+          if (!negated) {
+            setEffectNotice({
+              token,
+              code: event.code,
+              link: event.link,
+              mine: event.player === me,
+              description: event.description ?? null,
+              duration: EFFECT_READ_MS,
+            });
+            // A ativação mais recente toma o lugar da anterior e ganha seus
+            // próprios quatro segundos, inclusive nas velocidades rápidas.
+            if (effectNoticeTimer.current) clearTimeout(effectNoticeTimer.current);
+            effectNoticeTimer.current = setTimeout(() => {
+              setEffectNotice((current) => (current?.token === token ? null : current));
+            }, EFFECT_READ_MS);
+          }
           break;
         }
         case "draw":
@@ -358,7 +377,7 @@ export function useDuelFeedback(
           // mostrar a lista a quem não tinha direito é entregar a carta.
           if (event.visibleTo !== me) break;
           setReveal({ codes: event.codes, title: event.title });
-          setTimeout(() => setReveal(null), 3200);
+          setTimeout(() => setReveal(null), dur(EFFECT_READ_MS));
           break;
         case "coin":
         case "dice":
@@ -406,7 +425,7 @@ export function useDuelFeedback(
           pushFlash(
             `${event.amount}`,
             event.player === me ? "bad" : "good",
-            dur(900),
+            dur(LIFE_POINT_MS),
             event.player === me ? "player" : "opponent",
           );
           setShake(event.player === me ? "mine" : "theirs");
@@ -416,7 +435,7 @@ export function useDuelFeedback(
           pushFlash(
             `+${event.amount}`,
             "good",
-            dur(900),
+            dur(LIFE_POINT_MS),
             event.player === me ? "player" : "opponent",
           );
           break;
@@ -441,6 +460,8 @@ export function useDuelFeedback(
     () => () => {
       faixas.parar();
       if (cutInTimer.current) clearTimeout(cutInTimer.current);
+      if (spotlightTimer.current) clearTimeout(spotlightTimer.current);
+      if (effectNoticeTimer.current) clearTimeout(effectNoticeTimer.current);
     },
     [faixas],
   );
@@ -453,6 +474,7 @@ export function useDuelFeedback(
     reveal,
     draw,
     spotlight,
+    effectNotice,
     leaves,
     banner,
     cutIn,

@@ -41,6 +41,11 @@ export const CUT_IN_MS = 1700;
 /** Tremor da mesa e clarão de dano (`tf-shake` / `tf-hit-flash`). */
 export const HIT_MS = 420;
 
+/** Leitura no canto da tela: permanece sem bloquear o avanço do duelo. */
+export const EFFECT_READ_MS = 4000;
+/** Os números de dano/cura continuam visíveis enquanto a partida avança. */
+export const LIFE_POINT_MS = 1600;
+
 /**
  * Giro da moeda e rolagem do dado (`useDuelFeedback`).
  *

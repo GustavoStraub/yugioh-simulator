@@ -4267,7 +4267,13 @@ button.md-tile:hover .md-tile-card {
   padding: 10px 12px;
   background: linear-gradient(180deg, rgba(8, 18, 38, 0.94), rgba(3, 8, 18, 0.94));
   box-shadow: 0 0 0 1px color-mix(in srgb, var(--md-spot-c) 60%, transparent), 0 10px 30px rgba(0, 0, 0, 0.6);
-  animation: md-spot-in var(--md-spot-ms, 1000ms) ease-out both;
+  animation: md-effect-notice var(--md-spot-ms, 4000ms) ease-out both;
+}
+
+@keyframes md-effect-notice {
+  0% { opacity: 0; transform: translateY(-6px); }
+  5%, 93% { opacity: 1; transform: translateY(0); }
+  100% { opacity: 0; transform: translateY(-4px); }
 }
 
 .md-spot-effect-name {

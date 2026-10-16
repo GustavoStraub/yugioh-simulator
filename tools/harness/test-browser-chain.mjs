@@ -24,6 +24,7 @@ import { REPO } from "./env.mjs";
 
 const BASE = process.env.APP_URL ?? "http://127.0.0.1:3000";
 const OUT = join(REPO, ".cache/shots");
+const SPEED = process.env.DUEL_TEST_SPEED ?? "normal";
 
 const CELTIC_GUARDIAN = 91152256; // Guerreiro de Nível 4: alvo do Reforço
 const REINFORCEMENT = 32807846; // Reforço do Exército
@@ -84,6 +85,11 @@ const LER = `
     })(),
     efeitoNoDestaque: document.querySelector("[data-spotlight-effect]")?.innerText ?? null,
     textoNoDestaque: document.querySelector("[data-spotlight-text]")?.innerText ?? null,
+    aviso: (() => {
+      const el = document.querySelector('[data-effect-notice]');
+      return el ? { code: Number(el.dataset.effectNotice), link: Number(el.dataset.effectLink), token: el.dataset.effectToken, duration: el.style.getPropertyValue('--md-spot-ms') } : null;
+    })(),
+    avisos: document.querySelectorAll('[data-effect-notice]').length,
   };
 `;
 
@@ -99,6 +105,8 @@ async function main() {
         JSON.stringify({ id: "harnesschain01", name: "Testador" }),
       )});
        sessionStorage.setItem("yugioh-goat-duel-setup-v1", ${JSON.stringify(JSON.stringify(setup))});
+       localStorage.setItem("yugioh-goat-duel-prefs-v1", JSON.stringify({ speed: ${JSON.stringify(SPEED)} }));
+       localStorage.setItem("yugioh-goat-tips-v1", JSON.stringify({ off: true, seen: [] }));
        return true;`,
     );
     await page.goto(`${BASE}/duel/play`);
@@ -136,28 +144,36 @@ async function main() {
       fotos: new Set(),
       leituras: new Map(),
       textosNoDestaque: new Map(),
+      tempos: new Map(),
     };
-    const fim = Date.now() + 20_000;
+    const fim = Date.now() + 60_000;
     let estado = null;
     while (Date.now() < fim) {
       estado = await page.evaluate(LER);
       if (estado.leitura && !vistos.leituras.has(estado.leitura.elo)) {
         vistos.leituras.set(estado.leitura.elo, estado.leitura);
       }
-      if (estado.destaque?.tipo === "activate" && estado.textoNoDestaque) {
-        vistos.textosNoDestaque.set(estado.destaque.elo, {
+      if (estado.aviso && estado.textoNoDestaque) {
+        vistos.textosNoDestaque.set(estado.aviso.link, {
           efeito: estado.efeitoNoDestaque,
           texto: estado.textoNoDestaque,
         });
+        const tempo = vistos.tempos.get(estado.aviso.link) ?? { inicio: Date.now(), fim: Date.now() };
+        tempo.fim = Date.now();
+        vistos.tempos.set(estado.aviso.link, tempo);
       }
+      if (estado.avisos > 1) vistos.avisosSobrepostos = true;
+      if (estado.aviso?.link === 2 && !estado.pilha && vistos.destaques.has("negated:1")) vistos.avancouComAviso = true;
       if (estado.destaque) {
         const chave = `${estado.destaque.tipo}:${estado.destaque.elo}`;
         if (!vistos.destaques.has(chave)) {
           vistos.destaques.set(chave, estado.destaque.texto);
           // A foto espera o destaque terminar de entrar (14% da duração).
-          await espera(250);
-          const { data } = await page.screenshot();
-          writeFileSync(join(OUT, `corrente-${estado.destaque.tipo}-${estado.destaque.elo}.png`), Buffer.from(data, "base64"));
+          if (SPEED === "normal") {
+            await espera(250);
+            const { data } = await page.screenshot();
+            writeFileSync(join(OUT, `corrente-${estado.destaque.tipo}-${estado.destaque.elo}.png`), Buffer.from(data, "base64"));
+          }
         }
       }
       if (estado.pilha) {
@@ -167,21 +183,34 @@ async function main() {
           lista.add(linha.estado);
           vistos.estados.set(linha.elo, lista);
         }
-        if (estado.pilha.length === 2 && !vistos.fotos.has("pilha")) {
+        if (SPEED === "normal" && estado.pilha.length === 2 && !vistos.fotos.has("pilha")) {
           vistos.fotos.add("pilha");
           const { data } = await page.screenshot();
           writeFileSync(join(OUT, "corrente-pilha.png"), Buffer.from(data, "base64"));
         }
       }
+      if (SPEED === "normal" && estado.aviso && !estado.destaque && !estado.pilha && !vistos.fotos.has("sem-pausa")) {
+        vistos.fotos.add("sem-pausa");
+        writeFileSync(join(OUT, "corrente-efeito-sem-pausa.png"), Buffer.from((await page.screenshot()).data, "base64"));
+      }
       // A corrente me pergunta se respondo: não.
       if (estado.botoes.includes("Não responder")) await page.clickAction("Não responder");
-      if (vistos.destaques.has("negated:1") && !estado.pilha) break;
-      await espera(90);
+      if (vistos.tempos.has(2) && vistos.destaques.has("negated:1") && !estado.pilha && !estado.aviso) break;
+      await espera(SPEED === "normal" ? 90 : 35);
     }
 
     const ativou1 = vistos.destaques.get("activate:1") ?? "";
     const ativou2 = vistos.destaques.get("activate:2") ?? "";
     const negou1 = vistos.destaques.get("negated:1") ?? "";
+    const primeiro = vistos.tempos.get(1);
+    const ultimo = vistos.tempos.get(2);
+    conferir(primeiro && ultimo && ultimo.inicio - primeiro.inicio < 2000,
+      "#6: a próxima ativação avança sem esperar os quatro segundos", JSON.stringify([primeiro, ultimo]));
+    conferir(!vistos.avisosSobrepostos, "#6: o efeito novo substitui a caixa anterior");
+    conferir(ultimo && ultimo.fim - ultimo.inicio >= 3700 && ultimo.fim - ultimo.inicio < 5000,
+      "#6: a caixa mais recente recebe seus próprios quatro segundos", JSON.stringify(ultimo));
+    conferir(vistos.avancouComAviso, "#6: a corrente termina enquanto a caixa ainda está visível");
+    conferir(!estado?.aviso, "#6: a caixa sai automaticamente quando termina o tempo");
     // `innerText` devolve o texto como a tela mostra (os rótulos em
     // maiúsculas), e o nome vem no idioma do jogador — daí o `i` e as duas
     // grafias.

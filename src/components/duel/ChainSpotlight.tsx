@@ -22,6 +22,11 @@ export interface ChainSpotlightState {
   duration: number;
 }
 
+export type ChainEffectNoticeState = Pick<
+  ChainSpotlightState,
+  "token" | "code" | "mine" | "link" | "description" | "duration"
+>;
+
 export const ORIGEM: Partial<Record<number, string>> = {
   [OcgLocation.HAND]: "da mão",
   [OcgLocation.GRAVE]: "do Cemitério",
@@ -69,11 +74,6 @@ export function ChainSpotlight({
   const origem = ORIGEM[spotlight.from];
   const negada = spotlight.kind === "negated";
   const quem = spotlight.mine ? names.mine : names.foe;
-  // O que a carta faz. Antes o destaque mostrava só a carta, e o texto dela
-  // só aparecia no diálogo "deseja responder?" — que, no modo Automático,
-  // quase nunca abre: o Raigeki do oponente passava sem dizer nada.
-  const efeito = negada ? null : (spotlight.description ?? null);
-  const textoDaCarta = negada || !def ? null : texto.desc(def);
 
   return (
     <div
@@ -123,26 +123,48 @@ export function ChainSpotlight({
           <span className="md-spot-link">Elo {spotlight.link}</span>
         </p>
       </div>
+    </div>
+  );
+}
 
-      {/* O texto do efeito no canto de cima à direita, como o MD mostra o que
-          a carta ativada faz. O texto inteiro não cabe nem dá tempo de ler
-          aqui: três linhas para reconhecer a carta, e a leitura da esquerda
-          fica com ela (ver `DuelBoard`, "a leitura segue a ativação"). */}
-      {(efeito || textoDaCarta) && (
-        <div className="md-spot-effect">
-          <p className="md-spot-effect-name">{nome}</p>
-          {efeito && (
-            <p data-spotlight-effect className="md-spot-effect-what">
-              {efeito}
-            </p>
-          )}
-          {textoDaCarta && (
-            <p data-spotlight-text className="md-spot-effect-text">
-              {textoDaCarta}
-            </p>
-          )}
-        </div>
-      )}
+/** A leitura do canto permanece após a animação central, sem capturar cliques. */
+export function ChainEffectNotice({
+  notice,
+  registry,
+}: {
+  notice: ChainEffectNoticeState | null;
+  registry: CardRegistry | null;
+}) {
+  const texto = useCardText();
+  if (!notice) return null;
+  const def = registry?.get(notice.code);
+  const nome = def ? texto.name(def) : "Carta";
+  const efeito = notice.description;
+  const textoDaCarta = def ? texto.desc(def) : null;
+  if (!efeito && !textoDaCarta) return null;
+
+  return (
+    <div
+      key={notice.token}
+      data-effect-notice={notice.code}
+      data-effect-token={notice.token}
+      data-effect-link={notice.link}
+      className={`md-spot ${notice.mine ? "md-spot-me" : "md-spot-foe"} pointer-events-none absolute inset-0 z-40`}
+      style={{ ["--md-spot-ms" as string]: `${notice.duration}ms` }}
+    >
+      <div className="md-spot-effect">
+        <p className="md-spot-effect-name">{nome}</p>
+        {efeito && (
+          <p data-spotlight-effect className="md-spot-effect-what">
+            {efeito}
+          </p>
+        )}
+        {textoDaCarta && (
+          <p data-spotlight-text className="md-spot-effect-text">
+            {textoDaCarta}
+          </p>
+        )}
+      </div>
     </div>
   );
 }

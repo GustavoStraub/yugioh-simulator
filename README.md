@@ -183,6 +183,11 @@ Tudo opcional, por variável de ambiente:
 
 ## Durante o duelo
 
+A caixa do efeito no canto fica visível por quatro segundos, enquanto o duelo
+continua. Uma nova ativação substitui a anterior e reinicia esse tempo. As
+animações centrais são breves; a engrenagem permite acelerar o ritmo da partida
+sem encurtar o tempo de leitura da caixa.
+
 O engine roda **no servidor**, não no navegador: é o que impede que um jogador
 leia a mão do outro pelo console. Detalhes do desenho em
 [`docs/multiplayer.md`](docs/multiplayer.md).

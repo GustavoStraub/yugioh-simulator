@@ -69,7 +69,7 @@ import {
   type HoloMonster,
 } from "@/components/duel/MonsterHolograms";
 import { AttackFlightLayer } from "@/components/duel/AttackFlight";
-import { ChainSpotlight, ORIGEM } from "@/components/duel/ChainSpotlight";
+import { ChainEffectNotice, ChainSpotlight, ORIGEM } from "@/components/duel/ChainSpotlight";
 import { ChainStack } from "@/components/duel/ChainStack";
 import type { ChainBadge } from "@/components/duel/DuelCardSlot";
 import { DrawFlightLayer } from "@/components/duel/DrawFlight";
@@ -268,6 +268,7 @@ export function DuelBoard({
     reveal,
     draw,
     spotlight,
+    effectNotice,
     leaves,
     banner,
     cutIn,
@@ -1620,6 +1621,7 @@ export function DuelBoard({
             holoIndex={holoIndex}
             holoMode={modoHolograma}
           />
+          <ChainEffectNotice notice={effectNotice} registry={registry} />
           <ChainSpotlight
             spotlight={spotlight}
             registry={registry}
