@@ -188,6 +188,24 @@ function Hologram({
   }, [on, zoneKey, fieldRef]);
 
   const { side } = monster;
+  return (
+    <div
+      data-holo-for={monster.zoneKey}
+      data-holo-code={monster.code}
+      data-holo-kind={kind}
+      data-holo-on={on ? "1" : undefined}
+      className={`md-holo md-holo-${monster.attribute || "neutral"} ${on ? "md-holo-on" : ""} ${
+        monster.defense ? "md-holo-def" : ""
+      }`}
+      style={{ left: monster.x, top: monster.y, width: side, height: side }}
+    >
+      <HologramArtwork side={side} layers={layers} url={url} />
+    </div>
+  );
+}
+
+/** O volume e os efeitos do monstro, compartilhados pela mesa e pela ampliação. */
+export function HologramArtwork({ side, layers, url }: { side: number; layers: number; url: string }) {
   // A perspectiva e a profundidade em proporção ao tamanho: o mesmo volume em
   // qualquer tela. Cada fatia mais perto cresce com a perspectiva (P / (P − z));
   // a escala de volta a deixa do tamanho da de trás, senão as bordas não
@@ -213,16 +231,7 @@ function Hologram({
   const tamanho = `100% ${layers * 100}%`;
 
   return (
-    <div
-      data-holo-for={monster.zoneKey}
-      data-holo-code={monster.code}
-      data-holo-kind={kind}
-      data-holo-on={on ? "1" : undefined}
-      className={`md-holo md-holo-${monster.attribute || "neutral"} ${on ? "md-holo-on" : ""} ${
-        monster.defense ? "md-holo-def" : ""
-      }`}
-      style={{ left: monster.x, top: monster.y, width: side, height: side }}
-    >
+    <>
       <span className="md-holo-beam" />
       <div className="md-holo-view">
         <div className="md-holo-rise" style={{ perspective: `${perspectiva}px` }}>
@@ -257,7 +266,7 @@ function Hologram({
           </div>
         </div>
       </div>
-    </div>
+    </>
   );
 }
 

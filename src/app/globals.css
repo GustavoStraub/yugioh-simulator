@@ -62,6 +62,11 @@ body {
     0 2px 12px rgba(0, 0, 0, 0.45);
 }
 
+/* O construtor acompanha o fundo neutro e os painéis dos lobbies. */
+.deck-builder {
+  --tf-panel: color-mix(in oklab, var(--color-zinc-950) 80%, transparent);
+}
+
 /* Slot vazio de zona — moldura sutil que não compete com a arte da carta. */
 .tf-slot {
   background: var(--tf-slot);

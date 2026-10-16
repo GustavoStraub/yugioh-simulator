@@ -3,6 +3,7 @@
 import type { ReactNode } from "react";
 
 import { GlossaryText } from "@/components/duel/GlossaryText";
+import { CardImageZoom } from "@/components/layout/CardImageZoom";
 import { StatValue } from "@/components/duel/DuelCardSlot";
 import { useCardText } from "@/hooks/useCardText";
 import { attributeLabel, monsterTypeParts, translateRace, translateType } from "@/lib/card-labels";
@@ -150,8 +151,12 @@ export function DuelCardPreview({
 
       <div className="md-detail-top">
         {image && (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={image} alt={texto.name(definition)} className="md-detail-art" />
+          <CardImageZoom
+            src={image}
+            alt={texto.name(definition)}
+            hologram={isMonster ? { code: definition.passcode, attribute: definition.attribute } : undefined}
+            className="md-detail-art"
+          />
         )}
         <div className="md-detail-stats">
           {isMonster ? (

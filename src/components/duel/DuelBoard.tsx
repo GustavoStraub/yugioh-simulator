@@ -1469,7 +1469,7 @@ export function DuelBoard({
         if (!(target instanceof Element)) return;
         if (
           target.closest(
-            ".tf-touch-card[data-previewable], [data-preview-owner], [data-card-sheet], [data-open-card]",
+            ".tf-touch-card[data-previewable], [data-preview-owner], [data-card-sheet], [data-open-card], [data-card-image-dialog]",
           )
         ) {
           return;

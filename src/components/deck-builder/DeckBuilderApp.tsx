@@ -5,6 +5,7 @@ import Link from "next/link";
 
 import { PresetDeckPicker } from "@/components/deck-builder/PresetDeckPicker";
 import { CardDetailsDialog } from "@/components/layout/CardDetailsDialog";
+import { CardImageZoom } from "@/components/layout/CardImageZoom";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { GlossaryText } from "@/components/duel/GlossaryText";
 import {
@@ -175,7 +176,7 @@ export function DeckBuilderApp() {
 
   if (isLoading) {
     return (
-      <div className="tf-playmat flex flex-1 items-center justify-center p-8">
+      <div className="deck-builder flex flex-1 items-center justify-center p-8">
         <div className="text-center">
           <div className="mx-auto mb-4 h-10 w-10 animate-spin rounded-full border-2 border-[color:var(--tf-gold)] border-t-transparent" />
           <p className="text-sm text-zinc-400">
@@ -188,7 +189,7 @@ export function DeckBuilderApp() {
 
   if (error) {
     return (
-      <div className="tf-playmat flex flex-1 items-center justify-center p-8">
+      <div className="deck-builder flex flex-1 items-center justify-center p-8">
         <div className="tf-panel max-w-md rounded-lg p-6 text-center">
           <p className="text-red-300">{error}</p>
           <button
@@ -204,7 +205,7 @@ export function DeckBuilderApp() {
   }
 
   return (
-    <div data-builder-tab={mobileTab} className="deck-builder tf-playmat flex min-h-0 flex-1 flex-col overflow-hidden">
+    <div data-builder-tab={mobileTab} className="deck-builder flex min-h-0 flex-1 flex-col overflow-hidden">
       {activeFeedback && (
         <div className="flex shrink-0 items-center justify-between border-b border-red-900/50 bg-red-950/60 px-4 py-2 text-sm text-red-200">
           <span role="status">{activeFeedback}</span>
@@ -967,11 +968,11 @@ function BigCardPreview({
   return (
     <div className="tf-panel flex min-h-0 flex-1 flex-col gap-2 overflow-hidden rounded-md p-3">
       {image && (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
+        <CardImageZoom
           src={image}
           alt={texto.name(card)}
-          className="mx-auto max-h-[42%] w-auto shrink-0 rounded border border-[color:var(--tf-slot-border)] object-contain"
+          hologram={card.type.includes("Monster") ? { code: card.passcode, attribute: card.attribute } : undefined}
+          className="mx-auto h-[42%] max-w-full shrink-0 rounded border border-[color:var(--tf-slot-border)]"
         />
       )}
 

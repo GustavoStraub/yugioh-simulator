@@ -26,6 +26,8 @@ export function CardDetailsDialog({
     document.body.style.overflow = "hidden";
     ref.current?.focus({ preventScroll: true });
     const onKey = (event: KeyboardEvent) => {
+      // A ampliação é um diálogo acima deste: Esc e Tab pertencem a ela.
+      if (event.target instanceof Element && event.target.closest("[data-card-image-dialog]")) return;
       if (event.key === "Escape") {
         event.stopImmediatePropagation();
         onClose();
