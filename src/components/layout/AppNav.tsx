@@ -9,6 +9,7 @@ import { LANGUAGE_OPTIONS } from "@/lib/i18n/language";
 /** `short`: o rótulo no celular, onde cada letra disputa a largura. */
 const NAV_ITEMS = [
   { href: "/", label: "Deck Builder", short: "Deck" },
+  { href: "/aprender", label: "Aprender", short: "Aprender" },
   { href: "/duel", label: "vs Bot", short: "vs Bot" },
   { href: "/duel/online", label: "Online", short: "Online" },
 ] as const;

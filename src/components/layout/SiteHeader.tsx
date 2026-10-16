@@ -18,7 +18,8 @@ export function SiteHeader() {
   const pathname = usePathname();
   // A sala online usa a mesa inteira assim que o duelo começa; encolher o
   // cabeçalho já ao entrar evita o salto de layout no meio da partida.
-  const naMesa = pathname === "/duel/play" || /^\/duel\/online\/./.test(pathname);
+  const naMesa = pathname === "/duel/play" || /^\/duel\/online\/./.test(pathname)
+    || /^\/aprender\/[^/]+\/treinar\/[^/]+/.test(pathname);
 
   if (naMesa) {
     return (

@@ -5,8 +5,15 @@ Deck builder e simulador de duelo do formato Goat (abril de 2005), rodando o
 o bot ou online, contra um amigo.
 
 - `/` — construtor de decks
+- `/aprender` — guias para aprender os decks oficiais; piloto com Albaz Strike
 - `/duel` — duelo contra o bot
 - `/duel/online` — duelo online (salas com link de convite)
+
+Na aba **Aprender**, o guia de Albaz Strike reúne o plano do deck, cartas-chave,
+três exercícios na mesa com mão preparada, dicas e as fontes consultadas.
+Concluir os objetivos salva o progresso no navegador para cada jogador. O atalho de prática
+abre um duelo livre contra o bot com a lista oficial. Autoria dos JSONs e
+validação das jogadas: [guias de decks](docs/deck-learning.md).
 
 ## Telefone e tablet
 

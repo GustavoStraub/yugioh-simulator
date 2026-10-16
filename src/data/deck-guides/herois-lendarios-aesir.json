@@ -1,0 +1,1002 @@
+{
+  "schemaVersion": 1,
+  "id": "herois-lendarios-aesir",
+  "presetId": "tcg-lehd-aesir",
+  "revision": 1,
+  "reviewedAt": "2026-10-16",
+  "title": "Heróis Lendários — Aesir",
+  "subtitle": "Três deuses, três receitas de Sincro.",
+  "description": "Use Gullveig para reunir Nórdicos e aprenda a invocar Thor, Odin e Loki com as cartas originais da caixa.",
+  "difficulty": "Intermediário",
+  "minutes": 15,
+  "tags": [
+    "Sincro",
+    "Link",
+    "Nórdico",
+    "Aesir",
+    "TCG"
+  ],
+  "coverCodes": [
+    30604579,
+    93483212,
+    67098114
+  ],
+  "deckSnapshot": {
+    "format": "tcg",
+    "main": [
+      15394083,
+      15394083,
+      14677495,
+      14677495,
+      88283496,
+      88283496,
+      41788781,
+      41788781,
+      13455953,
+      13455953,
+      40666140,
+      40666140,
+      77060848,
+      73417207,
+      76348260,
+      40844552,
+      61777313,
+      2333365,
+      50433147,
+      55154048,
+      55154048,
+      28643791,
+      25789292,
+      27243130,
+      96864811,
+      83764718,
+      54447022,
+      53129443,
+      64697431,
+      5318639,
+      14464864,
+      14464864,
+      42793609,
+      42793609,
+      89792713,
+      89792713,
+      15286412,
+      15286412,
+      86827882,
+      16308000
+    ],
+    "extra": [
+      90207654,
+      30604579,
+      67098114,
+      93483212,
+      8561192,
+      37910722,
+      8763963,
+      34408491,
+      76774528,
+      42566602
+    ],
+    "side": []
+  },
+  "overview": {
+    "goal": "Reunir um Regulador adequado e dois não-Reguladores para uma Sincro de Nível 10.",
+    "plan": [
+      "Comece com um Nórdico e acesse Gullveig.",
+      "Escolha qual Aesir quer invocar antes de selecionar os três materiais.",
+      "Planeje os recursos que ficam no Cemitério e a posição em relação à seta de Gullveig."
+    ],
+    "strengths": [
+      "A mesma abertura permite praticar três receitas diferentes.",
+      "Os Aesir combinam ATK alto com efeitos próprios e retorno condicional na Fase Final."
+    ],
+    "watchOut": [
+      "Lista de 2018: 40 cartas no Principal e 10 no Extra, sem suportes adicionados depois.",
+      "Estes exemplos gastam três cartas da mão para reunir materiais; não são uma abertura garantida em toda partida.",
+      "Os exercícios usam as regras atuais do simulador; a composição é a do produto, não uma recomendação de torneio."
+    ]
+  },
+  "keyCards": [
+    {
+      "code": 90207654,
+      "name": "Gullveig do Ascendente Nórdico",
+      "role": "Ponte para os materiais",
+      "explanation": "Converte cartas da mão/campo em Nórdicos do Deck. Preserve a própria Gullveig quando quiser manter sua seta disponível.",
+      "sourceIds": [
+        "gullveig"
+      ]
+    },
+    {
+      "code": 30604579,
+      "name": "Thor, Senhor dos Aesir",
+      "role": "Regulador Besta Nórdica",
+      "explanation": "Thor usa Guldfaxe neste exemplo. Seu efeito na Fase Principal pode negar os monstros adversários que já estão com a face para cima, até o fim do turno.",
+      "sourceIds": [
+        "thor"
+      ]
+    },
+    {
+      "code": 93483212,
+      "name": "Odin, Pai dos Aesir",
+      "role": "Regulador Ascendente Nórdico",
+      "explanation": "Odin usa Valquíria neste exemplo. Sua proteção contra Magias/Armadilhas é um efeito ativado que dura até o fim do turno.",
+      "sourceIds": [
+        "odin"
+      ]
+    },
+    {
+      "code": 67098114,
+      "name": "Loki, Senhor dos Aesir",
+      "role": "Regulador Alfar Nórdico",
+      "explanation": "Loki usa Svartalf neste exemplo. Sua negação é para ativação de Magia/Armadilha adversária durante a sua Fase de Batalha.",
+      "sourceIds": [
+        "loki"
+      ]
+    },
+    {
+      "code": 61777313,
+      "name": "Vanadis do Ascendente Nórdico",
+      "role": "Flexibilidade do Regulador",
+      "explanation": "Vanadis pode substituir um Regulador Nórdico para uma Sincro, mas exige que os demais materiais sejam Nórdicos. Alterar seu Nível muda a soma necessária.",
+      "sourceIds": [
+        "vanadis"
+      ]
+    }
+  ],
+  "lessons": [
+    {
+      "id": "thor",
+      "title": "Chegue a Thor",
+      "summary": "Monte a receita 4 + 3 + 3 e reconheça o Regulador correto.",
+      "minutes": 5,
+      "sourceIds": [
+        "gullveig",
+        "thor",
+        "set-list"
+      ],
+      "preparation": [
+        "Sua Fase Principal, campo vazio e sem interrupções.",
+        "A lista completa da caixa é usada; as cinco cartas abaixo já começam na sua mão."
+      ],
+      "startingHand": [
+        13455953,
+        42793609,
+        89792713,
+        86827882,
+        83764718
+      ],
+      "steps": [
+        {
+          "title": "Abra com Dverg",
+          "action": "Invoque Dverg por Invocação-Normal.",
+          "why": "Um Nórdico de Nível 5 ou menos permite acessar Gullveig.",
+          "cardCodes": [
+            13455953
+          ]
+        },
+        {
+          "title": "Faça sua Invocação-Link",
+          "action": "Abra o Extra Deck e invoque Gullveig usando Dverg como material.",
+          "why": "Gullveig reúne os materiais para a próxima invocação.",
+          "cardCodes": [
+            90207654,
+            13455953
+          ]
+        },
+        {
+          "title": "Escolha o que banir",
+          "action": "Aceite o efeito de Gullveig. Selecione Brisingamen, Laevateinn e Megingjord na mão; confirme as três cartas. Preserve Gullveig no campo.",
+          "why": "Você troca essas três cartas pelos materiais do Deck.",
+          "cardCodes": [
+            90207654,
+            42793609,
+            89792713,
+            86827882
+          ]
+        },
+        {
+          "title": "Reúna os três Nórdicos",
+          "action": "Selecione Guldfaxe das Bestas Nórdicas, Tanngrisnir das Bestas Nórdicas, Tanngnjostr das Bestas Nórdicas no Deck. Confirme as zonas para invocá-los em Defesa.",
+          "why": "A soma será 4 + 3 + 3. Guldfaxe é o Regulador Besta Nórdica exigido por Thor.",
+          "cardCodes": [
+            41788781,
+            15394083,
+            14677495
+          ]
+        },
+        {
+          "title": "Complete a Sincro",
+          "action": "Abra o Extra Deck e invoque Thor, Senhor dos Aesir usando os três Nórdicos indicados. Se possível, escolha a zona para a qual Gullveig aponta.",
+          "why": "Confira o tipo do Regulador e a soma 4 + 3 + 3 = 10.",
+          "cardCodes": [
+            30604579,
+            41788781,
+            15394083,
+            14677495
+          ]
+        }
+      ],
+      "outcome": "Thor, Senhor dos Aesir e Gullveig no campo; os três materiais Sincro no Cemitério.",
+      "cautions": [
+        "Depois do efeito de Gullveig, você não pode Invocar por Invocação-Normal/Baixar nem fazer Invocações-Especiais fora dos Aesir pelo resto do turno.",
+        "A proteção de Gullveig exige que sua seta aponte para o Aesir; não é proteção geral contra todos os efeitos.",
+        "Este exercício ensina a invocação. O retorno do Aesir na Fase Final depende de destruição pela carta do oponente e de um Regulador adequado no Cemitério."
+      ],
+      "practice": {
+        "goal": [
+          {
+            "kind": "card",
+            "zone": "monsters",
+            "code": 30604579
+          },
+          {
+            "kind": "card",
+            "zone": "monsters",
+            "code": 90207654
+          },
+          {
+            "kind": "card",
+            "zone": "grave",
+            "code": 41788781
+          },
+          {
+            "kind": "card",
+            "zone": "grave",
+            "code": 15394083
+          },
+          {
+            "kind": "card",
+            "zone": "grave",
+            "code": 14677495
+          },
+          {
+            "kind": "card",
+            "zone": "banished",
+            "code": 42793609
+          },
+          {
+            "kind": "card",
+            "zone": "banished",
+            "code": 89792713
+          },
+          {
+            "kind": "card",
+            "zone": "banished",
+            "code": 86827882
+          }
+        ],
+        "stages": [
+          {
+            "title": "Abra com Dverg",
+            "instruction": "Invoque Dverg por Invocação-Normal.",
+            "why": "Um Nórdico de Nível 5 ou menos permite acessar Gullveig.",
+            "targets": [
+              {
+                "code": 13455953,
+                "location": 2
+              }
+            ],
+            "completeWhen": [
+              {
+                "kind": "card",
+                "zone": "monsters",
+                "code": 13455953
+              }
+            ]
+          },
+          {
+            "title": "Faça sua Invocação-Link",
+            "instruction": "Abra o Extra Deck e invoque Gullveig usando Dverg como material.",
+            "why": "Gullveig reúne os materiais para a próxima invocação.",
+            "targets": [
+              {
+                "code": 90207654,
+                "location": 64
+              },
+              {
+                "code": 13455953,
+                "location": 4
+              }
+            ],
+            "completeWhen": [
+              {
+                "kind": "card",
+                "zone": "monsters",
+                "code": 90207654
+              }
+            ]
+          },
+          {
+            "title": "Escolha o que banir",
+            "instruction": "Aceite o efeito de Gullveig. Selecione Brisingamen, Laevateinn e Megingjord na mão; confirme as três cartas. Preserve Gullveig no campo.",
+            "why": "Você troca essas três cartas pelos materiais do Deck.",
+            "targets": [
+              {
+                "code": 90207654,
+                "location": 4,
+                "scope": "action"
+              },
+              {
+                "code": 42793609,
+                "location": 2
+              },
+              {
+                "code": 89792713,
+                "location": 2
+              },
+              {
+                "code": 86827882,
+                "location": 2
+              }
+            ],
+            "completeWhen": [
+              {
+                "kind": "card",
+                "zone": "banished",
+                "code": 42793609
+              },
+              {
+                "kind": "card",
+                "zone": "banished",
+                "code": 89792713
+              },
+              {
+                "kind": "card",
+                "zone": "banished",
+                "code": 86827882
+              }
+            ]
+          },
+          {
+            "title": "Reúna os três Nórdicos",
+            "instruction": "Selecione Guldfaxe das Bestas Nórdicas, Tanngrisnir das Bestas Nórdicas, Tanngnjostr das Bestas Nórdicas no Deck. Confirme as zonas para invocá-los em Defesa.",
+            "why": "A soma será 4 + 3 + 3. Guldfaxe é o Regulador Besta Nórdica exigido por Thor.",
+            "targets": [
+              {
+                "code": 41788781,
+                "location": 1
+              },
+              {
+                "code": 15394083,
+                "location": 1
+              },
+              {
+                "code": 14677495,
+                "location": 1
+              }
+            ],
+            "completeWhen": [
+              {
+                "kind": "card",
+                "zone": "monsters",
+                "code": 41788781
+              },
+              {
+                "kind": "card",
+                "zone": "monsters",
+                "code": 15394083
+              },
+              {
+                "kind": "card",
+                "zone": "monsters",
+                "code": 14677495
+              }
+            ]
+          },
+          {
+            "title": "Complete a Sincro",
+            "instruction": "Abra o Extra Deck e invoque Thor, Senhor dos Aesir usando os três Nórdicos indicados. Se possível, escolha a zona para a qual Gullveig aponta.",
+            "why": "Confira o tipo do Regulador e a soma 4 + 3 + 3 = 10.",
+            "targets": [
+              {
+                "code": 30604579,
+                "location": 64
+              },
+              {
+                "code": 41788781,
+                "location": 4
+              },
+              {
+                "code": 15394083,
+                "location": 4
+              },
+              {
+                "code": 14677495,
+                "location": 4
+              }
+            ],
+            "completeWhen": [
+              {
+                "kind": "card",
+                "zone": "monsters",
+                "code": 30604579
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "odin",
+      "title": "Chegue a Odin",
+      "summary": "Monte a receita 2 + 4 + 4 e reconheça o Regulador correto.",
+      "minutes": 5,
+      "sourceIds": [
+        "gullveig",
+        "odin",
+        "set-list"
+      ],
+      "preparation": [
+        "Sua Fase Principal, campo vazio e sem interrupções.",
+        "A lista completa da caixa é usada; as cinco cartas abaixo já começam na sua mão."
+      ],
+      "startingHand": [
+        13455953,
+        42793609,
+        89792713,
+        86827882,
+        83764718
+      ],
+      "steps": [
+        {
+          "title": "Abra com Dverg",
+          "action": "Invoque Dverg por Invocação-Normal.",
+          "why": "Um Nórdico de Nível 5 ou menos permite acessar Gullveig.",
+          "cardCodes": [
+            13455953
+          ]
+        },
+        {
+          "title": "Faça sua Invocação-Link",
+          "action": "Abra o Extra Deck e invoque Gullveig usando Dverg como material.",
+          "why": "Gullveig reúne os materiais para a próxima invocação.",
+          "cardCodes": [
+            90207654,
+            13455953
+          ]
+        },
+        {
+          "title": "Escolha o que banir",
+          "action": "Aceite o efeito de Gullveig. Selecione Brisingamen, Laevateinn e Megingjord na mão; confirme as três cartas. Preserve Gullveig no campo.",
+          "why": "Você troca essas três cartas pelos materiais do Deck.",
+          "cardCodes": [
+            90207654,
+            42793609,
+            89792713,
+            86827882
+          ]
+        },
+        {
+          "title": "Reúna os três Nórdicos",
+          "action": "Selecione Valquíria do Ascendente Nórdico, Gamr das Bestas Nórdicas, Ljosalf do Alfar Nórdico no Deck. Confirme as zonas para invocá-los em Defesa.",
+          "why": "A soma será 2 + 4 + 4. Valquíria é o Regulador Ascendente Nórdico exigido por Odin.",
+          "cardCodes": [
+            40844552,
+            88283496,
+            40666140
+          ]
+        },
+        {
+          "title": "Complete a Sincro",
+          "action": "Abra o Extra Deck e invoque Odin, Pai dos Aesir usando os três Nórdicos indicados. Se possível, escolha a zona para a qual Gullveig aponta.",
+          "why": "Confira o tipo do Regulador e a soma 2 + 4 + 4 = 10.",
+          "cardCodes": [
+            93483212,
+            40844552,
+            88283496,
+            40666140
+          ]
+        }
+      ],
+      "outcome": "Odin, Pai dos Aesir e Gullveig no campo; os três materiais Sincro no Cemitério.",
+      "cautions": [
+        "Depois do efeito de Gullveig, você não pode Invocar por Invocação-Normal/Baixar nem fazer Invocações-Especiais fora dos Aesir pelo resto do turno.",
+        "A proteção de Gullveig exige que sua seta aponte para o Aesir; não é proteção geral contra todos os efeitos.",
+        "Este exercício ensina a invocação. O retorno do Aesir na Fase Final depende de destruição pela carta do oponente e de um Regulador adequado no Cemitério."
+      ],
+      "practice": {
+        "goal": [
+          {
+            "kind": "card",
+            "zone": "monsters",
+            "code": 93483212
+          },
+          {
+            "kind": "card",
+            "zone": "monsters",
+            "code": 90207654
+          },
+          {
+            "kind": "card",
+            "zone": "grave",
+            "code": 40844552
+          },
+          {
+            "kind": "card",
+            "zone": "grave",
+            "code": 88283496
+          },
+          {
+            "kind": "card",
+            "zone": "grave",
+            "code": 40666140
+          },
+          {
+            "kind": "card",
+            "zone": "banished",
+            "code": 42793609
+          },
+          {
+            "kind": "card",
+            "zone": "banished",
+            "code": 89792713
+          },
+          {
+            "kind": "card",
+            "zone": "banished",
+            "code": 86827882
+          }
+        ],
+        "stages": [
+          {
+            "title": "Abra com Dverg",
+            "instruction": "Invoque Dverg por Invocação-Normal.",
+            "why": "Um Nórdico de Nível 5 ou menos permite acessar Gullveig.",
+            "targets": [
+              {
+                "code": 13455953,
+                "location": 2
+              }
+            ],
+            "completeWhen": [
+              {
+                "kind": "card",
+                "zone": "monsters",
+                "code": 13455953
+              }
+            ]
+          },
+          {
+            "title": "Faça sua Invocação-Link",
+            "instruction": "Abra o Extra Deck e invoque Gullveig usando Dverg como material.",
+            "why": "Gullveig reúne os materiais para a próxima invocação.",
+            "targets": [
+              {
+                "code": 90207654,
+                "location": 64
+              },
+              {
+                "code": 13455953,
+                "location": 4
+              }
+            ],
+            "completeWhen": [
+              {
+                "kind": "card",
+                "zone": "monsters",
+                "code": 90207654
+              }
+            ]
+          },
+          {
+            "title": "Escolha o que banir",
+            "instruction": "Aceite o efeito de Gullveig. Selecione Brisingamen, Laevateinn e Megingjord na mão; confirme as três cartas. Preserve Gullveig no campo.",
+            "why": "Você troca essas três cartas pelos materiais do Deck.",
+            "targets": [
+              {
+                "code": 90207654,
+                "location": 4,
+                "scope": "action"
+              },
+              {
+                "code": 42793609,
+                "location": 2
+              },
+              {
+                "code": 89792713,
+                "location": 2
+              },
+              {
+                "code": 86827882,
+                "location": 2
+              }
+            ],
+            "completeWhen": [
+              {
+                "kind": "card",
+                "zone": "banished",
+                "code": 42793609
+              },
+              {
+                "kind": "card",
+                "zone": "banished",
+                "code": 89792713
+              },
+              {
+                "kind": "card",
+                "zone": "banished",
+                "code": 86827882
+              }
+            ]
+          },
+          {
+            "title": "Reúna os três Nórdicos",
+            "instruction": "Selecione Valquíria do Ascendente Nórdico, Gamr das Bestas Nórdicas, Ljosalf do Alfar Nórdico no Deck. Confirme as zonas para invocá-los em Defesa.",
+            "why": "A soma será 2 + 4 + 4. Valquíria é o Regulador Ascendente Nórdico exigido por Odin.",
+            "targets": [
+              {
+                "code": 40844552,
+                "location": 1
+              },
+              {
+                "code": 88283496,
+                "location": 1
+              },
+              {
+                "code": 40666140,
+                "location": 1
+              }
+            ],
+            "completeWhen": [
+              {
+                "kind": "card",
+                "zone": "monsters",
+                "code": 40844552
+              },
+              {
+                "kind": "card",
+                "zone": "monsters",
+                "code": 88283496
+              },
+              {
+                "kind": "card",
+                "zone": "monsters",
+                "code": 40666140
+              }
+            ]
+          },
+          {
+            "title": "Complete a Sincro",
+            "instruction": "Abra o Extra Deck e invoque Odin, Pai dos Aesir usando os três Nórdicos indicados. Se possível, escolha a zona para a qual Gullveig aponta.",
+            "why": "Confira o tipo do Regulador e a soma 2 + 4 + 4 = 10.",
+            "targets": [
+              {
+                "code": 93483212,
+                "location": 64
+              },
+              {
+                "code": 40844552,
+                "location": 4
+              },
+              {
+                "code": 88283496,
+                "location": 4
+              },
+              {
+                "code": 40666140,
+                "location": 4
+              }
+            ],
+            "completeWhen": [
+              {
+                "kind": "card",
+                "zone": "monsters",
+                "code": 93483212
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "loki",
+      "title": "Chegue a Loki",
+      "summary": "Monte a receita 5 + 3 + 2 e reconheça o Regulador correto.",
+      "minutes": 5,
+      "sourceIds": [
+        "gullveig",
+        "loki",
+        "set-list"
+      ],
+      "preparation": [
+        "Sua Fase Principal, campo vazio e sem interrupções.",
+        "A lista completa da caixa é usada; as cinco cartas abaixo já começam na sua mão."
+      ],
+      "startingHand": [
+        13455953,
+        42793609,
+        89792713,
+        86827882,
+        83764718
+      ],
+      "steps": [
+        {
+          "title": "Abra com Dverg",
+          "action": "Invoque Dverg por Invocação-Normal.",
+          "why": "Um Nórdico de Nível 5 ou menos permite acessar Gullveig.",
+          "cardCodes": [
+            13455953
+          ]
+        },
+        {
+          "title": "Faça sua Invocação-Link",
+          "action": "Abra o Extra Deck e invoque Gullveig usando Dverg como material.",
+          "why": "Gullveig reúne os materiais para a próxima invocação.",
+          "cardCodes": [
+            90207654,
+            13455953
+          ]
+        },
+        {
+          "title": "Escolha o que banir",
+          "action": "Aceite o efeito de Gullveig. Selecione Brisingamen, Laevateinn e Megingjord na mão; confirme as três cartas. Preserve Gullveig no campo.",
+          "why": "Você troca essas três cartas pelos materiais do Deck.",
+          "cardCodes": [
+            90207654,
+            42793609,
+            89792713,
+            86827882
+          ]
+        },
+        {
+          "title": "Reúna os três Nórdicos",
+          "action": "Selecione Svartalf do Alfar Nórdico, Tanngrisnir das Bestas Nórdicas, Mimir do Ascendente Nórdico no Deck. Confirme as zonas para invocá-los em Defesa.",
+          "why": "A soma será 5 + 3 + 2. Svartalf é o Regulador Alfar Nórdico exigido por Loki.",
+          "cardCodes": [
+            77060848,
+            15394083,
+            76348260
+          ]
+        },
+        {
+          "title": "Complete a Sincro",
+          "action": "Abra o Extra Deck e invoque Loki, Senhor dos Aesir usando os três Nórdicos indicados. Se possível, escolha a zona para a qual Gullveig aponta.",
+          "why": "Confira o tipo do Regulador e a soma 5 + 3 + 2 = 10.",
+          "cardCodes": [
+            67098114,
+            77060848,
+            15394083,
+            76348260
+          ]
+        }
+      ],
+      "outcome": "Loki, Senhor dos Aesir e Gullveig no campo; os três materiais Sincro no Cemitério.",
+      "cautions": [
+        "Depois do efeito de Gullveig, você não pode Invocar por Invocação-Normal/Baixar nem fazer Invocações-Especiais fora dos Aesir pelo resto do turno.",
+        "A proteção de Gullveig exige que sua seta aponte para o Aesir; não é proteção geral contra todos os efeitos.",
+        "Este exercício ensina a invocação. O retorno do Aesir na Fase Final depende de destruição pela carta do oponente e de um Regulador adequado no Cemitério.",
+        "Mara tem uma regra própria para usar os outros materiais da mão. Não a substitua por Svartalf nesta sequência de materiais no campo."
+      ],
+      "practice": {
+        "goal": [
+          {
+            "kind": "card",
+            "zone": "monsters",
+            "code": 67098114
+          },
+          {
+            "kind": "card",
+            "zone": "monsters",
+            "code": 90207654
+          },
+          {
+            "kind": "card",
+            "zone": "grave",
+            "code": 77060848
+          },
+          {
+            "kind": "card",
+            "zone": "grave",
+            "code": 15394083
+          },
+          {
+            "kind": "card",
+            "zone": "grave",
+            "code": 76348260
+          },
+          {
+            "kind": "card",
+            "zone": "banished",
+            "code": 42793609
+          },
+          {
+            "kind": "card",
+            "zone": "banished",
+            "code": 89792713
+          },
+          {
+            "kind": "card",
+            "zone": "banished",
+            "code": 86827882
+          }
+        ],
+        "stages": [
+          {
+            "title": "Abra com Dverg",
+            "instruction": "Invoque Dverg por Invocação-Normal.",
+            "why": "Um Nórdico de Nível 5 ou menos permite acessar Gullveig.",
+            "targets": [
+              {
+                "code": 13455953,
+                "location": 2
+              }
+            ],
+            "completeWhen": [
+              {
+                "kind": "card",
+                "zone": "monsters",
+                "code": 13455953
+              }
+            ]
+          },
+          {
+            "title": "Faça sua Invocação-Link",
+            "instruction": "Abra o Extra Deck e invoque Gullveig usando Dverg como material.",
+            "why": "Gullveig reúne os materiais para a próxima invocação.",
+            "targets": [
+              {
+                "code": 90207654,
+                "location": 64
+              },
+              {
+                "code": 13455953,
+                "location": 4
+              }
+            ],
+            "completeWhen": [
+              {
+                "kind": "card",
+                "zone": "monsters",
+                "code": 90207654
+              }
+            ]
+          },
+          {
+            "title": "Escolha o que banir",
+            "instruction": "Aceite o efeito de Gullveig. Selecione Brisingamen, Laevateinn e Megingjord na mão; confirme as três cartas. Preserve Gullveig no campo.",
+            "why": "Você troca essas três cartas pelos materiais do Deck.",
+            "targets": [
+              {
+                "code": 90207654,
+                "location": 4,
+                "scope": "action"
+              },
+              {
+                "code": 42793609,
+                "location": 2
+              },
+              {
+                "code": 89792713,
+                "location": 2
+              },
+              {
+                "code": 86827882,
+                "location": 2
+              }
+            ],
+            "completeWhen": [
+              {
+                "kind": "card",
+                "zone": "banished",
+                "code": 42793609
+              },
+              {
+                "kind": "card",
+                "zone": "banished",
+                "code": 89792713
+              },
+              {
+                "kind": "card",
+                "zone": "banished",
+                "code": 86827882
+              }
+            ]
+          },
+          {
+            "title": "Reúna os três Nórdicos",
+            "instruction": "Selecione Svartalf do Alfar Nórdico, Tanngrisnir das Bestas Nórdicas, Mimir do Ascendente Nórdico no Deck. Confirme as zonas para invocá-los em Defesa.",
+            "why": "A soma será 5 + 3 + 2. Svartalf é o Regulador Alfar Nórdico exigido por Loki.",
+            "targets": [
+              {
+                "code": 77060848,
+                "location": 1
+              },
+              {
+                "code": 15394083,
+                "location": 1
+              },
+              {
+                "code": 76348260,
+                "location": 1
+              }
+            ],
+            "completeWhen": [
+              {
+                "kind": "card",
+                "zone": "monsters",
+                "code": 77060848
+              },
+              {
+                "kind": "card",
+                "zone": "monsters",
+                "code": 15394083
+              },
+              {
+                "kind": "card",
+                "zone": "monsters",
+                "code": 76348260
+              }
+            ]
+          },
+          {
+            "title": "Complete a Sincro",
+            "instruction": "Abra o Extra Deck e invoque Loki, Senhor dos Aesir usando os três Nórdicos indicados. Se possível, escolha a zona para a qual Gullveig aponta.",
+            "why": "Confira o tipo do Regulador e a soma 5 + 3 + 2 = 10.",
+            "targets": [
+              {
+                "code": 67098114,
+                "location": 64
+              },
+              {
+                "code": 77060848,
+                "location": 4
+              },
+              {
+                "code": 15394083,
+                "location": 4
+              },
+              {
+                "code": 76348260,
+                "location": 4
+              }
+            ],
+            "completeWhen": [
+              {
+                "kind": "card",
+                "zone": "monsters",
+                "code": 67098114
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ],
+  "sources": [
+    {
+      "id": "product",
+      "title": "Legendary Hero Decks — produto oficial de 2018",
+      "url": "https://www.yugioh-card.com/en/products/legendary_hero_decks/"
+    },
+    {
+      "id": "set-list",
+      "title": "LEHD — cartas da coleção no banco oficial",
+      "url": "https://www.db.yugioh-card.com/yugiohdb/card_search.action?ope=1&pid=18812002&request_locale=pt&rp=99999&sess=1"
+    },
+    {
+      "id": "gullveig",
+      "title": "Gullveig do Ascendente Nórdico — texto oficial",
+      "url": "https://www.db.yugioh-card.com/yugiohdb/card_search.action?cid=14053&ope=2&request_locale=pt"
+    },
+    {
+      "id": "thor",
+      "title": "Thor, Senhor dos Aesir — texto oficial",
+      "url": "https://www.db.yugioh-card.com/yugiohdb/card_search.action?cid=9329&ope=2&request_locale=pt"
+    },
+    {
+      "id": "odin",
+      "title": "Odin, Pai dos Aesir — texto oficial",
+      "url": "https://www.db.yugioh-card.com/yugiohdb/card_search.action?cid=9331&ope=2&request_locale=pt"
+    },
+    {
+      "id": "loki",
+      "title": "Loki, Senhor dos Aesir — texto oficial",
+      "url": "https://www.db.yugioh-card.com/yugiohdb/card_search.action?cid=9330&ope=2&request_locale=pt"
+    },
+    {
+      "id": "vanadis",
+      "title": "Vanadis do Ascendente Nórdico — texto oficial",
+      "url": "https://www.db.yugioh-card.com/yugiohdb/card_search.action?cid=9450&ope=2&request_locale=pt"
+    }
+  ]
+}

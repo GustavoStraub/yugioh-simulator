@@ -1,0 +1,863 @@
+{
+  "schemaVersion": 1,
+  "id": "herois-lendarios-cavaleiros-fantasmas",
+  "presetId": "tcg-lehd-phantom-knights",
+  "revision": 1,
+  "reviewedAt": "2026-10-16",
+  "title": "Heróis Lendários — Cavaleiros Fantasmas",
+  "subtitle": "O material de hoje é o recurso da próxima jogada.",
+  "description": "Aprenda Xyz com Espada Quebrada, prepare a defesa com Bardiche Enferrujado e recupere cartas banidas com Leviar.",
+  "difficulty": "Intermediário",
+  "minutes": 17,
+  "tags": [
+    "Xyz",
+    "Link",
+    "Cemitério",
+    "Phantom Knights",
+    "Cavaleiros Fantasmas",
+    "TCG"
+  ],
+  "coverCodes": [
+    62709239,
+    26692769,
+    95992081
+  ],
+  "deckSnapshot": {
+    "format": "tcg",
+    "main": [
+      90432163,
+      90432163,
+      36426778,
+      36426778,
+      63821877,
+      63821877,
+      99315585,
+      99315585,
+      36704180,
+      36704180,
+      28985331,
+      54582424,
+      56343672,
+      56410040,
+      19353570,
+      42338879,
+      97268402,
+      3298689,
+      3298689,
+      98153934,
+      53129443,
+      83764718,
+      81439173,
+      32807846,
+      674561,
+      43898403,
+      25542642,
+      61936647,
+      61936647,
+      98431356,
+      98431356,
+      77462146,
+      77462146,
+      98827725,
+      24212820,
+      51606429,
+      36247316,
+      62645025,
+      62645025,
+      9336190
+    ],
+    "extra": [
+      26692769,
+      62709239,
+      12219047,
+      16195942,
+      1621413,
+      359563,
+      65884091,
+      63504681,
+      95992081,
+      83531441
+    ],
+    "side": []
+  },
+  "overview": {
+    "goal": "Converter monstros de Nível 3 em Extra Deck, buscas no Cemitério e Armadilhas.",
+    "plan": [
+      "Junte monstros de Nível 3 para Xyz ou três monstros de TREVAS para Bardiche Enferrujado.",
+      "Decida quais cartas precisam ir ao Cemitério e quais ainda estarão associadas ao Xyz.",
+      "Use os efeitos de Cemitério e recupere recursos banidos quando a sequência permitir."
+    ],
+    "strengths": [
+      "Manto Antigo e Botas Silenciosas continuam úteis depois de sair do campo.",
+      "Bardiche Enferrujado prepara uma Armadilha diretamente do Deck; Leviar recupera um monstro banido."
+    ],
+    "watchOut": [
+      "40 cartas no Principal e 10 no Extra do produto de 2018. Sem suportes de expansões posteriores.",
+      "Materiais Xyz associados não são cartas no Cemitério. O efeito de busca só fica disponível depois do envio e da resolução das correntes.",
+      "As aulas cobrem aberturas e recursos. Os efeitos de resposta ao adversário devem ser praticados depois em duelo livre."
+    ]
+  },
+  "keyCards": [
+    {
+      "code": 90432163,
+      "name": "Os Cavaleiros Fantasmas do Manto Antigo",
+      "role": "Busca um Cavaleiro",
+      "explanation": "Bana Manto Antigo do Cemitério para buscar outra carta com o nome exigido. Aqui, ele encontra Botas Silenciosas.",
+      "sourceIds": [
+        "ancient-cloak"
+      ]
+    },
+    {
+      "code": 36426778,
+      "name": "Os Cavaleiros Fantasmas das Botas Silenciosas",
+      "role": "Estende e busca Armadilha",
+      "explanation": "Invoca-se da mão enquanto você controla um Cavaleiro Fantasma. No Cemitério, pode se banir para buscar uma Magia/Armadilha Cavaleiros Fantasmas.",
+      "sourceIds": [
+        "silent-boots"
+      ]
+    },
+    {
+      "code": 62709239,
+      "name": "Os Cavaleiros Fantasmas da Espada Quebrada",
+      "role": "Xyz de entrada",
+      "explanation": "Usa dois Níveis 3. Pode destruir uma carta de cada lado; sua própria destruição pode trazer dois Cavaleiros do mesmo Nível como monstros um Nível maior.",
+      "sourceIds": [
+        "break-sword"
+      ]
+    },
+    {
+      "code": 26692769,
+      "name": "Os Cavaleiros Fantasmas do Bardiche Enferrujado",
+      "role": "Prepara a defesa",
+      "explanation": "Envia um Cavaleiro do Deck ao Cemitério e Baixa uma Magia/Armadilha do arquétipo. Não pode ser Material Link.",
+      "sourceIds": [
+        "rusty"
+      ]
+    },
+    {
+      "code": 25542642,
+      "name": "Cavaleiros Fantasmas - Lâmina de Névoa",
+      "role": "Interação e recuperação",
+      "explanation": "No campo, nega um Monstro de Efeito e impede ataques com ele ou contra ele. No Cemitério, tem um efeito de recuperação de Cavaleiro com banimento posterior.",
+      "sourceIds": [
+        "fog-blade"
+      ]
+    },
+    {
+      "code": 95992081,
+      "name": "Leviar, o Dragão Marinho",
+      "role": "Recupera o que foi banido",
+      "explanation": "Desassocia um material para invocar um monstro banido de Nível 4 ou menos. É de VENTO: considere as restrições de Atributo antes de escolher esta rota.",
+      "sourceIds": [
+        "leviair"
+      ]
+    }
+  ],
+  "lessons": [
+    {
+      "id": "primeiro-xyz",
+      "title": "Sua primeira Espada Quebrada",
+      "summary": "Duas cartas de Nível 3 viram um Xyz de Classe 3.",
+      "minutes": 4,
+      "sourceIds": [
+        "ancient-cloak",
+        "silent-boots",
+        "break-sword"
+      ],
+      "preparation": [
+        "Sua Fase Principal, campo vazio e sem interrupções.",
+        "A lista completa da caixa é usada; as cinco cartas abaixo já começam na sua mão."
+      ],
+      "startingHand": [
+        90432163,
+        36426778,
+        83764718,
+        3298689,
+        61936647
+      ],
+      "steps": [
+        {
+          "title": "Coloque o primeiro Cavaleiro",
+          "action": "Invoque Manto Antigo por Invocação-Normal.",
+          "why": "Controlar um Cavaleiro Fantasma libera a Invocação-Especial de Botas Silenciosas.",
+          "cardCodes": [
+            90432163
+          ]
+        },
+        {
+          "title": "Complete os dois Níveis 3",
+          "action": "Invoque Botas Silenciosas por Invocação-Especial da mão.",
+          "why": "Esse procedimento não gasta outra Invocação-Normal.",
+          "cardCodes": [
+            36426778
+          ]
+        },
+        {
+          "title": "Faça a Invocação-Xyz",
+          "action": "Abra o Extra Deck e invoque Espada Quebrada usando Manto Antigo e Botas Silenciosas como materiais.",
+          "why": "Dois Níveis 3 formam uma Classe 3. Os materiais ficam associados ao Xyz; ainda não estão no Cemitério.",
+          "cardCodes": [
+            62709239,
+            90432163,
+            36426778
+          ]
+        }
+      ],
+      "outcome": "Espada Quebrada no campo, com Manto Antigo e Botas Silenciosas como materiais.",
+      "cautions": [
+        "A destruição de Espada Quebrada exige uma carta sua e uma adversária como alvos. O campo adversário vazio deste exercício não oferece essa ativação.",
+        "Só estar associado como material não libera os efeitos de Cemitério de Manto Antigo e Botas Silenciosas.",
+        "O retorno de dois Cavaleiros pela destruição de Espada Quebrada aumenta seus Níveis e restringe as próximas Invocações-Especiais a TREVAS."
+      ],
+      "practice": {
+        "goal": [
+          {
+            "kind": "card",
+            "zone": "monsters",
+            "code": 62709239
+          },
+          {
+            "kind": "card",
+            "zone": "grave",
+            "code": 90432163,
+            "absent": true
+          },
+          {
+            "kind": "card",
+            "zone": "grave",
+            "code": 36426778,
+            "absent": true
+          }
+        ],
+        "stages": [
+          {
+            "title": "Coloque o primeiro Cavaleiro",
+            "instruction": "Invoque Manto Antigo por Invocação-Normal.",
+            "why": "Controlar um Cavaleiro Fantasma libera a Invocação-Especial de Botas Silenciosas.",
+            "targets": [
+              {
+                "code": 90432163,
+                "location": 2
+              }
+            ],
+            "completeWhen": [
+              {
+                "kind": "card",
+                "zone": "monsters",
+                "code": 90432163
+              }
+            ]
+          },
+          {
+            "title": "Complete os dois Níveis 3",
+            "instruction": "Invoque Botas Silenciosas por Invocação-Especial da mão.",
+            "why": "Esse procedimento não gasta outra Invocação-Normal.",
+            "targets": [
+              {
+                "code": 36426778,
+                "location": 2
+              }
+            ],
+            "completeWhen": [
+              {
+                "kind": "card",
+                "zone": "monsters",
+                "code": 36426778
+              }
+            ]
+          },
+          {
+            "title": "Faça a Invocação-Xyz",
+            "instruction": "Abra o Extra Deck e invoque Espada Quebrada usando Manto Antigo e Botas Silenciosas como materiais.",
+            "why": "Dois Níveis 3 formam uma Classe 3. Os materiais ficam associados ao Xyz; ainda não estão no Cemitério.",
+            "targets": [
+              {
+                "code": 62709239,
+                "location": 64
+              },
+              {
+                "code": 90432163,
+                "location": 4
+              },
+              {
+                "code": 36426778,
+                "location": 4
+              }
+            ],
+            "completeWhen": [
+              {
+                "kind": "card",
+                "zone": "monsters",
+                "code": 62709239
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "rusty-bardiche",
+      "title": "Bardiche Enferrujado prepara sua defesa",
+      "summary": "Transforme três monstros de TREVAS em Link, Cemitério e Armadilha.",
+      "minutes": 6,
+      "sourceIds": [
+        "rusty",
+        "kagemucha",
+        "silent-boots",
+        "fog-blade",
+        "set-list"
+      ],
+      "preparation": [
+        "Sua Fase Principal, campo vazio e sem interrupções.",
+        "A lista completa da caixa é usada; as cinco cartas abaixo já começam na sua mão."
+      ],
+      "startingHand": [
+        90432163,
+        19353570,
+        36426778,
+        83764718,
+        3298689
+      ],
+      "steps": [
+        {
+          "title": "Comece pela Invocação-Normal",
+          "action": "Invoque Manto Antigo e aceite o efeito de Cavaleiro Kagemucha na mão para invocá-lo.",
+          "why": "Kagemucha responde à sua Invocação-Normal de um monstro de Nível 3.",
+          "cardCodes": [
+            90432163,
+            19353570
+          ]
+        },
+        {
+          "title": "Invoque o terceiro monstro",
+          "action": "Invoque Botas Silenciosas por Invocação-Especial da mão.",
+          "why": "Agora você tem três monstros de TREVAS disponíveis para o Link 3.",
+          "cardCodes": [
+            36426778
+          ]
+        },
+        {
+          "title": "Faça Bardiche Enferrujado",
+          "action": "Abra o Extra Deck e invoque Bardiche Enferrujado usando Manto Antigo, Kagemucha e Botas Silenciosas.",
+          "why": "Três monstros sem valor Link somam exatamente o Link 3 exigido.",
+          "cardCodes": [
+            26692769,
+            90432163,
+            19353570,
+            36426778
+          ]
+        },
+        {
+          "title": "Prepare Cemitério e Armadilha",
+          "action": "Ative Bardiche Enferrujado. Envie Luvas Gastas do Deck ao Cemitério e Baixe Lâmina de Névoa diretamente do Deck.",
+          "why": "Um efeito prepara um recurso no Cemitério e uma Armadilha para o próximo turno.",
+          "cardCodes": [
+            26692769,
+            63821877,
+            25542642
+          ]
+        },
+        {
+          "title": "Use o material do Link",
+          "action": "Abra o Cemitério, ative Botas Silenciosas e adicione Asa dos Cavaleiros Fantasmas do Deck à mão.",
+          "why": "Ao contrário dos materiais associados a um Xyz, os materiais de Link já estão no Cemitério e podem ser usados.",
+          "cardCodes": [
+            36426778,
+            98431356
+          ]
+        }
+      ],
+      "outcome": "Bardiche Enferrujado no campo, Lâmina de Névoa Baixada e Asa na mão.",
+      "cautions": [
+        "Lâmina de Névoa foi Baixada neste turno: aguarde um turno posterior para ativá-la no campo.",
+        "Bardiche Enferrujado não pode ser usado como Material Link.",
+        "Seu efeito de destruição exige que um Xyz de TREVAS seja Invocado por Invocação-Especial em uma zona para a qual aponta."
+      ],
+      "practice": {
+        "goal": [
+          {
+            "kind": "card",
+            "zone": "monsters",
+            "code": 26692769
+          },
+          {
+            "kind": "card",
+            "zone": "grave",
+            "code": 63821877
+          },
+          {
+            "kind": "card",
+            "zone": "spells",
+            "code": 25542642
+          },
+          {
+            "kind": "card",
+            "zone": "banished",
+            "code": 36426778
+          },
+          {
+            "kind": "card",
+            "zone": "hand",
+            "code": 98431356
+          }
+        ],
+        "stages": [
+          {
+            "title": "Comece pela Invocação-Normal",
+            "instruction": "Invoque Manto Antigo e aceite o efeito de Cavaleiro Kagemucha na mão para invocá-lo.",
+            "why": "Kagemucha responde à sua Invocação-Normal de um monstro de Nível 3.",
+            "targets": [
+              {
+                "code": 90432163,
+                "location": 2
+              },
+              {
+                "code": 19353570,
+                "location": 2
+              }
+            ],
+            "completeWhen": [
+              {
+                "kind": "card",
+                "zone": "monsters",
+                "code": 90432163
+              },
+              {
+                "kind": "card",
+                "zone": "monsters",
+                "code": 19353570
+              }
+            ]
+          },
+          {
+            "title": "Invoque o terceiro monstro",
+            "instruction": "Invoque Botas Silenciosas por Invocação-Especial da mão.",
+            "why": "Agora você tem três monstros de TREVAS disponíveis para o Link 3.",
+            "targets": [
+              {
+                "code": 36426778,
+                "location": 2
+              }
+            ],
+            "completeWhen": [
+              {
+                "kind": "card",
+                "zone": "monsters",
+                "code": 36426778
+              }
+            ]
+          },
+          {
+            "title": "Faça Bardiche Enferrujado",
+            "instruction": "Abra o Extra Deck e invoque Bardiche Enferrujado usando Manto Antigo, Kagemucha e Botas Silenciosas.",
+            "why": "Três monstros sem valor Link somam exatamente o Link 3 exigido.",
+            "targets": [
+              {
+                "code": 26692769,
+                "location": 64
+              },
+              {
+                "code": 90432163,
+                "location": 4
+              },
+              {
+                "code": 19353570,
+                "location": 4
+              },
+              {
+                "code": 36426778,
+                "location": 4
+              }
+            ],
+            "completeWhen": [
+              {
+                "kind": "card",
+                "zone": "monsters",
+                "code": 26692769
+              }
+            ]
+          },
+          {
+            "title": "Prepare Cemitério e Armadilha",
+            "instruction": "Ative Bardiche Enferrujado. Envie Luvas Gastas do Deck ao Cemitério e Baixe Lâmina de Névoa diretamente do Deck.",
+            "why": "Um efeito prepara um recurso no Cemitério e uma Armadilha para o próximo turno.",
+            "targets": [
+              {
+                "code": 26692769,
+                "location": 4
+              },
+              {
+                "code": 63821877,
+                "location": 1
+              },
+              {
+                "code": 25542642,
+                "location": 1
+              }
+            ],
+            "completeWhen": [
+              {
+                "kind": "card",
+                "zone": "grave",
+                "code": 63821877
+              },
+              {
+                "kind": "card",
+                "zone": "spells",
+                "code": 25542642
+              }
+            ]
+          },
+          {
+            "title": "Use o material do Link",
+            "instruction": "Abra o Cemitério, ative Botas Silenciosas e adicione Asa dos Cavaleiros Fantasmas do Deck à mão.",
+            "why": "Ao contrário dos materiais associados a um Xyz, os materiais de Link já estão no Cemitério e podem ser usados.",
+            "targets": [
+              {
+                "code": 36426778,
+                "location": 16
+              },
+              {
+                "code": 98431356,
+                "location": 1
+              }
+            ],
+            "completeWhen": [
+              {
+                "kind": "card",
+                "zone": "banished",
+                "code": 36426778
+              },
+              {
+                "kind": "card",
+                "zone": "hand",
+                "code": 98431356
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "leviair",
+      "title": "O Cemitério também é sua mão",
+      "summary": "Busque, bana e recupere Manto Antigo com Leviar.",
+      "minutes": 7,
+      "sourceIds": [
+        "ancient-cloak",
+        "silent-boots",
+        "leviair",
+        "fog-blade",
+        "set-list"
+      ],
+      "preparation": [
+        "Sua Fase Principal, campo vazio e sem interrupções.",
+        "A lista completa da caixa é usada; as cinco cartas abaixo já começam na sua mão."
+      ],
+      "startingHand": [
+        81439173,
+        63821877,
+        83764718,
+        3298689,
+        61936647
+      ],
+      "steps": [
+        {
+          "title": "Escolha o recurso no Deck",
+          "action": "Ative Enterro Tolo e envie Manto Antigo do Deck ao Cemitério.",
+          "why": "Você prepara sua busca sem gastar a Invocação-Normal.",
+          "cardCodes": [
+            81439173,
+            90432163
+          ]
+        },
+        {
+          "title": "Busque Botas Silenciosas",
+          "action": "Abra o Cemitério, ative Manto Antigo e adicione Botas Silenciosas do Deck à mão.",
+          "why": "Manto Antigo é banido como custo. Leviar poderá recuperá-lo mais adiante.",
+          "cardCodes": [
+            90432163,
+            36426778
+          ]
+        },
+        {
+          "title": "Reúna os Níveis 3",
+          "action": "Invoque Luvas Gastas por Invocação-Normal; depois invoque Botas Silenciosas por Invocação-Especial da mão.",
+          "why": "Luvas Gastas é o Cavaleiro Fantasma que habilita Botas. Seu bônus de ATK exige um Xyz de TREVAS, e Leviar é de VENTO.",
+          "cardCodes": [
+            63821877,
+            36426778
+          ]
+        },
+        {
+          "title": "Escolha o Xyz para recuperar",
+          "action": "Abra o Extra Deck e invoque Leviar com Luvas Gastas e Botas Silenciosas.",
+          "why": "A escolha do Xyz depende da função: aqui queremos recuperar o monstro banido.",
+          "cardCodes": [
+            95992081,
+            63821877,
+            36426778
+          ]
+        },
+        {
+          "title": "Solte o material correto",
+          "action": "Ative Leviar, desassocie Botas Silenciosas e selecione Manto Antigo banido para invocá-lo.",
+          "why": "Botas vai ao Cemitério como custo e Manto Antigo volta ao campo.",
+          "cardCodes": [
+            95992081,
+            36426778,
+            90432163
+          ]
+        },
+        {
+          "title": "Converta Botas em interação",
+          "action": "Abra o Cemitério e ative Botas Silenciosas. Adicione Lâmina de Névoa do Deck à mão.",
+          "why": "O material desassociado agora gera outra carta. Nesta lição, deixe a Armadilha na mão para conferir o resultado.",
+          "cardCodes": [
+            36426778,
+            25542642
+          ]
+        }
+      ],
+      "outcome": "Leviar e Manto Antigo no campo, Botas Silenciosas banido e Lâmina de Névoa na mão.",
+      "cautions": [
+        "Não desassocie Luvas Gastas no lugar de Botas: o recurso final seria diferente.",
+        "Manto Antigo já usou sua busca neste turno; voltar ao campo não permite repetir esse efeito.",
+        "Leviar é de VENTO: não pode ser invocado depois de um efeito que restrinja suas Invocações-Especiais a TREVAS."
+      ],
+      "practice": {
+        "goal": [
+          {
+            "kind": "card",
+            "zone": "monsters",
+            "code": 95992081
+          },
+          {
+            "kind": "card",
+            "zone": "monsters",
+            "code": 90432163
+          },
+          {
+            "kind": "card",
+            "zone": "banished",
+            "code": 36426778
+          },
+          {
+            "kind": "card",
+            "zone": "hand",
+            "code": 25542642
+          }
+        ],
+        "stages": [
+          {
+            "title": "Escolha o recurso no Deck",
+            "instruction": "Ative Enterro Tolo e envie Manto Antigo do Deck ao Cemitério.",
+            "why": "Você prepara sua busca sem gastar a Invocação-Normal.",
+            "targets": [
+              {
+                "code": 81439173,
+                "location": 2
+              },
+              {
+                "code": 90432163,
+                "location": 1
+              }
+            ],
+            "completeWhen": [
+              {
+                "kind": "card",
+                "zone": "grave",
+                "code": 90432163
+              }
+            ]
+          },
+          {
+            "title": "Busque Botas Silenciosas",
+            "instruction": "Abra o Cemitério, ative Manto Antigo e adicione Botas Silenciosas do Deck à mão.",
+            "why": "Manto Antigo é banido como custo. Leviar poderá recuperá-lo mais adiante.",
+            "targets": [
+              {
+                "code": 90432163,
+                "location": 16
+              },
+              {
+                "code": 36426778,
+                "location": 1
+              }
+            ],
+            "completeWhen": [
+              {
+                "kind": "card",
+                "zone": "banished",
+                "code": 90432163
+              },
+              {
+                "kind": "card",
+                "zone": "hand",
+                "code": 36426778
+              }
+            ]
+          },
+          {
+            "title": "Reúna os Níveis 3",
+            "instruction": "Invoque Luvas Gastas por Invocação-Normal; depois invoque Botas Silenciosas por Invocação-Especial da mão.",
+            "why": "Luvas Gastas é o Cavaleiro Fantasma que habilita Botas. Seu bônus de ATK exige um Xyz de TREVAS, e Leviar é de VENTO.",
+            "targets": [
+              {
+                "code": 63821877,
+                "location": 2
+              },
+              {
+                "code": 36426778,
+                "location": 2
+              }
+            ],
+            "completeWhen": [
+              {
+                "kind": "card",
+                "zone": "monsters",
+                "code": 63821877
+              },
+              {
+                "kind": "card",
+                "zone": "monsters",
+                "code": 36426778
+              }
+            ]
+          },
+          {
+            "title": "Escolha o Xyz para recuperar",
+            "instruction": "Abra o Extra Deck e invoque Leviar com Luvas Gastas e Botas Silenciosas.",
+            "why": "A escolha do Xyz depende da função: aqui queremos recuperar o monstro banido.",
+            "targets": [
+              {
+                "code": 95992081,
+                "location": 64
+              },
+              {
+                "code": 63821877,
+                "location": 4
+              },
+              {
+                "code": 36426778,
+                "location": 4
+              }
+            ],
+            "completeWhen": [
+              {
+                "kind": "card",
+                "zone": "monsters",
+                "code": 95992081
+              }
+            ]
+          },
+          {
+            "title": "Solte o material correto",
+            "instruction": "Ative Leviar, desassocie Botas Silenciosas e selecione Manto Antigo banido para invocá-lo.",
+            "why": "Botas vai ao Cemitério como custo e Manto Antigo volta ao campo.",
+            "targets": [
+              {
+                "code": 95992081,
+                "location": 4
+              },
+              {
+                "code": 36426778,
+                "location": 4
+              },
+              {
+                "code": 90432163,
+                "location": 32
+              }
+            ],
+            "completeWhen": [
+              {
+                "kind": "card",
+                "zone": "monsters",
+                "code": 90432163
+              },
+              {
+                "kind": "card",
+                "zone": "grave",
+                "code": 36426778
+              }
+            ]
+          },
+          {
+            "title": "Converta Botas em interação",
+            "instruction": "Abra o Cemitério e ative Botas Silenciosas. Adicione Lâmina de Névoa do Deck à mão.",
+            "why": "O material desassociado agora gera outra carta. Nesta lição, deixe a Armadilha na mão para conferir o resultado.",
+            "targets": [
+              {
+                "code": 36426778,
+                "location": 16
+              },
+              {
+                "code": 25542642,
+                "location": 1
+              }
+            ],
+            "completeWhen": [
+              {
+                "kind": "card",
+                "zone": "banished",
+                "code": 36426778
+              },
+              {
+                "kind": "card",
+                "zone": "hand",
+                "code": 25542642
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ],
+  "sources": [
+    {
+      "id": "product",
+      "title": "Legendary Hero Decks — produto oficial de 2018",
+      "url": "https://www.yugioh-card.com/en/products/legendary_hero_decks/"
+    },
+    {
+      "id": "set-list",
+      "title": "LEHD — cartas da coleção no banco oficial",
+      "url": "https://www.db.yugioh-card.com/yugiohdb/card_search.action?ope=1&pid=18812002&request_locale=pt&rp=99999&sess=1"
+    },
+    {
+      "id": "ancient-cloak",
+      "title": "Os Cavaleiros Fantasmas do Manto Antigo — texto oficial",
+      "url": "https://www.db.yugioh-card.com/yugiohdb/card_search.action?cid=12198&ope=2&request_locale=pt"
+    },
+    {
+      "id": "silent-boots",
+      "title": "Os Cavaleiros Fantasmas das Botas Silenciosas — texto oficial",
+      "url": "https://www.db.yugioh-card.com/yugiohdb/card_search.action?cid=12199&ope=2&request_locale=pt"
+    },
+    {
+      "id": "break-sword",
+      "title": "Os Cavaleiros Fantasmas da Espada Quebrada — texto oficial",
+      "url": "https://www.db.yugioh-card.com/yugiohdb/card_search.action?cid=12203&ope=2&request_locale=pt"
+    },
+    {
+      "id": "rusty",
+      "title": "Os Cavaleiros Fantasmas do Bardiche Enferrujado — texto oficial",
+      "url": "https://www.db.yugioh-card.com/yugiohdb/card_search.action?cid=14054&ope=2&request_locale=pt"
+    },
+    {
+      "id": "kagemucha",
+      "title": "Cavaleiro Kagemucha — texto oficial",
+      "url": "https://www.db.yugioh-card.com/yugiohdb/card_search.action?cid=9965&ope=2&request_locale=pt"
+    },
+    {
+      "id": "fog-blade",
+      "title": "Cavaleiros Fantasmas - Lâmina de Névoa — texto oficial",
+      "url": "https://www.db.yugioh-card.com/yugiohdb/card_search.action?cid=12205&ope=2&request_locale=pt"
+    },
+    {
+      "id": "leviair",
+      "title": "Leviar, o Dragão Marinho — texto oficial",
+      "url": "https://www.db.yugioh-card.com/yugiohdb/card_search.action?cid=9660&ope=2&request_locale=pt"
+    }
+  ]
+}

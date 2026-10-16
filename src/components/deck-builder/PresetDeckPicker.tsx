@@ -1,8 +1,10 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import Link from "next/link";
 
 import { PRESET_DECKS } from "@/lib/data/preset-decks-catalog";
+import { getGuideForPreset } from "@/lib/data/deck-guides";
 import {
   PRESET_KIND_ORDER,
   kindGroupLabel,
@@ -34,6 +36,7 @@ export function PresetDeckPicker({ onSelect, format }: PresetDeckPickerProps) {
   const [filter, setFilter] = useState<KindFilter>("all");
   const [query, setQuery] = useState("");
   const [pending, setPending] = useState<PresetDeckDefinition | null>(null);
+  const pendingGuide = pending ? getGuideForPreset(pending.id) : undefined;
 
   const doFormato = useMemo(
     () => PRESET_DECKS.filter((preset) => formatOf(preset.format) === format),
@@ -208,6 +211,11 @@ export function PresetDeckPicker({ onSelect, format }: PresetDeckPickerProps) {
             </div>
 
             <footer className="space-y-2 border-t border-zinc-800 p-4">
+              {pendingGuide && (
+                <Link href={`/aprender/${pendingGuide.id}`} className="block rounded-lg border border-amber-800/60 px-3 py-2 text-center text-xs text-amber-300 hover:bg-amber-950/40">
+                  Aprender este deck →
+                </Link>
+              )}
               {pending && (
                 <p className="text-center text-xs text-amber-200/80">
                   Substituir o deck atual por{" "}

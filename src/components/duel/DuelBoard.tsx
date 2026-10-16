@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 
 import {
   OcgLocation,
@@ -77,6 +77,7 @@ import { SortCardModal } from "@/components/duel/SortCardModal";
 import { AnnounceCardModal } from "@/components/duel/AnnounceCardModal";
 import { DecisionSheet, DecisionShell, PeekButton } from "@/components/duel/DecisionShell";
 import { CardStrip, CardTile, GridTab } from "@/components/duel/MdCardList";
+import { TrainingHighlight, useTrainingTarget } from "@/components/duel/TrainingHighlight";
 import { FinalBlow, PhaseBanner } from "@/components/duel/MdBanners";
 import { SummonCutIn } from "@/components/duel/SummonCutIn";
 import { LeaveFlightLayer } from "@/components/duel/LeaveFlight";
@@ -88,6 +89,8 @@ import {
 } from "@/lib/duel/duel-prefs";
 
 interface DuelBoardProps {
+  /** Orientação do exercício, acima da mesa e fora das janelas de seleção. */
+  trainingPanel?: ReactNode;
   snapshot: DuelSnapshot;
   /**
    * Assento que esta tela está assistindo.
@@ -236,6 +239,7 @@ function overlayCards(card: BoardCard): BoardCard[] {
 }
 
 export function DuelBoard({
+  trainingPanel,
   snapshot,
   me,
   playerName,
@@ -1461,7 +1465,7 @@ export function DuelBoard({
       // Tela cheia, como o Master Duel: a mesa cobre o cabeçalho do site (que
       // fica montado por baixo) e a largura máxima da página. Sair do duelo é
       // pela engrenagem — e, no fim, pelo resultado.
-      className={`tf-playmat md-duel fixed inset-0 z-30 flex flex-col overflow-hidden ${
+      className={`tf-playmat md-duel fixed inset-0 ${trainingPanel ? "z-50" : "z-30"} flex flex-col overflow-hidden ${
         estreita ? "md-narrow" : "md-wide"
       } ${leituraLateral ? "md-landscape" : ""}`}
       // Estado do motor para quem observa a mesa de fora (os testes de
@@ -1491,6 +1495,7 @@ export function DuelBoard({
     >
       {/* O cenário: o fundo que no MD é o ambiente 3D em volta da mesa. */}
       <div aria-hidden className="md-arena" />
+      {trainingPanel && <div className="relative z-[60] shrink-0" data-training-panel>{trainingPanel}</div>}
 
       {/* As faixas do MD atravessando a tela inteira ("TURN CHANGE", "BATTLE
           PHASE") e o corte de invocação — por cima do HUD, por baixo das
@@ -2786,6 +2791,7 @@ function CardPickerModal({
           return (
             <CardTile
               key={`${candidate.code}-${index}`}
+              trainingRef={candidate}
               data={{ "data-picker-card": index, "data-picker-owner": doOponente ? "foe" : "me" }}
               image={definition?.images[0]?.image_url_small}
               alt={definition ? texto.name(definition) : oculta ? "Carta oculta" : "Carta"}
@@ -3117,6 +3123,7 @@ function PileModal({
                 return (
                   <CardTile
                     key={`${card.sequence}-${index}`}
+                    trainingRef={card.code ? { code: card.code, location: card.location, controller: card.controller } : undefined}
                     data={{ "data-pile-card": key, "data-actionable": acionavel || undefined, role: acionavel ? "button" : undefined }}
                     image={definition?.images[0]?.image_url_small}
                     alt={definition ? texto.name(definition) : "Carta"}
@@ -3441,6 +3448,7 @@ function CardChoiceButton({
   readOnly?: boolean;
 }) {
   const texto = useCardText();
+  const guided = useTrainingTarget(action.code, action.location);
   const definition = registry?.get(action.code);
   const image = definition?.images[0]?.image_url_small;
 
@@ -3448,6 +3456,8 @@ function CardChoiceButton({
     <div>
     <button
       type="button"
+      data-training-target={guided || undefined}
+      aria-label={guided ? `${definition ? texto.name(definition) : action.code} — ${action.label} — carta indicada pela lição` : undefined}
       data-table-control={readOnly || undefined}
       onClick={() => {
         onHover?.({ code: action.code });
@@ -3459,6 +3469,8 @@ function CardChoiceButton({
           : "border-[color:var(--tf-slot-border)] bg-black/40 hover:border-[color:var(--tf-gold)] hover:bg-black/70"
       }`}
     >
+      <span className="relative shrink-0">
+      {guided && <TrainingHighlight />}
       {image ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img
@@ -3469,6 +3481,7 @@ function CardChoiceButton({
       ) : (
         <div className="tf-card-back h-20 w-14 shrink-0 rounded-[3px]" />
       )}
+      </span>
 
       <span className="flex min-w-0 flex-1 flex-col">
         <span className="text-[14px] font-bold text-[color:var(--tf-gold-bright)]">
@@ -3730,6 +3743,7 @@ function ChainResponseBar({
             return (
               <CardTile
                 key={key}
+                trainingRef={{ code: primeira.code, location: primeira.location, controller }}
                 data={{ "data-chain-card": key }}
                 image={def?.images[0]?.image_url_small}
                 alt={def ? texto.name(def) : "Carta"}

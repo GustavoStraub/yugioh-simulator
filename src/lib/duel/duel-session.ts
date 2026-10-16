@@ -56,6 +56,7 @@ import {
 import { preloadCoreScripts, preloadDuelScripts } from "@/lib/duel/script-reader";
 import type { CardRegistry } from "@/lib/domain/card-registry";
 import { DEFAULT_FORMAT, FORMAT_RULES } from "@/lib/types";
+import { deckAfterOpeningHand } from "@/lib/duel/opening-hand";
 import type { CardDefinition, DuelDeckPayload, DuelFormat } from "@/lib/types";
 
 /**
@@ -136,6 +137,8 @@ export interface DuelSessionConfig {
    * duelo online: só quem monta o duelo por código.
    */
   scenario?: ScenarioCard[];
+  /** Mãos de exercício, jogador e adversário. As cópias saem dos decks. */
+  openingHands?: [number[], number[]];
   /** Cortes de invocação (ver `DuelSession.setCutIns`); padrão: ligados. */
   cutIns?: boolean;
   /**
@@ -460,6 +463,7 @@ export class DuelSession {
   private scriptCache = new Map<string, string>();
   private running = false;
   private started = false;
+  private disposed = false;
   /** Catálogo de cartas — usado para narrar as jogadas pelo nome. */
   private registry: CardRegistry | null = null;
   /** Quem responde cada assento; definido no `start`. */
@@ -582,6 +586,21 @@ export class DuelSession {
     return this.snapshot;
   }
 
+  /** Libera a tentativa ao sair da mesa ou recomeçar um exercício. */
+  dispose(): void {
+    this.disposed = true;
+    this.hurry();
+    this.listeners.clear();
+    this.eventListeners.clear();
+    if (!this.running) this.releaseCore();
+  }
+
+  private releaseCore(): void {
+    if (this.core && this.handle) this.core.destroyDuel(this.handle);
+    this.handle = null;
+    this.core = null;
+  }
+
   /** Assina os eventos transitórios do duelo (invocação, ataque, dano...). */
   subscribeEvents(listener: DuelEventListener): () => void {
     this.eventListeners.add(listener);
@@ -600,7 +619,7 @@ export class DuelSession {
   }
 
   async start(config: DuelSessionConfig): Promise<void> {
-    if (this.started) return;
+    if (this.started || this.disposed) return;
     this.started = true;
     this.registry = config.registry;
     const humanSeat: 0 | 1 = config.humanSeat === 1 ? 1 : 0;
@@ -625,6 +644,11 @@ export class DuelSession {
     const unknownCodes = new Set<number>();
 
     try {
+      const openingHands = config.openingHands;
+      const playerDeck = openingHands
+        ? deckAfterOpeningHand(config.playerDeck, openingHands[0], rules.startingHandSize) : config.playerDeck;
+      const opponentDeck = openingHands
+        ? deckAfterOpeningHand(config.opponentDeck, openingHands[1], rules.startingHandSize) : config.opponentDeck;
       const scenario = (config.scenario ?? []).filter(
         (card) =>
           (card.player === 0 || card.player === 1) &&
@@ -645,6 +669,7 @@ export class DuelSession {
           this.assets.cardDb(),
           this.assets.engineStrings(),
         ]);
+      if (this.disposed) return;
       this.cardDb = cardDb;
       this.engineStrings = engineStrings;
 
@@ -664,6 +689,7 @@ export class DuelSession {
         cardDb,
         this.assets.fetchScript,
       );
+      if (this.disposed) return;
       this.scriptCache = cache;
 
       if (viaAlias.length > 0) {
@@ -700,11 +726,12 @@ export class DuelSession {
       this.core = await this.assets.loadCore((message) =>
         this.appendLog(`[core] ${message}`, null, { kind: "system" }),
       );
+      if (this.disposed) { this.releaseCore(); return; }
 
       const core = this.core;
       const team = {
         startingLP: rules.startingLp,
-        startingDrawCount: rules.startingHandSize,
+        startingDrawCount: openingHands ? 0 : rules.startingHandSize,
         drawCountPerTurn: rules.drawPerTurn,
       };
       const handle = core.createDuel({
@@ -739,13 +766,23 @@ export class DuelSession {
       // constantes que todo script de carta usa na primeira linha.
       for (const [name, content] of coreScripts) {
         const ok = await this.core.loadScript(handle, name, content);
+        if (this.disposed) return;
         if (!ok) {
           throw new Error(`O engine rejeitou o script base ${name}.`);
         }
       }
 
-      this.loadDeck(humanSeat, config.playerDeck);
-      this.loadDeck((1 - humanSeat) as 0 | 1, config.opponentDeck);
+      this.loadDeck(humanSeat, playerDeck);
+      this.loadDeck((1 - humanSeat) as 0 | 1, opponentDeck);
+      if (openingHands) {
+        for (const [player, hand] of openingHands.entries()) {
+          const seat = (player === 0 ? humanSeat : 1 - humanSeat) as 0 | 1;
+          for (const code of hand) core.duelNewCard(handle, {
+            team: seat, duelist: 0, code, controller: seat, location: OcgLocation.HAND,
+            sequence: 0, position: OcgPosition.FACEUP,
+          });
+        }
+      }
       for (const card of scenario) {
         // `player: 0` é quem joga — no assento que ele ocupar.
         const assento = (card.player === 0 ? humanSeat : 1 - humanSeat) as 0 | 1;
@@ -771,6 +808,7 @@ export class DuelSession {
       if (config.openingNote) this.appendLog(config.openingNote);
 
       await this.core.startDuel(handle);
+      if (this.disposed) return;
       await this.runLoop();
     } catch (error) {
       this.update({
@@ -975,7 +1013,7 @@ export class DuelSession {
     this.running = true;
 
     try {
-      while (this.core && this.handle) {
+      while (this.core && this.handle && !this.disposed) {
         // O binding do ocgcore-wasm lança em algumas mensagens raras (visto
         // com SHUFFLE_SET_CARD: o parser lê a contagem de cartas como u32 — 4
         // bytes — quando o core escreve um u8 — 1 byte —, desalinhando o
@@ -1159,6 +1197,7 @@ export class DuelSession {
       this.reportEngineFailure(error);
     } finally {
       this.running = false;
+      if (this.disposed) this.releaseCore();
     }
   }
 

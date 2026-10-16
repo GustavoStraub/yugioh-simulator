@@ -9,6 +9,7 @@ import { useCardText } from "@/hooks/useCardText";
 import { playSfx } from "@/lib/audio/sfx";
 import type { CardAction } from "@/lib/duel/duel-actions";
 import type { CardRegistry } from "@/lib/domain/card-registry";
+import { TrainingHighlight, useTrainingTarget } from "@/components/duel/TrainingHighlight";
 
 /**
  * Todas as peças da mesa dimensionam pela ALTURA (`h-full` + `aspect`). É isso
@@ -192,6 +193,7 @@ export function DuelCardSlot({
     pressTimer.current = null;
   };
   const texto = useCardText();
+  const guided = useTrainingTarget(card?.code, card?.location, card?.controller) && !selected;
   const definition = card?.code ? registry?.get(card.code) : undefined;
   const image = definition?.images[0]?.image_url_small;
   const interactive = Boolean(onClick);
@@ -263,9 +265,10 @@ export function DuelCardSlot({
       )}
 
       <div
+        data-training-target={guided || undefined}
         title={linkedBy.length ? `Apontada por: ${linkedBy.join(", ")}` : undefined}
         data-previewable={card?.code ? "" : undefined}
-        className={`tf-slot tf-touch-card md-card-plane h-full w-full ${card ? "md-card-on" : "md-card-empty"} ${
+        className={`tf-slot tf-touch-card md-card-plane relative h-full w-full ${card ? "md-card-on" : "md-card-empty"} ${
           dePe ? "md-standing" : ""
         } ${deitada && card ? "md-card-def" : ""} ${entering ? "md-anim-land" : ""} ${linkedBy.length ? "tf-slot-linked" : ""} ${
           disabledZone ? "tf-zone-disabled" : ""
@@ -307,7 +310,7 @@ export function DuelCardSlot({
         } : undefined}
         role={pressable ? "button" : undefined}
         tabIndex={pressable ? 0 : undefined}
-        aria-label={definition ? `${texto.name(definition)}${zoneKind === "monster" || zoneKind === "emz" ? ` — posição de ${rotated ? "defesa" : "ataque"}` : ""}` : placeholder || undefined}
+        aria-label={definition ? `${texto.name(definition)}${zoneKind === "monster" || zoneKind === "emz" ? ` — posição de ${rotated ? "defesa" : "ataque"}` : ""}${guided ? " — carta indicada pela lição" : ""}` : placeholder || undefined}
         onKeyDown={
           pressable
             ? (event) => {
@@ -320,6 +323,7 @@ export function DuelCardSlot({
             : undefined
         }
       >
+        {guided && <TrainingHighlight />}
         {card ? (
           <div
             className="md-card-face h-full w-full overflow-hidden"

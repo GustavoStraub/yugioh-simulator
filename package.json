@@ -66,11 +66,15 @@
     "test:browser-life-points": "node tools/harness/test-browser-life-points.mjs",
     "test:deck-codec": "node --import ./tools/harness/ts-loader-register.mjs tools/harness/test-deck-codec.mjs",
     "test:browser-builder": "node tools/harness/test-browser-builder.mjs",
+    "test:deck-guides": "node --import ./tools/harness/ts-loader-register.mjs tools/harness/test-deck-guides.mjs",
+    "test:browser-deck-guides": "node tools/harness/test-browser-deck-guides.mjs",
+    "test:browser-lesson-practice": "node tools/harness/test-browser-lesson-practice.mjs",
     "test:learning": "node --import ./tools/harness/ts-loader-register.mjs tools/harness/test-learning.mjs",
     "test:browser-learning": "node tools/harness/test-browser-learning.mjs",
     "test:select-unselect": "node --import ./tools/harness/ts-loader-register.mjs tools/harness/test-select-unselect.mjs",
     "test:browser-sort": "node tools/harness/test-browser-sort.mjs",
-    "test:sfx": "node tools/harness/test-sfx.mjs"
+    "test:sfx": "node tools/harness/test-sfx.mjs",
+    "test:browser-legendary-guides": "node tools/harness/test-browser-legendary-guides.mjs"
   },
   "dependencies": {
     "@n1xx1/ocgcore-wasm": "npm:@jsr/n1xx1__ocgcore-wasm@^0.1.4",

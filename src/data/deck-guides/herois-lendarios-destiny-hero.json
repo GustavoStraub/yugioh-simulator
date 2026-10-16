@@ -1,0 +1,746 @@
+{
+  "schemaVersion": 1,
+  "id": "herois-lendarios-destiny-hero",
+  "presetId": "tcg-lehd-destiny-hero",
+  "revision": 1,
+  "reviewedAt": "2026-10-16",
+  "title": "Heróis Lendários — Destiny HERO",
+  "subtitle": "Funda, transforme e aproveite seus materiais.",
+  "description": "Aprenda três planos da lista original: Distopia com Malicioso, Lei Obscura com Mudar a Máscara e Plasma com D ao Cubo.",
+  "difficulty": "Intermediário",
+  "minutes": 16,
+  "tags": [
+    "Fusão",
+    "HERO",
+    "HERÓI",
+    "Destiny HERO",
+    "TCG"
+  ],
+  "coverCodes": [
+    90579153,
+    58481572,
+    83965310
+  ],
+  "deckSnapshot": {
+    "format": "tcg",
+    "main": [
+      17132130,
+      83965310,
+      40591390,
+      9411399,
+      9411399,
+      63362460,
+      13093792,
+      36625827,
+      56570271,
+      26964762,
+      37780349,
+      91691605,
+      91691605,
+      64184058,
+      66262416,
+      99357565,
+      99357565,
+      99357565,
+      50720316,
+      63060238,
+      45809008,
+      45809008,
+      72204747,
+      72204747,
+      75041269,
+      53527835,
+      21143940,
+      21143940,
+      24094653,
+      24094653,
+      83764718,
+      98494543,
+      73628505,
+      73628505,
+      49140998,
+      35464895,
+      99075257,
+      35787450,
+      35787450,
+      26841274
+    ],
+    "extra": [
+      63813056,
+      76263644,
+      93657021,
+      93657021,
+      90579153,
+      90579153,
+      30757127,
+      58481572,
+      59642500,
+      1948619
+    ],
+    "side": []
+  },
+  "overview": {
+    "goal": "Escolher entre pressão por Fusão e os efeitos de controle de Lei Obscura ou Plasma.",
+    "plan": [
+      "Identifique o plano que sua mão permite antes de gastar a Invocação-Normal.",
+      "Use Homem em Chamas para a Fusão ou preserve a busca de Névoa Sombria para a transformação.",
+      "Conte os recursos no Deck e no Cemitério antes de usar Malicioso ou D ao Cubo."
+    ],
+    "strengths": [
+      "Materiais de Fusão podem iniciar outras jogadas no Cemitério.",
+      "A caixa oferece planos diferentes com Fusões e Plasma."
+    ],
+    "watchOut": [
+      "40 cartas no Principal e 10 no Extra da caixa de 2018, sem cartas de expansões posteriores.",
+      "As três lições mostram alternativas de abertura; não são uma sequência para executar toda no mesmo turno.",
+      "Custos, restrições e efeitos de uma vez por turno precisam ser planejados."
+    ]
+  },
+  "keyCards": [
+    {
+      "code": 63060238,
+      "name": "Homem em Chamas, o HERÓI do Elemento",
+      "role": "Encontra a Fusão",
+      "explanation": "Busca Polimerização quando é invocado. Você só pode usar um de seus dois efeitos por turno.",
+      "sourceIds": [
+        "blazeman"
+      ]
+    },
+    {
+      "code": 90579153,
+      "name": "HERÓI do Destino - Distopia",
+      "role": "Pressão e dano",
+      "explanation": "Dois HERÓIS do Destino bastam como materiais. Ao ser Invocado por Invocação-Especial, pode usar o ATK de um HERÓI do Destino de Nível 4 ou menos no Cemitério para causar dano.",
+      "sourceIds": [
+        "dystopia"
+      ]
+    },
+    {
+      "code": 9411399,
+      "name": "HERÓI do Destino - Malicioso",
+      "role": "Material que continua jogando",
+      "explanation": "Bane-se do Cemitério para invocar outra cópia do Deck. A lista traz duas cópias: confira onde estão.",
+      "sourceIds": [
+        "malicious"
+      ]
+    },
+    {
+      "code": 50720316,
+      "name": "Névoa Sombria, o HERÓI do Elemento",
+      "role": "Busca conforme a situação",
+      "explanation": "Busca uma Magia Rápida de Mudança ao ser Invocado por Invocação-Especial, ou um outro HERO ao ir ao Cemitério. Só um desses efeitos por turno.",
+      "sourceIds": [
+        "shadow-mist"
+      ]
+    },
+    {
+      "code": 58481572,
+      "name": "Lei Obscura, o HERÓI Mascarado",
+      "role": "Controle com a máscara",
+      "explanation": "Mudar a Máscara sobre um HERO de TREVAS pode invocá-lo. Troca o destino das cartas adversárias que iriam ao Cemitério e pode punir certas adições do Deck à mão.",
+      "sourceIds": [
+        "mask-change",
+        "dark-law"
+      ]
+    },
+    {
+      "code": 99357565,
+      "name": "D ao Cubo",
+      "role": "Prepara Tributos",
+      "explanation": "Descarta até duas cartas e invoca o mesmo número de cópias. Depois, suas Invocações ficam limitadas a HERÓIS do Destino no turno.",
+      "sourceIds": [
+        "d-cubed"
+      ]
+    },
+    {
+      "code": 83965310,
+      "name": "HERÓI do Destino - Plasma",
+      "role": "Controle com três Tributos",
+      "explanation": "Seu procedimento exige três monstros. Nega efeitos de monstros adversários com a face para cima e pode equipar um deles a si.",
+      "sourceIds": [
+        "plasma"
+      ]
+    }
+  ],
+  "lessons": [
+    {
+      "id": "dystopia",
+      "title": "Fusão e continuação com Malicioso",
+      "summary": "Encontre Polimerização, invoque Distopia e use um material de novo.",
+      "minutes": 6,
+      "sourceIds": [
+        "blazeman",
+        "dystopia",
+        "malicious",
+        "set-list"
+      ],
+      "preparation": [
+        "Sua Fase Principal, campo vazio e sem interrupções.",
+        "A lista completa da caixa é usada; as cinco cartas abaixo já começam na sua mão."
+      ],
+      "startingHand": [
+        63060238,
+        63362460,
+        9411399,
+        83764718,
+        75041269
+      ],
+      "steps": [
+        {
+          "title": "Busque Polimerização",
+          "action": "Invoque Homem em Chamas por Invocação-Normal e aceite seu efeito para adicionar Polimerização do Deck.",
+          "why": "Escolher a busca utiliza o efeito de Homem em Chamas disponível neste turno.",
+          "cardCodes": [
+            63060238,
+            24094653
+          ]
+        },
+        {
+          "title": "Faça a Fusão",
+          "action": "Ative Polimerização, escolha HERÓI do Destino - Distopia e use Celestial e Malicioso da mão como materiais.",
+          "why": "Distopia exige dois HERÓIS do Destino; Homem em Chamas permanece no campo.",
+          "cardCodes": [
+            24094653,
+            90579153,
+            63362460,
+            9411399
+          ]
+        },
+        {
+          "title": "Aplique o dano",
+          "action": "Aceite o efeito de Distopia e escolha Celestial no Cemitério.",
+          "why": "Celestial é de Nível 4 e tem 1600 ATK: esse será o dano causado.",
+          "cardCodes": [
+            90579153,
+            63362460
+          ]
+        },
+        {
+          "title": "Reaproveite Malicioso",
+          "action": "Abra seu Cemitério e ative Malicioso. Bana essa cópia para invocar a outra do Deck.",
+          "why": "Um material já gasto gera outro monstro; a segunda cópia precisa continuar no Deck.",
+          "cardCodes": [
+            9411399
+          ]
+        }
+      ],
+      "outcome": "Distopia, Homem em Chamas e Malicioso no campo, com 1600 de dano causado.",
+      "cautions": [
+        "O efeito de destruição de Distopia depende de seu ATK atual estar diferente do original. A simples Invocação-Fusão não libera essa destruição.",
+        "Não tente usar os dois efeitos de Homem em Chamas no mesmo turno.",
+        "Se ambos os Maliciosos estiverem fora do Deck, esta continuação não funciona."
+      ],
+      "practice": {
+        "goal": [
+          {
+            "kind": "card",
+            "zone": "monsters",
+            "code": 90579153
+          },
+          {
+            "kind": "card",
+            "zone": "monsters",
+            "code": 63060238
+          },
+          {
+            "kind": "card",
+            "zone": "monsters",
+            "code": 9411399
+          },
+          {
+            "kind": "card",
+            "zone": "banished",
+            "code": 9411399
+          },
+          {
+            "kind": "card",
+            "zone": "grave",
+            "code": 63362460
+          },
+          {
+            "kind": "lp",
+            "player": 1,
+            "value": 6400
+          }
+        ],
+        "stages": [
+          {
+            "title": "Busque Polimerização",
+            "instruction": "Invoque Homem em Chamas por Invocação-Normal e aceite seu efeito para adicionar Polimerização do Deck.",
+            "why": "Escolher a busca utiliza o efeito de Homem em Chamas disponível neste turno.",
+            "targets": [
+              {
+                "code": 63060238,
+                "location": 2
+              },
+              {
+                "code": 63060238,
+                "location": 4
+              },
+              {
+                "code": 24094653,
+                "location": 1
+              }
+            ],
+            "completeWhen": [
+              {
+                "kind": "card",
+                "zone": "hand",
+                "code": 24094653
+              }
+            ]
+          },
+          {
+            "title": "Faça a Fusão",
+            "instruction": "Ative Polimerização, escolha HERÓI do Destino - Distopia e use Celestial e Malicioso da mão como materiais.",
+            "why": "Distopia exige dois HERÓIS do Destino; Homem em Chamas permanece no campo.",
+            "targets": [
+              {
+                "code": 24094653,
+                "location": 2
+              },
+              {
+                "code": 90579153,
+                "location": 64
+              },
+              {
+                "code": 63362460,
+                "location": 2
+              },
+              {
+                "code": 9411399,
+                "location": 2
+              }
+            ],
+            "completeWhen": [
+              {
+                "kind": "card",
+                "zone": "monsters",
+                "code": 90579153
+              }
+            ]
+          },
+          {
+            "title": "Aplique o dano",
+            "instruction": "Aceite o efeito de Distopia e escolha Celestial no Cemitério.",
+            "why": "Celestial é de Nível 4 e tem 1600 ATK: esse será o dano causado.",
+            "targets": [
+              {
+                "code": 90579153,
+                "location": 4
+              },
+              {
+                "code": 63362460,
+                "location": 16
+              }
+            ],
+            "completeWhen": [
+              {
+                "kind": "lp",
+                "player": 1,
+                "value": 6400
+              }
+            ]
+          },
+          {
+            "title": "Reaproveite Malicioso",
+            "instruction": "Abra seu Cemitério e ative Malicioso. Bana essa cópia para invocar a outra do Deck.",
+            "why": "Um material já gasto gera outro monstro; a segunda cópia precisa continuar no Deck.",
+            "targets": [
+              {
+                "code": 9411399,
+                "location": 16
+              },
+              {
+                "code": 9411399,
+                "location": 1
+              }
+            ],
+            "completeWhen": [
+              {
+                "kind": "card",
+                "zone": "banished",
+                "code": 9411399
+              },
+              {
+                "kind": "card",
+                "zone": "monsters",
+                "code": 9411399
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "dark-law",
+      "title": "Mudar a Máscara e manter recursos",
+      "summary": "Transforme Névoa Sombria em Lei Obscura e faça a busca do Cemitério.",
+      "minutes": 5,
+      "sourceIds": [
+        "shadow-mist",
+        "mask-change",
+        "dark-law"
+      ],
+      "preparation": [
+        "Sua Fase Principal, campo vazio e sem interrupções.",
+        "A lista completa da caixa é usada; as cinco cartas abaixo já começam na sua mão."
+      ],
+      "startingHand": [
+        50720316,
+        21143940,
+        83764718,
+        75041269,
+        35787450
+      ],
+      "steps": [
+        {
+          "title": "Prepare o HERO de TREVAS",
+          "action": "Invoque Névoa Sombria por Invocação-Normal.",
+          "why": "A Invocação-Normal não ativa a busca de Magia de Névoa Sombria; ela exige Invocação-Especial.",
+          "cardCodes": [
+            50720316
+          ]
+        },
+        {
+          "title": "Mude a Máscara",
+          "action": "Ative Mudar a Máscara, selecione Névoa Sombria no campo e escolha Lei Obscura no Extra.",
+          "why": "Mudar a Máscara exige um HERO e mantém o Atributo: TREVAS permite Lei Obscura.",
+          "cardCodes": [
+            21143940,
+            50720316,
+            58481572
+          ]
+        },
+        {
+          "title": "Busque a próxima peça",
+          "action": "Aceite o efeito de Névoa Sombria no Cemitério e adicione HERÓI do Destino - Broca-negra do Deck à mão.",
+          "why": "O envio ao Cemitério permite buscar outro HERO, pois você não usou o outro efeito de Névoa Sombria neste turno.",
+          "cardCodes": [
+            50720316,
+            91691605
+          ]
+        }
+      ],
+      "outcome": "Lei Obscura no campo e Broca-negra na mão para uma jogada futura.",
+      "cautions": [
+        "Névoa Sombria permite usar apenas um de seus dois efeitos por turno, uma vez nesse turno.",
+        "Lei Obscura deve ser invocada por Mudar a Máscara; Polimerização não substitui esse procedimento.",
+        "As cartas adversárias destinadas ao Cemitério são banidas enquanto Lei Obscura aplica seu efeito; ele não impede toda e qualquer busca."
+      ],
+      "practice": {
+        "goal": [
+          {
+            "kind": "card",
+            "zone": "monsters",
+            "code": 58481572
+          },
+          {
+            "kind": "card",
+            "zone": "grave",
+            "code": 50720316
+          },
+          {
+            "kind": "card",
+            "zone": "grave",
+            "code": 21143940
+          },
+          {
+            "kind": "card",
+            "zone": "hand",
+            "code": 91691605
+          }
+        ],
+        "stages": [
+          {
+            "title": "Prepare o HERO de TREVAS",
+            "instruction": "Invoque Névoa Sombria por Invocação-Normal.",
+            "why": "A Invocação-Normal não ativa a busca de Magia de Névoa Sombria; ela exige Invocação-Especial.",
+            "targets": [
+              {
+                "code": 50720316,
+                "location": 2
+              }
+            ],
+            "completeWhen": [
+              {
+                "kind": "card",
+                "zone": "monsters",
+                "code": 50720316
+              }
+            ]
+          },
+          {
+            "title": "Mude a Máscara",
+            "instruction": "Ative Mudar a Máscara, selecione Névoa Sombria no campo e escolha Lei Obscura no Extra.",
+            "why": "Mudar a Máscara exige um HERO e mantém o Atributo: TREVAS permite Lei Obscura.",
+            "targets": [
+              {
+                "code": 21143940,
+                "location": 2
+              },
+              {
+                "code": 50720316,
+                "location": 4
+              },
+              {
+                "code": 58481572,
+                "location": 64
+              }
+            ],
+            "completeWhen": [
+              {
+                "kind": "card",
+                "zone": "monsters",
+                "code": 58481572
+              }
+            ]
+          },
+          {
+            "title": "Busque a próxima peça",
+            "instruction": "Aceite o efeito de Névoa Sombria no Cemitério e adicione HERÓI do Destino - Broca-negra do Deck à mão.",
+            "why": "O envio ao Cemitério permite buscar outro HERO, pois você não usou o outro efeito de Névoa Sombria neste turno.",
+            "targets": [
+              {
+                "code": 50720316,
+                "location": 16
+              },
+              {
+                "code": 91691605,
+                "location": 1
+              }
+            ],
+            "completeWhen": [
+              {
+                "kind": "card",
+                "zone": "hand",
+                "code": 91691605
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "plasma",
+      "title": "Três corpos para Plasma",
+      "summary": "Use D ao Cubo e planeje o custo antes de comprometer a mão.",
+      "minutes": 5,
+      "sourceIds": [
+        "d-cubed",
+        "plasma"
+      ],
+      "preparation": [
+        "Sua Fase Principal, campo vazio e sem interrupções.",
+        "A lista completa da caixa é usada; as cinco cartas abaixo já começam na sua mão."
+      ],
+      "startingHand": [
+        99357565,
+        83965310,
+        75041269,
+        35787450,
+        83764718
+      ],
+      "steps": [
+        {
+          "title": "Invoque D ao Cubo",
+          "action": "Invoque D ao Cubo por Invocação-Normal. Aceite a aplicação que também o trata como HERÓI do Destino.",
+          "why": "Essa identidade adicional depende de ter sido Invocado por Invocação-Normal.",
+          "cardCodes": [
+            99357565
+          ]
+        },
+        {
+          "title": "Gere as outras cópias",
+          "action": "Ative o efeito de D ao Cubo. Descarte Prisão da Torre do Relógio e Pavor Eterno; invoque os dois D ao Cubo restantes do Deck.",
+          "why": "Dois descartes produzem dois monstros, somando os três Tributos necessários.",
+          "cardCodes": [
+            99357565,
+            75041269,
+            35787450
+          ]
+        },
+        {
+          "title": "Invoque Plasma",
+          "action": "Escolha a Invocação-Especial de Plasma na mão e ofereça os três D ao Cubo como Tributo.",
+          "why": "É o procedimento próprio de Plasma; não é uma Invocação-Normal por Tributo.",
+          "cardCodes": [
+            83965310,
+            99357565
+          ]
+        }
+      ],
+      "outcome": "Plasma no campo, três D ao Cubo no Cemitério e Monstro que Renasce preservado.",
+      "cautions": [
+        "O efeito de D ao Cubo restringe suas próximas Invocações a HERÓIS do Destino pelo resto do turno. Plasma atende ao requisito.",
+        "Separe Plasma e dois descartes antes de começar. O custo consome boa parte da mão.",
+        "Plasma nega efeitos de monstros com a face para cima enquanto o adversário os controla; não nega todos os efeitos que ativem na mão ou no Cemitério."
+      ],
+      "practice": {
+        "goal": [
+          {
+            "kind": "card",
+            "zone": "monsters",
+            "code": 83965310
+          },
+          {
+            "kind": "card",
+            "zone": "grave",
+            "code": 99357565,
+            "count": 3
+          },
+          {
+            "kind": "card",
+            "zone": "grave",
+            "code": 75041269
+          },
+          {
+            "kind": "card",
+            "zone": "grave",
+            "code": 35787450
+          },
+          {
+            "kind": "card",
+            "zone": "hand",
+            "code": 83764718
+          }
+        ],
+        "stages": [
+          {
+            "title": "Invoque D ao Cubo",
+            "instruction": "Invoque D ao Cubo por Invocação-Normal. Aceite a aplicação que também o trata como HERÓI do Destino.",
+            "why": "Essa identidade adicional depende de ter sido Invocado por Invocação-Normal.",
+            "targets": [
+              {
+                "code": 99357565,
+                "location": 2
+              },
+              {
+                "code": 99357565,
+                "location": 4
+              }
+            ],
+            "completeWhen": [
+              {
+                "kind": "card",
+                "zone": "monsters",
+                "code": 99357565
+              }
+            ]
+          },
+          {
+            "title": "Gere as outras cópias",
+            "instruction": "Ative o efeito de D ao Cubo. Descarte Prisão da Torre do Relógio e Pavor Eterno; invoque os dois D ao Cubo restantes do Deck.",
+            "why": "Dois descartes produzem dois monstros, somando os três Tributos necessários.",
+            "targets": [
+              {
+                "code": 99357565,
+                "location": 4
+              },
+              {
+                "code": 75041269,
+                "location": 2
+              },
+              {
+                "code": 35787450,
+                "location": 2
+              },
+              {
+                "code": 99357565,
+                "location": 1
+              }
+            ],
+            "completeWhen": [
+              {
+                "kind": "card",
+                "zone": "monsters",
+                "code": 99357565,
+                "count": 3
+              }
+            ]
+          },
+          {
+            "title": "Invoque Plasma",
+            "instruction": "Escolha a Invocação-Especial de Plasma na mão e ofereça os três D ao Cubo como Tributo.",
+            "why": "É o procedimento próprio de Plasma; não é uma Invocação-Normal por Tributo.",
+            "targets": [
+              {
+                "code": 83965310,
+                "location": 2
+              },
+              {
+                "code": 99357565,
+                "location": 4
+              }
+            ],
+            "completeWhen": [
+              {
+                "kind": "card",
+                "zone": "monsters",
+                "code": 83965310
+              },
+              {
+                "kind": "card",
+                "zone": "grave",
+                "code": 99357565,
+                "count": 3
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ],
+  "sources": [
+    {
+      "id": "product",
+      "title": "Legendary Hero Decks — produto oficial de 2018",
+      "url": "https://www.yugioh-card.com/en/products/legendary_hero_decks/"
+    },
+    {
+      "id": "set-list",
+      "title": "LEHD — cartas da coleção no banco oficial",
+      "url": "https://www.db.yugioh-card.com/yugiohdb/card_search.action?ope=1&pid=18812002&request_locale=pt&rp=99999&sess=1"
+    },
+    {
+      "id": "blazeman",
+      "title": "Homem em Chamas, o HERÓI do Elemento — texto oficial",
+      "url": "https://www.db.yugioh-card.com/yugiohdb/card_search.action?cid=11419&ope=2&request_locale=pt"
+    },
+    {
+      "id": "dystopia",
+      "title": "HERÓI do Destino - Distopia — texto oficial",
+      "url": "https://www.db.yugioh-card.com/yugiohdb/card_search.action?cid=12705&ope=2&request_locale=pt"
+    },
+    {
+      "id": "malicious",
+      "title": "HERÓI do Destino - Malicioso — texto oficial",
+      "url": "https://www.db.yugioh-card.com/yugiohdb/card_search.action?cid=6949&ope=2&request_locale=pt"
+    },
+    {
+      "id": "shadow-mist",
+      "title": "Névoa Sombria, o HERÓI do Elemento — texto oficial",
+      "url": "https://www.db.yugioh-card.com/yugiohdb/card_search.action?cid=11308&ope=2&request_locale=pt"
+    },
+    {
+      "id": "mask-change",
+      "title": "Mudar a Máscara — texto oficial",
+      "url": "https://www.db.yugioh-card.com/yugiohdb/card_search.action?cid=9066&ope=2&request_locale=pt"
+    },
+    {
+      "id": "dark-law",
+      "title": "Lei Obscura, o HERÓI Mascarado — texto oficial",
+      "url": "https://www.db.yugioh-card.com/yugiohdb/card_search.action?cid=11313&ope=2&request_locale=pt"
+    },
+    {
+      "id": "d-cubed",
+      "title": "D ao Cubo — texto oficial",
+      "url": "https://www.db.yugioh-card.com/yugiohdb/card_search.action?cid=12708&ope=2&request_locale=pt"
+    },
+    {
+      "id": "plasma",
+      "title": "HERÓI do Destino - Plasma — texto oficial",
+      "url": "https://www.db.yugioh-card.com/yugiohdb/card_search.action?cid=7096&ope=2&request_locale=pt"
+    }
+  ]
+}

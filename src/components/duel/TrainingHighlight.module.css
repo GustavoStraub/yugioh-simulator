@@ -1,0 +1,33 @@
+.frame {
+  position: absolute;
+  inset: 2px;
+  z-index: 12;
+  border: 3px dashed #f0abfc;
+  border-radius: 5px;
+  box-shadow: inset 0 0 11px #d946ef66, 0 0 8px #d946efaa;
+  pointer-events: none;
+  animation: guide-breathe 1.8s ease-in-out infinite;
+}
+.badge {
+  position: absolute;
+  top: 0;
+  left: 0;
+  padding: 3px 5px;
+  border-radius: 0 0 5px 0;
+  background: #f0abfc;
+  color: #3b0764;
+  font: 800 9px/1.1 var(--font-geist-sans), sans-serif;
+  letter-spacing: .04em;
+  white-space: nowrap;
+  text-shadow: none;
+}
+@keyframes guide-breathe {
+  50% { border-color: #fff1ff; box-shadow: inset 0 0 15px #e879f988, 0 0 12px #f0abfc; }
+}
+@media (max-height: 500px), (max-width: 600px) {
+  .frame { border-width: 2px; inset: 1px; }
+  .badge { font-size: 7px; padding: 2px 3px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .frame { animation: none; }
+}

@@ -9,7 +9,7 @@ import {
   type DuelSnapshot,
 } from "@/lib/duel/duel-session";
 
-export function useDuelEngine(config: DuelSessionConfig | null) {
+export function useDuelEngine(config: DuelSessionConfig | null, observe?: (snapshot: DuelSnapshot) => void) {
   /**
    * O assento de quem joga — 1 quando o bot começa (ver
    * `DuelSessionConfig.humanSeat`). Num ref: as ações abaixo são estáveis e
@@ -22,16 +22,29 @@ export function useDuelEngine(config: DuelSessionConfig | null) {
   // A sessão vive em state (criada uma única vez) e não num ref: assim ela
   // pode ser lida durante o render para semear o snapshot inicial.
   const [session] = useState(createDuelSession);
+  const generation = useRef({ value: 0 });
   const [snapshot, setSnapshot] = useState<DuelSnapshot>(() =>
     session.getSnapshot(),
   );
 
-  useEffect(() => session.subscribe(setSnapshot), [session]);
+  useEffect(() => session.subscribe((next) => {
+    setSnapshot(next);
+    observe?.(next);
+  }), [session, observe]);
 
   useEffect(() => {
     if (!config) return;
     void session.start(config);
   }, [config, session]);
+
+  useEffect(() => {
+    const lifecycle = generation.current;
+    const mounted = ++lifecycle.value;
+    return () => {
+      // O segundo setup do Strict Mode ocorre antes desta microtask.
+      queueMicrotask(() => { if (lifecycle.value === mounted) session.dispose(); });
+    };
+  }, [session]);
 
   const actions = useMemo(
     () => ({

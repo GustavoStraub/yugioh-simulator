@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
+import type { GuideCardTarget } from "@/lib/domain/deck-guide";
+import { TrainingHighlight, useTrainingTarget } from "@/components/duel/TrainingHighlight";
 
 /*
  * A "lista de cartas" do Master Duel: a faixa horizontal de cartas que toda
@@ -99,6 +101,7 @@ export function GridTab({ grid, onToggle }: { grid: boolean; onToggle: () => voi
  * contorno amarelo com o ✓.
  */
 export function CardTile({
+  trainingRef,
   image,
   alt,
   faceDown = false,
@@ -113,6 +116,7 @@ export function CardTile({
   data,
   children,
 }: {
+  trainingRef?: GuideCardTarget;
   image?: string;
   alt: string;
   /** Verso: a carta que este assento ainda não pode ver. */
@@ -132,11 +136,14 @@ export function CardTile({
   data?: Record<string, string | number | boolean | undefined>;
   children?: ReactNode;
 }) {
+  const guided = useTrainingTarget(trainingRef?.code, trainingRef?.location, trainingRef?.controller) && !picked && !faceDown;
   const Tag = onClick || onHover ? "button" : "div";
   return (
     <Tag
       {...(Tag === "button" ? { type: "button" as const } : {})}
       {...data}
+      data-training-target={guided || undefined}
+      aria-label={guided ? `${alt} — carta indicada pela lição` : undefined}
       onClick={onClick}
       onClickCapture={() => onHover?.()}
       title={title}
@@ -145,6 +152,7 @@ export function CardTile({
       } ${owner ? `md-tile-${owner}` : ""}`}
     >
       <span className="md-tile-card">
+        {guided && <TrainingHighlight />}
         {image && !faceDown ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={image} alt={alt} loading="lazy" draggable={false} className="h-full w-full object-cover" />
