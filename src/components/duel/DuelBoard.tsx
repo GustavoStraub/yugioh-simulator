@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   OcgLocation,
   OcgMessageType,
+  OcgResponseType,
   type OcgResponse,
   type SelectFieldPlace,
 } from "@n1xx1/ocgcore-wasm";
@@ -461,6 +462,16 @@ export function DuelBoard({
   );
 
   const prompt = snapshot.pendingPrompt;
+  const positionCode = prompt?.type === OcgMessageType.SELECT_POSITION ? prompt.code : null;
+  const [positionRead, setPositionRead] = useState<number | null>(null);
+  if (positionRead !== (positionCode ? snapshot.promptId : null)) {
+    setPositionRead(positionCode ? snapshot.promptId : null);
+    if (positionCode) {
+      setPreview({ code: positionCode });
+      setPreviewOpen(true);
+      setAtivacaoLida(null);
+    }
+  }
 
   /**
    * Banco oficial (tipos, raça, atributo, setcodes em bitfield), buscado só
@@ -2257,7 +2268,7 @@ export function DuelBoard({
             onRespond={respond}
             registry={registry}
             promptCard={snapshot.promptCard}
-            chain={snapshot.chain}
+            chain={positionCode ? null : snapshot.chain}
             picked={picked}
             onTogglePick={togglePick}
             onPeek={peek}
@@ -3353,7 +3364,9 @@ function PromptModal({
               {subject !== null && (
                 <CardChoiceButton
                   action={{
-                    label: "Efeito desta carta",
+                    label: plan.global.some((action) => action.response.type === OcgResponseType.SELECT_POSITION)
+                      ? "Monstro a invocar"
+                      : "Efeito desta carta",
                     code: subject,
                     location: plan.subject?.location ?? 0,
                     response: { type: -1 } as unknown as OcgResponse,

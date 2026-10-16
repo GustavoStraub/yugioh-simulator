@@ -536,6 +536,7 @@ export function buildPromptPlan(
 
     case OcgMessageType.SELECT_POSITION: {
       const plan = emptyPlan("Escolha a posição de batalha:", "modal");
+      if (message.code) plan.subject = { code: message.code, location: 0 };
       ocgPositionParse(message.positions).forEach((position) => {
         plan.global.push({
           label: POSITION_LABELS[position] ?? `Posição ${position}`,

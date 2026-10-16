@@ -60,6 +60,7 @@
     "test:chain-mode": "node --import ./tools/harness/ts-loader-register.mjs tools/harness/test-chain-mode.mjs",
     "test:duel-log": "node --import ./tools/harness/ts-loader-register.mjs tools/harness/test-duel-log.mjs",
     "test:browser-peek": "node tools/harness/test-browser-peek.mjs",
+    "test:browser-position": "node tools/harness/test-browser-position.mjs",
     "test:deck-codec": "node --import ./tools/harness/ts-loader-register.mjs tools/harness/test-deck-codec.mjs",
     "test:browser-builder": "node tools/harness/test-browser-builder.mjs",
     "test:learning": "node --import ./tools/harness/ts-loader-register.mjs tools/harness/test-learning.mjs",

@@ -21,7 +21,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { OcgLocation, OcgMessageType, OcgOpCode } from "@n1xx1/ocgcore-wasm";
+import { OcgLocation, OcgMessageType, OcgOpCode, OcgPosition } from "@n1xx1/ocgcore-wasm";
 
 import { isDeclarable } from "@/lib/duel/announce-filter";
 import { autoResponseFor } from "@/lib/duel/auto-response";
@@ -43,6 +43,16 @@ function conferir(condicao, descricao, detalhe = "") {
 
 const db = loadCardDb();
 const dados = (code) => ({ code, ...db.get(code) });
+
+console.log("Posição de batalha — assunto informado pelo core (#7)");
+for (const code of [5405694, 46986414, 62873545]) {
+  const plan = buildPromptPlan({
+    type: OcgMessageType.SELECT_POSITION, player: 0, code,
+    positions: OcgPosition.FACEUP_ATTACK | OcgPosition.FACEUP_DEFENSE,
+  });
+  conferir(plan.subject?.code === code && plan.global.length === 2,
+    `o monstro ${code} aparece na decisão de ataque/defesa`);
+}
 
 // ---------------------------------------------------------------------------
 console.log("Jogadas de efeito com nome (não só \"Ativar\")");
