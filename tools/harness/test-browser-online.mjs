@@ -133,17 +133,17 @@ const GRUPO = process.env.FORMATO === "tcg" ? "TCG" : "Goat";
 /** Escolhe um deck pronto do formato no seletor do lobby (o jogador não tem deck salvo). */
 async function escolherPreset(page, indice) {
   return page.evaluate(`
-    const select = document.querySelector("select");
+    const select = document.querySelector('[data-deck-select]');
     if (!select) return false;
+    select.querySelector('button').click();
     // Só os grupos do formato: "Meus decks" (o deck salvo, vazio nesta aba)
     // e os do outro formato ficam de fora.
-    const opcao = [...select.querySelectorAll("optgroup")]
-      .filter((grupo) => grupo.label.startsWith(${JSON.stringify(GRUPO)}))
-      .flatMap((grupo) => [...grupo.querySelectorAll("option")])[${indice}];
+    const opcao = [...select.querySelectorAll('[role="group"]')]
+      .filter((grupo) => grupo.querySelector('p').textContent.startsWith(${JSON.stringify(GRUPO)}))
+      .flatMap((grupo) => [...grupo.querySelectorAll('[role="option"]')])[${indice}];
     if (!opcao) return false;
-    select.value = opcao.value;
-    select.dispatchEvent(new Event("change", { bubbles: true }));
-    return opcao.text;
+    opcao.click();
+    return opcao.textContent;
   `);
 }
 
@@ -243,17 +243,17 @@ async function main() {
     // TCG no fim da lista a última opção virou um deck TCG — a sala, com
     // razão, não abria o jokenpô entre formatos diferentes.
     const trocado = await bruno.evaluate(`
-      const select = document.querySelector("select");
+      const select = document.querySelector('[data-deck-select]');
       if (!select) return null;
-      const opcao = [...select.querySelectorAll("optgroup")]
-        .filter((grupo) => grupo.label.startsWith(${JSON.stringify(GRUPO)}))
-        .flatMap((grupo) => [...grupo.querySelectorAll("option")])
-        .filter((o) => o.value)
+      select.querySelector('button').click();
+      const opcao = [...select.querySelectorAll('[role="group"]')]
+        .filter((grupo) => grupo.querySelector('p').textContent.startsWith(${JSON.stringify(GRUPO)}))
+        .flatMap((grupo) => [...grupo.querySelectorAll('[role="option"]')])
+        .filter((o) => o.dataset.value)
         .at(-1);
       if (!opcao) return null;
-      select.value = opcao.value;
-      select.dispatchEvent(new Event("change", { bubbles: true }));
-      return opcao.text;
+      opcao.click();
+      return opcao.textContent;
     `);
     conferir(Boolean(trocado), `Bruno trocou de deck dentro da sala (${trocado})`);
 

@@ -1,6 +1,7 @@
 "use client";
 
 import { DeckPreview } from "@/components/duel/DeckPreview";
+import { DeckSearchSelect } from "@/components/deck-builder/DeckSearchSelect";
 import { useCardRegistry } from "@/context/CardRegistryProvider";
 import { gruposDeDecks, type DeckEscolha } from "@/hooks/useDeckEscolha";
 import type { Passcode } from "@/lib/types";
@@ -30,22 +31,14 @@ export function DeckSelect({
 
   return (
     <>
-      <select
+      <DeckSearchSelect
         value={escolha.escolha ?? ""}
         disabled={disabled}
-        onChange={(event) => onChange(event.target.value || null)}
-        className="mt-4 w-full rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-amber-600 disabled:opacity-50"
-      >
-        {gruposDeDecks(escolha).map((grupo) => (
-          <optgroup key={grupo.label} label={grupo.label}>
-            {grupo.opcoes.map((opcao) => (
-              <option key={opcao.value} value={opcao.value}>
-                {opcao.label}
-              </option>
-            ))}
-          </optgroup>
-        ))}
-      </select>
+        onChange={(value) => onChange(value || null)}
+        grupos={gruposDeDecks(escolha)}
+        label="Seu deck"
+        className="mt-4"
+      />
       <DeckPreview deck={escolha.deck} registry={registry} onCardHover={onCardHover} />
     </>
   );

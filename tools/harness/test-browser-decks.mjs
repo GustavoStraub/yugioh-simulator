@@ -57,11 +57,11 @@ async function esperarCatalogo(page) {
 
 /** Nomes dos decks no seletor da biblioteca. */
 const LER_BIBLIOTECA = `
-  const select = document.querySelector('select[aria-label="Deck aberto"]');
-  if (!select) return null;
+  const trigger = document.querySelector('[data-deck-select] > button[aria-label="Deck aberto"]');
+  if (!trigger) return null;
   return {
-    opcoes: [...select.options].map((o) => o.text),
-    aberto: select.selectedOptions[0]?.text ?? "",
+    opcoes: [...trigger.parentElement.querySelectorAll('[role="option"]')].map((o) => o.textContent),
+    aberto: trigger.textContent.trim(),
   };
 `;
 
@@ -273,13 +273,13 @@ async function main() {
     // Apagar age no deck ABERTO, e a limpeza do armazenamento acima levou
     // junto qual era ele — reabrir explicitamente antes.
     const abriu = await page.evaluate(`
-      const select = document.querySelector('select[aria-label="Deck aberto"]');
-      const opcao = [...select.options].find((o) => o.text.startsWith(${JSON.stringify(nomeUnico)}));
+      const trigger = document.querySelector('[data-deck-select] > button[aria-label="Deck aberto"]');
+      trigger.click();
+      const opcao = [...trigger.parentElement.querySelectorAll('[role="option"]')]
+        .find((o) => o.textContent.startsWith(${JSON.stringify(nomeUnico)}));
       if (!opcao) return false;
-      const setter = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, "value").set;
-      setter.call(select, opcao.value);
-      select.dispatchEvent(new Event("change", { bubbles: true }));
-      return opcao.text;
+      opcao.click();
+      return opcao.textContent;
     `);
     conferir(Boolean(abriu), `reabriu o deck de teste para apagar (${abriu})`);
     await espera(400);

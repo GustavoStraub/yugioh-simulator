@@ -8,6 +8,7 @@ import { useCardRegistry } from "@/context/CardRegistryProvider";
 import { usePlayer } from "@/context/PlayerProvider";
 import { useDeckEscolha } from "@/hooks/useDeckEscolha";
 import { DeckSelect } from "@/components/duel/DeckSelect";
+import { DeckSearchSelect } from "@/components/deck-builder/DeckSearchSelect";
 import { DeckSelectionLayout } from "@/components/duel/DeckSelectionLayout";
 import { deckToDuelPayload } from "@/lib/domain/deck-serializer";
 import { isDeckDuelReady } from "@/lib/domain/deck-rules";
@@ -244,25 +245,19 @@ export function DuelLobby() {
             Monte e complete outro deck desse formato no construtor.
           </p>
         ) : (
-          <select
+          <DeckSearchSelect
             value={opponent?.id ?? ""}
-            onChange={(event) => setOpponentId(event.target.value)}
-            className="mt-4 w-full rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-amber-600"
-          >
-            {[...new Set(opcoes.map((opcao) => opcao.grupo))].map((grupo) => {
-              const doGrupo = opcoes.filter((opcao) => opcao.grupo === grupo);
-              if (doGrupo.length === 0) return null;
-              return (
-                <optgroup key={grupo} label={grupo}>
-                  {doGrupo.map((opcao) => (
-                    <option key={opcao.id} value={opcao.id}>
-                      {opcao.nome} ({opcao.cartas} cartas)
-                    </option>
-                  ))}
-                </optgroup>
-              );
-            })}
-          </select>
+            onChange={setOpponentId}
+            label="Deck do bot"
+            className="mt-4"
+            grupos={[...new Set(opcoes.map((opcao) => opcao.grupo))].map((grupo) => ({
+              label: grupo,
+              opcoes: opcoes.filter((opcao) => opcao.grupo === grupo).map((opcao) => ({
+                value: opcao.id,
+                label: `${opcao.nome} (${opcao.cartas} cartas)`,
+              })),
+            }))}
+          />
         )}
 
         {opponent && (

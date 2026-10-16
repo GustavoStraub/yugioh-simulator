@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 
 import { PresetDeckPicker } from "@/components/deck-builder/PresetDeckPicker";
+import { DeckSearchSelect } from "@/components/deck-builder/DeckSearchSelect";
 import { CardDetailsDialog } from "@/components/layout/CardDetailsDialog";
 import { CardImageZoom } from "@/components/layout/CardImageZoom";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
@@ -443,19 +444,19 @@ function DeckLibraryBar({ library }: { library: DeckLibrary }) {
         <NomeDoJogador />
       </div>
 
-      <select
+      <DeckSearchSelect
         value={selectedId ?? ""}
-        onChange={(event) => select(event.target.value)}
-        aria-label="Deck aberto"
-        className="w-full rounded border border-[color:var(--tf-slot-border)] bg-black/50 px-2 py-1.5 text-[12px] text-zinc-100 outline-none focus:border-[color:var(--tf-gold)]"
-      >
-        {decks.map((item) => (
-          <option key={item.id} value={item.id}>
-            {item.name} · {item.main.reduce((soma, ref) => soma + ref.quantity, 0)}{" "}
-            cartas
-          </option>
-        ))}
-      </select>
+        onChange={select}
+        label="Deck aberto"
+        controlClassName="w-full rounded border border-[color:var(--tf-slot-border)] bg-black/50 px-2 py-1.5 text-[12px] text-zinc-100 outline-none focus:border-[color:var(--tf-gold)] disabled:opacity-50"
+        grupos={[{
+          label: "Seus decks",
+          opcoes: decks.map((item) => ({
+            value: item.id,
+            label: `${item.name} · ${item.main.reduce((soma, ref) => soma + ref.quantity, 0)} cartas`,
+          })),
+        }]}
+      />
 
       <div className="flex gap-1.5">
         <button type="button" onClick={create} className={`${acao} flex-1`}>

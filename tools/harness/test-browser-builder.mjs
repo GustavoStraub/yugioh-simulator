@@ -200,7 +200,7 @@ async function construtor(page) {
   conferir(/Importado como deck novo \(6 cartas\)/.test(resultado), `o mesmo link volta como deck novo (${resultado})`);
   await page.evaluate(tecla("Escape"));
   await espera(300);
-  const aberto = await page.evaluate(`return document.querySelector('select[aria-label="Deck aberto"]')?.selectedOptions[0]?.text ?? "";`);
+  const aberto = await page.evaluate(`return document.querySelector('[data-deck-select] > button[aria-label="Deck aberto"]')?.textContent.trim() ?? "";`);
   conferir(/^Deck importado/.test(aberto) && (await page.evaluate(PRINCIPAL)) === 6, `o deck importado abre com as 6 cartas (${aberto})`);
 
   // --- arrastar e soltar ---
