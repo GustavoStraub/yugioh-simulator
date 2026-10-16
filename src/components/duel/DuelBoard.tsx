@@ -3212,7 +3212,14 @@ function RevealHistoryModal({
                         <div
                           key={`${reveal.id}-${code}-${index}`}
                           onClickCapture={() => onHover({ code })}
-                          onMouseEnter={() => onHover({ code })}
+                          role="button"
+                          tabIndex={0}
+                          onKeyDown={(event) => {
+                            if (event.key === "Enter" || event.key === " ") {
+                              event.preventDefault();
+                              onHover({ code });
+                            }
+                          }}
                           title={definition ? texto.name(definition) : undefined}
                           className="w-[64px] shrink-0 overflow-hidden rounded-[3px] border border-[color:var(--tf-slot-border)]"
                         >
@@ -3416,18 +3423,14 @@ function CardChoiceButton({
   const image = definition?.images[0]?.image_url_small;
 
   return (
-    // O hover mora no wrapper, não no <button>: quando `readOnly` o botão fica
-    // `disabled`, e um botão desabilitado não dispara mouseenter — o "assunto"
-    // do prompt (a carta de que ele trata) é exatamente o caso `readOnly`, e é
-    // a que mais se quer ler.
-    <div
-      onMouseEnter={() => onHover?.({ code: action.code })}
-      onMouseLeave={() => onHover?.(null)}
-    >
+    <div>
     <button
       type="button"
-      disabled={readOnly}
-      onClick={onClick}
+      data-table-control={readOnly || undefined}
+      onClick={() => {
+        onHover?.({ code: action.code });
+        if (!readOnly) onClick();
+      }}
       className={`flex w-full items-start gap-3 rounded border p-2.5 text-left transition ${
         readOnly
           ? "cursor-default border-[color:var(--tf-gold)]/60 bg-black/60"
@@ -3494,8 +3497,15 @@ function ChainLinkPanel({
 
   return (
     <div
-      onMouseEnter={() => onHover?.({ code: chain.code })}
-      onMouseLeave={() => onHover?.(null)}
+      onClick={() => onHover?.({ code: chain.code })}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          onHover?.({ code: chain.code });
+        }
+      }}
       className="mb-2 rounded border border-[color:var(--tf-gold)]/45 bg-black/55 p-2.5"
     >
       <p className="mb-1.5 text-[11px] font-bold uppercase tracking-wider text-[color:var(--tf-gold)]">
@@ -3625,13 +3635,14 @@ function ChainResponseBar({
       head={
         <div className="flex items-center gap-3">
           {chain && definition && (
-            // eslint-disable-next-line @next/next/no-img-element
+            <button type="button" aria-label={`Ler ${nome}`} onClick={() => onHover({ code: chain.code })}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={definition.images[0]?.image_url_small}
               alt={nome ?? "Carta"}
-              onMouseEnter={() => onHover({ code: chain.code })}
               className="md-sheet-chain-thumb"
             />
+            </button>
           )}
           <div className="min-w-0 text-left">
             <p className="md-sheet-title">
@@ -4250,7 +4261,14 @@ function DuelLog({
                 key={`${index}-${entry.text}`}
                 data-log-card={carta}
                 onClickCapture={carta ? () => onHover({ code: carta }) : undefined}
-                onMouseEnter={carta ? () => onHover({ code: carta }) : undefined}
+                role={carta ? "button" : undefined}
+                tabIndex={carta ? 0 : undefined}
+                onKeyDown={(event) => {
+                  if (carta && (event.key === "Enter" || event.key === " ")) {
+                    event.preventDefault();
+                    onHover({ code: carta });
+                  }
+                }}
                 className={`md-log-entry ${
                   lado === "mine" ? "md-log-mine" : lado === "foe" ? "md-log-foe" : ""
                 } ${carta ? "cursor-help" : ""}`}
@@ -4357,7 +4375,7 @@ function CounterSelectModal({
             return (
               <div
                 key={`${card.controller}-${card.location}-${card.sequence}`}
-                onMouseEnter={() => onHover({ code: card.code })}
+                onClickCapture={() => onHover({ code: card.code })}
                 className="flex items-center gap-3 rounded border border-[color:var(--tf-slot-border)] bg-black/40 p-2"
               >
                 {image ? (

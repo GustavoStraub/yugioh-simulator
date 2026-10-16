@@ -139,8 +139,8 @@ try {
   await tap(page,'[data-builder-nav="deck"]');
   await tap(page,"[data-deck-drop] button[draggable]");
   const reader=await page.evaluate('const r=document.querySelector("[data-card-reader]").getBoundingClientRect();const t=document.querySelector("[data-card-reader] .md-detail-text");return {top:r.top,bottom:r.bottom,text:t.clientHeight};');
-  assert(reader.top>=0 && reader.bottom<=320 && reader.text>=40,"leitura e ações cabem na paisagem baixa");
   await shot(page,"568-reader");
+  assert(reader.top>=0 && reader.bottom<=320 && reader.text>=40,`leitura e ações cabem na paisagem baixa (${JSON.stringify(reader)})`);
   await tap(page,'[aria-label="Fechar detalhes da carta"]');
   console.log("OK toque: leitura, cópias, remoção, filtros, busca, abas, ferramentas e rotação");
 

@@ -96,12 +96,50 @@ async function construtor(page) {
   console.log("Construtor");
   conferir(await page.clickText("Novo"), "criou um deck novo");
   await espera(500);
+  await page.evaluate(`
+    const card = document.querySelector('[data-catalog-drop] [data-builder-card]');
+    card?.dispatchEvent(new MouseEvent('mouseover', { bubbles: true }));
+    card?.focus(); return true;
+  `);
+  await espera(100);
+  conferir(!(await page.evaluate(`return Boolean(document.querySelector('[data-card-reader], [data-card-image-zoom]'));`)),
+    "#5: passar o mouse ou focar não abre os detalhes");
+  await page.evaluate(`document.querySelector('[data-catalog-drop] [data-builder-card]')?.click(); return true;`);
+  await espera(150);
+  conferir((await page.evaluate(PRINCIPAL)) === 0, "#5: clicar só inspeciona, sem adicionar");
+  conferir(await page.evaluate(`return document.querySelector('[data-reader-remove]')?.disabled === true && /apenas um aviso/.test(document.querySelector('[data-reader-banlist]')?.textContent);`),
+    "#5: remover começa desabilitado e a regra da banlist é explícita");
+  for (let i = 0; i < 3; i += 1) {
+    await page.evaluate(`document.querySelector('[data-reader-add]')?.click(); return true;`);
+    await espera(80);
+  }
+  conferir((await page.evaluate(PRINCIPAL)) === 3 && await page.evaluate(`return document.querySelector('[data-reader-add]')?.disabled;`),
+    "#5: três cópias bloqueiam Adicionar, mas os detalhes continuam abertos");
+  await page.evaluate(`document.querySelector('[data-card-reader] [data-card-image-zoom]')?.click(); return true;`);
+  await espera(100);
+  conferir(await page.evaluate(`return Boolean(document.querySelector('[data-card-image-dialog][open]'));`), "#5: a imagem dos detalhes pode ser ampliada");
+  await page.evaluate(`document.querySelector('[aria-label="Fechar imagem ampliada"]')?.click(); return true;`);
+  for (let i = 0; i < 3; i += 1) {
+    await page.evaluate(`document.querySelector('[data-reader-remove]')?.click(); return true;`);
+    await espera(80);
+  }
+  conferir((await page.evaluate(PRINCIPAL)) === 0 && await page.evaluate(`return document.querySelector('[data-reader-remove]')?.disabled && !document.querySelector('[data-reader-add]')?.disabled;`),
+    "#5: remover a última cópia atualiza os dois botões");
+  await page.evaluate(`document.querySelector('[aria-label="Fechar detalhes da carta"]')?.click(); return true;`);
+
   for (let i = 0; i < 8; i += 1) {
-    await page.evaluate(`document.querySelectorAll('button[title^="Adicionar"]')[${i}]?.click(); return true;`);
+    await page.evaluate(`document.querySelectorAll('[data-catalog-drop] [data-builder-card]')[${i}]?.click(); return true;`);
+    await espera(100);
+    await page.evaluate(`document.querySelector('[data-reader-add]')?.click(); return true;`);
+    await page.evaluate(`document.querySelector('[aria-label="Fechar detalhes da carta"]')?.click(); return true;`);
     await espera(100);
   }
   const oito = await page.evaluate(PRINCIPAL);
   conferir(oito === 8, `8 cartas no Principal (${oito})`);
+  await page.evaluate(`document.querySelector('[data-deck-drop] [data-builder-card]')?.click(); return true;`);
+  await espera(100);
+  conferir((await page.evaluate(PRINCIPAL)) === 8, "#5: clicar em carta do deck também só inspeciona");
+  await page.evaluate(`document.querySelector('[aria-label="Fechar detalhes da carta"]')?.click(); return true;`);
 
   // --- desfazer ---
   await page.evaluate(`document.querySelector("[data-undo]")?.click(); return true;`);
@@ -168,7 +206,7 @@ async function construtor(page) {
   // --- arrastar e soltar ---
   const antes = await page.evaluate(PRINCIPAL);
   conferir(
-    await page.evaluate(ARRASTAR('button[title^="Adicionar"]', "[data-deck-drop]")),
+    await page.evaluate(ARRASTAR('[data-catalog-drop] [data-builder-card][draggable="true"]', "[data-deck-drop]")),
     "arrastou uma carta do catálogo para o deck",
   );
   await espera(200);

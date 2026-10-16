@@ -132,8 +132,15 @@ export function SortCardModal({
                     setArrastando(null);
                     setSobre(null);
                   }}
-                  onMouseEnter={() => onHover?.({ code: card.code })}
-                  onMouseLeave={() => onHover?.(null)}
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => onHover?.({ code: card.code })}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter" || event.key === " ") {
+                      event.preventDefault();
+                      onHover?.({ code: card.code });
+                    }
+                  }}
                   title={definition ? texto.name(definition) : undefined}
                   className={`relative w-[110px] shrink-0 cursor-grab select-none overflow-hidden rounded border-2 transition active:cursor-grabbing ${
                     arrastando === position

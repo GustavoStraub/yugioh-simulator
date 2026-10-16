@@ -62,7 +62,7 @@ export const TIPS: DuelTip[] = [
   {
     id: "ler",
     text:
-      "Passe o mouse (ou toque) numa carta para ler o texto dela. Os termos sublinhados explicam a regra — clique neles.",
+      "Clique (ou toque) numa carta para ler o texto dela. Os termos sublinhados explicam a regra — clique neles.",
     when: () => true,
   },
 ];

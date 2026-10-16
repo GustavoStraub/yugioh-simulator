@@ -132,14 +132,13 @@ export function CardTile({
   data?: Record<string, string | number | boolean | undefined>;
   children?: ReactNode;
 }) {
-  const Tag = onClick ? "button" : "div";
+  const Tag = onClick || onHover ? "button" : "div";
   return (
     <Tag
-      {...(onClick ? { type: "button" as const } : {})}
+      {...(Tag === "button" ? { type: "button" as const } : {})}
       {...data}
       onClick={onClick}
       onClickCapture={() => onHover?.()}
-      onMouseEnter={onHover}
       title={title}
       className={`md-tile ${picked ? "md-tile-picked" : ""} ${actionable ? "md-tile-actionable" : ""} ${
         dimmed ? "md-tile-dim" : ""

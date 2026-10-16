@@ -275,12 +275,8 @@ export function DuelCardSlot({
           // da ordem no arquivo CSS — frágil e difícil de enxergar.
           highlighted ? `tf-slot-active ${INTENT_CLASS[intent]}` : ""
         } ${selected ? "tf-slot-picked" : ""} ${interactive ? "cursor-pointer md-interactive" : ""}`}
-        onMouseEnter={() => onHover?.(card)}
-        onMouseLeave={() => onHover?.(null)}
         onPointerDown={(event) => {
           if (event.pointerType === "mouse" || !card) return;
-          // No toque, tocar é "passar o mouse": a carta vai para a leitura.
-          onHover?.(card);
           longPressed.current = false;
           if (!onLongPress) return;
           cancelarToque();

@@ -181,6 +181,10 @@ button, a, summary { touch-action: manipulation; }
   background: #081429;
 }
 
+.builder-reader-notice {
+  max-height: min(24vh, 180px);
+}
+
 .duel-mobile-guide { display: none; }
 
 /* O duelo ocupa a área segura sem pôr controles sob câmera ou barra de gestos. */
@@ -389,6 +393,8 @@ button, a, summary { touch-action: manipulation; }
   .md-sheet-foot { padding-block: 8px; }
   .tf-modal-area { padding: 8px; }
   .card-reader { max-width: 840px; }
+  .card-reader-actions:has(.builder-reader-notice) { padding: 8px; gap: 6px; }
+  .builder-reader-notice { max-height: 56px; }
   .card-reader > .md-detail { min-height: 0; }
   .card-reader .md-detail, [data-card-sheet] .md-detail { overflow-y: auto; }
   .card-reader .md-detail-art, [data-card-sheet] .md-detail-art { max-height: 110px; width: auto; max-width: 40%; object-fit: contain; }

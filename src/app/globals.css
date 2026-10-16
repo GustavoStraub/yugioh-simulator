@@ -67,6 +67,11 @@ body {
   --tf-panel: color-mix(in oklab, var(--color-zinc-950) 80%, transparent);
 }
 
+.deck-builder [data-builder-selected] {
+  transform: translateY(-4px);
+  box-shadow: 0 0 0 2px var(--tf-gold-bright);
+}
+
 /* Slot vazio de zona — moldura sutil que não compete com a arte da carta. */
 .tf-slot {
   background: var(--tf-slot);

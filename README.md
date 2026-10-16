@@ -213,6 +213,11 @@ coleção e é ele que o adversário vê na mesa. O nome **não** diferencia
 maiúsculas, acentos nem espaços — "Straub", "straub" e "STRAUB" são a mesma
 pessoa, com a mesma biblioteca.
 
+Clique numa carta para ler os detalhes e ampliar a imagem. Passar o mouse não
+troca a leitura; no construtor, adicionar e remover exigem os botões do painel.
+O painel mostra a banlist como aviso e as cópias no deck. O limite de três
+cópias e a capacidade da zona desabilitam **Adicionar** quando atingidos.
+
 - **Biblioteca de decks** — crie, duplique, renomeie e apague quantos quiser.
   Os decks são gravados **pelo servidor** em `.data/decks/<apelido>.json`
   (`straub.json`), não no navegador: limpar os dados do site não leva nada

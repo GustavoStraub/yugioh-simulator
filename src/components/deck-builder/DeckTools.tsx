@@ -135,7 +135,7 @@ export function TestHandDialog({
               const definicao = registry?.get(code);
               const nome = definicao ? texto.name(definicao) : `Carta ${code}`;
               return (
-                <div key={`${code}-${index}`} onMouseEnter={() => onHover(definicao ?? null)} title={nome}>
+                <button type="button" key={`${code}-${index}`} onClick={() => onHover(definicao ?? null)} title={nome}>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={definicao?.images[0]?.image_url_small ?? `/card-images/small/${code}.jpg`}
@@ -143,7 +143,7 @@ export function TestHandDialog({
                     className="aspect-[59/86] w-full rounded-[3px] object-cover"
                   />
                   <p className="mt-0.5 truncate text-[10px] text-zinc-300">{nome}</p>
-                </div>
+                </button>
               );
             })}
           </div>

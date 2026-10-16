@@ -96,11 +96,13 @@ async function main() {
     // --- põe cartas nele ---
     for (let i = 0; i < 5; i += 1) {
       await page.evaluate(`
-        const cartas = [...document.querySelectorAll('button[title^="Adicionar"]')];
+        const cartas = [...document.querySelectorAll('[data-catalog-drop] [data-builder-card]')];
         cartas[${i}]?.click();
         return true;
       `);
       await espera(120);
+      await page.evaluate(`document.querySelector('[data-reader-add]')?.click(); return true;`);
+      await page.evaluate(`document.querySelector('[aria-label="Fechar detalhes da carta"]')?.click(); return true;`);
     }
     await espera(1200); // deixa o debounce gravar
 
@@ -157,13 +159,13 @@ async function main() {
     await page.evaluate(DIGITAR('input[placeholder^="Buscar"]', "mago negro"));
     await espera(500);
     const nomePt = await page.evaluate(`
-      const carta = document.querySelector('button[title^="Adicionar"]');
+      const carta = document.querySelector('[data-catalog-drop] [data-builder-card]');
       return carta?.title ?? "";
     `);
     await page.clickText("EN", "button");
     await espera(500);
     const nomeEn = await page.evaluate(`
-      const carta = document.querySelector('button[title^="Adicionar"]');
+      const carta = document.querySelector('[data-catalog-drop] [data-builder-card]');
       return carta?.title ?? "";
     `);
     conferir(
@@ -186,11 +188,13 @@ async function main() {
     await page.evaluate(DIGITAR('input[placeholder^="Buscar"]', "link spider"));
     await espera(600);
     await page.evaluate(`
-      const carta = [...document.querySelectorAll('button[title^="Adicionar"]')].find((b) => /Link Spider|Link Aranha/.test(b.title));
+      const carta = [...document.querySelectorAll('[data-catalog-drop] [data-builder-card]')].find((b) => /Link Spider|Link Aranha/.test(b.title));
       carta?.click();
       return Boolean(carta);
     `);
     await espera(500);
+    await page.evaluate(`document.querySelector('[data-reader-add]')?.click(); return true;`);
+    await page.evaluate(`document.querySelector('[aria-label="Fechar detalhes da carta"]')?.click(); return true;`);
     const extra = await page.evaluate(`
       const caixa = [...document.querySelectorAll("p")].find((p) => p.textContent.trim() === "Extra");
       return caixa?.parentElement?.textContent.replace(/\s+/g, " ") ?? "";
@@ -283,9 +287,12 @@ async function main() {
     // (600 ms): era assim que o "salvar" ainda pendente chegava ao servidor
     // depois do "apagar" e o deck voltava.
     await page.evaluate(`
-      document.querySelector('button[title^="Adicionar"]')?.click();
+      document.querySelector('[data-catalog-drop] [data-builder-card]')?.click();
       return true;
     `);
+    await espera(100);
+    await page.evaluate(`document.querySelector('[data-reader-add]')?.click(); return true;`);
+    await page.evaluate(`document.querySelector('[aria-label="Fechar detalhes da carta"]')?.click(); return true;`);
     await page.clickText("Apagar");
     await espera(100);
     await page.clickText("Confirmar?");

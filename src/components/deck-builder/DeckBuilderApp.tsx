@@ -46,6 +46,7 @@ import {
   banStatus,
   banlistName,
   banlistSummary,
+  canAddCard,
   cardsOutsidePool,
   countInZone,
   deckLimits,
@@ -115,9 +116,23 @@ export function DeckBuilderApp() {
   /** Ferramenta aberta: mão de teste, estatísticas, importar/exportar. */
   const [ferramenta, setFerramenta] = useState<"mao" | "stats" | "io" | null>(null);
   const [mobileTab, setMobileTab] = useState<"catalog" | "deck" | "library">("catalog");
-  const touchReader = useMediaQuery("(max-width: 1023px), (pointer: coarse)");
-  const [reading, setReading] = useState<{ card: CardDefinition; zone: DeckZone } | null>(null);
+  const [reading, setReading] = useState<{ code: number; zone: DeckZone } | null>(null);
   const closeReading = useCallback(() => setReading(null), []);
+  const readingCard = reading ? registry?.get(reading.code) : undefined;
+  const addResult = reading && readingCard ? canAddCard(deck, readingCard, reading.zone) : null;
+  const readingContext = `${deck.id}:${formato}`;
+  const [previousContext, setPreviousContext] = useState(readingContext);
+  if (previousContext !== readingContext) {
+    setPreviousContext(readingContext);
+    setReading(null);
+    setPreview(null);
+  }
+  function inspect(code: number, target: DeckZone) {
+    setPreview(registry?.get(code) ?? null);
+    setReading({ code, zone: target });
+    setFeedback(null);
+    clearLastActionError();
+  }
 
   // Ctrl+Z (⌘Z no Mac) desfaz a última edição de carta — menos quando o foco
   // está num campo de texto, onde o desfazer é o do próprio campo.
@@ -270,13 +285,8 @@ export function DeckBuilderApp() {
             onZoneChange={setZone}
             registry={registry}
             foraDoPool={foraDoPool}
-            onHover={setPreview}
-            onInspect={touchReader ? (card) => setReading({ card, zone }) : undefined}
-            onRemove={(passcode) => {
-              tryRemoveCard(passcode, zone);
-              setFeedback(null);
-              clearLastActionError();
-            }}
+            selectedCode={reading?.code}
+            onInspect={(code) => inspect(code, zone)}
             onDropFromCatalog={(passcode) => {
               const card = registry?.get(passcode);
               if (card) handleAdd(card);
@@ -323,9 +333,8 @@ export function DeckBuilderApp() {
                   card={card}
                   format={formato}
                   inDeck={countByPasscode.get(card.passcode) ?? 0}
-                  onHover={setPreview}
-                  onAdd={() => handleAdd(card)}
-                  onInspect={touchReader ? () => setReading({ card, zone: zone === "side" ? "side" : getDefaultZone(card) }) : undefined}
+                  selected={reading?.code === card.passcode}
+                  onInspect={() => inspect(card.passcode, zone === "side" ? "side" : getDefaultZone(card))}
                 />
               )}
             />
@@ -335,24 +344,31 @@ export function DeckBuilderApp() {
 
       {reading && (
         <CardDetailsDialog
-          code={reading.card.passcode}
+          code={reading.code}
           registry={registry}
           onClose={closeReading}
           actions={
             <>
+              <div className="builder-reader-notice w-full space-y-1 overflow-y-auto">
               <p role="status" className="w-full text-center text-sm text-zinc-300">
-                {ZONE_TABS.find((tab) => tab.value === reading.zone)?.label} · {deck[reading.zone].find((ref) => ref.passcode === reading.card.passcode)?.quantity ?? 0} cópia(s)
+                {ZONE_TABS.find((tab) => tab.value === reading.zone)?.label} · {deck[reading.zone].find((ref) => ref.passcode === reading.code)?.quantity ?? 0} cópia(s) nesta zona · {countByPasscode.get(reading.code) ?? 0}/3 no deck
               </p>
+              <p data-reader-banlist className="w-full text-center text-sm text-amber-200">
+                {readingCard ? `${translateBanlist(banStatus(readingCard, formato) ?? undefined) ?? "Sem restrição"} · ${banlistName(formato)}.` : "Carta indisponível no catálogo. Você pode removê-la do deck."}
+                {readingCard && " A banlist é apenas um aviso; o construtor permite até 3 cópias."}
+              </p>
+              {addResult && !addResult.ok && <p role="status" className="w-full text-center text-sm text-zinc-300">{addResult.reason}</p>}
               {activeFeedback && <p role="status" className="w-full text-center text-sm text-red-200">{activeFeedback}</p>}
-              <button type="button" data-reader-remove className="md-pill md-pill-ghost flex-1 px-4" disabled={!deck[reading.zone].some((ref) => ref.passcode === reading.card.passcode)} onClick={() => {
-                tryRemoveCard(reading.card.passcode, reading.zone);
+              </div>
+              <button type="button" data-reader-remove className="md-pill md-pill-ghost flex-1 px-4" disabled={!deck[reading.zone].some((ref) => ref.passcode === reading.code)} onClick={() => {
+                tryRemoveCard(reading.code, reading.zone);
                 setFeedback(null);
                 clearLastActionError();
               }}>− Remover</button>
-              <button type="button" data-reader-add className="md-pill md-pill-primary flex-1 px-4" disabled={(countByPasscode.get(reading.card.passcode) ?? 0) >= MAX_COPIES_PER_CARD} onClick={() => {
+              <button type="button" data-reader-add className="md-pill md-pill-primary flex-1 px-4" disabled={!addResult?.ok} onClick={() => {
                 clearLastActionError();
                 setFeedback(null);
-                tryAddCard(reading.card, reading.zone);
+                if (readingCard) tryAddCard(readingCard, reading.zone);
               }}>+ Adicionar</button>
             </>
           }
@@ -955,7 +971,7 @@ function BigCardPreview({
   if (!card) {
     return (
       <div className="tf-panel flex min-h-0 flex-1 items-center justify-center rounded-md p-4 text-center text-[13px] text-zinc-500">
-        Passe o mouse sobre uma carta
+        Clique em uma carta
         <br />
         para ver os detalhes
       </div>
@@ -1025,8 +1041,7 @@ function DeckGrid({
   onZoneChange,
   registry,
   foraDoPool,
-  onHover,
-  onRemove,
+  selectedCode,
   onDropFromCatalog,
   onInspect,
 }: {
@@ -1038,9 +1053,8 @@ function DeckGrid({
   registry: ReturnType<typeof useCardRegistry>["registry"];
   /** Cartas que não são do pool do formato do deck — marcadas em vermelho. */
   foraDoPool: Set<number>;
-  onHover: (card: CardDefinition | null) => void;
-  onRemove: (passcode: number) => void;
-  onInspect?: (card: CardDefinition) => void;
+  selectedCode?: number;
+  onInspect: (code: number) => void;
 }) {
   const texto = useCardText();
   // Uma miniatura por cópia — é assim que o Tag Force mostra o deck, e deixa
@@ -1093,7 +1107,7 @@ function DeckGrid({
           </button>
         ))}
         <span className="builder-deck-hint ml-auto text-[11px] italic text-zinc-500">
-          {onInspect ? "Toque para ler ou editar as cópias" : "clique ou arraste ao catálogo para remover"}
+          Clique para ler ou editar as cópias
         </span>
       </div>
 
@@ -1116,9 +1130,9 @@ function DeckGrid({
                   );
                   event.dataTransfer.effectAllowed = "move";
                 }}
-                onMouseEnter={() => onHover(entry.card ?? null)}
-                onFocus={() => onHover(entry.card ?? null)}
-                onClick={() => onInspect && entry.card ? onInspect(entry.card) : onRemove(entry.passcode)}
+                onClick={() => onInspect(entry.passcode)}
+                data-builder-card={entry.passcode}
+                data-builder-selected={selectedCode === entry.passcode || undefined}
                 title={
                   (entry.card ? texto.name(entry.card) : String(entry.passcode)) +
                   (foraDoPool.has(entry.passcode) ? " — fora do pool deste formato" : "")
@@ -1156,16 +1170,14 @@ function CatalogCard({
   card,
   format,
   inDeck,
-  onHover,
-  onAdd,
   onInspect,
+  selected,
 }: {
   card: CardDefinition;
   format: DuelFormat;
   inDeck: number;
-  onHover: (card: CardDefinition | null) => void;
-  onAdd: () => void;
-  onInspect?: () => void;
+  onInspect: () => void;
+  selected: boolean;
 }) {
   const texto = useCardText();
   const image = card.images[0]?.image_url_small;
@@ -1183,18 +1195,17 @@ function CatalogCard({
         );
         event.dataTransfer.effectAllowed = "copy";
       }}
-      onMouseEnter={() => onHover(card)}
-      onFocus={() => onHover(card)}
-      onClick={onInspect ?? onAdd}
-      disabled={full && !onInspect}
+      onClick={onInspect}
+      data-builder-card={card.passcode}
+      data-builder-selected={selected || undefined}
       title={
         full
           ? `${texto.name(card)} — limite atingido (${maxCopies})`
-          : `Adicionar ${texto.name(card)}`
+          : `Ver ${texto.name(card)}`
       }
       className={`relative block aspect-[59/86] w-full overflow-hidden rounded-[3px] border border-[color:var(--tf-slot-border)] transition ${
         full
-          ? "cursor-not-allowed opacity-35"
+          ? "opacity-60"
           : "hover:ring-2 hover:ring-[color:var(--tf-gold)]"
       }`}
     >

@@ -132,9 +132,8 @@ export function AnnounceCardModal({
                     onClick={() => {
                       playSfx("click");
                       setSelected(card);
+                      onHover?.({ code: card.passcode });
                     }}
-                    onMouseEnter={() => onHover?.({ code: card.passcode })}
-                    onMouseLeave={() => onHover?.(null)}
                     title={texto.name(card)}
                     className={`relative aspect-[59/86] overflow-hidden rounded border-2 transition ${
                       isPicked

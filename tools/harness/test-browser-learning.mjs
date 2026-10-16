@@ -86,13 +86,32 @@ async function main() {
 
     // ---- 2. Glossário ---------------------------------------------------
     console.log("2. Glossário");
+    await page.evaluate(`
+      document.querySelector('.tf-touch-card[data-previewable]')?.dispatchEvent(new MouseEvent('mouseover', { bubbles: true }));
+      return true;
+    `);
+    await espera(100);
+    conferir(!(await page.evaluate(`return Boolean(document.querySelector('[data-preview-owner]'));`)), "#5: hover não abre leitura no duelo");
     const leu = await ate(page, `
       const slot = [...document.querySelectorAll('[data-zone^="0:2:"]')].find((el) => /Tuf|Typhoon/i.test(el.querySelector("img")?.alt ?? ""));
       if (!slot) return null;
-      slot.querySelector(".tf-touch-card").dispatchEvent(new MouseEvent("mouseover", { bubbles: true }));
+      slot.querySelector(".tf-touch-card").click();
       return document.querySelector('[data-glossary-term="target"]') ? true : null;
     `, { tentativas: 20 });
     conferir(Boolean(leu), "o 'alvo' do Tufão aparece sublinhado na leitura da carta");
+    const antes = await page.evaluate(`return document.querySelector('[data-preview-owner] h4')?.textContent;`);
+    await page.evaluate(`
+      [...document.querySelectorAll('.tf-touch-card[data-previewable]')].forEach(c => c.dispatchEvent(new MouseEvent('mouseover', { bubbles: true })));
+      return true;
+    `);
+    await espera(100);
+    conferir((await page.evaluate(`return document.querySelector('[data-preview-owner] h4')?.textContent;`)) === antes,
+      "#5: atravessar outras cartas não troca a leitura escolhida");
+    await page.evaluate(`document.querySelector('[data-preview-owner] [data-card-image-zoom]')?.click(); return true;`);
+    await espera(100);
+    conferir(await page.evaluate(`return Boolean(document.querySelector('[data-card-image-dialog][open]'));`),
+      "#5: a imagem do duelo continua acessível para ampliar");
+    await page.evaluate(`document.querySelector('[aria-label="Fechar imagem ampliada"]')?.click(); return true;`);
     await page.evaluate(`document.querySelector('[data-glossary-term="target"]')?.click(); return true;`);
     await espera(150);
     conferir(

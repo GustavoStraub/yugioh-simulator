@@ -53,9 +53,10 @@ export function DeckPreview({
                   <button
                     key={`${zona.label}-${code}-${index}`}
                     type="button"
-                    onMouseEnter={() => onCardHover?.(code)}
-                    onFocus={() => onCardHover?.(code)}
-                    onClick={() => inspect?.(code)}
+                    onClick={() => {
+                      onCardHover?.(code);
+                      inspect?.(code);
+                    }}
                     title={nome}
                     aria-label={nome}
                     className="aspect-[59/86] overflow-hidden rounded-[3px] border border-zinc-800 transition hover:ring-2 hover:ring-amber-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500"
