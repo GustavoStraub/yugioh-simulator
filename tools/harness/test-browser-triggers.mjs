@@ -237,6 +237,24 @@ async function main() {
     console.log("1. Halqifibrax com o Swap Cleric: os dois gatilhos");
     await invocarHalqi(C.cleric, /Swap Cleric/);
     let tela = await esperar((t) => t.cartasNoPainel.length >= 2);
+    for (const [width, height] of [[1440, 900], [1920, 1080], [844, 390], [390, 844]]) {
+      await page.setViewport(width, height);
+      await sleep(300);
+      const bounds = await page.evaluate(`
+        const p = document.querySelector('[data-chain-response]')?.getBoundingClientRect();
+        const f = document.querySelector('[data-field]')?.getBoundingClientRect();
+        return p && f ? { panel: p.width, field: f.width, left: p.left, right: p.right } : null;
+      `);
+      conferir(bounds && bounds.panel >= Math.min(980, bounds.field - 24) - 4 && bounds.left >= 0 && bounds.right <= width,
+        `#8: painel aproveita o campo sem transbordar em ${width}×${height}`, JSON.stringify(bounds));
+    }
+    await page.setViewport(1440, 900);
+    await page.evaluate(`document.querySelector('[data-chain-card]')?.click(); return true;`);
+    await sleep(100);
+    await page.evaluate(`document.querySelector('[data-chain-response] [aria-label="Ver em grade"]')?.click(); return true;`);
+    await sleep(100);
+    conferir(await page.evaluate(`return Boolean(document.querySelector('[data-chain-response] .md-strip-grid .md-tile-picked'));`),
+      "#8: alternar para grade preserva a carta selecionada");
     await fotografar("dois-gatilhos");
     conferir(
       tela.cartasNoPainel.some((n) => /Halqifibrax/.test(n)) && tela.cartasNoPainel.some((n) => /Swap Cleric/.test(n)),

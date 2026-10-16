@@ -3561,6 +3561,7 @@ function ChainResponseBar({
 }) {
   const texto = useCardText();
   const [recolhida, setRecolhida] = useState(false);
+  const [grade, setGrade] = useState(false);
   const [escolhida, setEscolhida] = useState<string | null>(null);
   const definition = chain ? registry?.get(chain.code) : undefined;
   const nome = definition ? texto.name(definition) : chain ? `Carta ${chain.code}` : null;
@@ -3616,6 +3617,8 @@ function ChainResponseBar({
       tone={doOponente ? "foe" : "neutral"}
       onPeek={() => setRecolhida(true)}
       className="md-sheet-chain"
+      areaClassName="md-chain-area"
+      tabs={<GridTab grid={grade} onToggle={() => setGrade((g) => !g)} />}
       sheetProps={{ "data-chain-response": true, "data-menu-avoid": true }}
       head={
         <div className="flex items-center gap-3">
@@ -3679,7 +3682,7 @@ function ChainResponseBar({
       }
     >
       {cartas.length > 0 && (
-        <CardStrip>
+        <CardStrip grid={grade}>
           {cartas.map(([key, acoes]) => {
             const primeira = acoes[0];
             const def = registry?.get(primeira.code);

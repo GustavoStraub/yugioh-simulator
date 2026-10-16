@@ -2377,7 +2377,13 @@
 }
 
 .md-sheet-chain {
-  width: min(880px, 100%);
+  width: min(980px, 100%);
+}
+
+/* Este painel já mora no campo, que desconta os trilhos laterais. */
+.md-field .md-chain-area.tf-modal-area {
+  left: 0;
+  right: 0;
 }
 
 .md-sheet-chain .md-sheet-head {

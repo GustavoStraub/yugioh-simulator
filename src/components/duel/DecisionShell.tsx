@@ -96,6 +96,7 @@ export function DecisionSheet({
   tabs,
   className = "",
   sheetProps,
+  areaClassName = "",
 }: {
   label: string;
   hidden?: boolean;
@@ -117,6 +118,8 @@ export function DecisionSheet({
   className?: string;
   /** Atributos `data-*` do painel (os testes acham a decisão por eles). */
   sheetProps?: Record<string, string | number | boolean | undefined>;
+  /** Quando o painel já está dentro do campo, não desconta os trilhos de novo. */
+  areaClassName?: string;
 }) {
   const boxRef = useFocoAoAbrir(hidden);
 
@@ -164,7 +167,7 @@ export function DecisionSheet({
   return (
     <div
       hidden={hidden}
-      className={`md-sheet-area tf-modal-area z-50 flex items-end justify-center ${
+      className={`md-sheet-area tf-modal-area z-50 flex items-end justify-center ${areaClassName} ${
         modal ? "md-sheet-scrim" : "pointer-events-none"
       }`}
     >
