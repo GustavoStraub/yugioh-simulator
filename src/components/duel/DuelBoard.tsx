@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 
 import {
   OcgLocation,
@@ -1513,11 +1513,9 @@ export function DuelBoard({
           <div className="shrink-0">{engrenagem}</div>
           <div className="relative flex min-w-0 flex-1">
             {placaMinha}
-            <FlashLayer flashes={flashes} anchor="player" />
           </div>
           <div className="relative flex min-w-0 flex-1">
             {placaDoOponente}
-            <FlashLayer flashes={flashes} anchor="opponent" />
           </div>
         </div>
       )}
@@ -1530,7 +1528,6 @@ export function DuelBoard({
             <div className="md-landscape-player relative flex shrink-0 items-center gap-1.5">
               {engrenagem}
               {placaMinha}
-              <FlashLayer flashes={flashes} anchor="player" />
             </div>
             {cartaEmLeitura?.code ? (
               <DuelCardPreview
@@ -1582,6 +1579,8 @@ export function DuelBoard({
           )}
 
           <FlashLayer flashes={flashes} anchor="center" />
+          <FlashLayer flashes={flashes} anchor="player" zonePlayer={me} />
+          <FlashLayer flashes={flashes} anchor="opponent" zonePlayer={foeSeat} />
 
           {/* Dica de primeira vez — acima dos diálogos (é deles que ela fala),
               no canto, sem tapar a jogada. */}
@@ -1987,7 +1986,6 @@ export function DuelBoard({
 
             <div className="md-hud-foe absolute z-[45]">
               {placaDoOponente}
-              <FlashLayer flashes={flashes} anchor="opponent" />
               {/* Altura reservada: o aviso entra e sai a cada jogada do
                   oponente, e sem a reserva o resto pulava junto. */}
               <div className="flex h-6 justify-end pr-2 pt-1">
@@ -1997,7 +1995,6 @@ export function DuelBoard({
 
             <div className="md-hud-me absolute z-[45]">
               {placaMinha}
-              <FlashLayer flashes={flashes} anchor="player" up />
             </div>
 
             <div className="md-hud-phase absolute z-[46]" style={{ top: centroDaMesa ?? undefined }}>
@@ -2014,7 +2011,6 @@ export function DuelBoard({
             {leituraLateral && (
               <div className="md-landscape-opponent relative w-full shrink-0">
                 {placaDoOponente}
-                <FlashLayer flashes={flashes} anchor="opponent" />
               </div>
             )}
             <div className="md-rail-actions flex min-h-0 flex-1 flex-col items-center justify-center gap-2">
@@ -2972,31 +2968,56 @@ function TossOverlay({
 
 /**
  * Os números que saltam na mesa: o dano grande e vermelho (e a cura verde) do
- * Master Duel, junto da placa de LP de quem foi atingido; e os avisos do
+ * Master Duel, no centro do campo de quem foi atingido; e os avisos do
  * centro, quando houver.
  */
 function FlashLayer({
   flashes,
   anchor,
-  up = false,
+  zonePlayer,
 }: {
   flashes: DuelFlash[];
   anchor: DuelFlash["anchor"];
-  /** Junto de uma placa no canto de baixo: o número sobe em vez de descer. */
-  up?: boolean;
+  /** Assento absoluto de quem foi afetado (a mesa cuida da perspectiva). */
+  zonePlayer?: 0 | 1;
 }) {
+  const layerRef = useRef<HTMLDivElement>(null);
   const visible = flashes.filter((flash) => flash.anchor === anchor);
+  useLayoutEffect(() => {
+    if (anchor === "center" || zonePlayer === undefined || visible.length === 0) return;
+    const layer = layerRef.current;
+    const field = layer?.parentElement;
+    // Mede a zona central de Magia/Armadilha já projetada pela câmera. Assim
+    // o aviso acompanha a perspectiva, os dois assentos e a rotação da tela.
+    const zone = field?.querySelector(`[data-zone="${zonePlayer}:${OcgLocation.SZONE}:2"]`);
+    if (!layer || !field || !zone) return;
+    const position = () => {
+      const bounds = field.getBoundingClientRect();
+      const target = zone.getBoundingClientRect();
+      layer.style.left = `${target.left + target.width / 2 - bounds.left}px`;
+      layer.style.top = `${target.top + target.height / 2 - bounds.top}px`;
+    };
+    position();
+    const observer = new ResizeObserver(position);
+    observer.observe(field);
+    observer.observe(zone);
+    window.addEventListener("resize", position);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("resize", position);
+    };
+  }, [anchor, zonePlayer, visible.length]);
   if (visible.length === 0) return null;
   const centered = anchor === "center";
 
   return (
     <div
+      ref={layerRef}
+      data-flash-anchor={anchor}
       className={`pointer-events-none absolute z-40 flex ${
         centered
           ? "inset-0 items-center justify-center"
-          : up
-            ? "bottom-full left-0 right-0 items-end justify-center pb-2"
-            : "left-0 right-0 top-full items-start justify-center pt-1"
+          : "md-flash-field items-center justify-center"
       }`}
     >
       <div className="flex flex-col items-center gap-1">

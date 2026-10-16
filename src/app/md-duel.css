@@ -4443,7 +4443,17 @@ button.md-tile:hover .md-tile-card {
   }
 }
 
-/* Os números de dano e de cura, junto da placa de LP. */
+/* Dano e cura sobre a zona central de cada lado, na projeção da mesa. */
+.md-flash-field {
+  left: 50%;
+  top: 75%;
+  transform: translate(-50%, -50%);
+}
+
+.md-flash-field[data-flash-anchor="opponent"] {
+  top: 25%;
+}
+
 .md-flash-number {
   font-family: var(--font-md-digits), var(--font-geist-mono), monospace;
   font-size: clamp(34px, 5.4vh, 72px);

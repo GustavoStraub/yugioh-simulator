@@ -423,7 +423,7 @@ export function useDuelFeedback(
         }
         case "damage":
           pushFlash(
-            `${event.amount}`,
+            `−${event.amount}`,
             event.player === me ? "bad" : "good",
             dur(LIFE_POINT_MS),
             event.player === me ? "player" : "opponent",
