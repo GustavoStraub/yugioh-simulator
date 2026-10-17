@@ -8,6 +8,14 @@ por deck. Cada guia mantém a lista exata de seu preset.
 O conteúdo é carregado dos JSONs do projeto; pesquisar as fontes é uma etapa
 de autoria, sem consulta ou geração de aulas durante a navegação do jogador.
 
+Cada deck tem uma dificuldade editorial em `deck-learning-base.json`, exibida
+nos cards e no guia e incluída na busca. A classificação considera a lista
+oficial e as estratégias ensinadas: **Iniciante** para planos diretos e poucas
+etapas; **Intermediário** para combinação de efeitos, materiais e recuperação;
+**Avançado** para sequências ramificadas, restrições e gestão de recursos mais
+exigentes. O nível indica a complexidade para pilotar, não a força competitiva
+do deck nem a duração da leitura.
+
 ## Organização
 
 - `src/data/deck-guides/<slug>.json`: os quatro guias com exercícios na mesa.

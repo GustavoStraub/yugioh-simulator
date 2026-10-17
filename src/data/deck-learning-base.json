@@ -4979,6 +4979,7 @@
   "decks": [
     {
       "id": "tcg-ysds",
+      "difficulty": "Iniciante",
       "presetId": "tcg-ysds",
       "title": "Starter Deck: Syrus Truesdale",
       "gamePlan": "Preservar presença na batalha e reciclar roids da lista com Expressroid e Ambulanceroid; estratégia de atrito, sem Fusões.",
@@ -5137,6 +5138,7 @@
     },
     {
       "id": "tcg-5ds1",
+      "difficulty": "Iniciante",
       "presetId": "tcg-5ds1",
       "title": "Starter Deck: Yu-Gi-Oh! 5D's",
       "gamePlan": "Reanimar um monstro pequeno com Junk Synchron e convertê-lo em Junk Warrior; o restante da mesa pode aumentar o ATK do Sincro.",
@@ -5283,6 +5285,7 @@
     },
     {
       "id": "tcg-5ds2",
+      "difficulty": "Intermediário",
       "presetId": "tcg-5ds2",
       "title": "Starter Deck: Yu-Gi-Oh! 5D's 2009",
       "gamePlan": "Usar Road Synchron e corpos pequenos para Road Warrior; o chefe traz outro Guerreiro ou Máquina pequeno do Deck.",
@@ -5441,6 +5444,7 @@
     },
     {
       "id": "tcg-5ds3",
+      "difficulty": "Intermediário",
       "presetId": "tcg-5ds3",
       "title": "Starter Deck: Duelist Toolbox",
       "gamePlan": "Reviver Reguladores Synchron e aproveitar vários não-Reguladores para remover cartas com Junk Destroyer.",
@@ -5604,6 +5608,7 @@
     },
     {
       "id": "tcg-ys11",
+      "difficulty": "Iniciante",
       "presetId": "tcg-ys11",
       "title": "Starter Deck: Dawn of the Xyz",
       "gamePlan": "Converter pares de níveis iguais em Xyz; escolher entre defesa com Gachi Gachi e pressão com Utopia.",
@@ -5749,6 +5754,7 @@
     },
     {
       "id": "tcg-ys12",
+      "difficulty": "Iniciante",
       "presetId": "tcg-ys12",
       "title": "Starter Deck: Xyz Symphony",
       "gamePlan": "Goblindbergh e Gogogo Giant produzem pares para Xyz; os Djinn oferecem respostas diferentes de Utopia.",
@@ -5913,6 +5919,7 @@
     },
     {
       "id": "tcg-yskr",
+      "difficulty": "Iniciante",
       "presetId": "tcg-yskr",
       "title": "Deck Inicial - Kaiba Reloaded",
       "gamePlan": "Acessar Blue-Eyes por Tributo eficiente e reciclar Dragões Normais; uma estratégia simples de monstros grandes.",
@@ -6077,6 +6084,7 @@
     },
     {
       "id": "tcg-ysyr",
+      "difficulty": "Iniciante",
       "presetId": "tcg-ysyr",
       "title": "Deck Inicial - Yugi Reloaded",
       "gamePlan": "Alternar vantagem de cartas com Gadgets e acesso ao Dark Magician usando as Magias da própria lista.",
@@ -6252,6 +6260,7 @@
     },
     {
       "id": "tcg-ys13",
+      "difficulty": "Iniciante",
       "presetId": "tcg-ys13",
       "title": "Super Deck Inicial: V de Vitória",
       "gamePlan": "Ajustar níveis com Gagaga para Utopia e reservar Utopia Ray como finalização condicional.",
@@ -6405,6 +6414,7 @@
     },
     {
       "id": "tcg-ys16",
+      "difficulty": "Intermediário",
       "presetId": "tcg-ys16",
       "title": "Deck Inicial - Yuya",
       "gamePlan": "Montar escalas Performapal, repor a mão e devolver monstros Pêndulo ao campo para pressão de batalha.",
@@ -6552,6 +6562,7 @@
     },
     {
       "id": "tcg-ys17",
+      "difficulty": "Intermediário",
       "presetId": "tcg-ys17",
       "title": "Deck Inicial: Ataque Link",
       "gamePlan": "Transformar Draconnet e um Monstro Normal em materiais Link, ampliando a mesa com Linkslayer.",
@@ -6732,6 +6743,7 @@
     },
     {
       "id": "tcg-ys18",
+      "difficulty": "Intermediário",
       "presetId": "tcg-ys18",
       "title": "Deck Inicial: Decifrador de Códigos",
       "gamePlan": "Combinar extensores Ciberso com Link Spider para chegar a Transcode Talker e recuperar um Link já usado.",
@@ -6900,6 +6912,7 @@
     },
     {
       "id": "tcg-sd5",
+      "difficulty": "Iniciante",
       "presetId": "tcg-sd5",
       "title": "Structure Deck: Warrior's Triumph",
       "gamePlan": "Buscar Guerreiros adequados à mesa e reaproveitar Equipamentos; os ataques múltiplos de Mataza tornam os bônus relevantes.",
@@ -7050,6 +7063,7 @@
     },
     {
       "id": "tcg-sd09",
+      "difficulty": "Iniciante",
       "presetId": "tcg-sd09",
       "title": "Structure Deck: Dinosaur's Rage",
       "gamePlan": "Usar destruição e banimento de Dinossauros como recursos, alternando Hydrogeddon e Tyranno Infinity.",
@@ -7205,6 +7219,7 @@
     },
     {
       "id": "tcg-sd7",
+      "difficulty": "Iniciante",
       "presetId": "tcg-sd7",
       "title": "Structure Deck: Invincible Fortress",
       "gamePlan": "Reutilizar efeitos de virar monstros Rocha e controlar o campo com Guardian Sphinx, usando Exxod como dano adicional.",
@@ -7356,6 +7371,7 @@
     },
     {
       "id": "tcg-sd8",
+      "difficulty": "Iniciante",
       "presetId": "tcg-sd8",
       "title": "Structure Deck: Lord of the Storm",
       "gamePlan": "Aproveitar Harpie Lady e o Campo para limpar retaguarda, protegendo os monstros enquanto pressiona por batalha.",
@@ -7508,6 +7524,7 @@
     },
     {
       "id": "tcg-sd6",
+      "difficulty": "Iniciante",
       "presetId": "tcg-sd6",
       "title": "Structure Deck: Spellcaster's Judgment",
       "gamePlan": "Acumular Marcadores de Magia e converter Magias em vantagem com Breaker e Skilled Dark Magician.",
@@ -7659,6 +7676,7 @@
     },
     {
       "id": "tcg-sdrl",
+      "difficulty": "Intermediário",
       "presetId": "tcg-sdrl",
       "title": "Rise of the Dragon Lords Structure Deck",
       "gamePlan": "Enviar Dragões grandes ao Cemitério e reanimá-los; Felgrand original exige passagem anterior pelo campo.",
@@ -7813,6 +7831,7 @@
     },
     {
       "id": "tcg-sd10",
+      "difficulty": "Iniciante",
       "presetId": "tcg-sd10",
       "title": "Structure Deck: Machine Re-Volt",
       "gamePlan": "Manter reposição de mão com Gadgets e aproveitar seus benefícios como Tributos para Ancient Gear Gadjiltron Dragon.",
@@ -7970,6 +7989,7 @@
     },
     {
       "id": "tcg-sdde",
+      "difficulty": "Intermediário",
       "presetId": "tcg-sdde",
       "title": "The Dark Emperor Structure Deck",
       "gamePlan": "Banir monstros que retornam na Fase Final para manter Tributos recorrentes, combinando D.D. Survivor e Caius.",
@@ -8133,6 +8153,7 @@
     },
     {
       "id": "tcg-sdzw",
+      "difficulty": "Intermediário",
       "presetId": "tcg-sdzw",
       "title": "Zombie World Structure Deck",
       "gamePlan": "Transformar o campo e os Cemitérios em Zumbis para reanimar recursos e explorar o tipo dos monstros adversários.",
@@ -8286,6 +8307,7 @@
     },
     {
       "id": "tcg-sdsc",
+      "difficulty": "Intermediário",
       "presetId": "tcg-sdsc",
       "title": "Spellcaster's Command Structure Deck",
       "gamePlan": "Guardar Marcadores em Magical Citadel e gastá-los para invocar Endymion e recuperar uma Magia.",
@@ -8431,6 +8453,7 @@
     },
     {
       "id": "tcg-sdws",
+      "difficulty": "Intermediário",
       "presetId": "tcg-sdws",
       "title": "Warriors' Strike Structure Deck",
       "gamePlan": "Usar Supervise para habilitar efeitos Gemini e converter sua saída em reanimação de um Monstro Normal.",
@@ -8580,6 +8603,7 @@
     },
     {
       "id": "tcg-sdmm",
+      "difficulty": "Iniciante",
       "presetId": "tcg-sdmm",
       "title": "Machina Mayhem Structure Deck",
       "gamePlan": "Gearframe busca Fortress, que transforma Máquinas da mão em pressão e retorna do Cemitério.",
@@ -8736,6 +8760,7 @@
     },
     {
       "id": "tcg-sdma",
+      "difficulty": "Iniciante",
       "presetId": "tcg-sdma",
       "title": "Structure Deck: Marik",
       "gamePlan": "Usar Gravekeeper's Spy e Necrovalley para estabelecer presença e restringir o Cemitério; não tratar a lista como um motor Ra moderno.",
@@ -8887,6 +8912,7 @@
     },
     {
       "id": "tcg-sddl",
+      "difficulty": "Intermediário",
       "presetId": "tcg-sddl",
       "title": "Dragunity Legion Structure Deck",
       "gamePlan": "Equipar Dragões Dragunity aos portadores e converter Aklys em remoção, sem acrescentar Sincros ausentes do produto.",
@@ -9043,6 +9069,7 @@
     },
     {
       "id": "tcg-sdgu",
+      "difficulty": "Intermediário",
       "presetId": "tcg-sdgu",
       "title": "Gates of the Underworld Structure Deck",
       "gamePlan": "Descartar Dark World por efeitos para buscar, comprar e colocar Grapha repetidamente no campo.",
@@ -9197,6 +9224,7 @@
     },
     {
       "id": "tcg-sdls",
+      "difficulty": "Intermediário",
       "presetId": "tcg-sdls",
       "title": "Lost Sanctuary Structure Deck",
       "gamePlan": "Earth encontra Agents; Venus fornece corpos pequenos e Hyperion converte Fadas no Cemitério em invocação e remoção.",
@@ -9344,6 +9372,7 @@
     },
     {
       "id": "tcg-sddc",
+      "difficulty": "Intermediário",
       "presetId": "tcg-sddc",
       "title": "Dragons Collide Structure Deck",
       "gamePlan": "Preparar LUZ e TREVAS no Cemitério para Dragões Chaos e recuperar ameaças de Nível alto.",
@@ -9517,6 +9546,7 @@
     },
     {
       "id": "tcg-sdre",
+      "difficulty": "Intermediário",
       "presetId": "tcg-sdre",
       "title": "Realm of the Sea Emperor Structure Deck",
       "gamePlan": "Enviar Atlanteans ao Cemitério para ativar efeitos de monstros de ÁGUA, gerando busca e destruição junto da ação principal.",
@@ -9699,6 +9729,7 @@
     },
     {
       "id": "tcg-sdwa",
+      "difficulty": "Intermediário",
       "presetId": "tcg-sdwa",
       "title": "Samurai Warlords Structure Deck",
       "gamePlan": "Reunir Six Samurai de nomes diferentes para liberar extensores e converter Invocações em marcadores de vantagem.",
@@ -9866,6 +9897,7 @@
     },
     {
       "id": "tcg-sdok",
+      "difficulty": "Intermediário",
       "presetId": "tcg-sdok",
       "title": "Investida dos Reis de Fogo Deck Estrutural",
       "gamePlan": "Destruir os próprios FIRE para ativar reposição e o retorno de Garunix; vencer por pressão recorrente e limpezas de campo.",
@@ -10027,6 +10059,7 @@
     },
     {
       "id": "tcg-sdbe",
+      "difficulty": "Intermediário",
       "presetId": "tcg-sdbe",
       "title": "Saga do Dragão Branco de Olhos Azuis Deck Estrutural",
       "gamePlan": "Transformar o efeito de Maiden e a soma de níveis em Blue-Eyes e Azure-Eyes; preservar Dragões Normais para reanimação.",
@@ -10176,6 +10209,7 @@
     },
     {
       "id": "tcg-sdcr",
+      "difficulty": "Intermediário",
       "presetId": "tcg-sdcr",
       "title": "Revolução do Dragão Cibernético Deck Estrutural",
       "gamePlan": "Core encontra suporte e Drei iguala os Níveis para Nova; preservar recursos de Máquina para reanimação ou Fusão.",
@@ -10350,6 +10384,7 @@
     },
     {
       "id": "tcg-sdgr",
+      "difficulty": "Iniciante",
       "presetId": "tcg-sdgr",
       "title": "Ofensiva Engrenagi Deck Estrutural",
       "gamePlan": "Usar Geargiarmor para buscas recorrentes e Geargiaccelerator para transformar presença em Gear Gigant X.",
@@ -10512,6 +10547,7 @@
     },
     {
       "id": "tcg-sdli",
+      "difficulty": "Intermediário",
       "presetId": "tcg-sdli",
       "title": "Reino da Luz Deck Estrutural",
       "gamePlan": "Enviar Lightsworn por efeitos para alimentar o Cemitério, reviver com Lumina e alcançar Judgment Dragon ou Michael.",
@@ -10675,6 +10711,7 @@
     },
     {
       "id": "tcg-sdhs",
+      "difficulty": "Intermediário",
       "presetId": "tcg-sdhs",
       "title": "Ataque do HERÓI Deck Estrutural",
       "gamePlan": "Invocar Shadow Mist especialmente para encontrar Mask Change e construir Dark Law, respeitando a escolha de um único efeito de Mist por turno.",
@@ -10848,6 +10885,7 @@
     },
     {
       "id": "tcg-sdmp",
+      "difficulty": "Avançado",
       "presetId": "tcg-sdmp",
       "title": "Mestre do Pêndulo Deck Estrutural",
       "gamePlan": "Montar escalas Magician com busca e recuperação, escolhendo a rota de Sincro ou Classe 7 conforme os níveis disponíveis.",
@@ -11025,6 +11063,7 @@
     },
     {
       "id": "tcg-sdse",
+      "difficulty": "Avançado",
       "presetId": "tcg-sdse",
       "title": "Sincron Extremo Deck Estrutural",
       "gamePlan": "Reciclar Reguladores Synchron e construir uma Sincro Reguladora junto de outra Sincro para chegar a Stardust Warrior.",
@@ -11191,6 +11230,7 @@
     },
     {
       "id": "tcg-sr01",
+      "difficulty": "Intermediário",
       "presetId": "tcg-sr01",
       "title": "Imperador das Trevas Deck Estrutural",
       "gamePlan": "Gerar dois corpos com Edea/Eidos e usar Tributos de Monarch para remover recursos, com Domain restringindo o Extra adversário.",
@@ -11367,6 +11407,7 @@
     },
     {
       "id": "tcg-sr02",
+      "difficulty": "Intermediário",
       "presetId": "tcg-sr02",
       "title": "Renascimento dos Verdadeiros Dragões Deck Estrutural",
       "gamePlan": "Preparar Dragões de Nível 7/8 no Cemitério e reanimar Felgrand ou Arkbrave para remoção e continuidade.",
@@ -11532,6 +11573,7 @@
     },
     {
       "id": "tcg-sdks",
+      "difficulty": "Intermediário",
       "presetId": "tcg-sdks",
       "title": "Deck Estrutural: Seto Kaiba",
       "gamePlan": "Fazer circular A, B e C entre campo e Cemitério para ABC-Dragon Buster; os Unions repõem peças quando deixam o campo.",
@@ -11705,6 +11747,7 @@
     },
     {
       "id": "tcg-sdmy",
+      "difficulty": "Intermediário",
       "presetId": "tcg-sdmy",
       "title": "Deck Estrutural: Yugi Muto",
       "gamePlan": "Os Electromagnet Warriors buscam e desenvolvem peças para Berserkion, depois trocam-se por Magnet Warriors durante o turno adversário.",
@@ -11862,6 +11905,7 @@
     },
     {
       "id": "tcg-sr04",
+      "difficulty": "Intermediário",
       "presetId": "tcg-sr04",
       "title": "Deck Estrutural Fúria do Dinosmagador",
       "gamePlan": "Oviraptor busca ou prepara o Cemitério; Ultimate Conductor Tyranno transforma a destruição dos próprios Dinossauros em pressão.",
@@ -12034,6 +12078,7 @@
     },
     {
       "id": "tcg-sr03",
+      "difficulty": "Iniciante",
       "presetId": "tcg-sr03",
       "title": "Deck Estrutural Reação das Máquinas",
       "gamePlan": "Buscar Ancient Gear e destruir Geartown ou Ancient Gear Fortress para trazer Reactor Dragon; atacar reduzindo respostas de retaguarda.",
@@ -12200,6 +12245,7 @@
     },
     {
       "id": "tcg-sdpd",
+      "difficulty": "Avançado",
       "presetId": "tcg-sdpd",
       "title": "Dominação Pêndulo Deck Estrutural",
       "gamePlan": "Kepler encontra Contratos, Gate busca D/D e Lamia viabiliza Siegfried usando um D/D/D não-Regulador; administrar os custos da Fase de Apoio.",
@@ -12385,6 +12431,7 @@
     },
     {
       "id": "tcg-sdcl",
+      "difficulty": "Intermediário",
       "presetId": "tcg-sdcl",
       "title": "Deck Estrutural: Link Ciberso",
       "gamePlan": "Gerar materiais Ciberso com Balancer Lord e Dotscaper, alinhando Links para aproveitar efeitos de ligação mútua.",
@@ -12556,6 +12603,7 @@
     },
     {
       "id": "tcg-sr06",
+      "difficulty": "Intermediário",
       "presetId": "tcg-sr06",
       "title": "Deck Estrutural: Covil das Trevas",
       "gamePlan": "Lair of Darkness permite pagar custos de Tributo com um monstro adversário de TREVAS; Lilith e Diabolos convertem esses Tributos em controle.",
@@ -12708,6 +12756,7 @@
     },
     {
       "id": "tcg-sdpl",
+      "difficulty": "Intermediário",
       "presetId": "tcg-sdpl",
       "title": "Deck Estrutural: Podercodificar Link",
       "gamePlan": "Produzir corpos de Ciberso e Fichas para Powercode Talker; aproveitar Sea Archiver quando uma invocação ocorrer em zona apontada.",
@@ -12870,6 +12919,7 @@
     },
     {
       "id": "tcg-sr05",
+      "difficulty": "Intermediário",
       "presetId": "tcg-sr05",
       "title": "Deck Estrutural: Onda de Luz",
       "gamePlan": "Manter Fadas de benefício no campo e trocar Counter Traps por negação, compra e aumento de ATK.",
@@ -13034,6 +13084,7 @@
     },
     {
       "id": "tcg-sr07",
+      "difficulty": "Intermediário",
       "presetId": "tcg-sr07",
       "title": "Deck Estrutural: Horda Zumbi",
       "gamePlan": "Estabelecer Zombie World e Doomking, enviando Banshee e Bloom ao Cemitério com o motor Uni-Zombie.",
@@ -13221,6 +13272,7 @@
     },
     {
       "id": "tcg-sr08",
+      "difficulty": "Avançado",
       "presetId": "tcg-sr08",
       "title": "Deck Estrutural: Ordem dos Magos",
       "gamePlan": "Ativar Magias para alimentar escalas Endymion e converter três marcadores de Servant em dois monstros, preservando acesso à negação.",
@@ -13383,6 +13435,7 @@
     },
     {
       "id": "tcg-sdrr",
+      "difficulty": "Intermediário",
       "presetId": "tcg-sdrr",
       "title": "Deck Estrutural: Revolta do Foguette",
       "gamePlan": "Quick Launch e Tracer desenvolvem Rokkets; usar destruição planejada para substituir os corpos e construir Borreload ou Furious.",
@@ -13564,6 +13617,7 @@
     },
     {
       "id": "tcg-sdsb",
+      "difficulty": "Avançado",
       "presetId": "tcg-sdsb",
       "title": "Deck Estrutural: Queima-almas",
       "gamePlan": "Gazelle prepara o Cemitério; Sanctuary permite reencarnação de Link e recuperar Roar para negar uma ação adversária.",
@@ -13757,6 +13811,7 @@
     },
     {
       "id": "tcg-sr10",
+      "difficulty": "Intermediário",
       "presetId": "tcg-sr10",
       "title": "Deck Estrutural: Loucura Mecanizada",
       "gamePlan": "Descartar Máquinas prepara Fortress e Citadel; destruir suas Máquinas de TERRA permite que Citadel retorne e limpe monstros.",
@@ -13916,6 +13971,7 @@
     },
     {
       "id": "tcg-sdsa",
+      "difficulty": "Iniciante",
       "presetId": "tcg-sdsa",
       "title": "Deck Estrutural: Bestas Sagradas",
       "gamePlan": "Usar Dark Beckoning Beast e Spirit Gates para acessar os invocadores das Bestas Sagradas e manter Fallen Paradise.",
@@ -14103,6 +14159,7 @@
     },
     {
       "id": "tcg-sdsh",
+      "difficulty": "Avançado",
       "presetId": "tcg-sdsh",
       "title": "Deck Estrutural: Confronto Sombraneco",
       "gamePlan": "Fundir usando Shaddolls enviados por efeito para encadear vantagem; escolher Construct, Winda ou Apkallone conforme a interação necessária.",
@@ -14292,6 +14349,7 @@
     },
     {
       "id": "tcg-sdch",
+      "difficulty": "Iniciante",
       "presetId": "tcg-sdch",
       "title": "Deck Estrutural: Encantadoras Espirituais",
       "gamePlan": "Reunir Atributos diferentes para Awakening of the Possessed e usar Possessed Partnerships como reanimação e remoção.",
@@ -14454,6 +14512,7 @@
     },
     {
       "id": "tcg-sdcs",
+      "difficulty": "Avançado",
       "presetId": "tcg-sdcs",
       "title": "Deck Estrutural: Golpe Cibernético",
       "gamePlan": "Cyberdark Claw e Realm encontram o motor; Horizon prepara Cyber End no Cemitério e Chimera habilita Power Bond com materiais do Cemitério.",
@@ -14669,6 +14728,7 @@
     },
     {
       "id": "tcg-sdfc",
+      "difficulty": "Intermediário",
       "presetId": "tcg-sdfc",
       "title": "Deck Estrutural: Correntes Glaciais",
       "gamePlan": "Revealer traz um Regulador, Speaker estende a mesa e Hexa ajusta níveis para as Sincros Ice Barrier presentes no Extra.",
@@ -14841,6 +14901,7 @@
     },
     {
       "id": "tcg-sdaz",
+      "difficulty": "Intermediário",
       "presetId": "tcg-sdaz",
       "title": "Deck Estrutural: Golpe de Arbaz",
       "gamePlan": "Acessar Branded Fusion, escolher a rota até Mirrorjade e administrar os recursos de Albaz para interagir e continuar em turnos posteriores.",
@@ -15425,6 +15486,7 @@
     },
     {
       "id": "tcg-sr13",
+      "difficulty": "Avançado",
       "presetId": "tcg-sr13",
       "title": "Deck Estrutural: Mundo Negro",
       "gamePlan": "Genta e Gates encadeiam descartes por efeito; a nova Fusão Grapha converte materiais do Cemitério em uma interação que também pode ativar Dark World.",
@@ -15615,6 +15677,7 @@
     },
     {
       "id": "tcg-sdcb",
+      "difficulty": "Intermediário",
       "presetId": "tcg-sdcb",
       "title": "Deck Estrutural: Lenda das Feras Cristalinas",
       "gamePlan": "Sapphire Pegasus e Crystal Bond alimentam as Zonas de Magias/Armadilhas; Rainbow Bridge of the Heart transforma essa presença em busca e devolução.",
@@ -15800,6 +15863,7 @@
     },
     {
       "id": "tcg-sdbt",
+      "difficulty": "Intermediário",
       "presetId": "tcg-sdbt",
       "title": "Deck Estrutural: Cuidado com Armadilhatrix",
       "gamePlan": "Sera converte Armadilhas Normais em monstros e os efeitos Traptrix em mais Armadilhas; Holeutea e Pinguicula ampliam a mesa.",
@@ -15984,6 +16048,7 @@
     },
     {
       "id": "tcg-sr14",
+      "difficulty": "Avançado",
       "presetId": "tcg-sr14",
       "title": "Deck Estrutural: Reis de Fogo",
       "gamePlan": "Ponix encontra Sanctuary e Island; destruir FIRE prepara Sacred Garunix, Kirin e retornos em Fases de Apoio.",
@@ -16189,6 +16254,7 @@
     },
     {
       "id": "tcg-sdck",
+      "difficulty": "Intermediário",
       "presetId": "tcg-sdck",
       "title": "Deck Estrutural: O Rei Carmesim",
       "gamePlan": "Soul Resonator encontra Bone Archfiend para Red Rising; reciclar Resonators permite escalar para Scarred e Abyss.",
@@ -16413,6 +16479,7 @@
     },
     {
       "id": "tcg-sdwd",
+      "difficulty": "Intermediário",
       "presetId": "tcg-sdwd",
       "title": "Deck Estrutural: Destino Branco de Olhos Azuis",
       "gamePlan": "Sage, Maiden of White e Wishes estabelecem True Light, Blue-Eyes e Reguladores; as Sincros oferecem interação e retorno de Dragões.",
@@ -16625,6 +16692,7 @@
     },
     {
       "id": "tcg-ego1",
+      "difficulty": "Iniciante",
       "presetId": "tcg-ego1",
       "title": "Deck dos Deuses Egípcios: Obelisco, o Atormentador",
       "gamePlan": "Produzir Tributos e usar Soul Crossing para chegar a Obelisk; as Magias específicas convertem a presença do Deus em controle.",
@@ -16788,6 +16856,7 @@
     },
     {
       "id": "tcg-egs1",
+      "difficulty": "Iniciante",
       "presetId": "tcg-egs1",
       "title": "Deck dos Deuses Egípcios: Slifer, o Dragão Celeste",
       "gamePlan": "Produzir Tributos para Slifer e preservar a mão para seu ATK; Thunderforce Attack pode repor cartas na sua Fase Principal.",
@@ -16953,6 +17022,7 @@
     },
     {
       "id": "tcg-ygld-battle-city",
+      "difficulty": "Iniciante",
       "presetId": "tcg-ygld-battle-city",
       "title": "Decks Lendários do Yugi — Battle City",
       "gamePlan": "Usar o pequeno motor de Dark Magician e as Fusões presentes, sem atribuir à lista o suporte moderno que ela não contém.",
@@ -17128,6 +17198,7 @@
     },
     {
       "id": "tcg-ygld-gadget",
+      "difficulty": "Iniciante",
       "presetId": "tcg-ygld-gadget",
       "title": "Decks Lendários do Yugi — Gadget",
       "gamePlan": "Repor a mão com os três Gadgets e transformar o conjunto em pressão de Stronghold, mantendo as linhas de Silent separadas.",
@@ -17295,6 +17366,7 @@
     },
     {
       "id": "tcg-ldk2-joey",
+      "difficulty": "Intermediário",
       "presetId": "tcg-ldk2-joey",
       "title": "Decks Lendários II — Joey",
       "gamePlan": "Preparar os materiais corretos para Archfiend Black Skull Dragon e recuperar Red-Eyes com Stone; não tratar Gemini no Deck como Monstro Normal.",
@@ -17471,6 +17543,7 @@
     },
     {
       "id": "tcg-ldk2-kaiba",
+      "difficulty": "Intermediário",
       "presetId": "tcg-ldk2-kaiba",
       "title": "Decks Lendários II — Kaiba",
       "gamePlan": "As White Stones e os Eyes of Blue acessam Blue-Eyes e Dragon Spirit of White; Sincros de Nível 9 dão continuidade.",
@@ -17648,6 +17721,7 @@
     },
     {
       "id": "tcg-ldk2-yugi",
+      "difficulty": "Intermediário",
       "presetId": "tcg-ldk2-yugi",
       "title": "Decks Lendários II — Yugi",
       "gamePlan": "Obliterate envia partes de Exodia ao Cemitério para Exodia Incarnate, que as devolve à mão e pressiona por batalha.",
@@ -17809,6 +17883,7 @@
     },
     {
       "id": "tcg-ledd-cyber-dragon",
+      "difficulty": "Intermediário",
       "presetId": "tcg-ledd-cyber-dragon",
       "title": "Decks de Dragões Lendários — Cyber Dragon",
       "gamePlan": "Core acessa o suporte e pares de Nível 5 fazem Nova/Infinity; as Fusões de contato usam zonas adversárias específicas para remover ameaças.",
@@ -18010,6 +18085,7 @@
     },
     {
       "id": "tcg-ledd-dimensional-dragons",
+      "difficulty": "Avançado",
       "presetId": "tcg-ledd-dimensional-dragons",
       "title": "Decks de Dragões Lendários — Dimensional Dragons",
       "gamePlan": "Arc Pendulum transforma destruição de Odd-Eyes em desenvolvimento; Absolute e as Fusões oferecem escolhas de interação.",
@@ -18195,6 +18271,7 @@
     },
     {
       "id": "tcg-ledd-legendary-dragons-of-atlantis",
+      "difficulty": "Intermediário",
       "presetId": "tcg-ledd-legendary-dragons-of-atlantis",
       "title": "Decks de Dragões Lendários — Legendary Dragons of Atlantis",
       "gamePlan": "Magician's Rod encontra Magias/Armadilhas que mencionam Dark Magician; Timaeus e as Armadilhas sustentam o controle com Dark Magician the Dragon Knight.",
@@ -18394,6 +18471,7 @@
     },
     {
       "id": "tcg-lehd-aesir",
+      "difficulty": "Intermediário",
       "presetId": "tcg-lehd-aesir",
       "title": "Decks de Heróis Lendários — Aesir",
       "gamePlan": "Gullveig concentra a abertura, mas escolher materiais, posição e Regulador no Cemitério determina proteção e retorno dos Aesir.",
@@ -19004,6 +19082,7 @@
     },
     {
       "id": "tcg-lehd-destiny-hero",
+      "difficulty": "Intermediário",
       "presetId": "tcg-lehd-destiny-hero",
       "title": "Decks de Heróis Lendários — Destiny HERO",
       "gamePlan": "Usar buscas, Fusões e Malicious para gerar corpos, alternando Dark Law, Dystopia e Plasma conforme a partida; preservar reciclagem por Wonder Driver.",
@@ -19588,6 +19667,7 @@
     },
     {
       "id": "tcg-lehd-phantom-knights",
+      "difficulty": "Intermediário",
       "presetId": "tcg-lehd-phantom-knights",
       "title": "Decks de Heróis Lendários — Phantom Knights",
       "gamePlan": "Usar o Cemitério como motor de buscas e reanimação; Broken Sword abre Classe 4 e Bardiche transforma Xyz de TREVAS em remoção.",
@@ -20189,6 +20269,7 @@
     },
     {
       "id": "tcg-l5dd-akiza",
+      "difficulty": "Intermediário",
       "presetId": "tcg-l5dd-akiza",
       "title": "Decks Lendários 5D's — Akiza",
       "gamePlan": "Roxrose encontra Basal Rose Shoot e Red Rose desenvolve materiais quando usada em Sincro; Black Rose limpa e Moonlight devolve ameaças.",
@@ -20390,6 +20471,7 @@
     },
     {
       "id": "tcg-l5dd-crow",
+      "difficulty": "Avançado",
       "presetId": "tcg-l5dd-crow",
       "title": "Decks Lendários 5D's — Crow",
       "gamePlan": "Whirlwind transforma Invocações-Normais Blackwing em buscas; Sudri e Vata preparam Sincros e Black-Winged Dragon.",
@@ -20593,6 +20675,7 @@
     },
     {
       "id": "tcg-l5dd-yusei",
+      "difficulty": "Avançado",
       "presetId": "tcg-l5dd-yusei",
       "title": "Decks Lendários 5D's — Yusei",
       "gamePlan": "Junk Converter encontra Synchron e prepara o Cemitério; Junk Speeder transforma a primeira Sincro em Reguladores de níveis distintos.",
@@ -20798,6 +20881,7 @@
     },
     {
       "id": "tcg-lavd-lunalight",
+      "difficulty": "Intermediário",
       "presetId": "tcg-lavd-lunalight",
       "title": "Decks Lendários ARC-V — Lunalight",
       "gamePlan": "Kaleido Chick ajusta o nome do material e Tiger/Yellow Marten reciclam corpos; as Fusões Lunalight convertem esse motor em finalização por batalha.",
@@ -20995,6 +21079,7 @@
     },
     {
       "id": "tcg-lavd-odd-eyes",
+      "difficulty": "Avançado",
       "presetId": "tcg-lavd-odd-eyes",
       "title": "Decks Lendários ARC-V — Odd-Eyes",
       "gamePlan": "Usar buscas Performapal e escalas Odd-Eyes para reunir materiais; Absolute/Vortex e Rebellion oferecem interação ou finalização.",
@@ -21202,6 +21287,7 @@
     },
     {
       "id": "tcg-lavd-speedroid",
+      "difficulty": "Avançado",
       "presetId": "tcg-lavd-speedroid",
       "title": "Decks Lendários ARC-V — Speedroid",
       "gamePlan": "Terrortop encontra Taketomborg e Red-Eyed Dice ajusta os níveis; Sincros e Rubber Band Shooter ampliam as opções dentro da restrição VENTO.",
@@ -21403,6 +21489,7 @@
     },
     {
       "id": "tcg-l26d-mitsurugi",
+      "difficulty": "Avançado",
       "presetId": "tcg-l26d-mitsurugi",
       "title": "Decks Lendários Modern 2026 — Mitsurugi",
       "gamePlan": "Ritualizar usando os Reptiles como Tributos permite buscas e reposição; os chefes Mitsurugi podem voltar depois de servir para outro Ritual.",
@@ -21603,6 +21690,7 @@
     },
     {
       "id": "tcg-l26d-sky-striker",
+      "difficulty": "Avançado",
       "presetId": "tcg-l26d-sky-striker",
       "title": "Decks Lendários Modern 2026 — Sky Striker",
       "gamePlan": "Manter a Zona de Monstros Principal livre para as Magias Sky Striker, acumular três Magias no Cemitério e reciclar recursos por Kagari e Shizuku.",
@@ -21800,6 +21888,7 @@
     },
     {
       "id": "tcg-l26d-x-saber",
+      "difficulty": "Intermediário",
       "presetId": "tcg-l26d-x-saber",
       "title": "Decks Lendários Modern 2026 — X-Saber",
       "gamePlan": "Boggart Knight desenvolve o segundo X-Saber, Faultroll entra com dois corpos e Gottoms converte presença em pressão sobre a mão adversária.",
@@ -22001,6 +22090,7 @@
     },
     {
       "id": "tcg-nkrt",
+      "difficulty": "Intermediário",
       "presetId": "tcg-nkrt",
       "title": "Coleção Nobre Cavaleiros da Tavola Redonda",
       "gamePlan": "Equipar Noble Arms habilita Medraut e Borz; os Equipamentos voltam após destruição e alimentam os Xyz Artorigus.",
@@ -22176,6 +22266,7 @@
     },
     {
       "id": "tcg-ch01",
+      "difficulty": "Avançado",
       "presetId": "tcg-ch01",
       "title": "O DECK DAS CRÔNICAS: O Caído e A Virtuosa (Edição Totalmente Metalizada)",
       "gamePlan": "Branded com Aluber, Quem e Cartesia amplia as rotas de Albaz; usar as Fusões para interromper e recuperar recursos na Fase Final.",
@@ -22399,6 +22490,7 @@
     },
     {
       "id": "tcg-ch02",
+      "difficulty": "Intermediário",
       "presetId": "tcg-ch02",
       "title": "O DECK DAS CRÔNICAS: Encantadoras Espirituais (Edição Totalmente Metalizada)",
       "gamePlan": "Combinar Charmers/Channelers e Atributos variados com Possessed para acumular recursos; os Links desta edição ampliam recuperação e finalização.",

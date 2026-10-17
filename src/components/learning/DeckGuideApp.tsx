@@ -10,6 +10,7 @@ import { useCardRegistry } from "@/context/CardRegistryProvider";
 import { usePlayer } from "@/context/PlayerProvider";
 import { useCardText } from "@/hooks/useCardText";
 import { useGuideProgress } from "@/hooks/useGuideProgress";
+import { DeckDifficulty } from "./DeckDifficulty";
 import { hasLessonPractice, matchesGuideDeck, type DeckGuide, type GuideLesson } from "@/lib/domain/deck-guide";
 import { presetToDuelPayload, type PresetDeckDefinition } from "@/lib/domain/preset-decks";
 import { saveDuelSetup } from "@/lib/duel/duel-storage";
@@ -91,7 +92,8 @@ export function DeckGuideApp({ guide, preset, initialLessonId }: {
           <div className={styles.tags}>{guide.tags.map((tag) => <span key={tag}>{tag}</span>)}</div>
           <h1>{guide.title}</h1>
           <p className={styles.subtitle}>{guide.subtitle}</p>
-          <p className={styles.meta}>{guide.difficulty} · {guide.lessons.length} lições · cerca de {guide.minutes} min</p>
+          <DeckDifficulty difficulty={guide.difficulty} />
+          <p className={styles.meta}>{guide.lessons.length} lições · cerca de {guide.minutes} min</p>
           <p className={styles.meta}>Lista oficial · {preset.main.length} cartas + {preset.extra.length} no Extra</p>
         </div>
         <div className={styles.heroArtwork} aria-hidden="true">

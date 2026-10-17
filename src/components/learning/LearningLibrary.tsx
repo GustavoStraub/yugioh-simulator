@@ -7,16 +7,27 @@ import { useGuideProgress } from "@/hooks/useGuideProgress";
 import { getPresetDeck } from "@/lib/data/preset-decks-catalog";
 import type { DeckGuide } from "@/lib/domain/deck-guide";
 import { normalizeSearch } from "@/lib/domain/preset-decks";
+import { DeckDifficulty } from "./DeckDifficulty";
 import styles from "./learning.module.css";
 
 type LibraryGuide = Pick<DeckGuide, "id" | "revision" | "title" | "description" | "difficulty" | "minutes" | "tags" | "coverCodes" | "presetId"> & { lessons: { id: string; steps: null[] }[]; searchText: string };
+type SortOrder = "default" | "newest" | "oldest" | "easiest" | "hardest";
+const DIFFICULTY_ORDER: Record<string, number> = { Iniciante: 1, Intermediário: 2, Avançado: 3 };
+const releaseYear = (guide: LibraryGuide) => Number.parseInt(getPresetDeck(guide.presetId)?.year ?? "0", 10) || 0;
 
 export function LearningLibrary({ guides: allGuides }: { guides: LibraryGuide[] }) {
   const [query, setQuery] = useState("");
   const [visible, setVisible] = useState(12);
+  const [sortOrder, setSortOrder] = useState<SortOrder>("default");
   const guides = allGuides.filter((guide) => normalizeSearch(
-    [guide.title, guide.description, guide.searchText, ...guide.tags].join(" "),
-  ).includes(normalizeSearch(query.trim())));
+    [guide.title, guide.description, guide.difficulty, guide.searchText, ...guide.tags].join(" "),
+  ).includes(normalizeSearch(query.trim()))).sort((a, b) => {
+    if (sortOrder === "newest") return releaseYear(b) - releaseYear(a);
+    if (sortOrder === "oldest") return releaseYear(a) - releaseYear(b);
+    if (sortOrder === "easiest") return DIFFICULTY_ORDER[a.difficulty] - DIFFICULTY_ORDER[b.difficulty];
+    if (sortOrder === "hardest") return DIFFICULTY_ORDER[b.difficulty] - DIFFICULTY_ORDER[a.difficulty];
+    return 0;
+  });
 
   return (
     <div className={styles.page} data-learning-library>
@@ -35,9 +46,22 @@ export function LearningLibrary({ guides: allGuides }: { guides: LibraryGuide[] 
 
       <div className={styles.libraryHeading}>
         <div><p className={styles.eyebrow}>Guias para decks oficiais</p><h2>Escolha por onde começar</h2><p>Explore {allGuides.length} decks com estratégias em etapas.<span className={styles.libraryDescription}> Alguns guias também oferecem exercícios na mesa com mão preparada.</span></p></div>
-        <label className={styles.search}>Buscar um guia<input value={query} onChange={(event) => { setQuery(event.target.value); setVisible(12); }} type="search" placeholder="Nome, estilo ou mecânica…" /></label>
       </div>
 
+      <div className={styles.libraryControls}>
+        <label className={styles.search}>Buscar um guia<input value={query} onChange={(event) => { setQuery(event.target.value); setVisible(12); }} type="search" placeholder="Nome, estilo, mecânica ou dificuldade…" /></label>
+        <label className={styles.search}>Ordenar por
+          <select value={sortOrder} onChange={(event) => { setSortOrder(event.target.value as SortOrder); setVisible(12); }}>
+            <option value="default">Ordem da biblioteca</option>
+            <option value="newest">Lançamento: mais recentes</option>
+            <option value="oldest">Lançamento: mais antigos</option>
+            <option value="easiest">Dificuldade: menor para maior</option>
+            <option value="hardest">Dificuldade: maior para menor</option>
+          </select>
+        </label>
+      </div>
+
+      <p className={styles.difficultyHint}>Dificuldade para pilotar: iniciante para planos diretos, intermediário para combinar efeitos e avançado para sequências e gestão de recursos mais exigentes. Lançamento considera o ano da edição.</p>
       <p className={styles.libraryCount} role="status">{guides.length} de {allGuides.length} guias · {Math.min(visible, guides.length)} exibidos</p>
       <div className={styles.libraryGrid}>
         {guides.slice(0, visible).map((guide) => <GuideCard key={guide.id} guide={guide} />)}
@@ -70,11 +94,14 @@ function GuideCard({ guide }: { guide: LibraryGuide }) {
         <div className={styles.tags}>{guide.tags.map((tag) => <span key={tag}>{tag}</span>)}</div>
         <h3>{guide.title}</h3>
         <p>{guide.description}</p>
-        <p className={styles.meta}>{guide.difficulty} · {guide.lessons.length} lições · cerca de {guide.minutes} min</p>
-        {started && <div className={styles.cardProgress}><progress aria-label={`Progresso em ${guide.title}`} max={guide.lessons.length} value={progress.completed.length} /><span>{progress.completed.length}/{guide.lessons.length} lições concluídas</span></div>}
-        <Link className={styles.primaryButton} href={`/aprender/${guide.id}${started ? `?licao=${resume}` : ""}`}>
-          {progress.completed.length === guide.lessons.length ? "Revisar trilha" : started ? "Continuar aprendendo" : "Conhecer o deck"}<span aria-hidden="true">↗</span>
-        </Link>
+        <div className={styles.guideCardFooter}>
+          <DeckDifficulty difficulty={guide.difficulty} />
+          <p className={styles.meta}>{guide.lessons.length} lições · cerca de {guide.minutes} min</p>
+          {started && <div className={styles.cardProgress}><progress aria-label={`Progresso em ${guide.title}`} max={guide.lessons.length} value={progress.completed.length} /><span>{progress.completed.length}/{guide.lessons.length} lições concluídas</span></div>}
+          <Link className={styles.primaryButton} href={`/aprender/${guide.id}${started ? `?licao=${resume}` : ""}`}>
+            {progress.completed.length === guide.lessons.length ? "Revisar trilha" : started ? "Continuar aprendendo" : "Conhecer o deck"}<span aria-hidden="true">↗</span>
+          </Link>
+        </div>
       </div>
     </article>
   );

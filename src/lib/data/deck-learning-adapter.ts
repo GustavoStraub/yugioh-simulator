@@ -45,7 +45,7 @@ export function adaptLearningBase(historical: readonly DeckGuide[]): DeckGuide[]
       schemaVersion: 1, id: previous?.id ?? deck.id, presetId: deck.presetId,
       revision: previous?.revision ?? 1, reviewedAt: base.reviewedAt,
       title: previous?.title ?? deck.title, subtitle: previous?.subtitle ?? "Estratégia com a lista oficial",
-      description: deck.gamePlan, difficulty: previous?.difficulty ?? "Leitura de estratégia",
+      description: deck.gamePlan, difficulty: deck.difficulty,
       minutes: lessons.reduce((total, lesson) => total + lesson.minutes, 0),
       tags: previous?.tags ?? ["Estratégia", "TCG", ...snapshotTags(deck)],
       coverCodes: previous?.coverCodes ?? deck.coreCards.slice(0, 3).map((card) => card.code),
