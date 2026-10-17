@@ -7,7 +7,7 @@
     "postinstall": "node scripts/copy-ocgcore-wasm.mjs",
     "dev": "node --import ./tools/harness/ts-loader-register.mjs server.mjs",
     "dev:next": "next dev",
-    "build": "node scripts/copy-ocgcore-wasm.mjs && next build",
+    "build": "node scripts/copy-ocgcore-wasm.mjs && next build --webpack",
     "start": "NODE_ENV=production node --import ./tools/harness/ts-loader-register.mjs server.mjs",
     "public": "node scripts/publicar.mjs",
     "lint": "eslint",

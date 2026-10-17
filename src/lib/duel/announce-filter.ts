@@ -83,6 +83,8 @@ export function isDeclarable(
   const race = BigInt(card.race);
   const attribute = BigInt(card.attribute);
 
+  // O guard de tamanho garante o valor em runtime; o rastreador do build do
+  // Next avalia pop() estaticamente como undefined, então mantemos o fallback.
   for (const raw of opcodes) {
     const opcode = BigInt(raw);
     const binary = BINARY.get(opcode);
@@ -102,18 +104,18 @@ export function isDeclarable(
     switch (opcode) {
       case OcgOpCode.ISCODE:
         if (stack.length >= 1) {
-          const value = stack.pop()! & 0xffffffffn;
+          const value = (stack.pop() ?? 0n) & 0xffffffffn;
           stack.push(BigInt(card.code) === value ? 1n : 0n);
         }
         break;
       case OcgOpCode.ISTYPE:
-        if (stack.length >= 1) stack.push(type & stack.pop()!);
+        if (stack.length >= 1) stack.push(type & (stack.pop() ?? 0n));
         break;
       case OcgOpCode.ISRACE:
-        if (stack.length >= 1) stack.push(race & stack.pop()!);
+        if (stack.length >= 1) stack.push(race & (stack.pop() ?? 0n));
         break;
       case OcgOpCode.ISATTRIBUTE:
-        if (stack.length >= 1) stack.push(attribute & stack.pop()!);
+        if (stack.length >= 1) stack.push(attribute & (stack.pop() ?? 0n));
         break;
       case OcgOpCode.GETCODE:
         stack.push(BigInt(card.code));
