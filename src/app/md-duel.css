@@ -415,6 +415,26 @@
 /* ---------------------------------------------------------------------------
    A carta sobre a zona.
 --------------------------------------------------------------------------- */
+.md-card-plane[data-equipment-related] {
+  outline: 2px solid #6ee7b7;
+  outline-offset: 3px;
+}
+
+.md-chain-target-reticle {
+  filter: drop-shadow(0 0 3px #000);
+  animation: md-chain-target-pulse 1.4s ease-in-out infinite;
+}
+[data-target-resolving] .md-chain-target-reticle {
+  stroke: #fff7d6;
+  stroke-width: 3.5;
+}
+@keyframes md-chain-target-pulse {
+  50% { opacity: 0.5; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .md-chain-target-reticle { animation: none; }
+}
+
 .md-card-plane {
   position: relative;
   border-radius: 5px;

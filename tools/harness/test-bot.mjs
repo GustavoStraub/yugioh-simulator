@@ -58,6 +58,9 @@ import { nodeAssets } from "@/server/duel/node-assets.ts";
 
 import { autoPilot, createDuel, STOP, Zone } from "./duel.mjs";
 import { REPO } from "./env.mjs";
+import { createBotObserver } from "./bot-observer.mjs";
+import { loadBotProfile } from "@/lib/duel/bot/deck-profile";
+const MainBrain = process.env.BOT_MAIN ? (await import(process.env.BOT_MAIN)).BotBrain : BotBrain;
 
 const PARTIDAS = Number(process.argv[2] ?? 60);
 const RIVAL = process.argv[3] ?? "passivo";
@@ -202,8 +205,11 @@ async function duelar({ deck, extra = [], seed, assentoNovo }) {
     mode: FORMATO === "tcg" ? OcgDuelMode.MODE_MR5 : OcgDuelMode.MODE_GOAT,
   });
   const rastrear = criarRastreador(duel);
-  const brain = new BotBrain();
-  const rival = CerebroRival ? new CerebroRival() : null;
+  const ownDeck = { main: deck, extra, side: [], format: FORMATO };
+  const profile = await loadBotProfile(ownDeck, FORMATO);
+  const brain = new MainBrain({ difficulty: process.env.BOT_DIFFICULTY, deck: ownDeck, profile, format: FORMATO, seed: 17 });
+  const rival = CerebroRival ? new CerebroRival({ difficulty: process.env.BOT_RIVAL_DIFFICULTY, deck: ownDeck, profile, format: FORMATO, seed: 17 }) : null;
+  const observe = createBotObserver(duel, FORMATO);
 
   // A última resposta e quem a deu — num RETRY_LOOP o relatório diz o que o
   // core recusou e de quem era a culpa (o bot ou o adversário de referência).
@@ -221,6 +227,8 @@ async function duelar({ deck, extra = [], seed, assentoNovo }) {
   };
   let ultimaFonte = null;
   const decidir = (message) => {
+    const observed = observe(message);
+    message = observed.prompt;
     // Mesmo caminho do app: o que não tem escolha real se responde sozinho.
     const automatico = autoResponseFor(message);
     ultimaFonte = "automática";
@@ -249,6 +257,7 @@ async function duelar({ deck, extra = [], seed, assentoNovo }) {
       chainPlayer,
       chainCode,
       summoning,
+      ...observed,
     });
   };
 
@@ -322,6 +331,7 @@ async function cenario({
     mode,
   });
   const brain = new BotBrain();
+  const observe = createBotObserver(duel, FORMATO);
   const rastrear = criarRastreador(duel);
   let capturado;
 
@@ -348,6 +358,7 @@ async function cenario({
       cardDb,
       lifePoints: duel.lifePoints,
       ...rastrear(),
+      ...observe(message),
     });
 
     const capturaAtual = capturar(message, resposta);

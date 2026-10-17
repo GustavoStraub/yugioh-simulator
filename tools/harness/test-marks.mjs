@@ -35,6 +35,8 @@ import { projectSnapshot } from "@/server/duel/room";
 import { nodeAssets } from "@/server/duel/node-assets";
 
 import { EngineStringsDb } from "@/lib/duel/engine-strings";
+import { equipmentLinks, zoneKey } from "@/lib/duel/equipment-links";
+import { cardMarks } from "@/lib/duel/card-marks";
 
 import { REPO, SCRIPTS_DIR } from "./env.mjs";
 
@@ -284,6 +286,30 @@ console.log("Marcas no campo — contador, declaração, alvo, equipamento, avis
       `[${otica}] o Machado do Desespero diz a quem está equipado`,
       JSON.stringify(machado?.equippedTo),
     );
+    const links = equipmentLinks(snap.boards[quem].players);
+    const attached = links.filter((link) => zoneKey(link.target) === zoneKey(elf));
+    conferir(attached.length === 1 && attached[0].equipment.code === C.axe,
+      `[${otica}] o monstro encontra o equipamento pela zona exata`);
+    const marks = cardMarks(elf, {
+      engineStrings: new EngineStringsDb({ system: {}, cards: {} }),
+      cardName: String,
+      nameAt: (zone) => String(zone.code ?? zoneKey(zone)),
+      equippedCards: attached.map((link) => link.equipment),
+    });
+    conferir(marks.some((mark) => mark.text === `Equipamentos: ${C.axe}`),
+      `[${otica}] os detalhes do monstro listam o equipamento`);
+    const semMachado = snap.boards[quem].players.map((player) => ({
+      ...player,
+      spells: player.spells.map((card) => card?.code === C.axe ? null : card),
+    }));
+    conferir(equipmentLinks(semMachado).length === 0,
+      `[${otica}] retirar o equipamento da mesa desfaz o vínculo`);
+    const machadoOculto = snap.boards[quem].players.map((player) => ({
+      ...player,
+      spells: player.spells.map((card) => card?.code === C.axe ? { ...card, code: null } : card),
+    }));
+    conferir(equipmentLinks(machadoOculto).length === 0,
+      `[${otica}] equipamento oculto não produz vínculo visível`);
     // O core responde ATK/DEF 0 para Magia/Armadilha, e a mesa pintava "0/0".
     const comNumero = snap.boards[quem].players[0].spells.filter(
       (c) => c && (c.attack !== null || c.defenseValue !== null),

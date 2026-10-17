@@ -21,6 +21,25 @@ import {
   type FirstTurnChoice,
 } from "@/lib/duel/duel-storage";
 import { DeckPreview } from "@/components/duel/DeckPreview";
+import { BOT_DIFFICULTIES, type BotDifficulty } from "@/lib/duel/bot/difficulty";
+import { botCoverage } from "@/lib/duel/bot/deck-profile";
+
+function DifficultyChoice({ value, onChange, label }: { value: BotDifficulty; onChange: (value: BotDifficulty) => void; label: string }) {
+  return (
+    <fieldset className="mt-4" data-bot-difficulty={label}>
+      <legend className="text-sm font-medium text-zinc-200">{label}</legend>
+      <div className="mt-2 grid grid-cols-3 gap-2">
+        {BOT_DIFFICULTIES.map((option) => (
+          <label key={option.id} className={`flex min-h-11 cursor-pointer items-center justify-center rounded-lg border px-3 py-2 text-sm font-semibold transition ${value === option.id ? "border-amber-500 bg-amber-600 text-black" : "border-zinc-700 bg-zinc-900 text-zinc-200 hover:border-amber-700"}`}>
+            <input type="radio" name={label} value={option.id} checked={value === option.id} onChange={() => onChange(option.id)} className="sr-only" />
+            {option.label}
+          </label>
+        ))}
+      </div>
+      <p className="mt-2 text-xs text-zinc-400">{BOT_DIFFICULTIES.find((d) => d.id === value)?.description}</p>
+    </fieldset>
+  );
+}
 
 /** As três escolhas de quem começa, na ordem em que aparecem. */
 const PRIMEIRO_TURNO: { valor: FirstTurnChoice; rotulo: string; dica: string }[] = [
@@ -50,6 +69,8 @@ export function DuelLobby() {
   const [primeiro, setPrimeiro] = useState<FirstTurnChoice>("me");
   const { profile } = usePlayer();
   const [opponentId, setOpponentId] = useState<string | null>(null);
+  const [difficulty, setDifficulty] = useState<BotDifficulty>("medium");
+  const [playerDifficulty, setPlayerDifficulty] = useState<BotDifficulty>("medium");
   const [hoveredCode, setHoveredCode] = useState<number | null>(null);
   // A biblioteca inteira do jogador, não só o deck aberto no construtor —
   // quem montou cinco decks escolhe qual leva para a mesa.
@@ -104,6 +125,8 @@ export function DuelLobby() {
       opponentDeck: opponent.deck,
       format: formato,
       spectate: true,
+      botDifficulty: difficulty,
+      playerBotDifficulty: playerDifficulty,
     });
     router.push("/duel/play");
   }
@@ -120,6 +143,7 @@ export function DuelLobby() {
       opponentDeck: opponent.deck,
       format: formato,
       firstTurn: primeiro,
+      botDifficulty: difficulty,
       // A moeda cai aqui, no clique — e de novo a cada revanche.
       ...resolveFirstTurn(primeiro),
     });
@@ -170,6 +194,7 @@ export function DuelLobby() {
         <p className="mt-2 text-xs text-zinc-500">
           {PRIMEIRO_TURNO.find((opcao) => opcao.valor === primeiro)?.dica}
         </p>
+        <DifficultyChoice value={difficulty} onChange={setDifficulty} label="Nível do oponente" />
         <button
           type="button"
           disabled={!duelReady || !opponent}
@@ -182,6 +207,11 @@ export function DuelLobby() {
 
       <section className="rounded-2xl border border-zinc-800 bg-zinc-950/60 p-5">
         <h2 className="text-sm font-semibold text-zinc-200">Outras opções</h2>
+        <details className="mt-3 text-sm text-zinc-400">
+          <summary className="cursor-pointer">Configurar seu bot para assistir</summary>
+          <DifficultyChoice value={playerDifficulty} onChange={setPlayerDifficulty} label="Nível do bot com seu deck" />
+          <p className="mt-2 text-xs">{botCoverage(meuDeck.deck, formato)?.coverage ?? "Estratégia específica em preparação. Usa análise genérica."}</p>
+        </details>
         <button
           type="button"
           data-spectate
@@ -261,7 +291,10 @@ export function DuelLobby() {
         )}
 
         {opponent && (
-          <DeckPreview deck={opponent.deck} registry={registry} onCardHover={setHoveredCode} />
+          <>
+            <p data-bot-coverage className="mt-3 text-xs text-zinc-400">{botCoverage(opponent.deck, formato)?.coverage ?? "Estratégia específica em preparação. Usa análise genérica em todos os níveis."}</p>
+            <DeckPreview deck={opponent.deck} registry={registry} onCardHover={setHoveredCode} />
+          </>
         )}
       </section>
     </DeckSelectionLayout>

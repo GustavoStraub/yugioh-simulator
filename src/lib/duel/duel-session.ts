@@ -36,7 +36,9 @@ import {
   isTokenCard,
 } from "@/lib/duel/card-adapter";
 import { findPromptMessage } from "@/lib/duel/bot-responder";
-import { BotBrain, type BotContext } from "@/lib/duel/bot/bot-brain";
+import { BotBrain, type BotContext, type BotConfig } from "@/lib/duel/bot/bot-brain";
+import { BotKnowledge } from "@/lib/duel/bot/knowledge";
+import { loadBotProfile } from "@/lib/duel/bot/deck-profile";
 import { beatFor, CUT_IN_MS, leaveBeat, phaseBeat, MAX_BEAT_PER_BATCH_MS } from "@/lib/duel/pacing";
 import { phaseLabel } from "@/lib/duel/phase-labels";
 import {
@@ -75,6 +77,7 @@ export type SeatKind = "local" | "remote" | "bot";
 
 export interface SeatConfig {
   kind: SeatKind;
+  bot?: Omit<BotConfig, "deck" | "format">;
   /** Nome usado na narração do log ("Você invocou...", "Gustavo invocou..."). */
   name: string;
   /**
@@ -121,6 +124,8 @@ export interface DuelSessionConfig {
   registry: CardRegistry;
   /** Quem responde cada assento. Omitido = jogador local contra o bot. */
   seats?: [SeatConfig, SeatConfig];
+  /** Configuração do oponente local; acompanha o bot quando quem começa muda. */
+  bot?: Omit<BotConfig, "deck" | "format">;
   /** De onde vêm wasm, scripts e dados. Omitido = navegador. */
   assets?: DuelAssets;
   /**
@@ -139,6 +144,8 @@ export interface DuelSessionConfig {
   scenario?: ScenarioCard[];
   /** Mãos de exercício, jogador e adversário. As cópias saem dos decks. */
   openingHands?: [number[], number[]];
+  /** Reprodução no harness. Não é encaminhada ao cérebro nem exposta no lobby. */
+  testSeed?: number;
   /** Cortes de invocação (ver `DuelSession.setCutIns`); padrão: ligados. */
   cutIns?: boolean;
   /**
@@ -250,6 +257,14 @@ const ORIGIN_LABEL: Partial<Record<number, string>> = {
   [OcgLocation.EXTRA]: "do Extra Deck",
 };
 
+/** Alvo anunciado na ativação de um elo, independente de vínculos contínuos. */
+export interface DuelChainTarget {
+  zone: DuelZoneRef;
+  /** Só a identidade pública; carta baixada nunca envia seu código ao adversário. */
+  code: number | null;
+  /** Sair do local quebra a relação, mesmo se outra cópia ocupar a zona. */
+  present: boolean;
+}
 
 /**
  * O elo de corrente que está em jogo agora.
@@ -280,6 +295,7 @@ export interface DuelChainLink {
   from: number;
   /** Onde a carta está agora — para o número do elo aparecer no slot dela. */
   zone: DuelZoneRef;
+  targets: DuelChainTarget[];
   /**
    * `pending` na corrente; `resolving` enquanto resolve; `resolved` depois;
    * `negated` quando a ATIVAÇÃO foi negada; `disabled` quando o EFEITO foi
@@ -410,6 +426,7 @@ const PLAY_EVENTS = new Set<OcgMessageType>([
   OcgMessageType.FLIPSUMMONING,
   OcgMessageType.SET,
   OcgMessageType.CHAINING,
+  OcgMessageType.BECOME_TARGET,
   OcgMessageType.CHAIN_SOLVING,
   OcgMessageType.CHAIN_NEGATED,
   OcgMessageType.CHAIN_DISABLED,
@@ -440,10 +457,10 @@ function isVanilla(card: CardDefinition): boolean {
 }
 
 /** Embaralhamento Fisher-Yates — não altera o array recebido. */
-function shuffled<T>(items: readonly T[]): T[] {
+function shuffled<T>(items: readonly T[], random: () => number = Math.random): T[] {
   const copy = [...items];
   for (let i = copy.length - 1; i > 0; i -= 1) {
-    const j = Math.floor(Math.random() * (i + 1));
+    const j = Math.floor(random() * (i + 1));
     [copy[i], copy[j]] = [copy[j], copy[i]];
   }
   return copy;
@@ -533,6 +550,7 @@ export class DuelSession {
    * dois estão decidindo ao mesmo tempo.
    */
   private readonly brains = new Map<0 | 1, BotBrain>();
+  private readonly botKnowledge: [BotKnowledge, BotKnowledge] = [new BotKnowledge(0), new BotKnowledge(1)];
   /**
    * Monstro sendo Invocado agora, para o bot (`BotContext.summoning`).
    *
@@ -672,6 +690,16 @@ export class DuelSession {
       if (this.disposed) return;
       this.cardDb = cardDb;
       this.engineStrings = engineStrings;
+      // A lista entregue ao cérebro é sempre a do próprio assento, antes de
+      // tirar mãos de exercício. Nunca lhe passamos opponentId ou a outra lista.
+      await Promise.all(([0, 1] as const).map(async (seat) => {
+        if (this.seats[seat].kind !== "bot") return;
+        const deck = seat === humanSeat ? config.playerDeck : config.opponentDeck;
+        const options = this.seats[seat].bot ?? config.bot ?? {};
+        const profile = options.profile === undefined ? await loadBotProfile(deck, format) : options.profile;
+        if (!this.disposed) this.brains.set(seat, new BotBrain({ ...options, deck, format, profile }));
+      }));
+      if (this.disposed) return;
 
       // Uma emenda que não encontrou seu trecho é uma correção que evaporou:
       // o script voltou ao original e as cartas que ela consertava quebram de
@@ -729,6 +757,11 @@ export class DuelSession {
       if (this.disposed) { this.releaseCore(); return; }
 
       const core = this.core;
+      let shuffleState = (config.testSeed ?? 0) >>> 0;
+      const shuffleRandom = config.testSeed === undefined ? Math.random : () => {
+        shuffleState = (Math.imul(shuffleState, 1664525) + 1013904223) >>> 0;
+        return shuffleState / 4294967296;
+      };
       const team = {
         startingLP: rules.startingLp,
         startingDrawCount: openingHands ? 0 : rules.startingHandSize,
@@ -736,7 +769,8 @@ export class DuelSession {
       };
       const handle = core.createDuel({
         flags: DUEL_FLAGS[format],
-        seed: randomSeed(),
+        seed: config.testSeed === undefined ? randomSeed()
+          : [0, 1, 2, 3].map((n) => BigInt(config.testSeed!) + BigInt(n)) as [bigint, bigint, bigint, bigint],
         team1: team,
         team2: team,
         cardReader: (code) => {
@@ -772,8 +806,8 @@ export class DuelSession {
         }
       }
 
-      this.loadDeck(humanSeat, playerDeck);
-      this.loadDeck((1 - humanSeat) as 0 | 1, opponentDeck);
+      this.loadDeck(humanSeat, playerDeck, shuffleRandom);
+      this.loadDeck((1 - humanSeat) as 0 | 1, opponentDeck, shuffleRandom);
       if (openingHands) {
         for (const [player, hand] of openingHands.entries()) {
           const seat = (player === 0 ? humanSeat : 1 - humanSeat) as 0 | 1;
@@ -962,14 +996,14 @@ export class DuelSession {
     });
   }
 
-  private loadDeck(team: 0 | 1, deck: DuelDeckPayload): void {
+  private loadDeck(team: 0 | 1, deck: DuelDeckPayload, random: () => number = Math.random): void {
     if (!this.core || !this.handle) return;
 
     // O ocgcore NÃO embaralha o deck ao iniciar o duelo — as compras saem na
     // ordem em que as cartas foram inseridas. Sem embaralhar aqui, a mão
     // inicial é sempre o fim da decklist (que numa decklist típica é a seção
     // de armadilhas), e o jogador nunca teria um monstro para invocar.
-    for (const code of shuffled(deck.main)) {
+    for (const code of shuffled(deck.main, random)) {
       this.core.duelNewCard(this.handle, {
         team,
         duelist: 0,
@@ -1205,6 +1239,7 @@ export class DuelSession {
     this.leaveBeatWanted = 0;
     this.cutInBeatWanted = 0;
     for (const message of messages) {
+      for (const knowledge of this.botKnowledge) knowledge.observe(message);
       switch (message.type) {
         // HINT carrega códigos internos do core (ids de efeito, timings) que
         // não significam nada para o jogador — fora do log. Mas o tipo CODE
@@ -1413,6 +1448,7 @@ export class DuelSession {
         // Goblin Larápio acertava, a mão do adversário encolhia em silêncio e
         // da cadeira do jogador o efeito parecia não ter funcionado.
         case OcgMessageType.MOVE: {
+          this.moveChainCards(message.from, message.to);
           const line = this.describeHandExit(message);
           if (line) {
             this.appendLog(line, null, {
@@ -1504,6 +1540,7 @@ export class DuelSession {
               sequence: message.sequence,
             },
             state: "pending",
+            targets: [],
           };
           this.update({
             chain: link,
@@ -1686,6 +1723,23 @@ export class DuelSession {
             { codes: this.publicCodesAt(message.card, message.target), actor: message.card.controller },
           );
           break;
+        case OcgMessageType.BECOME_TARGET: {
+          // SELECT_CARD também escolhe custos e cartas durante a resolução.
+          // Somente esta mensagem anuncia alvos de um efeito na corrente.
+          const top = this.snapshot.chainLinks.at(-1);
+          if (!top || top.state !== "pending" || this.snapshot.chainLinks.some((link) => link.state === "resolving")) break;
+          const targets = message.cards.map((card): DuelChainTarget => ({
+            zone: { controller: card.controller, location: card.location, sequence: card.sequence },
+            code: (this.onField(card.location) || card.location === OcgLocation.GRAVE || card.location === OcgLocation.REMOVED)
+              ? this.publicCodeAt(card.controller, card.location, card.sequence) : null,
+            present: true,
+          }));
+          const byZone = new Map([...(top.targets ?? []), ...targets].map((target) =>
+            [this.hintKey(target.zone.controller, target.zone.location, target.zone.sequence), target]));
+          const updated = { ...top, targets: [...byZone.values()] };
+          this.update({ chain: updated, chainLinks: this.snapshot.chainLinks.map((link) => link.link === top.link ? updated : link) });
+          break;
+        }
         case OcgMessageType.CARD_TARGET:
           this.appendLog(
             `🎯 ${this.publicNameAt(message.card.controller, message.card.location, message.card.sequence)} ` +
@@ -1725,6 +1779,27 @@ export class DuelSession {
       if (link.state === "pending") return link.player;
     }
     return null;
+  }
+
+  /** Não deixa o marcador de alvo passar para quem ocupa a zona depois. */
+  private moveChainCards(from: LocPos, to: LocPos): void {
+    if (!this.snapshot.chainLinks.length || from.overlay_sequence !== undefined) return;
+    const same = (zone: DuelZoneRef) => zone.controller === from.controller && zone.location === from.location && zone.sequence === from.sequence;
+    const zone = { controller: to.controller, location: to.location, sequence: to.sequence };
+    const staysOnField = this.onField(from.location) && from.location === to.location && to.overlay_sequence === undefined;
+    let changed = false;
+    const chainLinks = this.snapshot.chainLinks.map((link) => {
+      const targets = (link.targets ?? []).map((target) => {
+        if (!target.present || !same(target.zone)) return target;
+        changed = true;
+        return { ...target, zone: staysOnField ? zone : target.zone, present: staysOnField };
+      });
+      const movedSource = same(link.zone);
+      if (movedSource) changed = true;
+      return movedSource || targets.some((target, i) => target !== link.targets[i])
+        ? { ...link, zone: movedSource ? zone : link.zone, targets } : link;
+    });
+    if (changed) this.update({ chainLinks, chain: chainLinks.at(-1) ?? null });
   }
 
   /** Chave da zona nas marcas, a mesma do `cardKey` da mesa. */
@@ -2186,11 +2261,11 @@ export class DuelSession {
   private botContext(prompt: OcgMessage, seat: 0 | 1): BotContext {
     const { core, handle } = this;
     const cache = new Map<boolean, BoardState>();
-    return {
+    const context: BotContext = {
       prompt,
       me: seat,
       readBoard: (full: boolean) => {
-        const guardado = cache.get(full);
+        const guardado = cache.get(full) ?? cache.get(true);
         if (guardado) return guardado;
         if (!core || !handle) {
           throw new Error("duelo encerrado durante a decisão do bot");
@@ -2201,13 +2276,12 @@ export class DuelSession {
       },
       cardDb: this.cardDb,
       lifePoints: this.snapshot.lifePoints,
-      phase: this.snapshot.phase,
-      turnPlayer: this.snapshot.turnPlayer,
-      turnCount: this.snapshot.turnCount,
-      chainPlayer: this.snapshot.chain?.player ?? null,
-      chainCode: this.snapshot.chain?.code ?? null,
-      summoning: this.summoning,
+      ...this.botKnowledge[seat].context(),
+      format: this.snapshot.format,
+      retryCount: this.consecutiveRetries,
     };
+    context.prompt = this.botKnowledge[seat].mask(prompt, () => context.readBoard(false));
+    return context;
   }
 
   /**

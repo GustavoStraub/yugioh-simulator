@@ -1,0 +1,845 @@
+{
+  "schemaVersion": 1,
+  "id": "herois-lendarios-cavaleiros-fantasmas",
+  "revision": 1,
+  "format": "tcg",
+  "presetId": "tcg-lehd-phantom-knights",
+  "guide": {
+    "id": "herois-lendarios-cavaleiros-fantasmas",
+    "revision": 1
+  },
+  "deckSnapshot": {
+    "format": "tcg",
+    "main": [
+      90432163,
+      90432163,
+      36426778,
+      36426778,
+      63821877,
+      63821877,
+      99315585,
+      99315585,
+      36704180,
+      36704180,
+      28985331,
+      54582424,
+      56343672,
+      56410040,
+      19353570,
+      42338879,
+      97268402,
+      3298689,
+      3298689,
+      98153934,
+      53129443,
+      83764718,
+      81439173,
+      32807846,
+      674561,
+      43898403,
+      25542642,
+      61936647,
+      61936647,
+      98431356,
+      98431356,
+      77462146,
+      77462146,
+      98827725,
+      24212820,
+      51606429,
+      36247316,
+      62645025,
+      62645025,
+      9336190
+    ],
+    "extra": [
+      26692769,
+      62709239,
+      12219047,
+      16195942,
+      1621413,
+      359563,
+      65884091,
+      63504681,
+      95992081,
+      83531441
+    ],
+    "side": []
+  },
+  "roles": [
+    {
+      "code": 90432163,
+      "roles": [
+        "material",
+        "starter"
+      ]
+    },
+    {
+      "code": 36426778,
+      "roles": [
+        "material"
+      ]
+    },
+    {
+      "code": 62709239,
+      "roles": [
+        "finisher",
+        "interaction",
+        "material"
+      ]
+    },
+    {
+      "code": 19353570,
+      "roles": [
+        "material"
+      ]
+    },
+    {
+      "code": 26692769,
+      "roles": [
+        "material"
+      ]
+    },
+    {
+      "code": 63821877,
+      "roles": [
+        "material",
+        "starter"
+      ]
+    },
+    {
+      "code": 25542642,
+      "roles": [
+        "material"
+      ]
+    },
+    {
+      "code": 98431356,
+      "roles": [
+        "material"
+      ]
+    },
+    {
+      "code": 81439173,
+      "roles": [
+        "starter"
+      ]
+    },
+    {
+      "code": 95992081,
+      "roles": [
+        "material"
+      ]
+    }
+  ],
+  "routes": [
+    {
+      "id": "primeiro-xyz",
+      "lesson": "primeiro-xyz",
+      "objective": "Espada Quebrada no campo, com Manto Antigo e Botas Silenciosas como materiais.",
+      "requires": [
+        {
+          "code": 90432163,
+          "zone": "hand",
+          "count": 1
+        },
+        {
+          "code": 36426778,
+          "zone": "hand",
+          "count": 1
+        },
+        {
+          "code": 62709239,
+          "zone": "extra",
+          "count": 1
+        }
+      ],
+      "minHand": 2,
+      "reserves": [
+        83764718
+      ],
+      "steps": [
+        {
+          "id": "primeiro-xyz-0",
+          "effects": [
+            90432163
+          ],
+          "targets": [
+            {
+              "code": 90432163,
+              "location": 2
+            }
+          ],
+          "completeWhen": [
+            {
+              "kind": "card",
+              "zone": "monsters",
+              "code": 90432163
+            }
+          ],
+          "action": {
+            "kind": "summons",
+            "code": 90432163
+          }
+        },
+        {
+          "id": "primeiro-xyz-1",
+          "effects": [
+            36426778
+          ],
+          "targets": [
+            {
+              "code": 36426778,
+              "location": 2
+            }
+          ],
+          "completeWhen": [
+            {
+              "kind": "card",
+              "zone": "monsters",
+              "code": 36426778
+            }
+          ],
+          "action": {
+            "kind": "special_summons",
+            "code": 36426778
+          }
+        },
+        {
+          "id": "primeiro-xyz-2",
+          "effects": [
+            62709239
+          ],
+          "targets": [
+            {
+              "code": 62709239,
+              "location": 64
+            },
+            {
+              "code": 90432163,
+              "location": 4,
+              "scope": "selection"
+            },
+            {
+              "code": 36426778,
+              "location": 4,
+              "scope": "selection"
+            }
+          ],
+          "completeWhen": [
+            {
+              "kind": "card",
+              "zone": "monsters",
+              "code": 62709239
+            }
+          ],
+          "action": {
+            "kind": "special_summons",
+            "code": 62709239
+          }
+        }
+      ],
+      "result": {
+        "pressure": 2800,
+        "interaction": 1,
+        "continuation": 1,
+        "cost": 0,
+        "exposure": 3
+      }
+    },
+    {
+      "id": "rusty-bardiche",
+      "lesson": "rusty-bardiche",
+      "objective": "Bardiche Enferrujado no campo, Lâmina de Névoa Baixada e Asa na mão.",
+      "requires": [
+        {
+          "code": 90432163,
+          "zone": "hand",
+          "count": 1
+        },
+        {
+          "code": 19353570,
+          "zone": "hand",
+          "count": 1
+        },
+        {
+          "code": 36426778,
+          "zone": "hand",
+          "count": 1
+        },
+        {
+          "code": 26692769,
+          "zone": "extra",
+          "count": 1
+        },
+        {
+          "code": 63821877,
+          "zone": "deck",
+          "count": 1
+        },
+        {
+          "code": 25542642,
+          "zone": "deck",
+          "count": 1
+        },
+        {
+          "code": 98431356,
+          "zone": "deck",
+          "count": 1
+        }
+      ],
+      "minHand": 3,
+      "reserves": [
+        83764718
+      ],
+      "steps": [
+        {
+          "id": "rusty-bardiche-0",
+          "effects": [
+            90432163,
+            19353570
+          ],
+          "targets": [
+            {
+              "code": 90432163,
+              "location": 2
+            },
+            {
+              "code": 19353570,
+              "location": 2
+            }
+          ],
+          "completeWhen": [
+            {
+              "kind": "card",
+              "zone": "monsters",
+              "code": 90432163
+            },
+            {
+              "kind": "card",
+              "zone": "monsters",
+              "code": 19353570
+            }
+          ],
+          "action": {
+            "kind": "summons",
+            "code": 90432163
+          }
+        },
+        {
+          "id": "rusty-bardiche-1",
+          "effects": [
+            36426778
+          ],
+          "targets": [
+            {
+              "code": 36426778,
+              "location": 2
+            }
+          ],
+          "completeWhen": [
+            {
+              "kind": "card",
+              "zone": "monsters",
+              "code": 36426778
+            }
+          ],
+          "action": {
+            "kind": "special_summons",
+            "code": 36426778
+          }
+        },
+        {
+          "id": "rusty-bardiche-2",
+          "effects": [
+            26692769
+          ],
+          "targets": [
+            {
+              "code": 26692769,
+              "location": 64
+            },
+            {
+              "code": 90432163,
+              "location": 4,
+              "scope": "selection"
+            },
+            {
+              "code": 19353570,
+              "location": 4,
+              "scope": "selection"
+            },
+            {
+              "code": 36426778,
+              "location": 4,
+              "scope": "selection"
+            }
+          ],
+          "completeWhen": [
+            {
+              "kind": "card",
+              "zone": "monsters",
+              "code": 26692769
+            }
+          ],
+          "action": {
+            "kind": "special_summons",
+            "code": 26692769
+          }
+        },
+        {
+          "id": "rusty-bardiche-3",
+          "effects": [
+            26692769
+          ],
+          "targets": [
+            {
+              "code": 26692769,
+              "location": 4
+            },
+            {
+              "code": 63821877,
+              "location": 1
+            },
+            {
+              "code": 25542642,
+              "location": 1
+            }
+          ],
+          "completeWhen": [
+            {
+              "kind": "card",
+              "zone": "grave",
+              "code": 63821877
+            },
+            {
+              "kind": "card",
+              "zone": "spells",
+              "code": 25542642
+            }
+          ],
+          "action": {
+            "kind": "activates",
+            "code": 26692769
+          }
+        },
+        {
+          "id": "rusty-bardiche-4",
+          "effects": [
+            36426778
+          ],
+          "targets": [
+            {
+              "code": 36426778,
+              "location": 16
+            },
+            {
+              "code": 98431356,
+              "location": 1
+            }
+          ],
+          "completeWhen": [
+            {
+              "kind": "card",
+              "zone": "banished",
+              "code": 36426778
+            },
+            {
+              "kind": "card",
+              "zone": "hand",
+              "code": 98431356
+            }
+          ],
+          "action": {
+            "kind": "activates",
+            "code": 36426778
+          }
+        }
+      ],
+      "result": {
+        "pressure": 2800,
+        "interaction": 2,
+        "continuation": 2,
+        "cost": 0,
+        "exposure": 5
+      }
+    },
+    {
+      "id": "leviair",
+      "lesson": "leviair",
+      "objective": "Leviar e Manto Antigo no campo, Botas Silenciosas banido e Lâmina de Névoa na mão.",
+      "requires": [
+        {
+          "code": 81439173,
+          "zone": "hand",
+          "count": 1
+        },
+        {
+          "code": 63821877,
+          "zone": "hand",
+          "count": 1
+        },
+        {
+          "code": 90432163,
+          "zone": "deck",
+          "count": 1
+        },
+        {
+          "code": 36426778,
+          "zone": "deck",
+          "count": 1
+        },
+        {
+          "code": 95992081,
+          "zone": "extra",
+          "count": 1
+        },
+        {
+          "code": 25542642,
+          "zone": "deck",
+          "count": 1
+        }
+      ],
+      "minHand": 2,
+      "reserves": [
+        83764718
+      ],
+      "steps": [
+        {
+          "id": "leviair-0",
+          "effects": [
+            81439173
+          ],
+          "targets": [
+            {
+              "code": 81439173,
+              "location": 2
+            },
+            {
+              "code": 90432163,
+              "location": 1
+            }
+          ],
+          "completeWhen": [
+            {
+              "kind": "card",
+              "zone": "grave",
+              "code": 90432163
+            }
+          ],
+          "action": {
+            "kind": "activates",
+            "code": 81439173
+          }
+        },
+        {
+          "id": "leviair-1",
+          "effects": [
+            90432163
+          ],
+          "targets": [
+            {
+              "code": 90432163,
+              "location": 16
+            },
+            {
+              "code": 36426778,
+              "location": 1
+            }
+          ],
+          "completeWhen": [
+            {
+              "kind": "card",
+              "zone": "banished",
+              "code": 90432163
+            },
+            {
+              "kind": "card",
+              "zone": "hand",
+              "code": 36426778
+            }
+          ],
+          "action": {
+            "kind": "activates",
+            "code": 90432163
+          }
+        },
+        {
+          "id": "leviair-2",
+          "effects": [
+            63821877
+          ],
+          "targets": [
+            {
+              "code": 63821877,
+              "location": 2
+            }
+          ],
+          "completeWhen": [
+            {
+              "kind": "card",
+              "zone": "monsters",
+              "code": 63821877
+            }
+          ],
+          "action": {
+            "kind": "summons",
+            "code": 63821877
+          }
+        },
+        {
+          "id": "leviair-3",
+          "effects": [
+            36426778
+          ],
+          "targets": [
+            {
+              "code": 36426778,
+              "location": 2
+            }
+          ],
+          "completeWhen": [
+            {
+              "kind": "card",
+              "zone": "monsters",
+              "code": 63821877
+            },
+            {
+              "kind": "card",
+              "zone": "monsters",
+              "code": 36426778
+            }
+          ],
+          "action": {
+            "kind": "special_summons",
+            "code": 36426778
+          }
+        },
+        {
+          "id": "leviair-4",
+          "effects": [
+            95992081
+          ],
+          "targets": [
+            {
+              "code": 95992081,
+              "location": 64
+            },
+            {
+              "code": 63821877,
+              "location": 4,
+              "scope": "selection"
+            },
+            {
+              "code": 36426778,
+              "location": 4,
+              "scope": "selection"
+            }
+          ],
+          "completeWhen": [
+            {
+              "kind": "card",
+              "zone": "monsters",
+              "code": 95992081
+            }
+          ],
+          "action": {
+            "kind": "special_summons",
+            "code": 95992081
+          }
+        },
+        {
+          "id": "leviair-5",
+          "effects": [
+            95992081
+          ],
+          "targets": [
+            {
+              "code": 95992081,
+              "location": 4
+            },
+            {
+              "code": 36426778,
+              "location": 4
+            },
+            {
+              "code": 90432163,
+              "location": 32
+            }
+          ],
+          "completeWhen": [
+            {
+              "kind": "card",
+              "zone": "monsters",
+              "code": 90432163
+            },
+            {
+              "kind": "card",
+              "zone": "grave",
+              "code": 36426778
+            }
+          ],
+          "action": {
+            "kind": "activates",
+            "code": 95992081
+          }
+        },
+        {
+          "id": "leviair-6",
+          "effects": [
+            36426778
+          ],
+          "targets": [
+            {
+              "code": 36426778,
+              "location": 16
+            },
+            {
+              "code": 25542642,
+              "location": 1
+            }
+          ],
+          "completeWhen": [
+            {
+              "kind": "card",
+              "zone": "banished",
+              "code": 36426778
+            },
+            {
+              "kind": "card",
+              "zone": "hand",
+              "code": 25542642
+            }
+          ],
+          "action": {
+            "kind": "activates",
+            "code": 36426778
+          }
+        }
+      ],
+      "result": {
+        "pressure": 2800,
+        "interaction": 1,
+        "continuation": 2,
+        "cost": 0,
+        "exposure": 7
+      }
+    },
+    {
+      "id": "primeiro-xyz--63821877",
+      "lesson": "primeiro-xyz",
+      "objective": "Espada Quebrada no campo, com Manto Antigo e Botas Silenciosas como materiais.",
+      "requires": [
+        {
+          "code": 63821877,
+          "zone": "hand",
+          "count": 1
+        },
+        {
+          "code": 36426778,
+          "zone": "hand",
+          "count": 1
+        },
+        {
+          "code": 62709239,
+          "zone": "extra",
+          "count": 1
+        }
+      ],
+      "minHand": 2,
+      "reserves": [
+        83764718
+      ],
+      "steps": [
+        {
+          "id": "primeiro-xyz--63821877-0",
+          "effects": [
+            63821877
+          ],
+          "targets": [
+            {
+              "code": 63821877,
+              "location": 2
+            }
+          ],
+          "completeWhen": [
+            {
+              "kind": "card",
+              "zone": "monsters",
+              "code": 63821877
+            }
+          ],
+          "action": {
+            "kind": "summons",
+            "code": 63821877
+          }
+        },
+        {
+          "id": "primeiro-xyz--63821877-1",
+          "effects": [
+            36426778
+          ],
+          "targets": [
+            {
+              "code": 36426778,
+              "location": 2
+            }
+          ],
+          "completeWhen": [
+            {
+              "kind": "card",
+              "zone": "monsters",
+              "code": 36426778
+            }
+          ],
+          "action": {
+            "kind": "special_summons",
+            "code": 36426778
+          }
+        },
+        {
+          "id": "primeiro-xyz--63821877-2",
+          "effects": [
+            62709239
+          ],
+          "targets": [
+            {
+              "code": 62709239,
+              "location": 64
+            },
+            {
+              "code": 63821877,
+              "location": 4,
+              "scope": "selection"
+            },
+            {
+              "code": 36426778,
+              "location": 4,
+              "scope": "selection"
+            }
+          ],
+          "completeWhen": [
+            {
+              "kind": "card",
+              "zone": "monsters",
+              "code": 62709239
+            }
+          ],
+          "action": {
+            "kind": "special_summons",
+            "code": 62709239
+          }
+        }
+      ],
+      "result": {
+        "pressure": 2800,
+        "interaction": 1,
+        "continuation": 2,
+        "cost": 0,
+        "exposure": 3
+      },
+      "minDifficulty": "hard"
+    }
+  ],
+  "coverage": "3 rotas revisadas · Heróis Lendários — Cavaleiros Fantasmas"
+}

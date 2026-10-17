@@ -15,6 +15,9 @@ Concluir os objetivos salva o progresso no navegador para cada jogador. O atalho
 abre um duelo livre contra o bot com a lista oficial. Autoria dos JSONs e
 validação das jogadas: [guias de decks](docs/deck-learning.md).
 
+A proposta de evolução dos bots, com estratégias por deck e níveis Fácil,
+Médio e Difícil, está em [inteligência dos bots](docs/inteligencia-bot.md).
+
 ## Telefone e tablet
 
 O construtor e os lobbies funcionam na vertical e na horizontal. No construtor,
@@ -270,6 +273,8 @@ npm run test:browser-decks   # biblioteca de decks, persistência e idioma
 
 ## Documentação
 
+- [`docs/inteligencia-bot-implementacao.md`](docs/inteligencia-bot-implementacao.md)
+  — níveis do bot, perfis executáveis, testes e limites demonstrados na avaliação.
 - [`docs/multiplayer.md`](docs/multiplayer.md) — como o duelo online foi
   desenhado (servidor dono do engine, projeção por assento).
 - [`docs/tcg-completo.md`](docs/tcg-completo.md) — achados e plano para levar

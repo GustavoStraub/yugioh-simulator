@@ -16,7 +16,7 @@ export interface CardMark {
   chip: string;
   /** A frase completa (leitura da carta e dica do selo). */
   text: string;
-  tone: "counter" | "turn" | "declared" | "notice" | "link" | "negated";
+  tone: "counter" | "turn" | "declared" | "notice" | "link" | "target" | "negated";
 }
 
 export interface MarkContext {
@@ -25,6 +25,8 @@ export interface MarkContext {
   cardName: (code: number) => string;
   /** Nome da carta numa zona, como quem olha a vê (oculta = "carta baixada"). */
   nameAt: (zone: ZoneRef) => string;
+  /** Equipamentos ligados a esta carta na mesa visível. */
+  equippedCards?: readonly BoardCard[];
 }
 
 /** Bits de uma máscara (raça/atributo), um por um. */
@@ -89,6 +91,13 @@ export function cardMarks(card: BoardCard, ctx: MarkContext): CardMark[] {
 
   if (card.equippedTo) {
     marks.push({ chip: "🔗", text: `Equipada a ${ctx.nameAt(card.equippedTo)}`, tone: "link" });
+  }
+  if (ctx.equippedCards?.length) {
+    marks.push({
+      chip: `🔗${ctx.equippedCards.length}`,
+      text: `Equipamentos: ${ctx.equippedCards.map((equipment) => ctx.nameAt(equipment)).join(", ")}`,
+      tone: "link",
+    });
   }
   for (const target of card.targets) {
     marks.push({ chip: "🎯", text: `Alvo: ${ctx.nameAt(target)}`, tone: "link" });

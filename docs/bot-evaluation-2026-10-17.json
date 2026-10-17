@@ -1,0 +1,1618 @@
+{
+  "protocol": 1,
+  "rounds": 32,
+  "seedOffset": 2000000,
+  "seedRange": "90001 + rodada*97 + deck*1009 + confronto*5003",
+  "format": "tcg",
+  "summary": [
+    {
+      "left": "baseline",
+      "right": "baseline",
+      "wins": 256,
+      "losses": 256,
+      "draws": 0,
+      "inconclusive": 0,
+      "rejected": 0,
+      "fallbacks": 0,
+      "ci95": [
+        0.45685128225525845,
+        0.5431487177447416
+      ]
+    },
+    {
+      "left": "medium",
+      "right": "baseline",
+      "wins": 286,
+      "losses": 226,
+      "draws": 0,
+      "inconclusive": 0,
+      "rejected": 0,
+      "fallbacks": 7722,
+      "ci95": [
+        0.5153037513621295,
+        0.601011024336457
+      ]
+    },
+    {
+      "left": "hard",
+      "right": "baseline",
+      "wins": 286,
+      "losses": 226,
+      "draws": 0,
+      "inconclusive": 0,
+      "rejected": 0,
+      "fallbacks": 7266,
+      "ci95": [
+        0.5153037513621295,
+        0.601011024336457
+      ]
+    },
+    {
+      "left": "medium",
+      "right": "easy",
+      "wins": 270,
+      "losses": 240,
+      "draws": 0,
+      "inconclusive": 2,
+      "rejected": 0,
+      "fallbacks": 7612,
+      "ci95": [
+        0.48603356803190767,
+        0.572350182913909
+      ]
+    },
+    {
+      "left": "hard",
+      "right": "medium",
+      "wins": 251,
+      "losses": 261,
+      "draws": 0,
+      "inconclusive": 0,
+      "rejected": 0,
+      "fallbacks": 6989,
+      "ci95": [
+        0.4471665537279428,
+        0.5334476503222928
+      ]
+    }
+  ],
+  "rows": [
+    {
+      "format": "tcg",
+      "left": "baseline",
+      "right": "baseline",
+      "deck": "tcg-sdaz",
+      "opponent": "tcg-sdaz",
+      "wins": 32,
+      "losses": 32,
+      "draws": 0,
+      "inconclusive": 0,
+      "rejected": 0,
+      "fallbacks": 0,
+      "decisions": 0,
+      "limits": 0,
+      "errors": 0,
+      "seats": [
+        {
+          "games": 32,
+          "wins": 15
+        },
+        {
+          "games": 32,
+          "wins": 17
+        }
+      ],
+      "outcomes": {
+        "WIN": 64
+      },
+      "ci95": [
+        0.38101888493214947,
+        0.6189811150678505
+      ],
+      "cpu": {
+        "median": 0,
+        "p95": 0,
+        "p99": 0
+      }
+    },
+    {
+      "format": "tcg",
+      "left": "baseline",
+      "right": "baseline",
+      "deck": "tcg-sdaz",
+      "opponent": "tcg-lehd-aesir",
+      "wins": 32,
+      "losses": 32,
+      "draws": 0,
+      "inconclusive": 0,
+      "rejected": 0,
+      "fallbacks": 0,
+      "decisions": 0,
+      "limits": 0,
+      "errors": 0,
+      "seats": [
+        {
+          "games": 32,
+          "wins": 15
+        },
+        {
+          "games": 32,
+          "wins": 17
+        }
+      ],
+      "outcomes": {
+        "WIN": 64
+      },
+      "ci95": [
+        0.38101888493214947,
+        0.6189811150678505
+      ],
+      "cpu": {
+        "median": 0,
+        "p95": 0,
+        "p99": 0
+      }
+    },
+    {
+      "format": "tcg",
+      "left": "baseline",
+      "right": "baseline",
+      "deck": "tcg-lehd-aesir",
+      "opponent": "tcg-lehd-aesir",
+      "wins": 32,
+      "losses": 32,
+      "draws": 0,
+      "inconclusive": 0,
+      "rejected": 0,
+      "fallbacks": 0,
+      "decisions": 0,
+      "limits": 0,
+      "errors": 0,
+      "seats": [
+        {
+          "games": 32,
+          "wins": 11
+        },
+        {
+          "games": 32,
+          "wins": 21
+        }
+      ],
+      "outcomes": {
+        "WIN": 64
+      },
+      "ci95": [
+        0.38101888493214947,
+        0.6189811150678505
+      ],
+      "cpu": {
+        "median": 0,
+        "p95": 0,
+        "p99": 0
+      }
+    },
+    {
+      "format": "tcg",
+      "left": "baseline",
+      "right": "baseline",
+      "deck": "tcg-lehd-aesir",
+      "opponent": "tcg-lehd-destiny-hero",
+      "wins": 32,
+      "losses": 32,
+      "draws": 0,
+      "inconclusive": 0,
+      "rejected": 0,
+      "fallbacks": 0,
+      "decisions": 0,
+      "limits": 0,
+      "errors": 0,
+      "seats": [
+        {
+          "games": 32,
+          "wins": 12
+        },
+        {
+          "games": 32,
+          "wins": 20
+        }
+      ],
+      "outcomes": {
+        "WIN": 64
+      },
+      "ci95": [
+        0.38101888493214947,
+        0.6189811150678505
+      ],
+      "cpu": {
+        "median": 0,
+        "p95": 0,
+        "p99": 0
+      }
+    },
+    {
+      "format": "tcg",
+      "left": "baseline",
+      "right": "baseline",
+      "deck": "tcg-lehd-destiny-hero",
+      "opponent": "tcg-lehd-destiny-hero",
+      "wins": 32,
+      "losses": 32,
+      "draws": 0,
+      "inconclusive": 0,
+      "rejected": 0,
+      "fallbacks": 0,
+      "decisions": 0,
+      "limits": 0,
+      "errors": 0,
+      "seats": [
+        {
+          "games": 32,
+          "wins": 16
+        },
+        {
+          "games": 32,
+          "wins": 16
+        }
+      ],
+      "outcomes": {
+        "WIN": 64
+      },
+      "ci95": [
+        0.38101888493214947,
+        0.6189811150678505
+      ],
+      "cpu": {
+        "median": 0,
+        "p95": 0,
+        "p99": 0
+      }
+    },
+    {
+      "format": "tcg",
+      "left": "baseline",
+      "right": "baseline",
+      "deck": "tcg-lehd-destiny-hero",
+      "opponent": "tcg-lehd-phantom-knights",
+      "wins": 32,
+      "losses": 32,
+      "draws": 0,
+      "inconclusive": 0,
+      "rejected": 0,
+      "fallbacks": 0,
+      "decisions": 0,
+      "limits": 0,
+      "errors": 0,
+      "seats": [
+        {
+          "games": 32,
+          "wins": 6
+        },
+        {
+          "games": 32,
+          "wins": 26
+        }
+      ],
+      "outcomes": {
+        "WIN": 64
+      },
+      "ci95": [
+        0.38101888493214947,
+        0.6189811150678505
+      ],
+      "cpu": {
+        "median": 0,
+        "p95": 0,
+        "p99": 0
+      }
+    },
+    {
+      "format": "tcg",
+      "left": "baseline",
+      "right": "baseline",
+      "deck": "tcg-lehd-phantom-knights",
+      "opponent": "tcg-lehd-phantom-knights",
+      "wins": 32,
+      "losses": 32,
+      "draws": 0,
+      "inconclusive": 0,
+      "rejected": 0,
+      "fallbacks": 0,
+      "decisions": 0,
+      "limits": 0,
+      "errors": 0,
+      "seats": [
+        {
+          "games": 32,
+          "wins": 15
+        },
+        {
+          "games": 32,
+          "wins": 17
+        }
+      ],
+      "outcomes": {
+        "WIN": 64
+      },
+      "ci95": [
+        0.38101888493214947,
+        0.6189811150678505
+      ],
+      "cpu": {
+        "median": 0,
+        "p95": 0,
+        "p99": 0
+      }
+    },
+    {
+      "format": "tcg",
+      "left": "baseline",
+      "right": "baseline",
+      "deck": "tcg-lehd-phantom-knights",
+      "opponent": "tcg-sdaz",
+      "wins": 32,
+      "losses": 32,
+      "draws": 0,
+      "inconclusive": 0,
+      "rejected": 0,
+      "fallbacks": 0,
+      "decisions": 0,
+      "limits": 0,
+      "errors": 0,
+      "seats": [
+        {
+          "games": 32,
+          "wins": 16
+        },
+        {
+          "games": 32,
+          "wins": 16
+        }
+      ],
+      "outcomes": {
+        "WIN": 64
+      },
+      "ci95": [
+        0.38101888493214947,
+        0.6189811150678505
+      ],
+      "cpu": {
+        "median": 0,
+        "p95": 0,
+        "p99": 0
+      }
+    },
+    {
+      "format": "tcg",
+      "left": "medium",
+      "right": "baseline",
+      "deck": "tcg-sdaz",
+      "opponent": "tcg-sdaz",
+      "wins": 37,
+      "losses": 27,
+      "draws": 0,
+      "inconclusive": 0,
+      "rejected": 0,
+      "fallbacks": 699,
+      "decisions": 4061,
+      "limits": 0,
+      "errors": 0,
+      "seats": [
+        {
+          "games": 32,
+          "wins": 16
+        },
+        {
+          "games": 32,
+          "wins": 21
+        }
+      ],
+      "outcomes": {
+        "WIN": 64
+      },
+      "ci95": [
+        0.4560981205252726,
+        0.6913040633854843
+      ],
+      "cpu": {
+        "median": 0.022208999998838408,
+        "p95": 0.04308299999865994,
+        "p99": 0.06658400000014808
+      }
+    },
+    {
+      "format": "tcg",
+      "left": "medium",
+      "right": "baseline",
+      "deck": "tcg-sdaz",
+      "opponent": "tcg-lehd-aesir",
+      "wins": 39,
+      "losses": 25,
+      "draws": 0,
+      "inconclusive": 0,
+      "rejected": 0,
+      "fallbacks": 882,
+      "decisions": 5357,
+      "limits": 0,
+      "errors": 0,
+      "seats": [
+        {
+          "games": 32,
+          "wins": 21
+        },
+        {
+          "games": 32,
+          "wins": 18
+        }
+      ],
+      "outcomes": {
+        "WIN": 64
+      },
+      "ci95": [
+        0.486916942944024,
+        0.7194461145310355
+      ],
+      "cpu": {
+        "median": 0.022625000001426088,
+        "p95": 0.04029100000116159,
+        "p99": 0.055250000001251465
+      }
+    },
+    {
+      "format": "tcg",
+      "left": "medium",
+      "right": "baseline",
+      "deck": "tcg-lehd-aesir",
+      "opponent": "tcg-lehd-aesir",
+      "wins": 34,
+      "losses": 30,
+      "draws": 0,
+      "inconclusive": 0,
+      "rejected": 0,
+      "fallbacks": 1177,
+      "decisions": 6317,
+      "limits": 0,
+      "errors": 0,
+      "seats": [
+        {
+          "games": 32,
+          "wins": 14
+        },
+        {
+          "games": 32,
+          "wins": 20
+        }
+      ],
+      "outcomes": {
+        "WIN": 64
+      },
+      "ci95": [
+        0.41071875000475133,
+        0.6482421235595515
+      ],
+      "cpu": {
+        "median": 0.02449999999953434,
+        "p95": 0.03966700000091805,
+        "p99": 0.04991700000027777
+      }
+    },
+    {
+      "format": "tcg",
+      "left": "medium",
+      "right": "baseline",
+      "deck": "tcg-lehd-aesir",
+      "opponent": "tcg-lehd-destiny-hero",
+      "wins": 28,
+      "losses": 36,
+      "draws": 0,
+      "inconclusive": 0,
+      "rejected": 0,
+      "fallbacks": 938,
+      "decisions": 4952,
+      "limits": 0,
+      "errors": 0,
+      "seats": [
+        {
+          "games": 32,
+          "wins": 10
+        },
+        {
+          "games": 32,
+          "wins": 18
+        }
+      ],
+      "outcomes": {
+        "WIN": 64
+      },
+      "ci95": [
+        0.32293817065427327,
+        0.5591400822171212
+      ],
+      "cpu": {
+        "median": 0.023709000000962988,
+        "p95": 0.037374999999883585,
+        "p99": 0.046542000000044936
+      }
+    },
+    {
+      "format": "tcg",
+      "left": "medium",
+      "right": "baseline",
+      "deck": "tcg-lehd-destiny-hero",
+      "opponent": "tcg-lehd-destiny-hero",
+      "wins": 40,
+      "losses": 24,
+      "draws": 0,
+      "inconclusive": 0,
+      "rejected": 0,
+      "fallbacks": 957,
+      "decisions": 5146,
+      "limits": 0,
+      "errors": 0,
+      "seats": [
+        {
+          "games": 32,
+          "wins": 20
+        },
+        {
+          "games": 32,
+          "wins": 20
+        }
+      ],
+      "outcomes": {
+        "WIN": 64
+      },
+      "ci95": [
+        0.5025015331382642,
+        0.7333419611189468
+      ],
+      "cpu": {
+        "median": 0.024334000001545064,
+        "p95": 0.053084000002854737,
+        "p99": 0.07645799999954761
+      }
+    },
+    {
+      "format": "tcg",
+      "left": "medium",
+      "right": "baseline",
+      "deck": "tcg-lehd-destiny-hero",
+      "opponent": "tcg-lehd-phantom-knights",
+      "wins": 32,
+      "losses": 32,
+      "draws": 0,
+      "inconclusive": 0,
+      "rejected": 0,
+      "fallbacks": 1001,
+      "decisions": 5753,
+      "limits": 0,
+      "errors": 0,
+      "seats": [
+        {
+          "games": 32,
+          "wins": 7
+        },
+        {
+          "games": 32,
+          "wins": 25
+        }
+      ],
+      "outcomes": {
+        "WIN": 64
+      },
+      "ci95": [
+        0.38101888493214947,
+        0.6189811150678505
+      ],
+      "cpu": {
+        "median": 0.023999999997613486,
+        "p95": 0.0389580000010028,
+        "p99": 0.04874999999810825
+      }
+    },
+    {
+      "format": "tcg",
+      "left": "medium",
+      "right": "baseline",
+      "deck": "tcg-lehd-phantom-knights",
+      "opponent": "tcg-lehd-phantom-knights",
+      "wins": 39,
+      "losses": 25,
+      "draws": 0,
+      "inconclusive": 0,
+      "rejected": 0,
+      "fallbacks": 1177,
+      "decisions": 7301,
+      "limits": 0,
+      "errors": 0,
+      "seats": [
+        {
+          "games": 32,
+          "wins": 19
+        },
+        {
+          "games": 32,
+          "wins": 20
+        }
+      ],
+      "outcomes": {
+        "WIN": 64
+      },
+      "ci95": [
+        0.486916942944024,
+        0.7194461145310355
+      ],
+      "cpu": {
+        "median": 0.023165999999037012,
+        "p95": 0.03704199999992852,
+        "p99": 0.0464159999974072
+      }
+    },
+    {
+      "format": "tcg",
+      "left": "medium",
+      "right": "baseline",
+      "deck": "tcg-lehd-phantom-knights",
+      "opponent": "tcg-sdaz",
+      "wins": 37,
+      "losses": 27,
+      "draws": 0,
+      "inconclusive": 0,
+      "rejected": 0,
+      "fallbacks": 891,
+      "decisions": 5504,
+      "limits": 0,
+      "errors": 0,
+      "seats": [
+        {
+          "games": 32,
+          "wins": 16
+        },
+        {
+          "games": 32,
+          "wins": 21
+        }
+      ],
+      "outcomes": {
+        "WIN": 64
+      },
+      "ci95": [
+        0.4560981205252726,
+        0.6913040633854843
+      ],
+      "cpu": {
+        "median": 0.021957999997539446,
+        "p95": 0.03770799999983865,
+        "p99": 0.05033299999922747
+      }
+    },
+    {
+      "format": "tcg",
+      "left": "hard",
+      "right": "baseline",
+      "deck": "tcg-sdaz",
+      "opponent": "tcg-sdaz",
+      "wins": 37,
+      "losses": 27,
+      "draws": 0,
+      "inconclusive": 0,
+      "rejected": 0,
+      "fallbacks": 699,
+      "decisions": 4069,
+      "limits": 0,
+      "errors": 0,
+      "seats": [
+        {
+          "games": 32,
+          "wins": 16
+        },
+        {
+          "games": 32,
+          "wins": 21
+        }
+      ],
+      "outcomes": {
+        "WIN": 64
+      },
+      "ci95": [
+        0.4560981205252726,
+        0.6913040633854843
+      ],
+      "cpu": {
+        "median": 0.020334000000730157,
+        "p95": 0.035874999997759005,
+        "p99": 0.05154200000106357
+      }
+    },
+    {
+      "format": "tcg",
+      "left": "hard",
+      "right": "baseline",
+      "deck": "tcg-sdaz",
+      "opponent": "tcg-lehd-aesir",
+      "wins": 39,
+      "losses": 25,
+      "draws": 0,
+      "inconclusive": 0,
+      "rejected": 0,
+      "fallbacks": 737,
+      "decisions": 4896,
+      "limits": 0,
+      "errors": 0,
+      "seats": [
+        {
+          "games": 32,
+          "wins": 21
+        },
+        {
+          "games": 32,
+          "wins": 18
+        }
+      ],
+      "outcomes": {
+        "WIN": 64
+      },
+      "ci95": [
+        0.486916942944024,
+        0.7194461145310355
+      ],
+      "cpu": {
+        "median": 0.022042000000510598,
+        "p95": 0.037583000001177425,
+        "p99": 0.060708000000886386
+      }
+    },
+    {
+      "format": "tcg",
+      "left": "hard",
+      "right": "baseline",
+      "deck": "tcg-lehd-aesir",
+      "opponent": "tcg-lehd-aesir",
+      "wins": 34,
+      "losses": 30,
+      "draws": 0,
+      "inconclusive": 0,
+      "rejected": 0,
+      "fallbacks": 935,
+      "decisions": 5978,
+      "limits": 0,
+      "errors": 0,
+      "seats": [
+        {
+          "games": 32,
+          "wins": 15
+        },
+        {
+          "games": 32,
+          "wins": 19
+        }
+      ],
+      "outcomes": {
+        "WIN": 64
+      },
+      "ci95": [
+        0.41071875000475133,
+        0.6482421235595515
+      ],
+      "cpu": {
+        "median": 0.024582999998528976,
+        "p95": 0.04312499999650754,
+        "p99": 0.0620409999974072
+      }
+    },
+    {
+      "format": "tcg",
+      "left": "hard",
+      "right": "baseline",
+      "deck": "tcg-lehd-aesir",
+      "opponent": "tcg-lehd-destiny-hero",
+      "wins": 30,
+      "losses": 34,
+      "draws": 0,
+      "inconclusive": 0,
+      "rejected": 0,
+      "fallbacks": 865,
+      "decisions": 5246,
+      "limits": 0,
+      "errors": 0,
+      "seats": [
+        {
+          "games": 32,
+          "wins": 12
+        },
+        {
+          "games": 32,
+          "wins": 18
+        }
+      ],
+      "outcomes": {
+        "WIN": 64
+      },
+      "ci95": [
+        0.3517578764404486,
+        0.5892812499952487
+      ],
+      "cpu": {
+        "median": 0.023708000000624452,
+        "p95": 0.03862500000104774,
+        "p99": 0.0526670000035665
+      }
+    },
+    {
+      "format": "tcg",
+      "left": "hard",
+      "right": "baseline",
+      "deck": "tcg-lehd-destiny-hero",
+      "opponent": "tcg-lehd-destiny-hero",
+      "wins": 40,
+      "losses": 24,
+      "draws": 0,
+      "inconclusive": 0,
+      "rejected": 0,
+      "fallbacks": 958,
+      "decisions": 5150,
+      "limits": 0,
+      "errors": 0,
+      "seats": [
+        {
+          "games": 32,
+          "wins": 20
+        },
+        {
+          "games": 32,
+          "wins": 20
+        }
+      ],
+      "outcomes": {
+        "WIN": 64
+      },
+      "ci95": [
+        0.5025015331382642,
+        0.7333419611189468
+      ],
+      "cpu": {
+        "median": 0.02466699999786215,
+        "p95": 0.05966700000135461,
+        "p99": 0.10683299999800511
+      }
+    },
+    {
+      "format": "tcg",
+      "left": "hard",
+      "right": "baseline",
+      "deck": "tcg-lehd-destiny-hero",
+      "opponent": "tcg-lehd-phantom-knights",
+      "wins": 32,
+      "losses": 32,
+      "draws": 0,
+      "inconclusive": 0,
+      "rejected": 0,
+      "fallbacks": 989,
+      "decisions": 5825,
+      "limits": 0,
+      "errors": 0,
+      "seats": [
+        {
+          "games": 32,
+          "wins": 7
+        },
+        {
+          "games": 32,
+          "wins": 25
+        }
+      ],
+      "outcomes": {
+        "WIN": 64
+      },
+      "ci95": [
+        0.38101888493214947,
+        0.6189811150678505
+      ],
+      "cpu": {
+        "median": 0.024166999995941296,
+        "p95": 0.03862500000104774,
+        "p99": 0.048915999999735504
+      }
+    },
+    {
+      "format": "tcg",
+      "left": "hard",
+      "right": "baseline",
+      "deck": "tcg-lehd-phantom-knights",
+      "opponent": "tcg-lehd-phantom-knights",
+      "wins": 38,
+      "losses": 26,
+      "draws": 0,
+      "inconclusive": 0,
+      "rejected": 0,
+      "fallbacks": 1196,
+      "decisions": 7447,
+      "limits": 0,
+      "errors": 0,
+      "seats": [
+        {
+          "games": 32,
+          "wins": 18
+        },
+        {
+          "games": 32,
+          "wins": 20
+        }
+      ],
+      "outcomes": {
+        "WIN": 64
+      },
+      "ci95": [
+        0.471449865045497,
+        0.7054327556474111
+      ],
+      "cpu": {
+        "median": 0.024749999996856786,
+        "p95": 0.04666700000234414,
+        "p99": 0.08079100000031758
+      }
+    },
+    {
+      "format": "tcg",
+      "left": "hard",
+      "right": "baseline",
+      "deck": "tcg-lehd-phantom-knights",
+      "opponent": "tcg-sdaz",
+      "wins": 36,
+      "losses": 28,
+      "draws": 0,
+      "inconclusive": 0,
+      "rejected": 0,
+      "fallbacks": 887,
+      "decisions": 5518,
+      "limits": 0,
+      "errors": 0,
+      "seats": [
+        {
+          "games": 32,
+          "wins": 15
+        },
+        {
+          "games": 32,
+          "wins": 21
+        }
+      ],
+      "outcomes": {
+        "WIN": 64
+      },
+      "ci95": [
+        0.4408599177828787,
+        0.6770618293457267
+      ],
+      "cpu": {
+        "median": 0.022417000000132248,
+        "p95": 0.04158299999835435,
+        "p99": 0.05500000000029104
+      }
+    },
+    {
+      "format": "tcg",
+      "left": "medium",
+      "right": "easy",
+      "deck": "tcg-sdaz",
+      "opponent": "tcg-sdaz",
+      "wins": 38,
+      "losses": 26,
+      "draws": 0,
+      "inconclusive": 0,
+      "rejected": 0,
+      "fallbacks": 670,
+      "decisions": 4115,
+      "limits": 0,
+      "errors": 0,
+      "seats": [
+        {
+          "games": 32,
+          "wins": 17
+        },
+        {
+          "games": 32,
+          "wins": 21
+        }
+      ],
+      "outcomes": {
+        "WIN": 64
+      },
+      "ci95": [
+        0.471449865045497,
+        0.7054327556474111
+      ],
+      "cpu": {
+        "median": 0.02033300000039162,
+        "p95": 0.03670799999963492,
+        "p99": 0.04974999999831198
+      }
+    },
+    {
+      "format": "tcg",
+      "left": "medium",
+      "right": "easy",
+      "deck": "tcg-sdaz",
+      "opponent": "tcg-lehd-aesir",
+      "wins": 37,
+      "losses": 27,
+      "draws": 0,
+      "inconclusive": 0,
+      "rejected": 0,
+      "fallbacks": 814,
+      "decisions": 5225,
+      "limits": 0,
+      "errors": 0,
+      "seats": [
+        {
+          "games": 32,
+          "wins": 23
+        },
+        {
+          "games": 32,
+          "wins": 14
+        }
+      ],
+      "outcomes": {
+        "WIN": 64
+      },
+      "ci95": [
+        0.4560981205252726,
+        0.6913040633854843
+      ],
+      "cpu": {
+        "median": 0.021999999997206032,
+        "p95": 0.04024999999819556,
+        "p99": 0.05712500000663567
+      }
+    },
+    {
+      "format": "tcg",
+      "left": "medium",
+      "right": "easy",
+      "deck": "tcg-lehd-aesir",
+      "opponent": "tcg-lehd-aesir",
+      "wins": 31,
+      "losses": 33,
+      "draws": 0,
+      "inconclusive": 0,
+      "rejected": 0,
+      "fallbacks": 1065,
+      "decisions": 5467,
+      "limits": 0,
+      "errors": 0,
+      "seats": [
+        {
+          "games": 32,
+          "wins": 15
+        },
+        {
+          "games": 32,
+          "wins": 16
+        }
+      ],
+      "outcomes": {
+        "WIN": 64
+      },
+      "ci95": [
+        0.36633348565783896,
+        0.6041860775600096
+      ],
+      "cpu": {
+        "median": 0.02295800000138115,
+        "p95": 0.0349999999962165,
+        "p99": 0.04370799999742303
+      }
+    },
+    {
+      "format": "tcg",
+      "left": "medium",
+      "right": "easy",
+      "deck": "tcg-lehd-aesir",
+      "opponent": "tcg-lehd-destiny-hero",
+      "wins": 32,
+      "losses": 31,
+      "draws": 0,
+      "inconclusive": 1,
+      "rejected": 0,
+      "fallbacks": 887,
+      "decisions": 4589,
+      "limits": 1,
+      "errors": 0,
+      "seats": [
+        {
+          "games": 32,
+          "wins": 11
+        },
+        {
+          "games": 32,
+          "wins": 21
+        }
+      ],
+      "outcomes": {
+        "WIN": 63,
+        "MAX_STEPS": 1
+      },
+      "ci95": [
+        0.38762677115387556,
+        0.6273339718564653
+      ],
+      "cpu": {
+        "median": 0.023625000001629815,
+        "p95": 0.039583999998285435,
+        "p99": 0.058417000000190455
+      }
+    },
+    {
+      "format": "tcg",
+      "left": "medium",
+      "right": "easy",
+      "deck": "tcg-lehd-destiny-hero",
+      "opponent": "tcg-lehd-destiny-hero",
+      "wins": 32,
+      "losses": 32,
+      "draws": 0,
+      "inconclusive": 0,
+      "rejected": 0,
+      "fallbacks": 1003,
+      "decisions": 5549,
+      "limits": 0,
+      "errors": 0,
+      "seats": [
+        {
+          "games": 32,
+          "wins": 16
+        },
+        {
+          "games": 32,
+          "wins": 16
+        }
+      ],
+      "outcomes": {
+        "WIN": 64
+      },
+      "ci95": [
+        0.38101888493214947,
+        0.6189811150678505
+      ],
+      "cpu": {
+        "median": 0.02420900000288384,
+        "p95": 0.049958000003243797,
+        "p99": 0.07441599999583559
+      }
+    },
+    {
+      "format": "tcg",
+      "left": "medium",
+      "right": "easy",
+      "deck": "tcg-lehd-destiny-hero",
+      "opponent": "tcg-lehd-phantom-knights",
+      "wins": 32,
+      "losses": 31,
+      "draws": 0,
+      "inconclusive": 1,
+      "rejected": 0,
+      "fallbacks": 1033,
+      "decisions": 5981,
+      "limits": 1,
+      "errors": 0,
+      "seats": [
+        {
+          "games": 32,
+          "wins": 6
+        },
+        {
+          "games": 32,
+          "wins": 26
+        }
+      ],
+      "outcomes": {
+        "WIN": 63,
+        "MAX_STEPS": 1
+      },
+      "ci95": [
+        0.38762677115387556,
+        0.6273339718564653
+      ],
+      "cpu": {
+        "median": 0.024208999995607883,
+        "p95": 0.04370800000469899,
+        "p99": 0.05424999999377178
+      }
+    },
+    {
+      "format": "tcg",
+      "left": "medium",
+      "right": "easy",
+      "deck": "tcg-lehd-phantom-knights",
+      "opponent": "tcg-lehd-phantom-knights",
+      "wins": 30,
+      "losses": 34,
+      "draws": 0,
+      "inconclusive": 0,
+      "rejected": 0,
+      "fallbacks": 1200,
+      "decisions": 7420,
+      "limits": 0,
+      "errors": 0,
+      "seats": [
+        {
+          "games": 32,
+          "wins": 13
+        },
+        {
+          "games": 32,
+          "wins": 17
+        }
+      ],
+      "outcomes": {
+        "WIN": 64
+      },
+      "ci95": [
+        0.3517578764404486,
+        0.5892812499952487
+      ],
+      "cpu": {
+        "median": 0.023416999996697996,
+        "p95": 0.03783299999486189,
+        "p99": 0.046999999998661224
+      }
+    },
+    {
+      "format": "tcg",
+      "left": "medium",
+      "right": "easy",
+      "deck": "tcg-lehd-phantom-knights",
+      "opponent": "tcg-sdaz",
+      "wins": 38,
+      "losses": 26,
+      "draws": 0,
+      "inconclusive": 0,
+      "rejected": 0,
+      "fallbacks": 940,
+      "decisions": 5736,
+      "limits": 0,
+      "errors": 0,
+      "seats": [
+        {
+          "games": 32,
+          "wins": 16
+        },
+        {
+          "games": 32,
+          "wins": 22
+        }
+      ],
+      "outcomes": {
+        "WIN": 64
+      },
+      "ci95": [
+        0.471449865045497,
+        0.7054327556474111
+      ],
+      "cpu": {
+        "median": 0.02162500000122236,
+        "p95": 0.037916999994195066,
+        "p99": 0.04958299999998417
+      }
+    },
+    {
+      "format": "tcg",
+      "left": "hard",
+      "right": "medium",
+      "deck": "tcg-sdaz",
+      "opponent": "tcg-sdaz",
+      "wins": 32,
+      "losses": 32,
+      "draws": 0,
+      "inconclusive": 0,
+      "rejected": 0,
+      "fallbacks": 664,
+      "decisions": 3934,
+      "limits": 0,
+      "errors": 0,
+      "seats": [
+        {
+          "games": 32,
+          "wins": 18
+        },
+        {
+          "games": 32,
+          "wins": 14
+        }
+      ],
+      "outcomes": {
+        "WIN": 64
+      },
+      "ci95": [
+        0.38101888493214947,
+        0.6189811150678505
+      ],
+      "cpu": {
+        "median": 0.02008400000340771,
+        "p95": 0.03562499999679858,
+        "p99": 0.048792000001412816
+      }
+    },
+    {
+      "format": "tcg",
+      "left": "hard",
+      "right": "medium",
+      "deck": "tcg-sdaz",
+      "opponent": "tcg-lehd-aesir",
+      "wins": 30,
+      "losses": 34,
+      "draws": 0,
+      "inconclusive": 0,
+      "rejected": 0,
+      "fallbacks": 711,
+      "decisions": 4628,
+      "limits": 0,
+      "errors": 0,
+      "seats": [
+        {
+          "games": 32,
+          "wins": 19
+        },
+        {
+          "games": 32,
+          "wins": 11
+        }
+      ],
+      "outcomes": {
+        "WIN": 64
+      },
+      "ci95": [
+        0.3517578764404486,
+        0.5892812499952487
+      ],
+      "cpu": {
+        "median": 0.022749999996449333,
+        "p95": 0.048042000002169516,
+        "p99": 0.07566700000461424
+      }
+    },
+    {
+      "format": "tcg",
+      "left": "hard",
+      "right": "medium",
+      "deck": "tcg-lehd-aesir",
+      "opponent": "tcg-lehd-aesir",
+      "wins": 29,
+      "losses": 35,
+      "draws": 0,
+      "inconclusive": 0,
+      "rejected": 0,
+      "fallbacks": 883,
+      "decisions": 5676,
+      "limits": 0,
+      "errors": 0,
+      "seats": [
+        {
+          "games": 32,
+          "wins": 11
+        },
+        {
+          "games": 32,
+          "wins": 18
+        }
+      ],
+      "outcomes": {
+        "WIN": 64
+      },
+      "ci95": [
+        0.3372925148603437,
+        0.5742661747932022
+      ],
+      "cpu": {
+        "median": 0.023583000001963228,
+        "p95": 0.03899999999703141,
+        "p99": 0.057708000000275206
+      }
+    },
+    {
+      "format": "tcg",
+      "left": "hard",
+      "right": "medium",
+      "deck": "tcg-lehd-aesir",
+      "opponent": "tcg-lehd-destiny-hero",
+      "wins": 33,
+      "losses": 31,
+      "draws": 0,
+      "inconclusive": 0,
+      "rejected": 0,
+      "fallbacks": 892,
+      "decisions": 5244,
+      "limits": 0,
+      "errors": 0,
+      "seats": [
+        {
+          "games": 32,
+          "wins": 14
+        },
+        {
+          "games": 32,
+          "wins": 19
+        }
+      ],
+      "outcomes": {
+        "WIN": 64
+      },
+      "ci95": [
+        0.3958139224399903,
+        0.6336665143421609
+      ],
+      "cpu": {
+        "median": 0.02375000000029104,
+        "p95": 0.04041699999652337,
+        "p99": 0.05833300000085728
+      }
+    },
+    {
+      "format": "tcg",
+      "left": "hard",
+      "right": "medium",
+      "deck": "tcg-lehd-destiny-hero",
+      "opponent": "tcg-lehd-destiny-hero",
+      "wins": 32,
+      "losses": 32,
+      "draws": 0,
+      "inconclusive": 0,
+      "rejected": 0,
+      "fallbacks": 923,
+      "decisions": 4927,
+      "limits": 0,
+      "errors": 0,
+      "seats": [
+        {
+          "games": 32,
+          "wins": 15
+        },
+        {
+          "games": 32,
+          "wins": 17
+        }
+      ],
+      "outcomes": {
+        "WIN": 64
+      },
+      "ci95": [
+        0.38101888493214947,
+        0.6189811150678505
+      ],
+      "cpu": {
+        "median": 0.02350000001024455,
+        "p95": 0.050667000003159046,
+        "p99": 0.07495799999742303
+      }
+    },
+    {
+      "format": "tcg",
+      "left": "hard",
+      "right": "medium",
+      "deck": "tcg-lehd-destiny-hero",
+      "opponent": "tcg-lehd-phantom-knights",
+      "wins": 32,
+      "losses": 32,
+      "draws": 0,
+      "inconclusive": 0,
+      "rejected": 0,
+      "fallbacks": 957,
+      "decisions": 5413,
+      "limits": 0,
+      "errors": 0,
+      "seats": [
+        {
+          "games": 32,
+          "wins": 10
+        },
+        {
+          "games": 32,
+          "wins": 22
+        }
+      ],
+      "outcomes": {
+        "WIN": 64
+      },
+      "ci95": [
+        0.38101888493214947,
+        0.6189811150678505
+      ],
+      "cpu": {
+        "median": 0.023417000003973953,
+        "p95": 0.036458000002312474,
+        "p99": 0.045165999996243045
+      }
+    },
+    {
+      "format": "tcg",
+      "left": "hard",
+      "right": "medium",
+      "deck": "tcg-lehd-phantom-knights",
+      "opponent": "tcg-lehd-phantom-knights",
+      "wins": 32,
+      "losses": 32,
+      "draws": 0,
+      "inconclusive": 0,
+      "rejected": 0,
+      "fallbacks": 1094,
+      "decisions": 6549,
+      "limits": 0,
+      "errors": 0,
+      "seats": [
+        {
+          "games": 32,
+          "wins": 16
+        },
+        {
+          "games": 32,
+          "wins": 16
+        }
+      ],
+      "outcomes": {
+        "WIN": 64
+      },
+      "ci95": [
+        0.38101888493214947,
+        0.6189811150678505
+      ],
+      "cpu": {
+        "median": 0.022917000009329058,
+        "p95": 0.036458000002312474,
+        "p99": 0.0463329999911366
+      }
+    },
+    {
+      "format": "tcg",
+      "left": "hard",
+      "right": "medium",
+      "deck": "tcg-lehd-phantom-knights",
+      "opponent": "tcg-sdaz",
+      "wins": 31,
+      "losses": 33,
+      "draws": 0,
+      "inconclusive": 0,
+      "rejected": 0,
+      "fallbacks": 865,
+      "decisions": 5308,
+      "limits": 0,
+      "errors": 0,
+      "seats": [
+        {
+          "games": 32,
+          "wins": 8
+        },
+        {
+          "games": 32,
+          "wins": 23
+        }
+      ],
+      "outcomes": {
+        "WIN": 64
+      },
+      "ci95": [
+        0.36633348565783896,
+        0.6041860775600096
+      ],
+      "cpu": {
+        "median": 0.021542000002227724,
+        "p95": 0.037333000000217,
+        "p99": 0.04995900001085829
+      }
+    }
+  ],
+  "date": "2026-10-17",
+  "baselineRevision": "8f319856d91729e64f0c76a8cb405a2602982c9a",
+  "sourceSha256": "0b9106bc7f30a5ebda42464ca14c6587aaa7852d1d40376dc77a8e190dfcbdc3",
+  "runtime": {
+    "system": "Darwin",
+    "machine": "arm64",
+    "node": "26.0.0"
+  },
+  "interpretation": {
+    "mediumVsBaseline": "melhora relativa na amostra; IC descritivo não corrige dependência dos pares",
+    "mediumVsEasy": "inconclusivo na amostra reservada",
+    "hardVsMedium": "superioridade não demonstrada",
+    "competitiveReview": "pendente",
+    "otherEditorialGuides": "sem perfil executável validado"
+  }
+}

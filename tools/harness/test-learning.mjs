@@ -71,9 +71,11 @@ console.log("Bot × bot (espectador)");
   const session = createDuelSession();
   let snap = null;
   let perguntas = 0;
+  let maoPropriaVisivel = false;
   session.subscribe((s) => {
     snap = s;
     if (s.pendingPrompt) perguntas += 1;
+    if (s.boards[0]?.players[0].hand.some((card) => card.code !== null)) maoPropriaVisivel = true;
   });
   void session.start({
     playerName: "A",
@@ -97,7 +99,10 @@ console.log("Bot × bot (espectador)");
   conferir((snap?.turnCount ?? 0) >= 4 || snap?.winner !== null, `os dois bots jogam sozinhos (turno ${snap?.turnCount})`);
   conferir(perguntas === 0, "ninguém é perguntado");
   conferir(snap?.boards[0] !== null && snap?.boards[1] === null, "o tabuleiro do assento assistido é lido; o outro, não");
-  conferir((snap?.boards[0]?.players[0].hand.length ?? 0) > 0, "e quem assiste vê a mão do assento 0");
+  // Em ritmo zero, vários turnos podem passar antes de o teste recuperar a
+  // execução. A mão final pode estar vazia: verificar a visibilidade durante
+  // a sessão evita confundir gastar a mão com ocultá-la do espectador.
+  conferir(maoPropriaVisivel, "e quem assiste vê a mão do assento 0");
 }
 
 console.log(falhas.length === 0 ? "\nAprender jogando: tudo certo." : `\nFALHOU (${falhas.length}): ${falhas.join("; ")}`);

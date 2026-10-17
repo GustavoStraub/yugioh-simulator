@@ -194,3 +194,18 @@ O segundo existe por um motivo concreto: o tabuleiro inteiro foi escrito quando
 "você" era sempre o jogador 0, e um resquício disso não quebra nada visível —
 apenas deixa de tornar as cartas clicáveis para quem está no assento 1. Foi
 exatamente esse o primeiro bug que ele pegou.
+
+## Planejamento e níveis do bot
+
+| Comando | O que verifica |
+| --- | --- |
+| `npm run test:bot-strategy` | 44 execuções pela sessão real: 12 rotas em Médio/Difícil e 20 variações no Difícil. Verifica campo e recursos finais, sem piloto da lição. |
+| `npm run test:bot-decisions` | Perfil integral, mãos e custos alternativos, negação por Ash, observações ocultas equivalentes, memória por assento, perfil incompatível, RETRY e repetição sem progresso. |
+| `npm run test:browser-bot` | Lobby, cobertura, nível por assento, revanche, bot × bot, configuração antiga e largura móvel. Requer o app em `APP_URL`. |
+| `npm run eval:bot` | Comparações em pares com sementes reproduzíveis, espelhos e confrontos distintos; resultados e tempos em `.cache/bot-evaluation/`. Não converte inconclusivas em vitórias. |
+
+Para A/B, `BOT_BASELINE` aponta para o caminho absoluto do módulo anterior
+exportando `BotBrain`. `BOT_ROUNDS`, `BOT_SEED_OFFSET`, `BOT_DECKS`, `BOT_FORMAT`
+e `BOT_REPORT` definem a amostra e o arquivo. A cobertura e os critérios de
+força ainda pendentes estão em
+[`docs/inteligencia-bot-implementacao.md`](../../docs/inteligencia-bot-implementacao.md).

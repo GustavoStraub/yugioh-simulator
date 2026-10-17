@@ -40,11 +40,14 @@ import {
   type OfficialCardDb,
 } from "@/lib/duel/official-card-data";
 import { linkedZones } from "@/lib/duel/link-geometry";
+import { equipmentLinks, zoneKey } from "@/lib/duel/equipment-links";
+import { chainTargetLabel, chainZoneKey, isLiveChainLink } from "@/lib/duel/chain-targets";
 import { placeResponseFor, zonesBeforeCommand } from "@/lib/duel/zone-first";
 import { localizeLogText } from "@/lib/duel/log-names";
 import { cardMarks, slotChips, type CardMark } from "@/lib/duel/card-marks";
 import type {
   DuelChainLink,
+  DuelChainTarget,
   DuelLogEntry,
   DuelReveal,
   DuelSnapshot,
@@ -63,6 +66,8 @@ import { DuelMobileGuide } from "@/components/duel/DuelMobileGuide";
 import { HudButtons, LifePlate, PhaseButton } from "@/components/duel/DuelHud";
 import { DuelInfo, EffectsPanel, FieldCracks } from "@/components/duel/DuelInfo";
 import { FieldStatsLayer, type FieldGrade, type FieldStat } from "@/components/duel/FieldStats";
+import { EquipmentLinksLayer } from "@/components/duel/EquipmentLinks";
+import { ChainTargetsLayer } from "@/components/duel/ChainTargets";
 import {
   MonsterHologramsLayer,
   useHologramIndex,
@@ -636,11 +641,19 @@ export function DuelBoard({
    * ÓTICA DE QUEM OLHA: "equipada a" uma carta baixada do oponente diz "carta
    * baixada", não o nome dela.
    */
+  const equipLinks = useMemo(() => equipmentLinks([you, foe]), [you, foe]);
+  const [inspectedChain, setInspectedChain] = useState<number | null>(null);
+  if (!snapshot.chainLinks.length && inspectedChain !== null) setInspectedChain(null);
+  const labelChainTarget = useCallback((target: DuelChainTarget) => chainTargetLabel(target, me, (code) => {
+    const definition = registry?.get(code);
+    return definition ? texto.name(definition) : `Carta ${code}`;
+  }, board?.players), [me, registry, texto, board]);
   const marksOf = useCallback(
     (card: BoardCard | null | undefined): CardMark[] => {
       if (!card || card.code === null) return [];
-      return cardMarks(card, {
+      const marks = cardMarks(card, {
         engineStrings,
+        equippedCards: equipLinks.filter((link) => zoneKey(link.target) === zoneKey(card)).map((link) => link.equipment),
         cardName: (code) => {
           const definition = registry?.get(code);
           return definition ? texto.name(definition) : `Carta ${code}`;
@@ -659,8 +672,14 @@ export function DuelBoard({
           return definition ? texto.name(definition) : `Carta ${alvo.code}`;
         },
       });
+      for (const link of snapshot.chainLinks.filter(isLiveChainLink)) {
+        if (!(link.targets ?? []).some((target) => target.present && chainZoneKey(target.zone) === zoneKey(card))) continue;
+        const definition = registry?.get(link.code);
+        marks.push({ chip: `🎯${link.link}`, text: `Alvo do elo ${link.link}: ${definition ? texto.name(definition) : `Carta ${link.code}`}`, tone: "target" });
+      }
+      return marks;
     },
-    [engineStrings, registry, me, you, foe, texto],
+    [engineStrings, registry, me, you, foe, texto, equipLinks, snapshot.chainLinks],
   );
 
   /**
@@ -1848,6 +1867,8 @@ export function DuelBoard({
             animationScale={animationScale}
           />
           <FieldStatsLayer stats={statsDaMesa} fieldRef={fieldRef} compact={estreita} />
+          <EquipmentLinksLayer links={equipLinks} fieldRef={fieldRef} />
+          <ChainTargetsLayer links={snapshot.chainLinks} inspectedLink={inspectedChain} fieldRef={fieldRef} />
 
           <Hand cards={you.hand} seat={me} {...shared} />
 
@@ -1977,7 +1998,7 @@ export function DuelBoard({
             <div className="md-hud-gear absolute z-[45]">{engrenagem}</div>
 
             <aside className="md-detail-rail absolute z-[44] flex flex-col gap-2">
-              <ChainStack links={snapshot.chainLinks ?? []} me={me} registry={registry} />
+              <ChainStack links={snapshot.chainLinks ?? []} me={me} registry={registry} targetLabel={labelChainTarget} onInspect={setInspectedChain} onSelect={estreita ? () => setHistoricoAberto(false) : undefined} />
               {previewOpen && (
                 <DuelCardPreview
                   card={cartaEmLeitura}
@@ -2086,7 +2107,7 @@ export function DuelBoard({
               className="flex h-full w-[min(340px,88vw)] flex-col gap-2 p-2"
               onClick={(event) => event.stopPropagation()}
             >
-              <ChainStack links={snapshot.chainLinks ?? []} me={me} registry={registry} />
+              <ChainStack links={snapshot.chainLinks ?? []} me={me} registry={registry} targetLabel={labelChainTarget} onInspect={setInspectedChain} onSelect={() => setHistoricoAberto(false)} />
               <DuelLog
                 entries={snapshot.log}
                 reveals={minhasRevelacoes}
@@ -3616,6 +3637,10 @@ function ChainResponseBar({
   const definition = chain ? registry?.get(chain.code) : undefined;
   const nome = definition ? texto.name(definition) : chain ? `Carta ${chain.code}` : null;
   const doOponente = chain ? chain.player !== me : false;
+  const alvos = (chain?.targets ?? []).map((target) => chainTargetLabel(target, me, (code) => {
+    const def = registry?.get(code);
+    return def ? texto.name(def) : `Carta ${code}`;
+  })).join("; ");
   const cartas = [...plan.byCard.entries()];
   const jogadas = escolhida ? (plan.byCard.get(escolhida) ?? []) : [];
   const pergunta = chain
@@ -3645,7 +3670,10 @@ function ChainResponseBar({
           data-menu-avoid
           className={`md-banner pointer-events-auto ${doOponente ? "md-banner-foe" : ""}`}
         >
-          <span className="md-banner-text">⛓ {pergunta}</span>
+          <div>
+            <span className="md-banner-text">⛓ {pergunta}</span>
+            {alvos && <p data-chain-response-targets className="mt-1 text-[11px] text-amber-200">🎯 Alvos: {alvos}</p>}
+          </div>
           <button
             type="button"
             data-table-control
@@ -3709,6 +3737,11 @@ function ChainResponseBar({
                     ? "Ativar uma carta em resposta (corrente)? Escolha abaixo — ou clique na que brilha na mesa."
                     : "Responder?"}
             </p>
+            {alvos && <div className="mt-1 text-[11px] font-semibold text-amber-200">
+              <p data-chain-response-targets>🎯 Alvos: {alvos}</p>
+              <button type="button" data-table-control data-view-chain-targets onClick={() => setRecolhida(true)}
+                className="mt-1 underline underline-offset-2">Ver alvos no campo</button>
+            </div>}
           </div>
         </div>
       }

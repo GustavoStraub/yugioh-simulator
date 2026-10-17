@@ -18,6 +18,7 @@ import {
 } from "@/lib/duel/duel-storage";
 import type { DuelSessionConfig } from "@/lib/duel/duel-session";
 import { formatOf } from "@/lib/types";
+import { botDifficulty } from "@/lib/duel/bot/difficulty";
 
 function DuelLoading() {
   return (
@@ -76,8 +77,8 @@ function DuelPlayInner({
         registry,
         format: formatOf(setup.format),
         seats: [
-          { kind: "bot", name: `Bot com o seu deck` },
-          { kind: "bot", name: setup.opponentName },
+          { kind: "bot", name: `Bot com o seu deck`, bot: { difficulty: botDifficulty(setup.playerBotDifficulty) } },
+          { kind: "bot", name: setup.opponentName, bot: { difficulty: botDifficulty(setup.botDifficulty) } },
         ],
         watchSeat: 0,
       };
@@ -91,6 +92,7 @@ function DuelPlayInner({
             registry,
             format: formatOf(setup.format),
             scenario: setup.scenario,
+            bot: { difficulty: botDifficulty(setup.botDifficulty) },
             humanSeat: partida.humanSeat ?? setup.humanSeat ?? 0,
             openingNote: partida.n > 0 ? partida.openingNote : setup.openingNote,
           }

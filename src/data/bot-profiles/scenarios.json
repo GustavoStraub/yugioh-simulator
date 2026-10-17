@@ -1,0 +1,1039 @@
+[
+  {
+    "profile": "herois-lendarios-aesir",
+    "route": "thor--40666140",
+    "hand": [
+      40666140,
+      42793609,
+      89792713,
+      86827882,
+      83764718
+    ],
+    "goal": [
+      {
+        "kind": "card",
+        "zone": "monsters",
+        "code": 30604579
+      },
+      {
+        "kind": "card",
+        "zone": "monsters",
+        "code": 90207654
+      },
+      {
+        "kind": "card",
+        "zone": "grave",
+        "code": 41788781
+      },
+      {
+        "kind": "card",
+        "zone": "grave",
+        "code": 15394083
+      },
+      {
+        "kind": "card",
+        "zone": "grave",
+        "code": 14677495
+      },
+      {
+        "kind": "card",
+        "zone": "banished",
+        "code": 42793609
+      },
+      {
+        "kind": "card",
+        "zone": "banished",
+        "code": 89792713
+      },
+      {
+        "kind": "card",
+        "zone": "banished",
+        "code": 86827882
+      }
+    ]
+  },
+  {
+    "profile": "herois-lendarios-aesir",
+    "route": "thor--40844552",
+    "hand": [
+      40844552,
+      42793609,
+      89792713,
+      86827882,
+      83764718
+    ],
+    "goal": [
+      {
+        "kind": "card",
+        "zone": "monsters",
+        "code": 30604579
+      },
+      {
+        "kind": "card",
+        "zone": "monsters",
+        "code": 90207654
+      },
+      {
+        "kind": "card",
+        "zone": "grave",
+        "code": 41788781
+      },
+      {
+        "kind": "card",
+        "zone": "grave",
+        "code": 15394083
+      },
+      {
+        "kind": "card",
+        "zone": "grave",
+        "code": 14677495
+      },
+      {
+        "kind": "card",
+        "zone": "banished",
+        "code": 42793609
+      },
+      {
+        "kind": "card",
+        "zone": "banished",
+        "code": 89792713
+      },
+      {
+        "kind": "card",
+        "zone": "banished",
+        "code": 86827882
+      }
+    ]
+  },
+  {
+    "profile": "herois-lendarios-aesir",
+    "route": "thor--61777313",
+    "hand": [
+      61777313,
+      42793609,
+      89792713,
+      86827882,
+      83764718
+    ],
+    "goal": [
+      {
+        "kind": "card",
+        "zone": "monsters",
+        "code": 30604579
+      },
+      {
+        "kind": "card",
+        "zone": "monsters",
+        "code": 90207654
+      },
+      {
+        "kind": "card",
+        "zone": "grave",
+        "code": 41788781
+      },
+      {
+        "kind": "card",
+        "zone": "grave",
+        "code": 15394083
+      },
+      {
+        "kind": "card",
+        "zone": "grave",
+        "code": 14677495
+      },
+      {
+        "kind": "card",
+        "zone": "banished",
+        "code": 42793609
+      },
+      {
+        "kind": "card",
+        "zone": "banished",
+        "code": 89792713
+      },
+      {
+        "kind": "card",
+        "zone": "banished",
+        "code": 86827882
+      }
+    ]
+  },
+  {
+    "profile": "herois-lendarios-aesir",
+    "route": "thor--73417207",
+    "hand": [
+      73417207,
+      42793609,
+      89792713,
+      86827882,
+      83764718
+    ],
+    "goal": [
+      {
+        "kind": "card",
+        "zone": "monsters",
+        "code": 30604579
+      },
+      {
+        "kind": "card",
+        "zone": "monsters",
+        "code": 90207654
+      },
+      {
+        "kind": "card",
+        "zone": "grave",
+        "code": 41788781
+      },
+      {
+        "kind": "card",
+        "zone": "grave",
+        "code": 15394083
+      },
+      {
+        "kind": "card",
+        "zone": "grave",
+        "code": 14677495
+      },
+      {
+        "kind": "card",
+        "zone": "banished",
+        "code": 42793609
+      },
+      {
+        "kind": "card",
+        "zone": "banished",
+        "code": 89792713
+      },
+      {
+        "kind": "card",
+        "zone": "banished",
+        "code": 86827882
+      }
+    ]
+  },
+  {
+    "profile": "herois-lendarios-aesir",
+    "route": "thor--76348260",
+    "hand": [
+      76348260,
+      42793609,
+      89792713,
+      86827882,
+      83764718
+    ],
+    "goal": [
+      {
+        "kind": "card",
+        "zone": "monsters",
+        "code": 30604579
+      },
+      {
+        "kind": "card",
+        "zone": "monsters",
+        "code": 90207654
+      },
+      {
+        "kind": "card",
+        "zone": "grave",
+        "code": 41788781
+      },
+      {
+        "kind": "card",
+        "zone": "grave",
+        "code": 15394083
+      },
+      {
+        "kind": "card",
+        "zone": "grave",
+        "code": 14677495
+      },
+      {
+        "kind": "card",
+        "zone": "banished",
+        "code": 42793609
+      },
+      {
+        "kind": "card",
+        "zone": "banished",
+        "code": 89792713
+      },
+      {
+        "kind": "card",
+        "zone": "banished",
+        "code": 86827882
+      }
+    ]
+  },
+  {
+    "profile": "herois-lendarios-aesir",
+    "route": "thor--88283496",
+    "hand": [
+      88283496,
+      42793609,
+      89792713,
+      86827882,
+      83764718
+    ],
+    "goal": [
+      {
+        "kind": "card",
+        "zone": "monsters",
+        "code": 30604579
+      },
+      {
+        "kind": "card",
+        "zone": "monsters",
+        "code": 90207654
+      },
+      {
+        "kind": "card",
+        "zone": "grave",
+        "code": 41788781
+      },
+      {
+        "kind": "card",
+        "zone": "grave",
+        "code": 15394083
+      },
+      {
+        "kind": "card",
+        "zone": "grave",
+        "code": 14677495
+      },
+      {
+        "kind": "card",
+        "zone": "banished",
+        "code": 42793609
+      },
+      {
+        "kind": "card",
+        "zone": "banished",
+        "code": 89792713
+      },
+      {
+        "kind": "card",
+        "zone": "banished",
+        "code": 86827882
+      }
+    ]
+  },
+  {
+    "profile": "herois-lendarios-aesir",
+    "route": "odin--14677495",
+    "hand": [
+      14677495,
+      42793609,
+      89792713,
+      86827882,
+      83764718
+    ],
+    "goal": [
+      {
+        "kind": "card",
+        "zone": "monsters",
+        "code": 93483212
+      },
+      {
+        "kind": "card",
+        "zone": "monsters",
+        "code": 90207654
+      },
+      {
+        "kind": "card",
+        "zone": "grave",
+        "code": 40844552
+      },
+      {
+        "kind": "card",
+        "zone": "grave",
+        "code": 88283496
+      },
+      {
+        "kind": "card",
+        "zone": "grave",
+        "code": 40666140
+      },
+      {
+        "kind": "card",
+        "zone": "banished",
+        "code": 42793609
+      },
+      {
+        "kind": "card",
+        "zone": "banished",
+        "code": 89792713
+      },
+      {
+        "kind": "card",
+        "zone": "banished",
+        "code": 86827882
+      }
+    ]
+  },
+  {
+    "profile": "herois-lendarios-aesir",
+    "route": "odin--15394083",
+    "hand": [
+      15394083,
+      42793609,
+      89792713,
+      86827882,
+      83764718
+    ],
+    "goal": [
+      {
+        "kind": "card",
+        "zone": "monsters",
+        "code": 93483212
+      },
+      {
+        "kind": "card",
+        "zone": "monsters",
+        "code": 90207654
+      },
+      {
+        "kind": "card",
+        "zone": "grave",
+        "code": 40844552
+      },
+      {
+        "kind": "card",
+        "zone": "grave",
+        "code": 88283496
+      },
+      {
+        "kind": "card",
+        "zone": "grave",
+        "code": 40666140
+      },
+      {
+        "kind": "card",
+        "zone": "banished",
+        "code": 42793609
+      },
+      {
+        "kind": "card",
+        "zone": "banished",
+        "code": 89792713
+      },
+      {
+        "kind": "card",
+        "zone": "banished",
+        "code": 86827882
+      }
+    ]
+  },
+  {
+    "profile": "herois-lendarios-aesir",
+    "route": "odin--41788781",
+    "hand": [
+      41788781,
+      42793609,
+      89792713,
+      86827882,
+      83764718
+    ],
+    "goal": [
+      {
+        "kind": "card",
+        "zone": "monsters",
+        "code": 93483212
+      },
+      {
+        "kind": "card",
+        "zone": "monsters",
+        "code": 90207654
+      },
+      {
+        "kind": "card",
+        "zone": "grave",
+        "code": 40844552
+      },
+      {
+        "kind": "card",
+        "zone": "grave",
+        "code": 88283496
+      },
+      {
+        "kind": "card",
+        "zone": "grave",
+        "code": 40666140
+      },
+      {
+        "kind": "card",
+        "zone": "banished",
+        "code": 42793609
+      },
+      {
+        "kind": "card",
+        "zone": "banished",
+        "code": 89792713
+      },
+      {
+        "kind": "card",
+        "zone": "banished",
+        "code": 86827882
+      }
+    ]
+  },
+  {
+    "profile": "herois-lendarios-aesir",
+    "route": "odin--61777313",
+    "hand": [
+      61777313,
+      42793609,
+      89792713,
+      86827882,
+      83764718
+    ],
+    "goal": [
+      {
+        "kind": "card",
+        "zone": "monsters",
+        "code": 93483212
+      },
+      {
+        "kind": "card",
+        "zone": "monsters",
+        "code": 90207654
+      },
+      {
+        "kind": "card",
+        "zone": "grave",
+        "code": 40844552
+      },
+      {
+        "kind": "card",
+        "zone": "grave",
+        "code": 88283496
+      },
+      {
+        "kind": "card",
+        "zone": "grave",
+        "code": 40666140
+      },
+      {
+        "kind": "card",
+        "zone": "banished",
+        "code": 42793609
+      },
+      {
+        "kind": "card",
+        "zone": "banished",
+        "code": 89792713
+      },
+      {
+        "kind": "card",
+        "zone": "banished",
+        "code": 86827882
+      }
+    ]
+  },
+  {
+    "profile": "herois-lendarios-aesir",
+    "route": "odin--73417207",
+    "hand": [
+      73417207,
+      42793609,
+      89792713,
+      86827882,
+      83764718
+    ],
+    "goal": [
+      {
+        "kind": "card",
+        "zone": "monsters",
+        "code": 93483212
+      },
+      {
+        "kind": "card",
+        "zone": "monsters",
+        "code": 90207654
+      },
+      {
+        "kind": "card",
+        "zone": "grave",
+        "code": 40844552
+      },
+      {
+        "kind": "card",
+        "zone": "grave",
+        "code": 88283496
+      },
+      {
+        "kind": "card",
+        "zone": "grave",
+        "code": 40666140
+      },
+      {
+        "kind": "card",
+        "zone": "banished",
+        "code": 42793609
+      },
+      {
+        "kind": "card",
+        "zone": "banished",
+        "code": 89792713
+      },
+      {
+        "kind": "card",
+        "zone": "banished",
+        "code": 86827882
+      }
+    ]
+  },
+  {
+    "profile": "herois-lendarios-aesir",
+    "route": "odin--76348260",
+    "hand": [
+      76348260,
+      42793609,
+      89792713,
+      86827882,
+      83764718
+    ],
+    "goal": [
+      {
+        "kind": "card",
+        "zone": "monsters",
+        "code": 93483212
+      },
+      {
+        "kind": "card",
+        "zone": "monsters",
+        "code": 90207654
+      },
+      {
+        "kind": "card",
+        "zone": "grave",
+        "code": 40844552
+      },
+      {
+        "kind": "card",
+        "zone": "grave",
+        "code": 88283496
+      },
+      {
+        "kind": "card",
+        "zone": "grave",
+        "code": 40666140
+      },
+      {
+        "kind": "card",
+        "zone": "banished",
+        "code": 42793609
+      },
+      {
+        "kind": "card",
+        "zone": "banished",
+        "code": 89792713
+      },
+      {
+        "kind": "card",
+        "zone": "banished",
+        "code": 86827882
+      }
+    ]
+  },
+  {
+    "profile": "herois-lendarios-aesir",
+    "route": "loki--14677495",
+    "hand": [
+      14677495,
+      42793609,
+      89792713,
+      86827882,
+      83764718
+    ],
+    "goal": [
+      {
+        "kind": "card",
+        "zone": "monsters",
+        "code": 67098114
+      },
+      {
+        "kind": "card",
+        "zone": "monsters",
+        "code": 90207654
+      },
+      {
+        "kind": "card",
+        "zone": "grave",
+        "code": 77060848
+      },
+      {
+        "kind": "card",
+        "zone": "grave",
+        "code": 15394083
+      },
+      {
+        "kind": "card",
+        "zone": "grave",
+        "code": 76348260
+      },
+      {
+        "kind": "card",
+        "zone": "banished",
+        "code": 42793609
+      },
+      {
+        "kind": "card",
+        "zone": "banished",
+        "code": 89792713
+      },
+      {
+        "kind": "card",
+        "zone": "banished",
+        "code": 86827882
+      }
+    ]
+  },
+  {
+    "profile": "herois-lendarios-aesir",
+    "route": "loki--40666140",
+    "hand": [
+      40666140,
+      42793609,
+      89792713,
+      86827882,
+      83764718
+    ],
+    "goal": [
+      {
+        "kind": "card",
+        "zone": "monsters",
+        "code": 67098114
+      },
+      {
+        "kind": "card",
+        "zone": "monsters",
+        "code": 90207654
+      },
+      {
+        "kind": "card",
+        "zone": "grave",
+        "code": 77060848
+      },
+      {
+        "kind": "card",
+        "zone": "grave",
+        "code": 15394083
+      },
+      {
+        "kind": "card",
+        "zone": "grave",
+        "code": 76348260
+      },
+      {
+        "kind": "card",
+        "zone": "banished",
+        "code": 42793609
+      },
+      {
+        "kind": "card",
+        "zone": "banished",
+        "code": 89792713
+      },
+      {
+        "kind": "card",
+        "zone": "banished",
+        "code": 86827882
+      }
+    ]
+  },
+  {
+    "profile": "herois-lendarios-aesir",
+    "route": "loki--40844552",
+    "hand": [
+      40844552,
+      42793609,
+      89792713,
+      86827882,
+      83764718
+    ],
+    "goal": [
+      {
+        "kind": "card",
+        "zone": "monsters",
+        "code": 67098114
+      },
+      {
+        "kind": "card",
+        "zone": "monsters",
+        "code": 90207654
+      },
+      {
+        "kind": "card",
+        "zone": "grave",
+        "code": 77060848
+      },
+      {
+        "kind": "card",
+        "zone": "grave",
+        "code": 15394083
+      },
+      {
+        "kind": "card",
+        "zone": "grave",
+        "code": 76348260
+      },
+      {
+        "kind": "card",
+        "zone": "banished",
+        "code": 42793609
+      },
+      {
+        "kind": "card",
+        "zone": "banished",
+        "code": 89792713
+      },
+      {
+        "kind": "card",
+        "zone": "banished",
+        "code": 86827882
+      }
+    ]
+  },
+  {
+    "profile": "herois-lendarios-aesir",
+    "route": "loki--41788781",
+    "hand": [
+      41788781,
+      42793609,
+      89792713,
+      86827882,
+      83764718
+    ],
+    "goal": [
+      {
+        "kind": "card",
+        "zone": "monsters",
+        "code": 67098114
+      },
+      {
+        "kind": "card",
+        "zone": "monsters",
+        "code": 90207654
+      },
+      {
+        "kind": "card",
+        "zone": "grave",
+        "code": 77060848
+      },
+      {
+        "kind": "card",
+        "zone": "grave",
+        "code": 15394083
+      },
+      {
+        "kind": "card",
+        "zone": "grave",
+        "code": 76348260
+      },
+      {
+        "kind": "card",
+        "zone": "banished",
+        "code": 42793609
+      },
+      {
+        "kind": "card",
+        "zone": "banished",
+        "code": 89792713
+      },
+      {
+        "kind": "card",
+        "zone": "banished",
+        "code": 86827882
+      }
+    ]
+  },
+  {
+    "profile": "herois-lendarios-aesir",
+    "route": "loki--61777313",
+    "hand": [
+      61777313,
+      42793609,
+      89792713,
+      86827882,
+      83764718
+    ],
+    "goal": [
+      {
+        "kind": "card",
+        "zone": "monsters",
+        "code": 67098114
+      },
+      {
+        "kind": "card",
+        "zone": "monsters",
+        "code": 90207654
+      },
+      {
+        "kind": "card",
+        "zone": "grave",
+        "code": 77060848
+      },
+      {
+        "kind": "card",
+        "zone": "grave",
+        "code": 15394083
+      },
+      {
+        "kind": "card",
+        "zone": "grave",
+        "code": 76348260
+      },
+      {
+        "kind": "card",
+        "zone": "banished",
+        "code": 42793609
+      },
+      {
+        "kind": "card",
+        "zone": "banished",
+        "code": 89792713
+      },
+      {
+        "kind": "card",
+        "zone": "banished",
+        "code": 86827882
+      }
+    ]
+  },
+  {
+    "profile": "herois-lendarios-aesir",
+    "route": "loki--73417207",
+    "hand": [
+      73417207,
+      42793609,
+      89792713,
+      86827882,
+      83764718
+    ],
+    "goal": [
+      {
+        "kind": "card",
+        "zone": "monsters",
+        "code": 67098114
+      },
+      {
+        "kind": "card",
+        "zone": "monsters",
+        "code": 90207654
+      },
+      {
+        "kind": "card",
+        "zone": "grave",
+        "code": 77060848
+      },
+      {
+        "kind": "card",
+        "zone": "grave",
+        "code": 15394083
+      },
+      {
+        "kind": "card",
+        "zone": "grave",
+        "code": 76348260
+      },
+      {
+        "kind": "card",
+        "zone": "banished",
+        "code": 42793609
+      },
+      {
+        "kind": "card",
+        "zone": "banished",
+        "code": 89792713
+      },
+      {
+        "kind": "card",
+        "zone": "banished",
+        "code": 86827882
+      }
+    ]
+  },
+  {
+    "profile": "herois-lendarios-aesir",
+    "route": "loki--88283496",
+    "hand": [
+      88283496,
+      42793609,
+      89792713,
+      86827882,
+      83764718
+    ],
+    "goal": [
+      {
+        "kind": "card",
+        "zone": "monsters",
+        "code": 67098114
+      },
+      {
+        "kind": "card",
+        "zone": "monsters",
+        "code": 90207654
+      },
+      {
+        "kind": "card",
+        "zone": "grave",
+        "code": 77060848
+      },
+      {
+        "kind": "card",
+        "zone": "grave",
+        "code": 15394083
+      },
+      {
+        "kind": "card",
+        "zone": "grave",
+        "code": 76348260
+      },
+      {
+        "kind": "card",
+        "zone": "banished",
+        "code": 42793609
+      },
+      {
+        "kind": "card",
+        "zone": "banished",
+        "code": 89792713
+      },
+      {
+        "kind": "card",
+        "zone": "banished",
+        "code": 86827882
+      }
+    ]
+  },
+  {
+    "profile": "herois-lendarios-cavaleiros-fantasmas",
+    "route": "primeiro-xyz--63821877",
+    "hand": [
+      63821877,
+      36426778,
+      83764718,
+      3298689,
+      61936647
+    ],
+    "goal": [
+      {
+        "kind": "card",
+        "zone": "monsters",
+        "code": 62709239
+      },
+      {
+        "kind": "card",
+        "zone": "grave",
+        "code": 63821877,
+        "absent": true
+      },
+      {
+        "kind": "card",
+        "zone": "grave",
+        "code": 36426778,
+        "absent": true
+      }
+    ]
+  }
+]

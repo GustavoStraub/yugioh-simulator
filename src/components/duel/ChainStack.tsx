@@ -6,7 +6,7 @@ import { OcgLocation } from "@n1xx1/ocgcore-wasm";
 
 import { useCardText } from "@/hooks/useCardText";
 import type { CardRegistry } from "@/lib/domain/card-registry";
-import type { DuelChainLink } from "@/lib/duel/duel-session";
+import type { DuelChainLink, DuelChainTarget } from "@/lib/duel/duel-session";
 
 /** Quanto a pilha fica à vista depois que a corrente termina. */
 const LINGER_MS = 1600;
@@ -40,10 +40,16 @@ export function ChainStack({
   links,
   me,
   registry,
+  targetLabel,
+  onInspect,
+  onSelect,
 }: {
   links: DuelChainLink[];
   me: number;
   registry: CardRegistry | null;
+  targetLabel: (target: DuelChainTarget) => string;
+  onInspect: (link: number | null) => void;
+  onSelect?: (link: number) => void;
 }) {
   const texto = useCardText();
   // A última corrente não vazia, para a pilha não sumir no mesmo instante em
@@ -96,6 +102,13 @@ export function ChainStack({
               className={`md-chain-row ${meu ? "md-chain-row-me" : "md-chain-row-foe"} md-chain-row-${link.state}`}
             >
               {index > 0 && <span aria-hidden className="md-chain-links" />}
+              <button type="button" data-chain-inspect={link.link}
+                className="flex w-full items-center gap-2 text-left"
+                aria-label={`Consultar elo ${link.link}: ${nome}${link.targets?.length ? `. Alvos: ${link.targets.map(targetLabel).join("; ")}` : ""}`}
+                onPointerEnter={(event) => { if (event.pointerType === "mouse") onInspect(link.link); }}
+                onPointerLeave={(event) => { if (event.pointerType === "mouse") onInspect(null); }}
+                onFocus={() => onInspect(link.link)} onBlur={() => onInspect(null)}
+                onClick={() => { onInspect(link.link); onSelect?.(link.link); }}>
               <span aria-hidden className="md-chain-digit">
                 {link.link}
               </span>
@@ -116,7 +129,13 @@ export function ChainStack({
                   {" · "}
                   <span className={estado.className}>{estado.label}</span>
                 </p>
+                {(link.targets ?? []).map((target, index) => (
+                  <p key={index} data-chain-target-label className="mt-1 text-[10px] leading-snug text-amber-200">
+                    🎯 {targetLabel(target)}
+                  </p>
+                ))}
               </div>
+              </button>
             </li>
           );
         })}

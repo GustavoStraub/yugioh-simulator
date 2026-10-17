@@ -39,6 +39,16 @@ import {
 } from "@/lib/duel/bot/combat";
 import type { OfficialCardDb } from "@/lib/duel/official-card-data";
 import { isValidSum, sumRequestOf } from "@/lib/duel/sum-selection";
+import type { DuelDeckPayload, DuelFormat } from "@/lib/types";
+import { BOT_POLICIES, botDifficulty, botRandom, type BotDifficulty } from "@/lib/duel/bot/difficulty";
+import { matchesBotProfile, validateBotProfile, type BotDeckProfile } from "@/lib/duel/bot/deck-profile";
+import { BotPlanner } from "@/lib/duel/bot/planner";
+import { profileResponse, mirrorjadeScore } from "@/lib/duel/bot/effect-handlers";
+import { resourceValue } from "@/lib/duel/bot/evaluator";
+import { planBattle } from "@/lib/duel/bot/battle-planner";
+import { validBotResponse } from "@/lib/duel/bot/response-validator";
+import { newBotDiagnostics, type BotDecisionTrace } from "@/lib/duel/bot/decision-trace";
+import type { BotEffect, BotFact } from "@/lib/duel/bot/knowledge";
 
 /**
  * Tudo que o bot pode consultar para decidir uma jogada.
@@ -77,6 +87,25 @@ export interface BotContext {
    * Invocação. Fora dela, `null`.
    */
   summoning?: { code: number; player: number } | null;
+  format?: DuelFormat;
+  resolvingEffect?: BotEffect | null;
+  chainOpen?: boolean;
+  failedEffect?: { code: number; player: number; revision: number } | null;
+  retryCount?: number;
+  observedFacts?: readonly BotFact[];
+  chainTargets?: NonNullable<BotEffect["targets"]>;
+}
+
+export interface BotConfig {
+  difficulty?: BotDifficulty;
+  /** Lista própria, sem ordem de compra. Nunca a lista adversária. */
+  deck?: DuelDeckPayload;
+  format?: DuelFormat;
+  profile?: BotDeckProfile | null;
+  /** Semente de desempate independente da semente do motor. */
+  seed?: number;
+  /** Diagnóstico privado e opt-in; não publicado na mesa de duelo. */
+  onDecision?: (trace: BotDecisionTrace) => void;
 }
 
 /**
@@ -145,6 +174,10 @@ function chave(card: OcgCardLoc): string {
   return `${card.code}:${card.controller}:${card.location}:${card.sequence}`;
 }
 
+function responseKey(response: OcgResponse): string {
+  return JSON.stringify(response, (_, value) => typeof value === "bigint" ? `${value}n` : value);
+}
+
 function ocupadas(zonas: (BoardCard | null)[]): BoardCard[] {
   return zonas.filter((card): card is BoardCard => card !== null);
 }
@@ -172,6 +205,25 @@ function lados(board: BoardState, me: 0 | 1): [BoardPlayer, BoardPlayer] {
  * primeira a segunda vira um chute.
  */
 export class BotBrain {
+  readonly difficulty: BotDifficulty;
+  readonly diagnostics = newBotDiagnostics();
+  readonly planner: BotPlanner;
+  lastTrace: BotDecisionTrace | null = null;
+  private readonly random: () => number;
+  private readonly onDecision?: (trace: BotDecisionTrace) => void;
+  private deadline = Infinity;
+  private progress = "";
+  private previousResponse: OcgResponse | null = null;
+  private rejected = new Set<string>();
+
+  constructor(config: BotConfig = {}) {
+    this.difficulty = botDifficulty(config.difficulty);
+    this.random = botRandom(config.seed);
+    const profile = config.profile && config.deck && validateBotProfile(config.profile)
+      && matchesBotProfile(config.profile, config.deck, config.format ?? config.deck.format ?? "goat") ? config.profile : null;
+    this.planner = new BotPlanner(profile, config.deck ?? null);
+    this.onDecision = config.onDecision;
+  }
   /** Turno a que o estado abaixo se refere — muda, zera tudo. */
   private turn = -1;
   private idleSteps = 0;
@@ -185,7 +237,7 @@ export class BotBrain {
    * Monstro que o bot escolheu atacar, guardado entre o SELECT_BATTLECMD e o
    * SELECT_CARD em que o core pede o alvo.
    */
-  private plannedTarget: { controller: number; sequence: number } | null = null;
+  private plannedTarget: { controller: number; sequence: number; code: number | null } | null = null;
 
   /**
    * Decide a resposta a um prompt.
@@ -196,6 +248,15 @@ export class BotBrain {
    * travar o duelo inteiro.
    */
   decide(ctx: BotContext): OcgResponse {
+    const read = ctx.readBoard;
+    let observedBoard: BoardState | null = null;
+    ctx = { ...ctx, readBoard: (full) => { observedBoard = read(full); return observedBoard; } };
+    const started = performance.now();
+    const policy = BOT_POLICIES[this.difficulty];
+    // Os modelos atuais são pequenos. Uma fatia curta evita bloquear a mesa;
+    // busca mais ampla deve migrar para Worker antes de ampliar este limite.
+    this.deadline = started + Math.min(policy.cpuMs, 12);
+    let fallback: string | null = null;
     if (ctx.turnCount !== this.turn) {
       this.turn = ctx.turnCount;
       this.idleSteps = 0;
@@ -204,14 +265,90 @@ export class BotBrain {
       this.setsNoTurno = 0;
       this.activations.clear();
     }
-
+    if (ctx.retryCount) {
+      this.diagnostics.rejected += 1;
+      if (this.previousResponse) this.rejected.add(responseKey(this.previousResponse));
+      this.planner.abandon("Resposta rejeitada pelo motor; usando outra alternativa");
+    } else this.rejected.clear();
+    let response: OcgResponse | null = null;
     try {
-      const chosen = this.think(ctx);
-      if (chosen) return chosen;
-    } catch {
-      // Cai no respondedor à prova de travamento, abaixo.
+      this.observeProgress(ctx);
+      this.planner.observe(ctx, policy, this.deadline);
+      response = profileResponse(ctx, this.planner, policy) ?? this.think(ctx);
+      if (!response) fallback = "Efeito sem modelo específico; reserva genérica";
+      else if (!validBotResponse(ctx.prompt, response, ctx.cardDb)) {
+        response = null;
+        fallback = "Resposta reprovada no contrato do prompt";
+      }
+    } catch (error) {
+      fallback = `Falha na análise: ${error instanceof Error ? error.message : "erro desconhecido"}`;
     }
-    return botAutoResponse(ctx.prompt);
+    response = this.safeResponse(ctx, response);
+    this.previousResponse = response;
+    const elapsedMs = performance.now() - started;
+    const trace: BotDecisionTrace = {
+      difficulty: this.difficulty, profile: this.planner.profile?.id ?? null, revision: this.planner.profile?.revision ?? null,
+      turn: ctx.turnCount, prompt: ctx.prompt.type, objective: this.planner.route?.objective ?? "Combate, sobrevivência e recursos disponíveis",
+      route: this.planner.route?.id ?? null, alternatives: [...this.planner.alternatives], response,
+      reason: this.planner.reason, fallback, elapsedMs, budgetExhausted: performance.now() >= this.deadline,
+      observation: { me: ctx.me, prompt: ctx.prompt, board: observedBoard, lifePoints: ctx.lifePoints, phase: ctx.phase, chainCode: ctx.chainCode ?? null },
+    };
+    this.lastTrace = trace;
+    this.diagnostics.decisions += 1;
+    this.diagnostics.fallbacks += fallback ? 1 : 0;
+    this.diagnostics.replans = this.planner.replans;
+    this.diagnostics.budgetExhaustions += trace.budgetExhausted ? 1 : 0;
+    this.diagnostics.timings.push(elapsedMs);
+    if (this.diagnostics.timings.length > 2048) this.diagnostics.timings.shift();
+    // Um consumidor de telemetria com defeito não pode alterar a jogada.
+    try { this.onDecision?.(trace); } catch { /* diagnóstico opcional */ }
+    return response;
+  }
+
+  private observeProgress(ctx: BotContext): void {
+    if (![OcgMessageType.SELECT_IDLECMD, OcgMessageType.SELECT_BATTLECMD, OcgMessageType.SELECT_CHAIN].includes(ctx.prompt.type)) return;
+    const board = ctx.readBoard(ctx.prompt.type === OcgMessageType.SELECT_IDLECMD || this.planner.route !== null);
+    const fingerprint = JSON.stringify([ctx.turnCount, ctx.phase, ctx.lifePoints, board.players.map((p) => [
+      p.hand.map((c) => c.code).sort(), p.deckSize, p.graveSize, p.banishedSize, p.extraSize,
+      [...p.monsters, ...p.spells].map((c) => c ? [c.code, c.position, c.attack, c.negated, c.counters] : null),
+    ])]);
+    if (fingerprint !== this.progress) {
+      this.progress = fingerprint;
+      this.idleSteps = 0;
+      this.battleSteps = 0;
+      this.chainSteps = 0;
+      this.activations.clear();
+    }
+  }
+
+  private safeResponse(ctx: BotContext, preferred: OcgResponse | null): OcgResponse {
+    const p = ctx.prompt;
+    const candidates: OcgResponse[] = preferred ? [preferred] : [];
+    candidates.push(botAutoResponse(p));
+    if (p.type === OcgMessageType.SELECT_CARD) {
+      if (p.can_cancel) candidates.push({ type: OcgResponseType.SELECT_CARD, indicies: null });
+      for (let start = 0; start < p.selects.length; start += 1) candidates.push({ type: OcgResponseType.SELECT_CARD,
+        indicies: Array.from({ length: p.min }, (_, i) => (start + i) % p.selects.length) });
+      if (p.min === 0) candidates.push({ type: OcgResponseType.SELECT_CARD, indicies: [] });
+    } else if (p.type === OcgMessageType.SELECT_UNSELECT_CARD) {
+      if (p.can_finish || p.can_cancel) candidates.push({ type: OcgResponseType.SELECT_UNSELECT_CARD, index: null });
+      p.select_cards.forEach((_, index) => candidates.push({ type: OcgResponseType.SELECT_UNSELECT_CARD, index }));
+    } else if (p.type === OcgMessageType.SELECT_CHAIN) {
+      if (!p.forced) candidates.push({ type: OcgResponseType.SELECT_CHAIN, index: null });
+      p.selects.forEach((_, index) => candidates.push({ type: OcgResponseType.SELECT_CHAIN, index }));
+    } else if (p.type === OcgMessageType.SELECT_IDLECMD) {
+      if (p.to_ep) candidates.push({ type: OcgResponseType.SELECT_IDLECMD, action: SelectIdleCMDAction.TO_EP, index: null });
+      if (p.to_bp) candidates.push({ type: OcgResponseType.SELECT_IDLECMD, action: SelectIdleCMDAction.TO_BP, index: null });
+      const lists = [[p.summons, SelectIdleCMDAction.SELECT_SUMMON], [p.special_summons, SelectIdleCMDAction.SELECT_SPECIAL_SUMMON],
+        [p.activates, SelectIdleCMDAction.SELECT_ACTIVATE], [p.monster_sets, SelectIdleCMDAction.SELECT_MONSTER_SET],
+        [p.spell_sets, SelectIdleCMDAction.SELECT_SPELL_SET], [p.pos_changes, SelectIdleCMDAction.SELECT_POS_CHANGE]] as const;
+      for (const [cards, action] of lists) cards.forEach((_, index) => candidates.push({ type: OcgResponseType.SELECT_IDLECMD, action, index }));
+    } else if (p.type === OcgMessageType.SELECT_OPTION) {
+      p.options.forEach((_, index) => candidates.push({ type: OcgResponseType.SELECT_OPTION, index }));
+    } else if (p.type === OcgMessageType.SELECT_EFFECTYN) candidates.push({ type: OcgResponseType.SELECT_EFFECTYN, yes: false });
+    else if (p.type === OcgMessageType.SELECT_YESNO) candidates.push({ type: OcgResponseType.SELECT_YESNO, yes: false });
+    return candidates.find((r) => !this.rejected.has(responseKey(r)) && validBotResponse(p, r, ctx.cardDb))
+      ?? candidates.find((r) => validBotResponse(p, r, ctx.cardDb)) ?? candidates[0];
   }
 
   /** @returns `null` quando não há heurística e o fallback deve responder. */
@@ -393,7 +530,9 @@ export class BotBrain {
     // batalha), o core ainda espera resposta — o fallback é quem sabe montá-la.
     if (plans.length === 0) return botAutoResponse(message);
 
-    return this.commit(plans.sort((a, b) => b.score - a.score)[0]);
+    plans.sort((a, b) => b.score - a.score);
+    const acceptable = this.difficulty === "easy" ? plans.filter((p) => p.score >= plans[0].score - 20).slice(0, 3) : plans.slice(0, 1);
+    return this.commit(acceptable[Math.floor(this.random() * acceptable.length)]);
   }
 
   /**
@@ -519,6 +658,8 @@ export class BotBrain {
     const usos = this.activations.get(chave(card)) ?? 0;
     if (usos >= SAME_CARD_ACTIVATIONS) return -1;
 
+    if (card.code === 44146295) return mirrorjadeScore(ctx, BOT_POLICIES[this.difficulty]);
+
     const intel = readIntel(card.code, ctx.cardDb);
     // Pêndulo da mão "ativado" é a carta indo para a escala, não um efeito.
     if (card.location === OcgLocation.HAND && intel.isPendulum && intel.isMonster) {
@@ -631,6 +772,9 @@ export class BotBrain {
     ctx: BotContext,
     mine: BoardPlayer,
   ): number {
+    if (this.difficulty !== "easy" && this.planner.reserves.includes(card.code)
+      && mine.hand.filter((c) => c.code === card.code).length <= 1) return -1;
+    if (this.difficulty === "easy" && this.planner.starters.includes(card.code)) return 115;
     const intel = readIntel(card.code, ctx.cardDb);
     // Invocar em ataque um monstro que só tem defesa é entregá-lo.
     if (intel.atk < intel.def && intel.atk < 1500) return -1;
@@ -657,6 +801,7 @@ export class BotBrain {
 
   /** Quanto vale baixar este monstro virado para baixo. */
   private scoreSet(card: OcgCardLoc, ctx: BotContext): number {
+    if (this.difficulty !== "easy" && this.planner.reserves.includes(card.code)) return -1;
     const intel = readIntel(card.code, ctx.cardDb);
     if (intel.tributes > 0) return -1;
 
@@ -783,6 +928,9 @@ export class BotBrain {
     const [mine, foe] = lados(board, ctx.me);
 
     let melhor: (Plan & { target: BoardCard | null }) | null = null;
+    const planned = planBattle(message, ctx, BOT_POLICIES[this.difficulty], this.deadline);
+    if (planned) melhor = { score: planned.score,
+      response: cmd(SelectBattleCMDAction.SELECT_BATTLE, planned.index), target: planned.target };
 
     message.chains.forEach((card, index) => {
       const score = this.scoreActivation(card, ctx, mine, foe);
@@ -820,6 +968,7 @@ export class BotBrain {
       ? {
           controller: escolhido.target.controller,
           sequence: escolhido.target.sequence,
+          code: escolhido.target.code,
         }
       : null;
     return this.commit(escolhido);
@@ -878,6 +1027,11 @@ export class BotBrain {
   ): number {
     const usos = this.activations.get(chave(card)) ?? 0;
     if (usos >= SAME_CARD_ACTIVATIONS) return -1;
+
+    if (card.code === 44146295) {
+      if ("description" in card && (card.description as bigint) === (44146295n << 20n) + 1n) return 100;
+      return mirrorjadeScore(ctx, BOT_POLICIES[this.difficulty]);
+    }
 
     const intel = readIntel(card.code, ctx.cardDb);
     const role = roleOf(card.code);
@@ -1016,6 +1170,11 @@ export class BotBrain {
       // pelo melhor que está em jogo. Negar a Fissura num Sangan com o
       // Bloqueador de Magia é dar duas cartas para salvar uma que não pesa.
       case "spotRemoval": {
+        if (this.difficulty === "hard" && ctx.chainTargets?.length) {
+          const threatened = ctx.chainTargets.filter((t) => t.present && t.controller === ctx.me && t.location === OcgLocation.MZONE)
+            .map((t) => mine.monsters[t.sequence]).filter((c): c is BoardCard => c !== null && c !== undefined);
+          if (threatened.length) return 55 + Math.min(3000, Math.max(...threatened.map((c) => ownValue(c, ctx.cardDb)))) / 100;
+        }
         const melhor = Math.max(0, ...ocupadas(mine.monsters).map((c) => ownValue(c, ctx.cardDb)));
         return 55 + Math.min(melhor, 3000) / 100;
       }
@@ -1108,14 +1267,15 @@ export class BotBrain {
     // O alvo do ataque que o bot acabou de escolher.
     if (this.plannedTarget) {
       const alvo = this.plannedTarget;
+      this.plannedTarget = null;
       const index = candidatos.findIndex(
         (c) =>
           c.location === OcgLocation.MZONE &&
           c.controller === alvo.controller &&
+          (alvo.code === null ? c.code === 0 : c.code === alvo.code) &&
           c.sequence === alvo.sequence,
       );
       if (index >= 0) {
-        this.plannedTarget = null;
         return { type: OcgResponseType.SELECT_CARD, indicies: [index] };
       }
     }
@@ -1151,6 +1311,8 @@ export class BotBrain {
     ctx: BotContext,
     board: BoardState,
   ): number {
+    const strategic = this.planner.targetScore(card, ctx);
+    if (strategic !== null) return strategic;
     const intel = readIntel(card.code, ctx.cardDb);
     const valor = intel.isMonster
       ? Math.max(intel.atk, intel.def)
@@ -1172,7 +1334,10 @@ export class BotBrain {
         // não dá para distinguir. Preferir a carta de menor valor erra pouco:
         // num descarte é o certo, e numa busca de deck o formato quase sempre
         // busca peça específica, não a maior.
-        return card.location === OcgLocation.HAND ? -valor : valor;
+        return card.location === OcgLocation.HAND
+          ? -resourceValue(card.code, ctx, this.difficulty === "easy" ? [] : this.planner.reserves,
+            this.difficulty === "easy" ? [] : this.planner.starters)
+          : valor + (this.planner.starters.includes(card.code) ? 5000 : 0);
       case OcgLocation.GRAVE:
       case OcgLocation.REMOVED:
         // Recuperar: o melhor que houver.
@@ -1249,6 +1414,7 @@ export class BotBrain {
     let melhor: number[] | null = null;
     let melhorCusto = Infinity;
     for (let mask = 1; mask < 1 << n; mask += 1) {
+      if (melhor && (mask & 255) === 0 && performance.now() >= this.deadline) break;
       const escolhidas: number[] = [];
       let total = 0;
       for (let i = 0; i < n; i += 1) {
@@ -1350,7 +1516,10 @@ export class BotBrain {
   }
 
   private noteActivation(card: OcgCardLoc): void {
+    this.plannedTarget = null;
     const key = chave(card);
     this.activations.set(key, (this.activations.get(key) ?? 0) + 1);
+    this.planner.intents.begin(card.code, this.planner.route, this.planner.step,
+      "description" in card ? card.description as bigint : undefined);
   }
 }

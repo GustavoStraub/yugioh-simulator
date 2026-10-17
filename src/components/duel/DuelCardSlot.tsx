@@ -142,6 +142,7 @@ const MARK_TONE: Record<CardMark["tone"], string> = {
   declared: "bg-fuchsia-400 text-black ring-fuchsia-950/70",
   notice: "bg-zinc-100 text-black ring-zinc-900/70",
   link: "bg-emerald-400 text-black ring-emerald-950/70",
+  target: "bg-amber-300 text-black ring-amber-950/70",
   negated: "bg-red-500 text-white ring-red-950/70",
 };
 

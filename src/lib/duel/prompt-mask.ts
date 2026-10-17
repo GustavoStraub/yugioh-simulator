@@ -82,10 +82,9 @@ function mascarar<T extends OcgCardLoc | OcgCardLocPos>(
 /**
  * Prompt pronto para ser publicado no snapshot.
  *
- * Só os dois prompts que listam cartas de qualquer lugar do campo passam pela
- * máscara — os outros (tributo, soma, corrente, comandos de fase) só oferecem
- * cartas do próprio jogador, e mexer neles seria arriscar esconder o que ele
- * precisa ver para jogar.
+ * Seleções comuns, tributos e somas podem incluir cartas do adversário em
+ * efeitos modernos. A máscara preserva os valores que o core exige para a
+ * seleção e oculta somente a identidade que o assento não conhece.
  *
  * @param viewer assento a quem o prompt será mostrado.
  * @param revealed identidades (`maskKey`) já reveladas a esse assento na
@@ -112,6 +111,11 @@ export function maskHiddenCards(
           mascarar(card, viewer, revealed),
         ),
       };
+    case OcgMessageType.SELECT_SUM:
+      return { ...message, selects: message.selects.map((card) => mascarar(card, viewer, revealed)),
+        selects_must: message.selects_must.map((card) => mascarar(card, viewer, revealed)) };
+    case OcgMessageType.SELECT_TRIBUTE:
+      return { ...message, selects: message.selects.map((card) => mascarar(card, viewer, revealed)) };
     default:
       return message;
   }

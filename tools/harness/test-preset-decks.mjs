@@ -44,6 +44,8 @@ import { PRESET_KIND_ORDER } from "@/lib/domain/preset-decks";
 import { autoResponseFor } from "@/lib/duel/auto-response";
 import { readBoardState } from "@/lib/duel/board-state";
 import { BotBrain } from "@/lib/duel/bot/bot-brain";
+import { loadBotProfile } from "@/lib/duel/bot/deck-profile";
+import { createBotObserver } from "./bot-observer.mjs";
 import { findPromptMessage } from "@/lib/duel/bot-responder";
 import { buildPromptPlan } from "@/lib/duel/duel-actions";
 import { EngineStringsDb } from "@/lib/duel/engine-strings";
@@ -321,7 +323,8 @@ async function partida(a, b, seed) {
     startingDraw: 5,
   });
   const rastrear = criarRastreador(duel);
-  const cerebros = [new BotBrain(), new BotBrain()];
+  const cerebros = await Promise.all([a,b].map(async deck => new BotBrain({deck,format:'tcg',profile:await loadBotProfile(deck,'tcg'),difficulty:process.env.BOT_DIFFICULTY})));
+  const observe = createBotObserver(duel, 'tcg');
   const achados = [];
   const tipos = new Set();
 
@@ -362,6 +365,7 @@ async function partida(a, b, seed) {
       // de um travamento); o bot só deve vê-lo com a corrente aberta.
       chainCode: chainPlayer === null ? null : chainCode,
       summoning,
+      ...observe(message),
     });
   }
 

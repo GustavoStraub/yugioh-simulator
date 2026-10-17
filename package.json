@@ -29,6 +29,9 @@
     "test:modern-summons": "node --import ./tools/harness/ts-loader-register.mjs tools/harness/test-modern-summons.mjs",
     "test:formats": "node --import ./tools/harness/ts-loader-register.mjs tools/harness/test-formats.mjs",
     "test:marks": "node --import ./tools/harness/ts-loader-register.mjs tools/harness/test-marks.mjs",
+    "test:browser-equipment": "node tools/harness/test-browser-equipment.mjs",
+    "test:chain-targets": "node --import ./tools/harness/ts-loader-register.mjs tools/harness/test-chain-targets.mjs",
+    "test:browser-chain-targets": "node tools/harness/test-browser-chain-targets.mjs",
     "test:prompt-rules": "node --import ./tools/harness/ts-loader-register.mjs tools/harness/test-prompt-rules.mjs",
     "test:browser": "node tools/harness/test-browser.mjs",
     "test:browser-announce": "node tools/harness/test-browser-announce.mjs",
@@ -77,7 +80,11 @@
     "test:select-unselect": "node --import ./tools/harness/ts-loader-register.mjs tools/harness/test-select-unselect.mjs",
     "test:browser-sort": "node tools/harness/test-browser-sort.mjs",
     "test:sfx": "node tools/harness/test-sfx.mjs",
-    "test:browser-legendary-guides": "node tools/harness/test-browser-legendary-guides.mjs"
+    "test:browser-legendary-guides": "node tools/harness/test-browser-legendary-guides.mjs",
+    "test:bot-strategy": "node --import ./tools/harness/ts-loader-register.mjs tools/harness/test-bot-strategy.mjs",
+    "test:bot-decisions": "node --import ./tools/harness/ts-loader-register.mjs tools/harness/test-bot-decisions.mjs",
+    "test:browser-bot": "node tools/harness/test-browser-bot-difficulty.mjs",
+    "eval:bot": "node --import ./tools/harness/ts-loader-register.mjs tools/harness/evaluate-bot.mjs"
   },
   "dependencies": {
     "@n1xx1/ocgcore-wasm": "npm:@jsr/n1xx1__ocgcore-wasm@^0.1.4",
