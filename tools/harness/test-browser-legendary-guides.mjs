@@ -2,7 +2,10 @@
 import assert from 'node:assert/strict';
 import {readFileSync,mkdirSync,writeFileSync} from 'node:fs';
 import {launchChrome,openPage} from './browser.mjs';
-const guides=['aesir','destiny-hero','cavaleiros-fantasmas'].map(id=>JSON.parse(readFileSync(`src/data/deck-guides/herois-lendarios-${id}.json`,'utf8')));
+const onlyLesson=process.env.LESSON_ID;
+const guides=['aesir','destiny-hero','cavaleiros-fantasmas'].map(id=>JSON.parse(readFileSync(`src/data/deck-guides/herois-lendarios-${id}.json`,'utf8'))).filter(guide=>!onlyLesson||guide.lessons.some(lesson=>lesson.id===onlyLesson));
+assert.ok(guides.length,'o filtro seleciona ao menos um exercício');
+const learningBase=JSON.parse(readFileSync('src/data/deck-learning-base.json','utf8'));
 const BASE=process.env.APP_URL??'http://127.0.0.1:3000',OUT='.cache/shots/learning';
 mkdirSync(OUT,{recursive:true});
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
@@ -13,7 +16,8 @@ try{
  await page.goto(`${BASE}/aprender`);
  await page.evaluate(`localStorage.setItem('yugioh-goat-profile-v1',JSON.stringify({id:'legendary-browser',name:'Aprendiz'}));localStorage.setItem('yugioh-goat-tips-v1',JSON.stringify({off:true,seen:[]}));return true;`);
  for(const guide of guides){
-  for(const lesson of guide.lessons){
+  const selectedLessons=guide.lessons.filter(lesson=>!onlyLesson||lesson.id===onlyLesson);
+  for(const lesson of selectedLessons){
    await page.goto(`${BASE}/aprender/${guide.id}/treinar/${lesson.id}`);
    await until(`return document.querySelector('[data-phase-button]')?.textContent.includes('Main1')&&!document.querySelector('[data-processing="1"]');`);
    const hand=await page.evaluate(String.raw`return [...document.querySelectorAll('[data-zone^="0:2:"] img')].map(img=>Number(img.src.split('/').pop().match(/^(\d+)\./)?.[1])).sort((a,b)=>a-b);`);
@@ -74,15 +78,25 @@ try{
     if(result.did!=='wait')history.push(result);
     if(process.env.DEBUG_PRACTICE&&result.did!=='wait')console.log(lesson.id,result);
    }
-   if(!complete){console.error(history.slice(-8));writeFileSync(`${OUT}/failed-${lesson.id}.png`,Buffer.from((await page.screenshot()).data,'base64'));}
+   if(!complete){console.error(history.filter(item=>item.did).slice(-12),history.at(-1));writeFileSync(`${OUT}/failed-${lesson.id}.json`,JSON.stringify(history,null,2));writeFileSync(`${OUT}/failed-${lesson.id}.png`,Buffer.from((await page.screenshot()).data,'base64'));}
    assert.ok(complete,`exercício ${guide.id}/${lesson.id} concluído por cliques`);
    await page.waitForText('Você executou a sequência!');
    writeFileSync(`${OUT}/legendary-${lesson.id}.png`,Buffer.from((await page.screenshot()).data,'base64'));
+   const lessons=learningBase.decks.find(deck=>deck.presetId===guide.presetId).lessons.map(item=>({...item,id:item.origin?.lessonId??item.id}));
+   const next=lessons[lessons.findIndex(item=>item.id===lesson.id)+1];
+   assert.ok(next,'existe uma próxima lição no guia ampliado');
+   const nextLabel=next.origin?'Próximo exercício':'Próxima lição';
+   const nextHref=next.origin?`/aprender/${guide.id}/treinar/${next.id}`:`/aprender/${guide.id}?licao=${next.id}`;
+   assert.equal(await page.evaluate(`return [...document.querySelectorAll('a')].find(a=>a.textContent.includes(${JSON.stringify(nextLabel)}))?.getAttribute('href');`),nextHref,'a conclusão encaminha para o tipo correto de lição');
+   if(!next.origin){
+    assert.ok(await page.clickText(nextLabel));
+    await until(`return document.querySelector('[data-lesson]')?.dataset.lesson === ${JSON.stringify(next.id)} && document.querySelector('[data-lesson]')?.dataset.lessonKind === 'strategy';`);
+   }
    console.log(`✓ mesa real: ${guide.title} / ${lesson.title}`);
   }
   await page.goto(`${BASE}/aprender/${guide.id}`);
   await page.waitForText('O que você quer construir?');
-  assert.equal(await page.evaluate(`return document.querySelector('progress[aria-label="Lições concluídas"]').value;`),3);
+  assert.equal(await page.evaluate(`return document.querySelector('progress[aria-label="Lições concluídas"]').value;`),selectedLessons.length);
  }
  await page.goto(`${BASE}/aprender`);
  await page.waitForText('Escolha por onde começar');
@@ -92,5 +106,5 @@ try{
   assert.ok(await page.evaluate('return document.documentElement.scrollWidth<=innerWidth+1;'),`biblioteca cabe em ${width}px`);
  }
  assert.deepEqual(page.errors,[],'sem erros de JavaScript');
- console.log('✓ nove conclusões salvas e biblioteca responsiva');
+ console.log(`✓ ${onlyLesson?'conclusão salva':'nove conclusões salvas'} e biblioteca responsiva`);
 }finally{await page.close();child.kill();}

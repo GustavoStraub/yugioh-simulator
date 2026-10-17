@@ -17,9 +17,11 @@ const ZONAS_NA_MESA = new Set<number>([
 
 /** O jogador consegue clicar neste candidato no próprio tabuleiro? */
 export function isCandidateOnBoard(
-  candidate: Pick<SelectionCandidate, "location" | "controller">,
+  candidate: Pick<SelectionCandidate, "location" | "controller" | "overlay_sequence">,
   viewer: 0 | 1,
 ): boolean {
+  // A matéria ocupa a localização do hospedeiro no binding, mas não seu slot clicável.
+  if (candidate.overlay_sequence !== undefined) return false;
   if (!ZONAS_NA_MESA.has(candidate.location)) return false;
   if (candidate.location === OcgLocation.HAND) return candidate.controller === viewer;
   return true;
@@ -34,7 +36,7 @@ export function isCandidateOnBoard(
  * com nada para marcar e o duelo parava ali, sem erro nenhum na tela.
  */
 export function needsCardPicker(
-  candidates: readonly Pick<SelectionCandidate, "location" | "controller">[],
+  candidates: readonly Pick<SelectionCandidate, "location" | "controller" | "overlay_sequence">[],
   viewer: 0 | 1,
 ): boolean {
   return candidates.some((candidate) => !isCandidateOnBoard(candidate, viewer));

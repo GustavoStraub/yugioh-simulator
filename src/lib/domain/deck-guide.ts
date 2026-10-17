@@ -7,7 +7,7 @@ export interface GuideSource {
   url: string;
 }
 
-export interface GuideLesson {
+interface GuideLessonContent {
   id: string;
   title: string;
   summary: string;
@@ -15,11 +15,27 @@ export interface GuideLesson {
   sourceIds: string[];
   preparation: string[];
   /** A mão de exemplo usa somente cartas da lista, com suas quantidades reais. */
-  startingHand: number[];
+  startingHand: number[] | null;
   steps: { title: string; action: string; why: string; cardCodes: number[] }[];
   outcome: string;
   cautions: string[];
+  practice: LessonPractice | null;
+}
+
+export interface PracticeGuideLesson extends GuideLessonContent {
+  startingHand: number[];
   practice: LessonPractice;
+}
+
+export interface StrategyGuideLesson extends GuideLessonContent {
+  startingHand: null;
+  practice: null;
+}
+
+export type GuideLesson = PracticeGuideLesson | StrategyGuideLesson;
+
+export function hasLessonPractice(lesson: GuideLesson): lesson is PracticeGuideLesson {
+  return lesson.practice !== null && lesson.startingHand !== null;
 }
 
 export type PracticeCondition =
@@ -67,21 +83,28 @@ export function matchesGuideDeck(guide: DeckGuide, preset: PresetDeckDefinition)
 export interface GuideProgress {
   completed: string[];
   currentLesson: string | null;
+  steps?: Record<string, number>;
 }
 
 export const EMPTY_GUIDE_PROGRESS: GuideProgress = { completed: [], currentLesson: null };
 
-export function guideProgressKey(playerId: string, guide: DeckGuide): string {
+export type GuideProgressReference = Pick<DeckGuide, "id" | "revision"> & { lessons: { id: string; steps?: unknown[] }[] };
+
+export function guideProgressKey(playerId: string, guide: GuideProgressReference): string {
   return `yugioh-goat-learning-v1:${playerId}:${guide.id}:${guide.revision}`;
 }
 
-export function parseGuideProgress(raw: string | null, guide: DeckGuide): GuideProgress {
+export function parseGuideProgress(raw: string | null, guide: GuideProgressReference): GuideProgress {
   try {
     const value: unknown = JSON.parse(raw ?? "null");
     if (!value || typeof value !== "object") return EMPTY_GUIDE_PROGRESS;
-    const { completed, currentLesson } = value as Partial<GuideProgress>;
+    const { completed, currentLesson, steps } = value as Partial<GuideProgress>;
     const ids = new Set(guide.lessons.map((lesson) => lesson.id));
+    const validSteps = steps && typeof steps === "object" && !Array.isArray(steps)
+      ? Object.fromEntries(Object.entries(steps).filter(([id, step]) => ids.has(id) && typeof step === "number" && Number.isInteger(step) && step >= 0).map(([id, step]) => [id, Math.min(step, Math.max(0, (guide.lessons.find((lesson) => lesson.id === id)?.steps?.length ?? 1) - 1))]))
+      : {};
     return {
+      ...(Object.keys(validSteps).length ? { steps: validSteps } : {}),
       completed: Array.isArray(completed)
         ? [...new Set(completed.filter((id): id is string => typeof id === "string" && ids.has(id)))] : [],
       currentLesson: typeof currentLesson === "string" && ids.has(currentLesson) ? currentLesson : null,

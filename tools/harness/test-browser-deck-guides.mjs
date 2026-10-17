@@ -38,7 +38,7 @@ try {
   `);
   await page.goto(`${BASE}/aprender`);
   await page.waitForText("Conheça o deck.");
-  await until(page, `return [...document.images].every(image => image.complete);`);
+  await until(page, `return [...document.images].every(image => { const box = image.getBoundingClientRect(); return box.top >= innerHeight || box.bottom <= 0 || (image.complete && image.naturalWidth > 0); });`);
   assert.equal(await page.evaluate(`return document.querySelector('nav a[aria-current="page"]')?.textContent.includes('Aprender');`), true);
   await shot("library-desktop");
   await page.evaluate(`const input = document.querySelector('input[type="search"]'); const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set; setter.call(input, 'xyz-nao-existe'); input.dispatchEvent(new Event('input', {bubbles:true})); return true;`);

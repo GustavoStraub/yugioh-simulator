@@ -5,7 +5,7 @@ import { OcgDuelMode, OcgMessageType as M, OcgResponseType as R, SelectIdleCMDAc
 
 import { DECK_GUIDES } from "@/lib/data/deck-guides";
 import { getPresetDeck } from "@/lib/data/preset-decks-catalog";
-import { matchesGuideDeck, parseGuideProgress, guideProgressKey } from "@/lib/domain/deck-guide";
+import { hasLessonPractice, matchesGuideDeck, parseGuideProgress, guideProgressKey } from "@/lib/domain/deck-guide";
 import { advancePractice, EMPTY_PRACTICE, practiceCardTargets } from "@/lib/duel/lesson-practice";
 import { deckAfterOpeningHand } from "@/lib/duel/opening-hand";
 import { createDuelSession } from "@/lib/duel/duel-session";
@@ -45,10 +45,16 @@ for (const guide of DECK_GUIDES) {
   }
   for (const lesson of guide.lessons) {
     assert.ok(lesson.title && lesson.outcome && lesson.steps.length > 0);
-    assert.equal(lesson.startingHand.length, 5);
-    remove(preset.main, lesson.startingHand);
+    assert.ok(lesson.summary && lesson.preparation.length > 0, "o roteiro explica o cenário antes de começar");
     for (const source of lesson.sourceIds) assert.ok(sources.has(source));
     for (const step of lesson.steps) for (const code of step.cardCodes) assert.ok(codes.has(code));
+    if (!hasLessonPractice(lesson)) {
+      assert.equal(lesson.practice, null, "estratégia não finge ter um objetivo executável");
+      assert.equal(lesson.startingHand, null, "cenário preparado não é apresentado como mão inicial");
+      continue;
+    }
+    assert.equal(lesson.startingHand.length, 5);
+    remove(preset.main, lesson.startingHand);
     assert.ok(lesson.practice.goal.length > 0);
     assert.ok(lesson.practice.stages.length > 0);
     for (const stage of lesson.practice.stages) {
@@ -89,7 +95,7 @@ const WAKING = 10813327, BACK = 59919307;
   ]) assert.deepEqual(practiceCardTargets(lesson, { ...snapshot, pendingPrompt: { ...snapshot.pendingPrompt, selects: [card] } }, EMPTY_PRACTICE), [], "não indica oponente, carta oculta ou zona errada");
 }
 
-for (const lesson of guide.lessons) {
+for (const lesson of guide.lessons.filter(hasLessonPractice)) {
   const useAlbion = lesson.id === "rota-albion";
   const useKitt = lesson.id === "encontrar-inicio";
   const firstFusion = useAlbion ? ALBION : LUBELLION;

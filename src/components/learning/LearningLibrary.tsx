@@ -4,16 +4,18 @@ import Link from "next/link";
 import { useState } from "react";
 
 import { useGuideProgress } from "@/hooks/useGuideProgress";
-import { DECK_GUIDES } from "@/lib/data/deck-guides";
 import { getPresetDeck } from "@/lib/data/preset-decks-catalog";
 import type { DeckGuide } from "@/lib/domain/deck-guide";
 import { normalizeSearch } from "@/lib/domain/preset-decks";
 import styles from "./learning.module.css";
 
-export function LearningLibrary() {
+type LibraryGuide = Pick<DeckGuide, "id" | "revision" | "title" | "description" | "difficulty" | "minutes" | "tags" | "coverCodes" | "presetId"> & { lessons: { id: string; steps: null[] }[]; searchText: string };
+
+export function LearningLibrary({ guides: allGuides }: { guides: LibraryGuide[] }) {
   const [query, setQuery] = useState("");
-  const guides = DECK_GUIDES.filter((guide) => normalizeSearch(
-    [guide.title, guide.description, ...guide.tags].join(" "),
+  const [visible, setVisible] = useState(12);
+  const guides = allGuides.filter((guide) => normalizeSearch(
+    [guide.title, guide.description, guide.searchText, ...guide.tags].join(" "),
   ).includes(normalizeSearch(query.trim())));
 
   return (
@@ -32,20 +34,22 @@ export function LearningLibrary() {
       </header>
 
       <div className={styles.libraryHeading}>
-        <div><p className={styles.eyebrow}>Guias para decks oficiais</p><h2>Escolha por onde começar</h2><p>Explore os três decks de Heróis Lendários e Albaz Strike. Aprenda as sequências jogando com uma mão preparada e cartas indicadas na mesa.</p></div>
-        <label className={styles.search}>Buscar um guia<input value={query} onChange={(event) => setQuery(event.target.value)} type="search" placeholder="Nome, estilo ou mecânica…" /></label>
+        <div><p className={styles.eyebrow}>Guias para decks oficiais</p><h2>Escolha por onde começar</h2><p>Explore {allGuides.length} decks com estratégias em etapas.<span className={styles.libraryDescription}> Alguns guias também oferecem exercícios na mesa com mão preparada.</span></p></div>
+        <label className={styles.search}>Buscar um guia<input value={query} onChange={(event) => { setQuery(event.target.value); setVisible(12); }} type="search" placeholder="Nome, estilo ou mecânica…" /></label>
       </div>
 
+      <p className={styles.libraryCount} role="status">{guides.length} de {allGuides.length} guias · {Math.min(visible, guides.length)} exibidos</p>
       <div className={styles.libraryGrid}>
-        {guides.map((guide) => <GuideCard key={guide.id} guide={guide} />)}
+        {guides.slice(0, visible).map((guide) => <GuideCard key={guide.id} guide={guide} />)}
       </div>
+      {visible < guides.length && <button type="button" className={`${styles.secondaryButton} ${styles.libraryMore}`} onClick={() => setVisible((count) => count + 12)}>Mostrar mais guias</button>}
       {guides.length === 0 && <p className={styles.empty} role="status">Nenhum guia encontrado. Busque pelo nome do deck ou por Fusão, Sincro, Xyz ou Link.</p>}
       <p className={styles.footnote}>Guias produzidos pelo app para as listas oficiais disponíveis. Cada trilha inclui suas fontes e a data da revisão.</p>
     </div>
   );
 }
 
-function GuideCard({ guide }: { guide: DeckGuide }) {
+function GuideCard({ guide }: { guide: LibraryGuide }) {
   const preset = getPresetDeck(guide.presetId);
   const { progress } = useGuideProgress(guide);
   const started = progress.currentLesson !== null || progress.completed.length > 0;
@@ -54,7 +58,7 @@ function GuideCard({ guide }: { guide: DeckGuide }) {
     ? progress.currentLesson : next?.id ?? guide.lessons[0].id;
 
   return (
-    <article className={styles.guideCard}>
+    <article className={styles.guideCard} data-guide-card={guide.id}>
       <div className={styles.cardArtwork} aria-hidden="true">
         {guide.coverCodes.map((code) => (
           // eslint-disable-next-line @next/next/no-img-element

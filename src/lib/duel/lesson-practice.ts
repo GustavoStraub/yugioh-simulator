@@ -1,6 +1,6 @@
 import { OcgMessageType } from "@n1xx1/ocgcore-wasm";
 
-import type { GuideCardTarget, GuideLesson, PracticeCondition } from "@/lib/domain/deck-guide";
+import type { GuideCardTarget, PracticeGuideLesson, PracticeCondition } from "@/lib/domain/deck-guide";
 import type { DuelSnapshot } from "@/lib/duel/duel-session";
 import { buildPromptPlan } from "@/lib/duel/duel-actions";
 
@@ -23,7 +23,7 @@ export interface PracticeState { reached: number; completed: boolean; ended: boo
 export const EMPTY_PRACTICE: PracticeState = { reached: 0, completed: false, ended: false };
 
 /** Recomenda somente cartas desta etapa que o motor oferece neste momento. */
-export function practiceCardTargets(lesson: GuideLesson, snapshot: DuelSnapshot, practice: PracticeState): GuideCardTarget[] {
+export function practiceCardTargets(lesson: PracticeGuideLesson, snapshot: DuelSnapshot, practice: PracticeState): GuideCardTarget[] {
   if (practice.completed || practice.ended || snapshot.isProcessing || snapshot.promptPlayer !== 0 || !snapshot.pendingPrompt) return [];
   const stage = lesson.practice.stages[practice.reached];
   if (!stage) return [];
@@ -41,7 +41,7 @@ export function practiceCardTargets(lesson: GuideLesson, snapshot: DuelSnapshot,
 }
 
 /** Avança somente com evidências do motor. Clicar numa dica não conclui etapas. */
-export function advancePractice(lesson: GuideLesson, snapshot: DuelSnapshot, previous: PracticeState): PracticeState {
+export function advancePractice(lesson: PracticeGuideLesson, snapshot: DuelSnapshot, previous: PracticeState): PracticeState {
   if (previous.completed || previous.ended) return previous;
   const stable = !snapshot.isProcessing && snapshot.pendingPrompt?.type === OcgMessageType.SELECT_IDLECMD
     && snapshot.promptPlayer === 0 && snapshot.chainLinks.length === 0;

@@ -21,29 +21,29 @@
 .successActions a, .successActions button { padding: 12px; text-align: center; }
 .successActions .primary { background: #e4bf76; color: #201c14; border-color: #e4bf76; font-weight: 600; }
 .error { display: grid; gap: 20px; padding: 40px 20px; max-width: 600px; margin: auto; color: #e4d0aa; }
-@media (max-width: 760px) {
+@media (max-width: 900px), (max-height: 450px) and (orientation: landscape) {
   .coach { padding: 7px 10px 8px; }
-  .topLine h1 { font-size: 11px; max-width: 260px; }
-  .kicker { font-size: 8px; }
-  .guideLegend { font-size: 8px; margin-left: 8px; }
-  .actions { gap: 4px; }
-  .actions button, .actions a { font-size: 9px; padding: 7px; }
+  .topLine > div:first-child { min-width: 0; }
+  .topLine h1 { font-size: 13px; max-width: 260px; }
+  .kicker { font-size: 9px; }
+  .guideLegend { font-size: 10px; margin-left: 8px; }
+  .actions { gap: 6px; }
+  .actions button, .actions a, .successActions button, .successActions a, .error button, .error a { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; font-size: 12px; line-height: 1.3; padding: 10px; text-align: center; }
   .step { margin-top: 6px; gap: 7px; }
-  .step strong { font-size: 11px; }
-  .step p { font-size: 11px; max-height: 55px; overflow-y: auto; }
+  .step strong { font-size: 12px; }
+  .step p { font-size: 13px; max-height: 90px; overflow-y: auto; }
 }
-@media (max-width: 440px) {
+@media (max-width: 600px) {
   .topLine { align-items: flex-start; flex-direction: column; gap: 6px; }
   .topLine h1 { max-width: none; }
-  .actions { width: 100%; }
-  .actions a { margin-left: auto; }
-  .step p { max-height: 50px; }
+  .actions { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); width: 100%; }
+  .actions a { margin-left: 0; }
   .success { padding: 24px; }
 }
 @media (max-height: 450px) and (orientation: landscape) {
   .coach { padding: 5px 10px; }
   .topLine h1 { display: none; }
   .step { margin-top: 3px; }
-  .step p { font-size: 10px; max-height: 30px; margin-top: 0; }
-  .step strong { font-size: 10px; }
+  .step p { font-size: 12px; max-height: 40px; margin-top: 0; }
+  .step strong { font-size: 12px; }
 }

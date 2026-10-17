@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 
 import { PRESET_DECKS } from "@/lib/data/preset-decks-catalog";
-import { getGuideForPreset } from "@/lib/data/deck-guides";
+import { getGuideForPreset } from "@/lib/data/deck-guide-index";
 import {
   PRESET_KIND_ORDER,
   kindGroupLabel,

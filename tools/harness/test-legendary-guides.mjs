@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { OcgDuelMode, OcgMessageType as M, OcgResponseType as R, SelectIdleCMDAction as A } from '@n1xx1/ocgcore-wasm';
 import { DECK_GUIDES } from '@/lib/data/deck-guides';
 import { getPresetDeck } from '@/lib/data/preset-decks-catalog';
+import { hasLessonPractice } from '@/lib/domain/deck-guide';
 import { advancePractice, EMPTY_PRACTICE, practiceCardTargets } from '@/lib/duel/lesson-practice';
 import { deckAfterOpeningHand } from '@/lib/duel/opening-hand';
 import { createDuelSession } from '@/lib/duel/duel-session';
@@ -21,7 +22,7 @@ const actions = {
   leviair: [['activates',81439173],['activates',90432163],['summons',63821877],['special_summons',36426778],['special_summons',95992081],['activates',95992081],['activates',36426778]],
 };
 const actionType={summons:A.SELECT_SUMMON,special_summons:A.SELECT_SPECIAL_SUMMON,activates:A.SELECT_ACTIVATE};
-for(const guide of DECK_GUIDES.filter(g=>g.id.startsWith('herois-lendarios-'))) for(const lesson of guide.lessons){
+for(const guide of DECK_GUIDES.filter(g=>g.id.startsWith('herois-lendarios-'))) for(const lesson of guide.lessons.filter(hasLessonPractice)){
  const preset=getPresetDeck(guide.presetId);
  const duel=await createDuel({mode:OcgDuelMode.MODE_MR5,decks:[deckAfterOpeningHand(preset,lesson.startingHand,5).main,preset.main],place:[...lesson.startingHand.map(code=>({player:0,zone:Zone.HAND,code})),...preset.extra.map(code=>({player:0,zone:Zone.EXTRA,code}))]});
  let practice=EMPTY_PRACTICE, move=0, prompts=0;
@@ -37,6 +38,18 @@ for(const guide of DECK_GUIDES.filter(g=>g.id.startsWith('herois-lendarios-'))) 
    const recommended=c=>targets.some(t=>t.code===c.code && t.location===c.location && (t.controller??0)===c.controller);
    if(message.type===M.SELECT_IDLECMD){
     if(practice.completed) return STOP;
+    if(guide.id==='herois-lendarios-cavaleiros-fantasmas'&&lesson.id==='primeiro-xyz'&&practice.reached===2){
+     assert.deepEqual(targets.map(t=>t.code),[62709239],'a etapa Xyz indica abrir o Extra, sem sugerir ativar Manto Antigo');
+    }
+    if(guide.id==='herois-lendarios-cavaleiros-fantasmas'&&lesson.id==='leviair'){
+     const stageTitle=lesson.practice.stages[practice.reached]?.title;
+     if(stageTitle==='Invoque Luvas Gastas primeiro'){
+      assert.deepEqual(targets.map(t=>t.code),[63821877],'GUIA indica somente Luvas para a Invocação-Normal, antes de Botas');
+     }
+     if(stageTitle==='Complete os Níveis 3 com Botas'){
+      assert.deepEqual(targets.map(t=>t.code),[36426778],'GUIA indica somente Botas depois de Luvas entrar no campo');
+     }
+    }
     const next=actions[lesson.id][move++];
     if(!next) return STOP;
     const [list,code]=next, index=message[list].findIndex(c=>c.code===code);

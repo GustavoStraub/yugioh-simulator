@@ -44,7 +44,18 @@ try {
       await page.setViewport(844, 390, { mobile: true, touch: true });
       await sleep(300);
       assert.ok(await page.evaluate(String.raw`const c=document.querySelector('[data-training-panel]').getBoundingClientRect();return c.top>=0 && c.bottom < innerHeight/2;`), "orientação cabe na horizontal");
+      assert.ok(await page.evaluate(`return [...document.querySelectorAll('[data-practice-lesson] button,[data-practice-lesson] a')].every(button=>button.getBoundingClientRect().height>=44);`), "controles do treino têm área de toque confortável na horizontal");
       await shot("practice-mobile");
+      await page.setViewport(390,844,{mobile:true,touch:true});
+      await sleep(300);
+      assert.ok(await page.evaluate(`return document.documentElement.scrollWidth<=innerWidth+1&&[...document.querySelectorAll('[data-practice-lesson] button,[data-practice-lesson] a')].every(button=>button.getBoundingClientRect().height>=44);`), "treino cabe no retrato com controles de toque grandes");
+      const hintToggle=await page.evaluate(`const button=document.querySelector('[data-practice-lesson] button[aria-expanded]');const box=button.getBoundingClientRect();return {x:box.left+box.width/2,y:box.top+box.height/2};`);
+      await page.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[hintToggle]});
+      await page.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});
+      await until(`return document.querySelector('[data-practice-lesson] button[aria-expanded]')?.getAttribute('aria-expanded')==='false';`);
+      assert.ok(await page.clickText('Mostrar dica'));
+      await until(`return document.querySelector('[data-practice-lesson] button[aria-expanded]')?.getAttribute('aria-expanded')==='true';`);
+      await shot('practice-mobile-portrait');
       await page.setViewport(1440, 1000);
       await page.clickText("Recomeçar");
       await until(`return document.querySelector('[data-phase-button]')?.textContent.includes('Main1') && !document.querySelector('[data-processing="1"]');`);

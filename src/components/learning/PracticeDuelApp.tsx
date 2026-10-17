@@ -9,14 +9,14 @@ import { useCardRegistry } from "@/context/CardRegistryProvider";
 import { usePlayer } from "@/context/PlayerProvider";
 import { useDuelEngine } from "@/hooks/useDuelEngine";
 import { useGuideProgress } from "@/hooks/useGuideProgress";
-import { matchesGuideDeck, type DeckGuide, type GuideLesson } from "@/lib/domain/deck-guide";
+import { hasLessonPractice, matchesGuideDeck, type DeckGuide, type PracticeGuideLesson } from "@/lib/domain/deck-guide";
 import { presetToDuelPayload, type PresetDeckDefinition } from "@/lib/domain/preset-decks";
 import { DEFAULT_DUEL_PREFS } from "@/lib/duel/duel-prefs";
 import type { DuelSessionConfig, DuelSnapshot } from "@/lib/duel/duel-session";
 import { advancePractice, EMPTY_PRACTICE, practiceCardTargets } from "@/lib/duel/lesson-practice";
 import styles from "./practice.module.css";
 
-type Props = { guide: DeckGuide; lesson: GuideLesson; preset: PresetDeckDefinition };
+type Props = { guide: DeckGuide; lesson: PracticeGuideLesson; preset: PresetDeckDefinition };
 
 export function PracticeDuelApp(props: Props) {
   const [attempt, setAttempt] = useState(0);
@@ -32,7 +32,7 @@ function PracticeAttempt({ guide, lesson, preset, onRestart }: Props & { onResta
   const reported = useRef(false);
   const compatible = matchesGuideDeck(guide, preset);
   const backHref = `/aprender/${guide.id}?licao=${lesson.id}`;
-  const next = guide.lessons[guide.lessons.indexOf(lesson) + 1];
+  const next = guide.lessons[guide.lessons.findIndex((item) => item.id === lesson.id) + 1];
   const observe = useCallback((snapshot: DuelSnapshot) => {
     setPractice((previous) => advancePractice(lesson, snapshot, previous));
     if (!reported.current && advancePractice(lesson, snapshot, EMPTY_PRACTICE).completed) {
@@ -73,7 +73,7 @@ function PracticeAttempt({ guide, lesson, preset, onRestart }: Props & { onResta
     <TrainingHighlightProvider targets={targets}>
     <DuelBoard snapshot={blocked ? { ...engine.snapshot, pendingPrompt: null, promptPlayer: null } : engine.snapshot} me={0} playerName={profile?.name ?? "Aprendiz"} opponentName="Parceiro de treino" subscribeEvents={engine.subscribeEvents} onRespond={(response) => { if (!blocked) void engine.respond(response); }} onForceAsk={(held) => engine.setChainPreference({ forceAsk: held })} onHurry={engine.hurry} trainingPanel={panel} prefs={{ ...DEFAULT_DUEL_PREFS, cutIns: false, speed: "fast" }} ending={{ backHref, backLabel: "Voltar à lição", onRematch: onRestart, rematchLabel: "Recomeçar exercício" }} />
     </TrainingHighlightProvider>
-    {practice.completed && <PracticeSuccess><span className={styles.kicker}>Objetivo alcançado</span><h2 id="practice-success">Você executou a sequência!</h2><p>{lesson.outcome}</p><p className={styles.explanation}>O resultado foi conferido na mesa. Esta lição agora conta como concluída.</p><div className={styles.successActions}>{next && <Link className={styles.primary} href={`/aprender/${guide.id}/treinar/${next.id}`}>Próximo exercício →</Link>}<button type="button" onClick={onRestart}>Praticar novamente</button><Link href={backHref}>Voltar ao guia</Link></div></PracticeSuccess>}
+    {practice.completed && <PracticeSuccess><span className={styles.kicker}>Objetivo alcançado</span><h2 id="practice-success">Você executou a sequência!</h2><p>{lesson.outcome}</p><p className={styles.explanation}>O resultado foi conferido na mesa. Esta lição agora conta como concluída.</p><div className={styles.successActions}>{next && <Link className={styles.primary} href={hasLessonPractice(next) ? `/aprender/${guide.id}/treinar/${next.id}` : `/aprender/${guide.id}?licao=${next.id}`}>{hasLessonPractice(next) ? "Próximo exercício →" : "Próxima lição →"}</Link>}<button type="button" onClick={onRestart}>Praticar novamente</button><Link href={backHref}>Voltar ao guia</Link></div></PracticeSuccess>}
   </>;
 }
 

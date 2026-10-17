@@ -4,8 +4,10 @@ import destinyHero from "@/data/deck-guides/herois-lendarios-destiny-hero.json";
 import phantomKnights from "@/data/deck-guides/herois-lendarios-cavaleiros-fantasmas.json";
 import type { DeckGuide } from "@/lib/domain/deck-guide";
 
+import { adaptLearningBase } from "./deck-learning-adapter";
+
 /** Conteúdo editorial independente das listas de produto geradas. */
-export const DECK_GUIDES: readonly DeckGuide[] = [aesir, destinyHero, phantomKnights, albazStrike] as DeckGuide[];
+export const DECK_GUIDES: readonly DeckGuide[] = adaptLearningBase([aesir, destinyHero, phantomKnights, albazStrike] as DeckGuide[]);
 
 export function getDeckGuide(id: string): DeckGuide | undefined {
   return DECK_GUIDES.find((guide) => guide.id === id);

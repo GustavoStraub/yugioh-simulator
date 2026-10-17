@@ -49,6 +49,8 @@ export interface CardAction {
 
 /** Uma carta oferecida numa seleção múltipla. */
 export interface SelectionCandidate {
+  /** Índice da matéria Xyz; o binding mantém a localização do monstro hospedeiro. */
+  overlay_sequence?: number;
   code: number;
   controller: number;
   location: number;
@@ -245,12 +247,13 @@ export function cardKey(
   return `${controller}:${location}:${sequence}`;
 }
 
-function candidatesOf(cards: readonly OcgCardLoc[]): SelectionCandidate[] {
+function candidatesOf(cards: readonly (OcgCardLoc & { overlay_sequence?: number })[]): SelectionCandidate[] {
   return cards.map((card) => ({
     code: card.code,
     controller: card.controller,
     location: card.location,
     sequence: card.sequence,
+    ...(card.overlay_sequence !== undefined ? { overlay_sequence: card.overlay_sequence } : {}),
   }));
 }
 

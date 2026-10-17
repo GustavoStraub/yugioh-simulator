@@ -277,11 +277,13 @@
               },
               {
                 "code": 90432163,
-                "location": 4
+                "location": 4,
+                "scope": "selection"
               },
               {
                 "code": 36426778,
-                "location": 4
+                "location": 4,
+                "scope": "selection"
               }
             ],
             "completeWhen": [
@@ -458,15 +460,18 @@
               },
               {
                 "code": 90432163,
-                "location": 4
+                "location": 4,
+                "scope": "selection"
               },
               {
                 "code": 19353570,
-                "location": 4
+                "location": 4,
+                "scope": "selection"
               },
               {
                 "code": 36426778,
-                "location": 4
+                "location": 4,
+                "scope": "selection"
               }
             ],
             "completeWhen": [
@@ -699,14 +704,28 @@
             ]
           },
           {
-            "title": "Reúna os Níveis 3",
-            "instruction": "Invoque Luvas Gastas por Invocação-Normal; depois invoque Botas Silenciosas por Invocação-Especial da mão.",
+            "title": "Invoque Luvas Gastas primeiro",
+            "instruction": "Invoque Luvas Gastas por Invocação-Normal.",
             "why": "Luvas Gastas é o Cavaleiro Fantasma que habilita Botas. Seu bônus de ATK exige um Xyz de TREVAS, e Leviar é de VENTO.",
             "targets": [
               {
                 "code": 63821877,
                 "location": 2
-              },
+              }
+            ],
+            "completeWhen": [
+              {
+                "kind": "card",
+                "zone": "monsters",
+                "code": 63821877
+              }
+            ]
+          },
+          {
+            "title": "Complete os Níveis 3 com Botas",
+            "instruction": "Com Luvas Gastas no campo, invoque Botas Silenciosas por Invocação-Especial da mão.",
+            "why": "Luvas Gastas é o Cavaleiro Fantasma que habilita Botas. Seu bônus de ATK exige um Xyz de TREVAS, e Leviar é de VENTO.",
+            "targets": [
               {
                 "code": 36426778,
                 "location": 2
@@ -736,11 +755,13 @@
               },
               {
                 "code": 63821877,
-                "location": 4
+                "location": 4,
+                "scope": "selection"
               },
               {
                 "code": 36426778,
-                "location": 4
+                "location": 4,
+                "scope": "selection"
               }
             ],
             "completeWhen": [
