@@ -1036,7 +1036,69 @@
       44335251
     ],
     "plays": [],
-    "decisions": []
+    "decisions": [
+      {
+        "id": "oviraptor-encontra-tyranno",
+        "botEligible": true,
+        "lessonId": "oviraptor-escolhe-acesso-ou-preparacao",
+        "title": "Com materiais no Cemitério, procure Tyranno",
+        "situation": "Oviraptor está na mão, Babycerasaurus e Petiteranodon estão no Cemitério e Ultimate Conductor Tyranno ainda está no Deck. Como aproveitar os dois Dinossauros para banir?",
+        "signals": [
+          {
+            "zone": "hand",
+            "code": 44335251,
+            "present": true
+          },
+          {
+            "zone": "hand",
+            "code": 18940556,
+            "present": false
+          },
+          {
+            "zone": "grave",
+            "code": 36042004,
+            "present": true
+          },
+          {
+            "zone": "grave",
+            "code": 82946847,
+            "present": true
+          },
+          {
+            "zone": "deck",
+            "code": 18940556,
+            "present": true
+          }
+        ],
+        "choices": [
+          {
+            "label": "Invocar Oviraptor e adicionar Tyranno",
+            "explanation": "Os dois Dinossauros no Cemitério satisfazem o custo de Invocação de Tyranno. Oviraptor encontra a peça que falta.",
+            "action": {
+              "kind": "summon",
+              "code": 44335251,
+              "mode": "normal",
+              "targetCode": 18940556
+            }
+          },
+          {
+            "label": "Buscar outro pequeno Dinossauro sem precisar dele",
+            "explanation": "A preparação do Cemitério já está feita; o chefe pode ser a continuação imediata.",
+            "action": {
+              "kind": "hold",
+              "code": 44335251
+            }
+          }
+        ],
+        "correctChoice": 0,
+        "sourceIds": [
+          "official-card-44335251",
+          "official-card-18940556",
+          "official-card-36042004",
+          "official-card-82946847"
+        ]
+      }
+    ]
   },
   {
     "id": "tcg-sr03",
@@ -1133,7 +1195,57 @@
         "zone": "deck"
       }
     ],
-    "decisions": []
+    "decisions": [
+      {
+        "id": "ahrima-busca-covil",
+        "botEligible": true,
+        "lessonId": "ahrima-localiza-o-campo",
+        "title": "Ahrima encontra o Campo antes de ocupar a mesa",
+        "situation": "Ahrima está na mão, Covil das Trevas ainda está no Deck e não há outra cópia do Campo na sua mão. Como abrir o plano de Tributos?",
+        "signals": [
+          {
+            "zone": "hand",
+            "code": 86377375,
+            "present": true
+          },
+          {
+            "zone": "hand",
+            "code": 59160188,
+            "present": false
+          },
+          {
+            "zone": "deck",
+            "code": 59160188,
+            "present": true
+          }
+        ],
+        "choices": [
+          {
+            "label": "Descartar Ahrima para buscar Covil das Trevas",
+            "explanation": "O efeito na mão encontra o Campo sem gastar a Invocação-Normal. Depois de ativá-lo, avalie quais Tributos são permitidos.",
+            "action": {
+              "kind": "activate",
+              "code": 86377375,
+              "targetCode": 59160188
+            }
+          },
+          {
+            "label": "Invocar Ahrima normalmente e esperar o Campo",
+            "explanation": "Isso gasta a Invocação-Normal antes de obter a carta que sustenta a linha do deck.",
+            "action": {
+              "kind": "summon",
+              "code": 86377375,
+              "mode": "normal"
+            }
+          }
+        ],
+        "correctChoice": 0,
+        "sourceIds": [
+          "official-card-86377375",
+          "official-card-59160188"
+        ]
+      }
+    ]
   },
   {
     "id": "tcg-sdpl",
@@ -1245,7 +1357,55 @@
         "zone": "visible"
       }
     ],
-    "decisions": []
+    "decisions": [
+      {
+        "id": "quick-launch-encontra-tracer",
+        "botEligible": true,
+        "lessonId": "tracer-transforma-uma-carta-em-outro-rokket",
+        "title": "Quick Launch põe o motor Rokket em campo",
+        "situation": "Quick Launch está na mão, Rokket Tracer ainda está no Deck e você tem espaço para um monstro. Qual ativação acessa o Regulador sem gastar a Invocação-Normal?",
+        "signals": [
+          {
+            "zone": "hand",
+            "code": 31443476,
+            "present": true
+          },
+          {
+            "zone": "deck",
+            "code": 68464358,
+            "present": true
+          },
+          {
+            "zone": "own-main-monsters",
+            "maxCount": 4
+          }
+        ],
+        "choices": [
+          {
+            "label": "Ativar Quick Launch e invocar Tracer",
+            "explanation": "Quick Launch traz um Rokket do Deck. Tracer oferece outra extensão se houver uma carta sua válida para destruir; confira o bloqueio de Extra Deck após seu efeito.",
+            "action": {
+              "kind": "activate",
+              "code": 31443476,
+              "targetCode": 68464358
+            }
+          },
+          {
+            "label": "Guardar Quick Launch e invocar só um monstro",
+            "explanation": "Quick Launch pode criar um corpo adicional e manter a Invocação-Normal disponível para a jogada seguinte.",
+            "action": {
+              "kind": "hold",
+              "code": 31443476
+            }
+          }
+        ],
+        "correctChoice": 0,
+        "sourceIds": [
+          "official-card-31443476",
+          "official-card-68464358"
+        ]
+      }
+    ]
   },
   {
     "id": "tcg-sdsb",
@@ -1391,7 +1551,58 @@
         "zone": "visible"
       }
     ],
-    "decisions": []
+    "decisions": [
+      {
+        "id": "claw-encontra-realm",
+        "botEligible": true,
+        "lessonId": "claw-encontra-realm-e-chimera",
+        "title": "Cyberdark Claw dá acesso a Realm",
+        "situation": "Claw está na mão, Realm não está na mão e ainda há uma cópia no Deck. Como iniciar a cadeia de buscas até Chimera?",
+        "signals": [
+          {
+            "zone": "hand",
+            "code": 82562802,
+            "present": true
+          },
+          {
+            "zone": "hand",
+            "code": 64753988,
+            "present": false
+          },
+          {
+            "zone": "deck",
+            "code": 64753988,
+            "present": true
+          }
+        ],
+        "choices": [
+          {
+            "label": "Descartar Claw para buscar Realm",
+            "explanation": "Claw encontra Realm; depois o Campo Contínuo pode buscar Chimera e oferecer sua Invocação-Normal adicional de Cyberdark.",
+            "action": {
+              "kind": "activate",
+              "code": 82562802,
+              "targetCode": 64753988
+            }
+          },
+          {
+            "label": "Invocar Claw normalmente",
+            "explanation": "Esse começo não usa o efeito de busca da mão e atrasa o acesso a Realm.",
+            "action": {
+              "kind": "summon",
+              "code": 82562802,
+              "mode": "normal"
+            }
+          }
+        ],
+        "correctChoice": 0,
+        "sourceIds": [
+          "official-card-82562802",
+          "official-card-64753988",
+          "official-card-5370235"
+        ]
+      }
+    ]
   },
   {
     "id": "tcg-sdfc",
@@ -1666,7 +1877,67 @@
       45803070
     ],
     "plays": [],
-    "decisions": []
+    "decisions": [
+      {
+        "id": "myrmeleo-encontra-holeutea",
+        "botEligible": true,
+        "lessonId": "myrmeleo-vira-sera-e-prepara-holeutea",
+        "title": "Uma Invocação-Normal prepara Sera e Holeutea",
+        "situation": "Myrmeleo está na mão, Holeutea ainda está no Deck e Sera está no Extra. Qual Invocação-Normal prepara uma Armadilha e um Link?",
+        "signals": [
+          {
+            "zone": "hand",
+            "code": 91812341,
+            "present": true
+          },
+          {
+            "zone": "hand",
+            "code": 74577599,
+            "present": false
+          },
+          {
+            "zone": "deck",
+            "code": 74577599,
+            "present": true
+          },
+          {
+            "zone": "extra",
+            "code": 73639099,
+            "present": true
+          },
+          {
+            "zone": "own-monsters",
+            "maxCount": 0
+          }
+        ],
+        "choices": [
+          {
+            "label": "Invocar Myrmeleo e buscar Holeutea",
+            "explanation": "Myrmeleo acessa a Armadilha Normal. Depois, se o motor oferecer a Invocação-Link, use Myrmeleo para fazer Sera.",
+            "action": {
+              "kind": "summon",
+              "code": 91812341,
+              "mode": "normal",
+              "targetCode": 74577599
+            }
+          },
+          {
+            "label": "Baixar Myrmeleo e aguardar",
+            "explanation": "Baixá-la não ativa a busca que prepara Holeutea nesta abertura.",
+            "action": {
+              "kind": "hold",
+              "code": 91812341
+            }
+          }
+        ],
+        "correctChoice": 0,
+        "sourceIds": [
+          "official-card-91812341",
+          "official-card-74577599",
+          "official-card-73639099"
+        ]
+      }
+    ]
   },
   {
     "id": "tcg-sr14",
@@ -1692,7 +1963,67 @@
         "zone": "visible"
       }
     ],
-    "decisions": []
+    "decisions": [
+      {
+        "id": "ponix-encontra-santuario",
+        "botEligible": true,
+        "lessonId": "ponix-acessa-os-dois-campos-do-plano",
+        "title": "Ponix abre o motor dos Reis de Fogo",
+        "situation": "Ponix está na mão, Santuário dos Reis de Fogo ainda está no Deck e sua mesa está vazia. Qual começo alcança também Ilha dos Reis de Fogo?",
+        "signals": [
+          {
+            "zone": "hand",
+            "code": 90681088,
+            "present": true
+          },
+          {
+            "zone": "hand",
+            "code": 65305978,
+            "present": false
+          },
+          {
+            "zone": "deck",
+            "code": 65305978,
+            "present": true
+          },
+          {
+            "zone": "deck",
+            "code": 57554544,
+            "present": true
+          },
+          {
+            "zone": "own-monsters",
+            "maxCount": 0
+          }
+        ],
+        "choices": [
+          {
+            "label": "Invocar Ponix e buscar Santuário",
+            "explanation": "A busca de Ponix encontra Santuário; ele pode colocar Ilha na Zona de Campo quando sua condição for cumprida.",
+            "action": {
+              "kind": "summon",
+              "code": 90681088,
+              "mode": "normal",
+              "targetCode": 65305978
+            }
+          },
+          {
+            "label": "Esperar comprar Santuário",
+            "explanation": "Ponix já oferece acesso ao Campo nesta mão e pode iniciar a sequência agora.",
+            "action": {
+              "kind": "hold",
+              "code": 90681088
+            }
+          }
+        ],
+        "correctChoice": 0,
+        "sourceIds": [
+          "official-card-90681088",
+          "official-card-65305978",
+          "official-card-57554544"
+        ]
+      }
+    ]
   },
   {
     "id": "tcg-sdck",
@@ -3205,7 +3536,63 @@
       5998840
     ],
     "plays": [],
-    "decisions": []
+    "decisions": [
+      {
+        "id": "boggart-abre-faultroll",
+        "botEligible": true,
+        "lessonId": "dois-x-sabers-liberam-faultroll",
+        "title": "Dois X-Sabers liberam Faultroll",
+        "situation": "Boggart Knight, Darksoul e Faultroll estão na mão, com o campo vazio. Qual monstro recebe a Invocação-Normal para colocar dois X-Sabers em campo?",
+        "signals": [
+          {
+            "zone": "hand",
+            "code": 5998840,
+            "present": true
+          },
+          {
+            "zone": "hand",
+            "code": 31383545,
+            "present": true
+          },
+          {
+            "zone": "hand",
+            "code": 51808422,
+            "present": true
+          },
+          {
+            "zone": "own-monsters",
+            "maxCount": 0
+          }
+        ],
+        "choices": [
+          {
+            "label": "Invocar Boggart Knight e trazer Darksoul",
+            "explanation": "Boggart pode Invocar Darksoul da mão. Com dois X-Sabers com a face para cima, Faultroll pode entrar pela própria condição se a ação for oferecida.",
+            "action": {
+              "kind": "summon",
+              "code": 5998840,
+              "mode": "normal",
+              "targetCode": 31383545
+            }
+          },
+          {
+            "label": "Invocar Darksoul normalmente primeiro",
+            "explanation": "Darksoul sozinho não coloca o segundo X-Saber da mão no campo neste início.",
+            "action": {
+              "kind": "summon",
+              "code": 31383545,
+              "mode": "normal"
+            }
+          }
+        ],
+        "correctChoice": 0,
+        "sourceIds": [
+          "official-card-5998840",
+          "official-card-31383545",
+          "official-card-51808422"
+        ]
+      }
+    ]
   },
   {
     "id": "tcg-nkrt",

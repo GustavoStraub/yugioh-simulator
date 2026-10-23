@@ -38,6 +38,77 @@ const select=(cards,min=1,max=1)=>({type:M.SELECT_CARD,player:0,min,max,can_canc
   console.log(`✓ prioridades sincronizadas com ${editorial.decks.length} guias`);
 }
 {
+  const openings=[
+    {id:'tcg-sr06',decision:'ahrima-busca-covil',hand:[86377375],action:A.SELECT_ACTIVATE,code:86377375,target:59160188},
+    {id:'tcg-sdbt',decision:'myrmeleo-encontra-holeutea',hand:[91812341],action:A.SELECT_SUMMON,code:91812341,target:74577599,extra:[73639099]},
+    {id:'tcg-sr14',decision:'ponix-encontra-santuario',hand:[90681088],action:A.SELECT_SUMMON,code:90681088,target:65305978},
+    {id:'tcg-sdcs',decision:'claw-encontra-realm',hand:[82562802],action:A.SELECT_ACTIVATE,code:82562802,target:64753988},
+    {id:'tcg-l26d-x-saber',decision:'boggart-abre-faultroll',hand:[5998840,31383545,51808422],action:A.SELECT_SUMMON,code:5998840,target:31383545},
+    {id:'tcg-sr04',decision:'oviraptor-encontra-tyranno',hand:[44335251],grave:[36042004,82946847],action:A.SELECT_SUMMON,code:44335251,target:18940556},
+    {id:'tcg-sdrr',decision:'quick-launch-encontra-tracer',hand:[31443476],action:A.SELECT_ACTIVATE,code:31443476,target:68464358},
+  ];
+  for(const opening of openings){
+    const ownDeck=getPresetDeck(opening.id),guide=guideHintsForDeck(ownDeck,'tcg');
+    const board={players:[empty(),empty()]};
+    board.players[0].hand=opening.hand.map((code,index)=>card(code,L.HAND,index));
+    board.players[0].grave=(opening.grave??[]).map((code,index)=>card(code,L.GRAVE,index));
+    board.players[0].extra=(opening.extra??[]).map((code,index)=>card(code,L.EXTRA,index));
+    const offered=card(opening.code,L.HAND);
+    const prompt={...idle(),summons:opening.action===A.SELECT_SUMMON?[offered]:[],
+      activates:opening.action===A.SELECT_ACTIVATE?[offered]:[]};
+    const move=decisionMoves(guide.decisions,board,0,ownDeck,prompt).find((entry)=>entry.decision.id===opening.decision);
+    assert.equal(move?.action,opening.action,`${opening.id}: ação do guia oferecida pelo motor`);
+    assert.equal(move?.targetCode,opening.target,`${opening.id}: alvo da continuação`);
+    const brain=new BotBrain({difficulty:'hard',deck:ownDeck,format:'tcg'});
+    const response=brain.decide(ctx(prompt,board));
+    assert.equal(response.action,opening.action,`${opening.id}: Difícil inicia a abertura`);
+    assert.equal(brain.lastTrace.guideDecision,opening.decision,`${opening.id}: decisão rastreável`);
+    assert.deepEqual(brain.decide(ctx(select([card(99999999,L.DECK),card(opening.target,L.DECK)]),board)).indicies,[1],
+      `${opening.id}: seleção usa o alvo do guia quando o motor o oferece`);
+    assert.equal(decisionMoves(guide.decisions,board,0,ownDeck,idle()).length,0,
+      `${opening.id}: decisão não cria ação ausente no motor`);
+    assert.equal(guideHintsForDeck({...ownDeck,main:ownDeck.main.slice(1)},'tcg'),null,
+      `${opening.id}: guia não se aplica a outra lista`);
+  }
+  console.log(`✓ ${openings.length} novos decks usam decisões com condição, ação legal e alvo`);
+}
+{
+  const cases=[
+    {id:'tcg-sr06',decision:'ahrima-busca-covil',hand:[86377375],target:59160188,avoid:[59160188],result:59160188},
+    {id:'tcg-sdbt',decision:'myrmeleo-encontra-holeutea',hand:[91812341],target:74577599,avoid:[74577599],result:73639099},
+    {id:'tcg-sr14',decision:'ponix-encontra-santuario',hand:[90681088],target:65305978,avoid:[65305978],result:57554544},
+    {id:'tcg-sdcs',decision:'claw-encontra-realm',hand:[82562802],target:64753988,avoid:[64753988],result:64753988},
+    {id:'tcg-l26d-x-saber',decision:'boggart-abre-faultroll',hand:[5998840,31383545,51808422],target:31383545,result:51808422},
+    {id:'tcg-sr04',decision:'oviraptor-encontra-tyranno',hand:[44335251],grave:[36042004,82946847],target:18940556,avoid:[18940556],result:18940556},
+    {id:'tcg-sdrr',decision:'quick-launch-encontra-tracer',hand:[31443476],target:68464358,avoid:[68464358],result:68464358},
+  ];
+  const foe=getPresetDeck('tcg-sdy');
+  for(const testCase of cases){
+    const guided=getPresetDeck(testCase.id),session=createDuelSession(),trace=[];
+    const excluded=new Set([...testCase.hand,...(testCase.grave??[]),...(testCase.avoid??[])]);
+    const hand=[...testCase.hand,...guided.main.filter(code=>!excluded.has(code)).slice(0,5-testCase.hand.length)];
+    try{
+      await session.start({playerName:'Bot',playerDeck:guided,opponentName:'Parceiro',opponentDeck:foe,
+        registry,assets:nodeAssets,format:'tcg',pace:0,cutIns:false,watchSeat:0,testSeed:73,
+        openingHands:[hand,foe.main.slice(0,5)],
+        scenario:(testCase.grave??[]).map(code=>({player:0,location:L.GRAVE,code})),
+        seats:[{kind:'bot',name:'Bot',bot:{difficulty:'hard',onDecision(t){trace.push(t);}}},{kind:'local',name:'Parceiro'}]});
+      assert.equal(session.getSnapshot().error,null,`${testCase.id}: sem erro no motor`);
+      assert.ok(trace.some(t=>t.guideDecision===testCase.decision),`${testCase.id}: executa a decisão em duelo real`);
+      const selected=trace.some(t=>t.prompt===M.SELECT_CARD && t.observation.prompt.selects
+        .some(candidate=>candidate.code===testCase.target) && t.response.indicies
+        .some(index=>t.observation.prompt.selects[index]?.code===testCase.target));
+      const mine=readBoardState(session.core,session.handle,0).players[0];
+      const resolved=[...(testCase.hand.includes(testCase.target)?[]:mine.hand),...mine.monsters,...mine.spells,...mine.grave,...mine.banished]
+        .some(placed=>placed?.code===testCase.target) || mine.field?.code===testCase.target;
+      assert.ok(selected||resolved,`${testCase.id}: alvo buscado, invocado ou escolhido`);
+      assert.ok([...mine.monsters,...mine.spells,...mine.grave].some(placed=>placed?.code===testCase.result)
+        || mine.field?.code===testCase.result,`${testCase.id}: completa a continuação ensinada`);
+    }finally{session.dispose();}
+  }
+  console.log(`✓ ${cases.length} novos decks executam a abertura guiada no motor real`);
+}
+{
   const ownDeck=getPresetDeck('tcg-sdaz');
   const guide=guideHintsForDeck(ownDeck,'tcg');
   const board={players:[empty(),empty()]};

@@ -95,7 +95,7 @@ for (const guide of DECK_GUIDES) {
   }
 }
 assert.deepEqual(new Set(Object.keys(authoredDecisions)), new Set(DECK_GUIDES.filter(guide => guide.decisions?.length).map(guide => guide.presetId)));
-assert.equal(DECK_GUIDES.flatMap(guide => guide.decisions ?? []).length, 21);
+assert.equal(DECK_GUIDES.flatMap(guide => guide.decisions ?? []).length, 28);
 for (const [presetId, notes] of Object.entries(authoredCardNotes)) {
   const guide = DECK_GUIDES.find(item => item.presetId === presetId);
   assert.ok(guide, `notas ligadas a um guia: ${presetId}`);

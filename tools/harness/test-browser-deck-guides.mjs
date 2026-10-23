@@ -1,12 +1,13 @@
 /** A trilha editorial na tela: navegação, cartas, revisão, progresso e duelo. */
 import assert from "node:assert/strict";
-import { mkdirSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { launchChrome, openPage } from "./browser.mjs";
 
 const BASE = process.env.APP_URL ?? "http://127.0.0.1:3000";
 const OUT = join(process.cwd(), ".cache/shots/learning");
+const decisionGuides = Object.values(JSON.parse(readFileSync("src/data/guide-decisions.json", "utf8"))).filter((items) => items.length).length;
 mkdirSync(OUT, { recursive: true });
 
 async function until(page, expression, timeout = 30000) {
@@ -42,7 +43,11 @@ try {
   assert.equal(await page.evaluate(`return document.querySelector('nav a[aria-current="page"]')?.textContent.includes('Aprender');`), true);
   await shot("library-desktop");
   await page.evaluate(`const filter=document.querySelectorAll('[data-learning-library] select')[1];filter.value='decisions';filter.dispatchEvent(new Event('change',{bubbles:true}));return true;`);
-  await until(page, `return document.querySelectorAll('[data-guide-card]').length===8;`);
+  await until(page, `return document.querySelectorAll('[data-guide-card]').length===${Math.min(12, decisionGuides)};`);
+  if (decisionGuides > 12) {
+    await click("Mostrar mais guias");
+    await until(page, `return document.querySelectorAll('[data-guide-card]').length===${decisionGuides};`);
+  }
   await page.evaluate(`const filter=document.querySelectorAll('[data-learning-library] select')[1];filter.value='practice';filter.dispatchEvent(new Event('change',{bubbles:true}));return true;`);
   await until(page, `return document.querySelectorAll('[data-guide-card]').length===4;`);
   await page.evaluate(`const filter=document.querySelectorAll('[data-learning-library] select')[1];filter.value='all';filter.dispatchEvent(new Event('change',{bubbles:true}));return true;`);
