@@ -23,6 +23,8 @@ import {
 import { DeckPreview } from "@/components/duel/DeckPreview";
 import { BOT_DIFFICULTIES, type BotDifficulty } from "@/lib/duel/bot/difficulty";
 import { botCoverage } from "@/lib/duel/bot/deck-profile";
+import { guideHintsForDeck } from "@/lib/duel/bot/guide-hints";
+import { getGuideForPreset } from "@/lib/data/deck-guide-index";
 
 function DifficultyChoice({ value, onChange, label }: { value: BotDifficulty; onChange: (value: BotDifficulty) => void; label: string }) {
   return (
@@ -113,6 +115,10 @@ export function DuelLobby() {
   // Padrão: o segundo deck pronto (o primeiro costuma ser o do próprio Yugi).
   const opponent =
     opcoes.find((opcao) => opcao.id === opponentId) ?? opcoes[1] ?? opcoes[0] ?? null;
+  const playerGuide = meuDeck.escolha ? getGuideForPreset(meuDeck.escolha) : null;
+  const opponentGuide = opponent ? getGuideForPreset(opponent.id) : null;
+  const coverage = (deck: DuelDeckPayload) => botCoverage(deck, formato)?.coverage
+    ?? (guideHintsForDeck(deck, formato) ? "Difícil usa prioridades do guia; sequência ainda não validada no motor." : "Usa análise genérica.");
 
   /** Bot × bot: o seu deck (pilotado pelo bot) contra o deck escolhido. */
   function handleSpectate() {
@@ -210,7 +216,12 @@ export function DuelLobby() {
         <details className="mt-3 text-sm text-zinc-400">
           <summary className="cursor-pointer">Configurar seu bot para assistir</summary>
           <DifficultyChoice value={playerDifficulty} onChange={setPlayerDifficulty} label="Nível do bot com seu deck" />
-          <p className="mt-2 text-xs">{botCoverage(meuDeck.deck, formato)?.coverage ?? "Estratégia específica em preparação. Usa análise genérica."}</p>
+          <p className="mt-2 text-xs">{coverage(meuDeck.deck)}</p>
+          {playerGuide && (
+            <Link href={`/aprender/${playerGuide.id}`} className="mt-2 inline-block text-xs text-amber-300 underline-offset-2 hover:underline">
+              Ver estratégia deste deck →
+            </Link>
+          )}
         </details>
         <button
           type="button"
@@ -292,7 +303,12 @@ export function DuelLobby() {
 
         {opponent && (
           <>
-            <p data-bot-coverage className="mt-3 text-xs text-zinc-400">{botCoverage(opponent.deck, formato)?.coverage ?? "Estratégia específica em preparação. Usa análise genérica em todos os níveis."}</p>
+            <p data-bot-coverage className="mt-3 text-xs text-zinc-400">{coverage(opponent.deck)}</p>
+            {opponentGuide && (
+              <Link href={`/aprender/${opponentGuide.id}`} className="mt-2 inline-block text-xs text-amber-300 underline-offset-2 hover:underline">
+                Ver estratégia deste deck →
+              </Link>
+            )}
             <DeckPreview deck={opponent.deck} registry={registry} onCardHover={setHoveredCode} />
           </>
         )}

@@ -95,9 +95,14 @@ export function profileResponse(ctx: BotContext, planner: BotPlanner, policy: Bo
   ranked.sort((a, b) => b.score - a.score);
   if (!ranked.length) return null;
   if (p.type === M.SELECT_UNSELECT_CARD) {
-    if (p.can_finish && ranked[0].score < 0) return { type: R.SELECT_UNSELECT_CARD, index: null };
+    const required = step.spend
+      ? Math.max(p.min, step.spendCount ?? step.targets.filter((target) => target.location === L.HAND && target.scope !== "action").length)
+      : p.min;
+    if (p.can_finish && p.unselect_cards.length >= required && (step.spend || ranked[0].score < 0)) {
+      return { type: R.SELECT_UNSELECT_CARD, index: null };
+    }
     if (ranked[0].score <= -100_000) return null;
-    planner.recordSpend([ranked[0].card], ctx);
+    planner.recordSpend([...p.unselect_cards, ranked[0].card], ctx);
     return { type: R.SELECT_UNSELECT_CARD, index: ranked[0].index };
   }
   const count = Math.max(p.min, Math.min(p.max, step.spendCount

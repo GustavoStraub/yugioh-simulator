@@ -1,0 +1,20 @@
+{
+  "tcg-5ds1": {
+    "63977008": { "role": "Inicia a Sincro", "explanation": "Ao ser Invocado normalmente, traz Speed Warrior do Cemitério para a mesa. Se ele estiver disponível, os níveis 3 + 2 abrem Junk Warrior sem gastar outra carta da mão." },
+    "9365703": { "role": "Recurso no Cemitério", "explanation": "É o Nível 2 que Junk Synchron pode reanimar neste roteiro. Confira se já está no Cemitério antes de contar com a Sincro." },
+    "60800381": { "role": "Converte materiais em pressão", "explanation": "Entra com Junk Synchron e um Nível 2. Ao ser Invocado, seu ATK pode crescer com os monstros de Nível 2 ou menos que continuam no seu campo; materiais no Cemitério não contam." }
+  },
+  "tcg-lavd-speedroid": {
+    "81275020": { "role": "Início sem gastar a Normal", "explanation": "Com seu campo sem monstros, pode entrar especialmente da mão e procurar Taketomborg. Essa ordem preserva a Invocação-Normal para outra peça." },
+    "53932291": { "role": "Conecta a sequência", "explanation": "Entra quando você controla um monstro VENTO e pode trazer Red-Eyed Dice do Deck. Considere a restrição a Invocações-Especiais de VENTO que essa linha impõe." },
+    "16725505": { "role": "Ajusta os níveis", "explanation": "No roteiro, altera o nível de Terrortop para permitir a Sincro de Cork Shooter. Confira a soma dos níveis antes de usar os materiais." },
+    "23361526": { "role": "Sincro que recupera materiais", "explanation": "Depois da Sincro, pode trazer de volta os materiais usados quando as condições do efeito estiverem satisfeitas. A rota exige atenção às Invocações-Especiais VENTO do turno." },
+    "5772618": { "role": "Escolha de resposta", "explanation": "Ao entrar, escolha entre destruir as outras cartas no campo ou negar os efeitos das cartas adversárias com a face para cima. A limpeza também alcança suas cartas." }
+  },
+  "tcg-l26d-sky-striker": {
+    "26077387": { "role": "Abre a Zona Principal", "explanation": "Seu efeito rápido pode colocá-la no Cemitério para invocar um Ace Link elegível do Extra. Isso ajuda a deixar a Zona de Monstros Principal livre para as Magias do deck." },
+    "50005218": { "role": "Busca condicional", "explanation": "Pode escolher Raye como alvo e revelar três cartas. A busca depende de encontrar uma carta Sky Striker entre elas; não é garantida." },
+    "63288573": { "role": "Recupera uma Magia", "explanation": "Ao entrar por Link, recupera uma Magia Sky Striker do Cemitério. Planeje qual magia já foi usada e mantenha a Zona de Monstros Principal vazia para as próximas ativações." },
+    "63166095": { "role": "Busca e possível compra", "explanation": "Antes de ativar, confirme que não controla monstros na Zona de Monstros Principal. A compra adicional depende de três Magias no Cemitério quando o efeito resolver." }
+  }
+}

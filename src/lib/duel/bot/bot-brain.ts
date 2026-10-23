@@ -15,6 +15,7 @@ import {
   type OcgMessageSelectChain,
   type OcgMessageSelectIdlecmd,
   type OcgMessageSelectPosition,
+  type OcgMessageSelectPlace,
   type OcgMessageSelectSum,
   type OcgMessageSelectTribute,
   type OcgMessageSelectUnselectCard,
@@ -40,13 +41,19 @@ import {
 import type { OfficialCardDb } from "@/lib/duel/official-card-data";
 import { isValidSum, sumRequestOf } from "@/lib/duel/sum-selection";
 import type { DuelDeckPayload, DuelFormat } from "@/lib/types";
+import type { GuideDecision } from "@/lib/domain/deck-guide";
 import { BOT_POLICIES, botDifficulty, botRandom, type BotDifficulty } from "@/lib/duel/bot/difficulty";
 import { matchesBotProfile, validateBotProfile, type BotDeckProfile } from "@/lib/duel/bot/deck-profile";
 import { BotPlanner } from "@/lib/duel/bot/planner";
+import { guideHintsForDeck } from "@/lib/duel/bot/guide-hints";
+import type { BotGuideHints } from "@/lib/duel/bot/guide-hints";
+import { decisionEffectTarget, decisionMoves, sequenceFollowUp, type DecisionMove } from "@/lib/duel/bot/decision-policy";
 import { profileResponse, mirrorjadeScore } from "@/lib/duel/bot/effect-handlers";
 import { resourceValue } from "@/lib/duel/bot/evaluator";
 import { planBattle } from "@/lib/duel/bot/battle-planner";
 import { validBotResponse } from "@/lib/duel/bot/response-validator";
+import { decodeFieldMask } from "@/lib/duel/field-places";
+import { linkedZones, pointedZones } from "@/lib/duel/link-geometry";
 import { newBotDiagnostics, type BotDecisionTrace } from "@/lib/duel/bot/decision-trace";
 import type { BotEffect, BotFact } from "@/lib/duel/bot/knowledge";
 
@@ -98,6 +105,8 @@ export interface BotContext {
 
 export interface BotConfig {
   difficulty?: BotDifficulty;
+  /** Desliga a projeção de duas ações apenas em avaliações A/B. */
+  sequencePlanning?: boolean;
   /** Lista própria, sem ordem de compra. Nunca a lista adversária. */
   deck?: DuelDeckPayload;
   format?: DuelFormat;
@@ -137,6 +146,8 @@ const CHAIN_THRESHOLD = 45;
 
 /** Anel da Destruição — o dano volta para os DOIS jogadores. */
 const RING_OF_DESTRUCTION = 83555666;
+const RAIGEKI = 12580477;
+const HARPIES_FEATHER_DUSTER = 18144506;
 
 /**
  * Invocação-Pêndulo: vários monstros de uma vez, sem gastar a Invocação-Normal
@@ -168,6 +179,8 @@ interface Plan {
   activated?: OcgCardLoc;
   /** Marca que o plano ocupa uma zona de magia/armadilha. */
   setsBackrow?: boolean;
+  decision?: DecisionMove;
+  continuation?: GuideDecision;
 }
 
 function chave(card: OcgCardLoc): string {
@@ -208,6 +221,9 @@ export class BotBrain {
   readonly difficulty: BotDifficulty;
   readonly diagnostics = newBotDiagnostics();
   readonly planner: BotPlanner;
+  private readonly decisionGuide: BotGuideHints | null;
+  private readonly sequencePlanning: boolean;
+  private readonly deck: DuelDeckPayload | null;
   lastTrace: BotDecisionTrace | null = null;
   private readonly random: () => number;
   private readonly onDecision?: (trace: BotDecisionTrace) => void;
@@ -221,7 +237,12 @@ export class BotBrain {
     this.random = botRandom(config.seed);
     const profile = config.profile && config.deck && validateBotProfile(config.profile)
       && matchesBotProfile(config.profile, config.deck, config.format ?? config.deck.format ?? "goat") ? config.profile : null;
-    this.planner = new BotPlanner(profile, config.deck ?? null);
+    const guide = this.difficulty === "hard" && config.deck
+      ? guideHintsForDeck(config.deck, config.format ?? config.deck.format ?? "goat") : null;
+    this.decisionGuide = guide;
+    this.sequencePlanning = config.sequencePlanning ?? true;
+    this.deck = config.deck ?? null;
+    this.planner = new BotPlanner(profile, this.deck, profile ? null : guide);
     this.onDecision = config.onDecision;
   }
   /** Turno a que o estado abaixo se refere — muda, zera tudo. */
@@ -238,6 +259,9 @@ export class BotBrain {
    * SELECT_CARD em que o core pede o alvo.
    */
   private plannedTarget: { controller: number; sequence: number; code: number | null } | null = null;
+  private plannedSummonCode: number | null = null;
+  private pendingDecisionTarget: number | null = null;
+  private usedGuideDecision: string | null = null;
 
   /**
    * Decide a resposta a um prompt.
@@ -252,10 +276,11 @@ export class BotBrain {
     let observedBoard: BoardState | null = null;
     ctx = { ...ctx, readBoard: (full) => { observedBoard = read(full); return observedBoard; } };
     const started = performance.now();
+    this.usedGuideDecision = null;
     const policy = BOT_POLICIES[this.difficulty];
-    // Os modelos atuais são pequenos. Uma fatia curta evita bloquear a mesa;
-    // busca mais ampla deve migrar para Worker antes de ampliar este limite.
-    this.deadline = started + Math.min(policy.cpuMs, 12);
+    // A busca usa o orçamento da dificuldade; 40 ms é o teto atual na thread
+    // da mesa. O corte fixo anterior de 12 ms anulava a diferença entre níveis.
+    this.deadline = started + policy.cpuMs;
     let fallback: string | null = null;
     if (ctx.turnCount !== this.turn) {
       this.turn = ctx.turnCount;
@@ -264,7 +289,10 @@ export class BotBrain {
       this.chainSteps = 0;
       this.setsNoTurno = 0;
       this.activations.clear();
+      this.plannedSummonCode = null;
+      this.pendingDecisionTarget = null;
     }
+    if (ctx.prompt.type === OcgMessageType.SELECT_IDLECMD) this.pendingDecisionTarget = null;
     if (ctx.retryCount) {
       this.diagnostics.rejected += 1;
       if (this.previousResponse) this.rejected.add(responseKey(this.previousResponse));
@@ -284,14 +312,23 @@ export class BotBrain {
       fallback = `Falha na análise: ${error instanceof Error ? error.message : "erro desconhecido"}`;
     }
     response = this.safeResponse(ctx, response);
+    if (ctx.prompt.type === OcgMessageType.SELECT_IDLECMD && response.type === OcgResponseType.SELECT_IDLECMD) {
+      const cards = response.action === SelectIdleCMDAction.SELECT_SPECIAL_SUMMON ? ctx.prompt.special_summons
+        : response.action === SelectIdleCMDAction.SELECT_SUMMON ? ctx.prompt.summons : null;
+      if (cards && response.index !== null) this.plannedSummonCode = cards[response.index]?.code ?? null;
+    }
     this.previousResponse = response;
     const elapsedMs = performance.now() - started;
     const trace: BotDecisionTrace = {
       difficulty: this.difficulty, profile: this.planner.profile?.id ?? null, revision: this.planner.profile?.revision ?? null,
       turn: ctx.turnCount, prompt: ctx.prompt.type, objective: this.planner.route?.objective ?? "Combate, sobrevivência e recursos disponíveis",
       route: this.planner.route?.id ?? null, alternatives: [...this.planner.alternatives], response,
+      guideDecision: this.usedGuideDecision,
       reason: this.planner.reason, fallback, elapsedMs, budgetExhausted: performance.now() >= this.deadline,
-      observation: { me: ctx.me, prompt: ctx.prompt, board: observedBoard, lifePoints: ctx.lifePoints, phase: ctx.phase, chainCode: ctx.chainCode ?? null },
+      observation: { me: ctx.me, prompt: ctx.prompt, board: observedBoard, lifePoints: ctx.lifePoints, phase: ctx.phase,
+        chainCode: ctx.chainCode ?? null, resolvingCode: ctx.resolvingEffect?.code ?? null,
+        resolvingPlayer: ctx.resolvingEffect?.player ?? null,
+        resolvingDescription: ctx.resolvingEffect?.description?.toString() ?? null, step: this.planner.step?.id ?? null },
     };
     this.lastTrace = trace;
     this.diagnostics.decisions += 1;
@@ -361,6 +398,24 @@ export class BotBrain {
         return this.battle(prompt, ctx);
       case OcgMessageType.SELECT_CHAIN:
         return this.chain(prompt, ctx);
+      case OcgMessageType.SELECT_EFFECTYN:
+        if (this.decisionGuide?.id === "tcg-lehd-destiny-hero" && prompt.code === 91691605
+          && prompt.controller === ctx.me) {
+          const hand = ctx.readBoard(true).players[ctx.me].hand;
+          const usefulTarget = hand.some((card) => card.code !== 26964762 && card.code !== null
+            && (ctx.cardDb.get(card.code)?.setcodes.includes(49160) ?? false)
+            && (ctx.cardDb.get(card.code)?.atk ?? Infinity) <= 1600);
+          if (!usefulTarget) return { type: OcgResponseType.SELECT_EFFECTYN, yes: false };
+        }
+        if (this.decisionGuide?.id === "tcg-l26d-sky-striker" && prompt.code === 37351133
+          && prompt.controller === ctx.me && ctx.turnPlayer === ctx.me) {
+          const mine = ctx.readBoard(true).players[ctx.me];
+          if (mine.monsters.slice(0, 5).some((card) => card?.code === 26077387)
+            && mine.extra.some((card) => card.code === 63288573 || card.code === 90673288)) {
+            return { type: OcgResponseType.SELECT_EFFECTYN, yes: false };
+          }
+        }
+        return null;
       case OcgMessageType.SELECT_CARD:
         return this.selectCard(prompt, ctx);
       case OcgMessageType.SELECT_UNSELECT_CARD:
@@ -369,6 +424,8 @@ export class BotBrain {
         return this.tribute(prompt, ctx);
       case OcgMessageType.SELECT_POSITION:
         return this.position(prompt, ctx);
+      case OcgMessageType.SELECT_PLACE:
+        return this.difficulty === "hard" ? this.place(prompt, ctx) : null;
       case OcgMessageType.ANNOUNCE_CARD:
         return this.announceCard(prompt.opcodes, ctx);
       case OcgMessageType.SELECT_SUM:
@@ -526,6 +583,41 @@ export class BotBrain {
       plans.push({ score: 1, response: idle(SelectIdleCMDAction.TO_EP, null) });
     }
 
+    // Os cenários do Aprender só influenciam ações oferecidas pelo motor.
+    // O perfil executável ainda tem prioridade (profileResponse roda antes).
+    if (this.decisionGuide && this.deck) {
+      for (const move of decisionMoves(this.decisionGuide.decisions, board, ctx.me, this.deck, message)) {
+        if (move.action === SelectIdleCMDAction.SELECT_ACTIVATE
+          && (this.activations.get(chave(move.card)) ?? 0) >= SAME_CARD_ACTIVATIONS) continue;
+        const existing = plans.find((plan) => plan.response.type === OcgResponseType.SELECT_IDLECMD
+          && plan.response.action === move.action && plan.response.index === move.index);
+        if (existing) {
+          existing.score = Math.max(existing.score, 125);
+          existing.decision = move;
+        } else {
+          plans.push({ score: 125, response: idle(move.action, move.index),
+            activated: move.action === SelectIdleCMDAction.SELECT_ACTIVATE ? move.card : undefined,
+            decision: move });
+        }
+      }
+      // Uma Invocação da mão pode liberar a próxima decisão do guia. Avaliar
+      // o estado projetado dá valor ao primeiro passo; a continuação só será
+      // feita se o core a oferecer de verdade após resolver os efeitos.
+      for (const plan of this.sequencePlanning ? plans : []) {
+        if (plan.decision || plan.response.type !== OcgResponseType.SELECT_IDLECMD
+          || plan.response.index === null) continue;
+        const action = plan.response.action;
+        if (action !== SelectIdleCMDAction.SELECT_SUMMON && action !== SelectIdleCMDAction.SELECT_SPECIAL_SUMMON) continue;
+        const card = action === SelectIdleCMDAction.SELECT_SUMMON
+          ? message.summons[plan.response.index] : message.special_summons[plan.response.index];
+        const next = sequenceFollowUp(this.decisionGuide.decisions, board, ctx.me, this.deck, action, card);
+        if (next) {
+          plan.score = Math.max(plan.score, 121);
+          plan.continuation = next;
+        }
+      }
+    }
+
     // Sem nada melhor a fazer e sem End Phase oferecida (Main 2 depois de uma
     // batalha), o core ainda espera resposta — o fallback é quem sabe montá-la.
     if (plans.length === 0) return botAutoResponse(message);
@@ -556,7 +648,25 @@ export class BotBrain {
     const intel = readIntel(card.code, ctx.cardDb);
     if (card.location === OcgLocation.SZONE) return PENDULUM_SUMMON_SCORE;
     if (card.location === OcgLocation.EXTRA) return this.scoreExtraDeckSummon(intel, ctx, mine);
-    return 104 + Math.min(intel.atk, 3000) / 300;
+    if (this.difficulty === "hard" && (card.code === 83965310 || card.code === 17132130)) {
+      const tributos = ocupadas(mine.monsters).map((monster) => ownValue(monster, ctx.cardDb))
+        .sort((a, b) => a - b).slice(0, 3);
+      if (tributos.length === 3) {
+        const custo = tributos.reduce((sum, value) => sum + value, 0);
+        const foe = ctx.readBoard(false).players[1 - ctx.me];
+        const ameacas = ocupadas(foe.monsters);
+        const melhor = Math.max(0, ...ameacas.map((monster) => threatOf(monster, ctx.cardDb)));
+        // Plasma rouba e nega monstros; Dogma tem 3400 ATK e cobra metade
+        // dos PV no próximo turno. Ambos gastam três corpos de imediato.
+        const ganho = card.code === 83965310
+          ? 1900 + Math.min(melhor, 3000) * 0.8 + ameacas.length * 350
+          : 3400 + Math.min(ctx.lifePoints[1 - ctx.me], 8000) * 0.15
+            + (melhor > 0 && melhor < 3400 ? 350 : 0);
+        if (custo > ganho + 600) return -1;
+      }
+    }
+    return 104 + Math.min(intel.atk, 3000) / 300
+      + (this.planner.openingReady(card.code, mine) ? 22 : 0);
   }
 
   /**
@@ -573,8 +683,17 @@ export class BotBrain {
     ctx: BotContext,
     mine: BoardPlayer,
   ): number {
+    const onField = ocupadas(mine.monsters);
+    // Um Link-1 que substitui outro Link-1 não aumenta o campo por si só.
+    // O guia pode recomendar um desses monstros, mas não transforma cada
+    // troca seguinte numa jogada obrigatória. Uma decisão contextual explícita
+    // ainda pode autorizá-la depois que o motor a oferece.
+    if (intel.isLink && intel.linkRating === 1 && onField.length === 1) {
+      const material = onField[0].code === null ? null : readIntel(onField[0].code, ctx.cardDb);
+      if (material?.isLink && material.linkRating === 1) return -1;
+    }
     const materiais = intel.isLink ? Math.max(1, intel.linkRating) : 2;
-    const valores = ocupadas(mine.monsters)
+    const valores = onField
       .map((c) => ownValue(c, ctx.cardDb))
       .sort((a, b) => a - b);
     let custo = 0;
@@ -583,7 +702,8 @@ export class BotBrain {
 
     // Efeito vale mais que os números — é quase sempre o motivo de existir
     // do monstro do Extra Deck.
-    const valor = intel.atk + (intel.isEffect ? 600 : 0);
+    const valor = intel.atk + (intel.isEffect ? 600 : 0)
+      + (this.planner.guide?.extra.includes(intel.code) ? 1200 : 0);
     const ganho = valor - custo;
     if (ganho < EXTRA_DECK_MIN_GAIN) return -1;
     return 100 + Math.min(ganho, 3000) / 300;
@@ -661,6 +781,8 @@ export class BotBrain {
     if (card.code === 44146295) return mirrorjadeScore(ctx, BOT_POLICIES[this.difficulty]);
 
     const intel = readIntel(card.code, ctx.cardDb);
+    if (this.difficulty === "hard" && intel.isSpell
+      && mine.monsters.some((monster) => monster?.code === 26964762 && !monster.negated && !monster.faceDown)) return -1;
     // Pêndulo da mão "ativado" é a carta indo para a escala, não um efeito.
     if (card.location === OcgLocation.HAND && intel.isPendulum && intel.isMonster) {
       return this.scorePendulumScale(card, intel, ctx, mine);
@@ -669,6 +791,20 @@ export class BotBrain {
     const meusMonstros = ocupadas(mine.monsters);
     const monstrosDele = ocupadas(foe.monsters);
     const backrowDele = ocupadas(foe.spells).length;
+
+    // Espada Quebrada troca também uma carta própria. Se ela é a única carta
+    // nossa, destruir a si mesma só continua a linha quando há dois Cavaleiros
+    // de mesmo Nível que irão ao Cemitério (materiais + Cemitério atual).
+    // Sem esse retorno, não entregue uma Xyz de 2000 por um alvo pequeno.
+    if (this.difficulty === "hard" && card.code === 62709239 && card.location === OcgLocation.MZONE
+      && meusMonstros.length === 1 && mine.spells.every((spell) => !spell) && !mine.field) {
+      const xyz = meusMonstros[0];
+      const recursos = [...xyz.overlays, ...mine.grave.map((graveCard) => graveCard.code)].filter((code): code is number => code !== null);
+      const nivel3 = recursos.filter((code) => code === 90432163 || code === 36426778 || code === 63821877).length;
+      const nivel4 = recursos.filter((code) => code === 99315585 || code === 36704180).length;
+      const melhorAlvo = Math.max(0, ...monstrosDele.map((monster) => threatOf(monster, ctx.cardDb)));
+      if (nivel3 < 2 && nivel4 < 2 && melhorAlvo < 2200) return -1;
+    }
 
     // As faixas importam tanto quanto os números: **tudo que dá vantagem de
     // carta fica acima de qualquer invocação**. Comprar antes de invocar não é
@@ -688,11 +824,10 @@ export class BotBrain {
       case "steal":
         return monstrosDele.length > 0 ? 128 : -1;
       case "massRemoval": {
-        // Leva os monstros dos DOIS lados: só compensa quando o campo dele vale
-        // mais que o meu. É a diferença entre limpar a mesa e se auto-destruir.
+        // Raigeki só leva os monstros adversários; Buraco Negro leva ambos.
         const meu = meusMonstros.reduce((t, c) => t + ownValue(c, ctx.cardDb), 0);
         const dele = monstrosDele.reduce((t, c) => t + threatOf(c, ctx.cardDb), 0);
-        return dele > meu + 300 ? 126 : -1;
+        return dele > (card.code === RAIGEKI ? 0 : meu + 300) ? 126 : -1;
       }
       case "spotRemoval":
         if (monstrosDele.length === 0) return -1;
@@ -707,11 +842,11 @@ export class BotBrain {
         }
         return 122;
       case "backrowNuke": {
-        // Tempestade Pesada e Espanador levam o campo inteiro, o do bot junto.
-        // Contar só as cartas do oponente é como o bot detonava as próprias
-        // armadilhas recém-baixadas para limpar duas do outro lado — troca de
-        // três por duas, apresentada como jogada.
-        const meuBackrow = ocupadas(mine.spells).length;
+        // Espanador só limpa o lado adversário. Tempestade Pesada também
+        // destrói as próprias cartas; a carta ativada já foi gasta na troca.
+        const meuBackrow = ocupadas(mine.spells).filter((c) =>
+          !(card.location === OcgLocation.SZONE && c.sequence === card.sequence)).length;
+        if (card.code === HARPIES_FEATHER_DUSTER) return backrowDele > 0 ? 118 : -1;
         return backrowDele >= 2 && backrowDele > meuBackrow ? 118 : -1;
       }
       case "backrowSpot":
@@ -731,6 +866,15 @@ export class BotBrain {
     // Armadilha na mão não se ativa na Main; a que já está no campo o core
     // oferece pela corrente, não por aqui.
     if (intel.isTrap) return -1;
+
+    // Para listas com guia editorial, a carta central ganha prioridade quando
+    // o motor já confirmou que sua ativação é legal. Isto não força a sequência
+    // textual: as ameaças visíveis e os efeitos de remoção continuam acima.
+    if (this.planner.guide?.core.includes(card.code) && !intel.isQuickplay) {
+      const opening = this.planner.openingReady(card.code, mine);
+      if (intel.isMonster) return opening ? 120 : 92;
+      if (intel.isSpell) return opening ? 116 : 86;
+    }
 
     // Main Phase 1 com ataque à vista: o que a carta faz precisa acontecer
     // ANTES da batalha. Com as notas antigas (46–64, abaixo dos 76 de "vale
@@ -772,10 +916,17 @@ export class BotBrain {
     ctx: BotContext,
     mine: BoardPlayer,
   ): number {
+    // Anjo Negro é uma interrupção para o campo adversário, não uma abertura
+    // de 0 ATK: no nosso campo ele ainda nega as nossas próprias Magias.
+    if (this.decisionGuide?.id === "tcg-lehd-destiny-hero" && card.code === 26964762) return -1;
     if (this.difficulty !== "easy" && this.planner.reserves.includes(card.code)
       && mine.hand.filter((c) => c.code === card.code).length <= 1) return -1;
     if (this.difficulty === "easy" && this.planner.starters.includes(card.code)) return 115;
     const intel = readIntel(card.code, ctx.cardDb);
+    if (this.decisionGuide?.id === "tcg-lehd-destiny-hero") {
+      if (card.code === 63060238) return 112; // Homem em Chamas busca Polimerização.
+      if (card.code === 13093792) return 91; // Homem Diamante precisa ficar virado para cima.
+    }
     // Invocar em ataque um monstro que só tem defesa é entregá-lo.
     if (intel.atk < intel.def && intel.atk < 1500) return -1;
 
@@ -796,11 +947,14 @@ export class BotBrain {
       score -= custo / 120 + intel.tributes * 8;
     }
 
+    if (intel.tributes === 0 && this.planner.openingReady(card.code, mine)) score += 40;
+
     return score;
   }
 
   /** Quanto vale baixar este monstro virado para baixo. */
   private scoreSet(card: OcgCardLoc, ctx: BotContext): number {
+    if (this.decisionGuide?.id === "tcg-lehd-destiny-hero" && card.code === 26964762) return -1;
     if (this.difficulty !== "easy" && this.planner.reserves.includes(card.code)) return -1;
     const intel = readIntel(card.code, ctx.cardDb);
     if (intel.tributes > 0) return -1;
@@ -1034,6 +1188,8 @@ export class BotBrain {
     }
 
     const intel = readIntel(card.code, ctx.cardDb);
+    if (this.difficulty === "hard" && intel.isSpell
+      && mine.monsters.some((monster) => monster?.code === 26964762 && !monster.negated && !monster.faceDown)) return -1;
     const role = roleOf(card.code);
     // Sem informação de turno, presume o do adversário: é onde uma armadilha
     // oferecida quase sempre está, e errar para o lado de responder custa uma
@@ -1042,6 +1198,13 @@ export class BotBrain {
     const monstrosDele = ocupadas(foe.monsters);
     const eloMeu = ctx.chainPlayer === ctx.me;
     const eloDele = ctx.chainPlayer !== undefined && ctx.chainPlayer !== null && ctx.chainPlayer !== ctx.me;
+
+    // Kagemucha é uma extensão da própria Invocação-Normal, não uma hand trap.
+    // O cenário do Aprender ensina essa sequência mesmo quando não há rota
+    // completa do perfil (por exemplo, sem Botas na mão inicial).
+    if (card.code === 19353570 && card.location === OcgLocation.HAND
+      && ctx.turnPlayer === ctx.me && this.decisionGuide?.decisions.some((d) => d.id === "kagemucha-sem-botas")
+      && mine.monsters.some((monster) => monster?.code && readIntel(monster.code, ctx.cardDb).level === 3)) return 110;
 
     // Hand trap — efeito de monstro ativado DA MÃO. Nunca contra o próprio
     // elo: a Ash Blossom pega qualquer "adicionar do Deck", inclusive o do
@@ -1065,6 +1228,7 @@ export class BotBrain {
         // único instante em que ela serve.
         return 98;
       case "spotRemoval":
+        if (monstrosDele.length === 0) return -1;
         if (card.code === RING_OF_DESTRUCTION) {
           const alvo = Math.max(0, ...monstrosDele.map((c) => knownStats(c)?.attack ?? 0));
           return ctx.lifePoints[ctx.me] - alvo > 0 &&
@@ -1079,7 +1243,7 @@ export class BotBrain {
           0,
         );
         const dele = monstrosDele.reduce((t, c) => t + threatOf(c, ctx.cardDb), 0);
-        return dele > meu + 300 ? 87 : -1;
+        return dele > (card.code === RAIGEKI ? 0 : meu + 300) ? 87 : -1;
       }
       case "backrowSpot":
         return ocupadas(foe.spells).length >= 1 ? 56 : -1;
@@ -1264,6 +1428,25 @@ export class BotBrain {
     const candidatos = message.selects;
     if (candidatos.length === 0) return null;
 
+    if (this.pendingDecisionTarget !== null && message.min <= 1 && message.max >= 1) {
+      const index = candidatos.findIndex((card) => card.controller === ctx.me && card.code === this.pendingDecisionTarget);
+      if (index >= 0) {
+        this.pendingDecisionTarget = null;
+        return { type: OcgResponseType.SELECT_CARD, indicies: [index] };
+      }
+    }
+
+    if (this.decisionGuide && this.deck && ctx.resolvingEffect?.player === ctx.me
+      && message.min <= 1 && message.max >= 1) {
+      const guided = decisionEffectTarget(this.decisionGuide.decisions, ctx.readBoard(true), ctx.me,
+        this.deck, ctx.resolvingEffect.code, candidatos);
+      if (guided) {
+        this.usedGuideDecision = guided.decision.id;
+        this.planner.reason = `Cenário do guia: ${guided.decision.title}`;
+        return { type: OcgResponseType.SELECT_CARD, indicies: [guided.index] };
+      }
+    }
+
     // O alvo do ataque que o bot acabou de escolher.
     if (this.plannedTarget) {
       const alvo = this.plannedTarget;
@@ -1291,6 +1474,12 @@ export class BotBrain {
     }));
     notas.sort((a, b) => b.score - a.score);
 
+    // Alguns efeitos permitem escolher zero cartas. Se só há custos próprios,
+    // uma escolha opcional não deve entregar um recurso sem benefício.
+    if (message.min === 0 && notas[0].score <= 0) {
+      return { type: OcgResponseType.SELECT_CARD, indicies: [] };
+    }
+
     return {
       type: OcgResponseType.SELECT_CARD,
       indicies: notas.slice(0, quantos).map((n) => n.index),
@@ -1311,6 +1500,11 @@ export class BotBrain {
     ctx: BotContext,
     board: BoardState,
   ): number {
+    // Anjo Negro no próprio campo anula as nossas Magias, inclusive Mudar a Máscara.
+    // Broca-negra só deve estender com ele se o guia trouxer uma rota explícita.
+    if (this.decisionGuide?.id === "tcg-lehd-destiny-hero"
+      && ctx.resolvingEffect?.player === ctx.me && ctx.resolvingEffect.code === 91691605
+      && card.location === OcgLocation.HAND && card.code === 26964762) return -100_000;
     const strategic = this.planner.targetScore(card, ctx);
     if (strategic !== null) return strategic;
     const intel = readIntel(card.code, ctx.cardDb);
@@ -1335,7 +1529,7 @@ export class BotBrain {
         // num descarte é o certo, e numa busca de deck o formato quase sempre
         // busca peça específica, não a maior.
         return card.location === OcgLocation.HAND
-          ? -resourceValue(card.code, ctx, this.difficulty === "easy" ? [] : this.planner.reserves,
+          ? -resourceValue(card.code, ctx, this.difficulty === "easy" ? [] : [...this.planner.reserves, ...this.planner.protectedCards],
             this.difficulty === "easy" ? [] : this.planner.starters)
           : valor + (this.planner.starters.includes(card.code) ? 5000 : 0);
       case OcgLocation.GRAVE:
@@ -1499,6 +1693,39 @@ export class BotBrain {
     return { type: OcgResponseType.SELECT_POSITION, position: escolhida };
   }
 
+  /** Coloca Links onde suas setas deixam mais zonas próprias utilizáveis. */
+  private place(message: OcgMessageSelectPlace, ctx: BotContext): OcgResponse | null {
+    const available = decodeFieldMask(message.field_mask, message.player);
+    if (available.length < Math.max(1, message.count)) return null;
+    const board = ctx.readBoard(false);
+    const linked = linkedZones(board);
+    const summonCode = ctx.summoning?.player === ctx.me ? ctx.summoning.code : this.plannedSummonCode;
+    const intel = summonCode ? readIntel(summonCode, ctx.cardDb) : null;
+    const markers = intel?.isLink ? ctx.cardDb.get(summonCode!)?.def ?? 0 : 0;
+    const score = (place: typeof available[number]) => {
+      if (place.player !== ctx.me) return -100;
+      if (place.location === OcgLocation.SZONE) {
+        // As bordas 0 e 4 são as escalas Pêndulo na MR5.
+        return place.sequence === 5 ? 4 : [0, 4].includes(place.sequence) ? 2 : 8;
+      }
+      if (place.location !== OcgLocation.MZONE) return 0;
+      if (markers) {
+        const arrows = pointedZones({ controller: ctx.me, sequence: place.sequence }, markers);
+        const ownFree = arrows.filter((zone) => zone.controller === ctx.me && zone.sequence < 5
+          && !board.players[ctx.me].monsters[zone.sequence]).length;
+        const enemyFree = arrows.filter((zone) => zone.controller !== ctx.me && zone.sequence < 5
+          && !board.players[1 - ctx.me].monsters[zone.sequence]).length;
+        return ownFree * 20 - enemyFree * 15 + (place.sequence >= 5 ? 5 : 0);
+      }
+      const reservedForLink = linked.has(`${ctx.me}:${OcgLocation.MZONE}:${place.sequence}`);
+      return (place.sequence >= 5 ? -8 : 10) - (reservedForLink ? 6 : 0);
+    };
+    available.sort((a, b) => score(b) - score(a));
+    const selected = available.slice(0, Math.max(1, message.count));
+    this.plannedSummonCode = null;
+    return { type: OcgResponseType.SELECT_PLACE, places: selected };
+  }
+
   /**
    * Efetiva um plano, contabilizando a ativação que ele carrega.
    *
@@ -1512,6 +1739,14 @@ export class BotBrain {
   private commit(plan: Plan): OcgResponse {
     if (plan.activated) this.noteActivation(plan.activated);
     if (plan.setsBackrow) this.setsNoTurno += 1;
+    if (plan.decision) {
+      this.pendingDecisionTarget = plan.decision.targetCode ?? null;
+      this.usedGuideDecision = plan.decision.decision.id;
+      this.planner.reason = `Cenário do guia: ${plan.decision.decision.title}`;
+    } else if (plan.continuation) {
+      this.usedGuideDecision = plan.continuation.id;
+      this.planner.reason = `Sequência prevista pelo guia: ${plan.continuation.title}`;
+    }
     return plan.response;
   }
 

@@ -166,7 +166,7 @@ export const CARD_ROLES: Readonly<Record<number, CardRole>> = {
 
   // — Backrow —
   19613556: "backrowNuke", // Tempestade Pesada
-  18144507: "backrowNuke", // Espanador de Penas da Harpia
+  18144506: "backrowNuke", // Espanador de Penas da Harpia
   5318639: "backrowSpot", // Tufão Espacial Místico
   60082869: "backrowSpot", // Tornado de Poeira
   17449108: "backrowSpot", // Nobre do Extermínio

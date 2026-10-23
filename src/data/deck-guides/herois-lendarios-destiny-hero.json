@@ -93,7 +93,8 @@
     "watchOut": [
       "40 cartas no Principal e 10 no Extra da caixa de 2018, sem cartas de expansões posteriores.",
       "As três lições mostram alternativas de abertura; não são uma sequência para executar toda no mesmo turno.",
-      "Custos, restrições e efeitos de uma vez por turno precisam ser planejados."
+      "Custos, restrições e efeitos de uma vez por turno precisam ser planejados.",
+      "Anjo Negro no seu próprio campo anula as suas Magias: não o traga com Broca-negra antes de Mudar a Máscara."
     ]
   },
   "keyCards": [
@@ -122,6 +123,25 @@
       "explanation": "Bane-se do Cemitério para invocar outra cópia do Deck. A lista traz duas cópias: confira onde estão.",
       "sourceIds": [
         "malicious"
+      ]
+    },
+    {
+      "code": 91691605,
+      "name": "HERÓI do Destino - Broca-negra",
+      "role": "Estende a mão",
+      "explanation": "Ao ser Invocado, pode trazer da mão um HERÓI do Destino com ATK até o seu ATK atual. Escolha o alvo antes da Invocação-Normal: Decisor e Celestial fornecem outro corpo, enquanto Malicioso pode continuar no Cemitério depois de usado como material. Evite trazer Anjo Negro para o seu campo: ele anularia as suas Magias.",
+      "sourceIds": [
+        "set-list",
+        "malicious"
+      ]
+    },
+    {
+      "code": 26964762,
+      "name": "HERÓI do Destino - Anjo Negro",
+      "role": "Interferência que exige cuidado",
+      "explanation": "Seu efeito de negar Magias vale enquanto está no campo: se Broca-negra o colocar no seu lado, ele também anulará Mudar a Máscara e outras Magias suas. Só o use com uma finalidade concreta.",
+      "sourceIds": [
+        "set-list"
       ]
     },
     {

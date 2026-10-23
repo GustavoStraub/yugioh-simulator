@@ -3,7 +3,9 @@ import { OcgType } from "@n1xx1/ocgcore-wasm";
 import cardRows from "@/data/card-db.json";
 import { OfficialCardDb } from "@/lib/duel/official-card-data";
 import base from "@/data/deck-learning-base.json";
-import type { DeckGuide, GuideLesson } from "@/lib/domain/deck-guide";
+import decisions from "@/data/guide-decisions.json";
+import cardNotes from "@/data/guide-card-notes.json";
+import type { DeckGuide, GuideDecision, GuideLesson } from "@/lib/domain/deck-guide";
 
 type EditorialDeck = typeof base.decks[number];
 
@@ -38,6 +40,7 @@ function strategyLesson(lesson: EditorialDeck["lessons"][number]): GuideLesson {
 export function adaptLearningBase(historical: readonly DeckGuide[]): DeckGuide[] {
   const adapt = (deck: EditorialDeck): DeckGuide => {
     const previous = historical.find((guide) => guide.presetId === deck.presetId);
+    const notes = (cardNotes as Record<string, Record<string, { role: string; explanation: string }>>)[deck.id] ?? {};
     const lessons = [...(previous?.lessons ?? []), ...deck.lessons.filter((lesson) => !("origin" in lesson)).map(strategyLesson)];
     const sourceIds = new Set([...deck.coreCards.flatMap((card) => card.sourceIds), ...lessons.flatMap((lesson) => lesson.sourceIds)]);
     const sources = [...(previous?.sources ?? []), ...base.sources.filter((source) => sourceIds.has(source.id)).map(({ id, title, url }) => ({ id, title, url }))];
@@ -51,8 +54,14 @@ export function adaptLearningBase(historical: readonly DeckGuide[]): DeckGuide[]
       coverCodes: previous?.coverCodes ?? deck.coreCards.slice(0, 3).map((card) => card.code),
       deckSnapshot: { ...deck.deckSnapshot, format: "tcg" },
       overview: previous ? { ...previous.overview, watchOut: [...new Set([...previous.overview.watchOut, ...deck.cautions])] } : { goal: deck.gamePlan, plan: lessons.map((lesson) => lesson.title), strengths: [], watchOut: deck.cautions },
-      keyCards: [...(previous?.keyCards ?? []), ...deck.coreCards.filter((card) => !previous?.keyCards.some((item) => item.code === card.code)).map((card) => ({ code: card.code, name: card.namePt || card.name, role: "Carta-chave", explanation: "Consulte o efeito desta carta e veja seu uso nas lições.", sourceIds: card.sourceIds }))],
-      lessons, sources: [...new Map(sources.map((source) => [source.id, source])).values()],
+      keyCards: [...(previous?.keyCards ?? []), ...deck.coreCards.filter((card) => !previous?.keyCards.some((item) => item.code === card.code)).map((card) => ({
+        code: card.code, name: card.namePt || card.name,
+        role: notes[String(card.code)]?.role ?? "Carta-chave",
+        explanation: notes[String(card.code)]?.explanation ?? "Consulte o efeito desta carta e veja seu uso nas lições.",
+        sourceIds: card.sourceIds,
+      }))],
+      lessons, decisions: (decisions as Record<string, GuideDecision[]>)[deck.id] ?? [],
+      sources: [...new Map(sources.map((source) => [source.id, source])).values()],
     };
   };
   const guides = base.decks.map(adapt);

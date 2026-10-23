@@ -11,16 +11,17 @@ import { usePlayer } from "@/context/PlayerProvider";
 import { useCardText } from "@/hooks/useCardText";
 import { useGuideProgress } from "@/hooks/useGuideProgress";
 import { DeckDifficulty } from "./DeckDifficulty";
-import { hasLessonPractice, matchesGuideDeck, type DeckGuide, type GuideLesson } from "@/lib/domain/deck-guide";
+import { hasLessonPractice, matchesGuideDeck, type DeckGuide, type GuideDecision, type GuideLesson } from "@/lib/domain/deck-guide";
 import { presetToDuelPayload, type PresetDeckDefinition } from "@/lib/domain/preset-decks";
 import { saveDuelSetup } from "@/lib/duel/duel-storage";
 import styles from "./learning.module.css";
 
-type Section = "overview" | "cards" | "lessons" | "sources";
+type Section = "overview" | "cards" | "lessons" | "decisions" | "sources";
 const SECTIONS: { id: Section; label: string }[] = [
   { id: "overview", label: "Visão geral" },
   { id: "cards", label: "Cartas-chave" },
   { id: "lessons", label: "Jogadas e lições" },
+  { id: "decisions", label: "Decisões" },
   { id: "sources", label: "Fontes" },
 ];
 
@@ -93,7 +94,7 @@ export function DeckGuideApp({ guide, preset, initialLessonId }: {
           <h1>{guide.title}</h1>
           <p className={styles.subtitle}>{guide.subtitle}</p>
           <DeckDifficulty difficulty={guide.difficulty} />
-          <p className={styles.meta}>{guide.lessons.length} lições · cerca de {guide.minutes} min</p>
+          <p className={styles.meta}>{guide.lessons.length} lições · cerca de {guide.minutes} min{guide.decisions?.length ? ` · ${guide.decisions.length} decisões para comparar` : ""}</p>
           <p className={styles.meta}>Lista oficial · {preset.main.length} cartas + {preset.extra.length} no Extra</p>
         </div>
         <div className={styles.heroArtwork} aria-hidden="true">
@@ -110,7 +111,7 @@ export function DeckGuideApp({ guide, preset, initialLessonId }: {
       {duelError && <p role="alert" className={styles.notice}>{duelError}</p>}
 
       <div className={styles.sectionNav} role="group" aria-label="Partes do guia">
-        {SECTIONS.map((item) => <button type="button" key={item.id} aria-pressed={section === item.id} onClick={() => setSection(item.id)}>{item.label}</button>)}
+        {SECTIONS.filter((item) => item.id !== "decisions" || Boolean(guide.decisions?.length)).map((item) => <button type="button" key={item.id} aria-pressed={section === item.id} onClick={() => setSection(item.id)}>{item.label}{item.id === "decisions" ? ` (${guide.decisions?.length ?? 0})` : ""}</button>)}
       </div>
 
       <div className={styles.mobileLessonNav} data-mobile-lesson-nav>
@@ -133,7 +134,10 @@ export function DeckGuideApp({ guide, preset, initialLessonId }: {
                 {guide.overview.strengths.length > 0 && <div className={styles.panel}><h3>O que o deck oferece</h3><ul>{guide.overview.strengths.map((item) => <li key={item}>{item}</li>)}</ul></div>}
                 {guide.overview.watchOut.length > 0 && <div className={styles.panel}><h3>Antes de começar</h3><ul>{guide.overview.watchOut.map((item) => <li key={item}>{item}</li>)}</ul></div>}
               </div>
-              <button type="button" className={styles.primaryButton} onClick={() => openLesson(progress.currentLesson ?? remaining?.id ?? guide.lessons[0].id)}>{progress.currentLesson ? "Continuar a trilha" : "Começar a primeira lição"}<span aria-hidden="true">→</span></button>
+              <div className={styles.overviewActions}>
+                <button type="button" className={styles.primaryButton} onClick={() => openLesson(progress.currentLesson ?? remaining?.id ?? guide.lessons[0].id)}>{progress.currentLesson ? "Continuar a trilha" : "Começar a primeira lição"}<span aria-hidden="true">→</span></button>
+                {Boolean(guide.decisions?.length) && <button type="button" className={styles.secondaryButton} onClick={() => setSection("decisions")}>Comparar decisões →</button>}
+              </div>
             </section>
           )}
 
@@ -157,10 +161,19 @@ export function DeckGuideApp({ guide, preset, initialLessonId }: {
 
           {section === "lessons" && <LessonReader key={`${profile?.id ?? ""}:${lesson.id}`} guide={guide} lesson={lesson} onRead={setReading} completed={progress.completed.includes(lesson.id)} compatible={compatible} onStart={() => visit(lesson.id)} initialStep={progress.steps?.[lesson.id] ?? 0} onStep={(step) => advance(lesson.id, step)} onComplete={() => complete(lesson.id)} onNext={guide.lessons[guide.lessons.indexOf(lesson) + 1] ? () => openLesson(guide.lessons[guide.lessons.indexOf(lesson) + 1].id) : undefined} />}
 
+          {section === "decisions" && guide.decisions && (
+            <section aria-labelledby="guide-decisions" data-guide-decisions>
+              <p className={styles.eyebrow}>Leia a mesa antes de jogar</p>
+              <h2 id="guide-decisions">Qual jogada você escolheria?</h2>
+              <p className={styles.sectionIntro}>Cada situação usa cartas deste deck. Escolha uma linha, veja a consequência e abra a lição relacionada para estudar a sequência. Estes são cenários de estudo; em um duelo, confira também efeitos e restrições ativos.</p>
+              <div className={styles.decisionList}>{guide.decisions.map((decision) => <DecisionCard key={decision.id} guide={guide} decision={decision} onLesson={() => openLesson(decision.lessonId)} />)}</div>
+            </section>
+          )}
+
           {section === "sources" && (
             <section aria-labelledby="guide-sources">
               <p className={styles.eyebrow}>De onde vem o conteúdo</p><h2 id="guide-sources">Fontes e revisão</h2>
-              <p className={styles.sectionIntro}>Explicações e roteiros elaborados pelo app a partir dos efeitos oficiais. Somente as lições identificadas como Exercício na mesa têm sequências verificadas no simulador por testes automatizados. As lições de Estratégia são leituras com cenário e etapas.</p>
+              <p className={styles.sectionIntro}>Explicações, decisões e roteiros elaborados pelo app a partir dos efeitos oficiais. Somente as lições identificadas como Exercício na mesa têm sequências verificadas no simulador por testes automatizados. Estratégias e decisões são cenários de estudo.</p>
               <p className={styles.meta}>Revisado em {guide.reviewedAt.split("-").reverse().join("/")} · versão {guide.revision} · lista {preset.setCode} · regras TCG</p>
               <ul className={styles.sourceList}>{guide.sources.map((source) => <li key={source.id}><a href={source.url} target="_blank" rel="noreferrer">{source.title}<span aria-hidden="true">↗</span></a></li>)}</ul>
               <p className={styles.footnote}>Cada exercício começa com uma mão preparada e acompanha suas jogadas na mesa. O duelo livre contra o bot continua disponível como prática adicional.</p>
@@ -204,6 +217,31 @@ function SourceLinks({ guide, ids }: { guide: DeckGuide; ids: string[] }) {
     const source = guide.sources.find((item) => item.id === id);
     return source && <a key={id} href={source.url} target="_blank" rel="noreferrer">{source.title.replace("Konami · ", "")} ↗</a>;
   })}</div>;
+}
+
+function DecisionCard({ guide, decision, onLesson }: { guide: DeckGuide; decision: GuideDecision; onLesson: () => void }) {
+  const [choice, setChoice] = useState<number | null>(null);
+  const chosen = choice === null ? null : decision.choices[choice];
+  const correct = decision.choices[decision.correctChoice];
+  return (
+    <article className={styles.decisionCard} data-decision={decision.id}>
+      <p className={styles.eyebrow}>Situação de jogo</p>
+      <h3>{decision.title}</h3>
+      <p className={styles.decisionSituation}>{decision.situation}</p>
+      <div className={styles.decisionChoices} role="group" aria-label={`Escolhas para ${decision.title}`}>
+        {decision.choices.map((option, index) => <button key={option.label} type="button" aria-pressed={choice === index} onClick={() => setChoice(index)}>{option.label}</button>)}
+      </div>
+      {chosen && <div className={styles.decisionFeedback} data-result={choice === decision.correctChoice ? "correct" : "review"} role="status">
+        <strong>{choice === decision.correctChoice ? "Boa escolha neste cenário" : "Revise esta escolha"}</strong>
+        <p>{chosen.explanation}</p>
+        {choice !== decision.correctChoice && <p><strong>Melhor linha aqui: {correct.label}.</strong> {correct.explanation}</p>}
+      </div>}
+      <div className={styles.decisionFooter}>
+        <button type="button" className={styles.secondaryButton} onClick={onLesson}>Estudar a lição relacionada →</button>
+        <SourceLinks guide={guide} ids={decision.sourceIds} />
+      </div>
+    </article>
+  );
 }
 
 function LessonReader({ guide, lesson, onRead, completed, compatible, onStart, onComplete, onNext, initialStep, onStep }: {

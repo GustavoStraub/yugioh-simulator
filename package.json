@@ -18,6 +18,7 @@
     "sync:images": "node --import ./tools/harness/ts-loader-register.mjs scripts/sync-images.mjs",
     "build:holograms": "node --import ./tools/harness/ts-loader-register.mjs scripts/build-holograms.mjs",
     "build:presets": "node --import ./tools/harness/ts-loader-register.mjs scripts/build-preset-decks.mjs",
+    "build:bot-guide-hints": "node scripts/build-bot-guide-hints.mjs",
     "test:cards": "node tools/harness/test-cards.mjs",
     "test:tcg-pool": "node tools/harness/test-tcg-pool.mjs",
     "test:archetypes": "node tools/harness/test-archetypes.mjs",

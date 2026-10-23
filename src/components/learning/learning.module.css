@@ -24,7 +24,7 @@
 .libraryHeading { display: flex; justify-content: space-between; gap: 32px; align-items: flex-end; padding: 35px 0 24px; }
 .libraryHeading p:not(.eyebrow) { color: #91919b; font-size: 13px; max-width: 600px; margin-top: 12px; line-height: 1.65; }
 .search { display: block; min-width: 240px; font-size: 11px; color: #a1a1aa; }
-.libraryControls { display: grid; grid-template-columns: minmax(0, 1fr) minmax(260px, 320px); align-items: end; gap: 16px; margin-bottom: 18px; }
+.libraryControls { display: grid; grid-template-columns: minmax(0, 1fr) minmax(180px, 240px) minmax(180px, 240px); align-items: end; gap: 16px; margin-bottom: 18px; }
 .search input, .search select { display: block; width: 100%; min-width: 0; min-height: 44px; border: 1px solid #38373b; background: #131315; border-radius: 9px; padding: 12px; margin-top: 8px; font-size: 13px; color: #e4e4e7; }
 .libraryGrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr)); grid-auto-rows: 1fr; gap: 24px; }
 .guideCard { display: flex; flex-direction: column; min-width: 0; overflow: hidden; border: 1px solid #363237; border-radius: 18px; background: #141416; }
@@ -54,6 +54,8 @@
 .primaryButton { color: #211b12; background: #e4bf76; border: 1px solid #e4bf76; }
 .primaryButton:hover { background: #f2d397; }
 .guideCardFooter > .primaryButton { display: flex; margin-top: 23px; width: 100%; }
+.guideFeatures { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 10px; }
+.guideFeatures span { border: 1px solid #3f4f4b; border-radius: 5px; padding: 4px 7px; color: #a6d2bf; font-size: 10px; line-height: 1.5; }
 .secondaryButton { border: 1px solid #48434a; background: #222126; color: #dedbe4; }
 .secondaryButton:hover:not(:disabled) { background: #302b33; }
 .cardProgress { margin-top: 18px; display: grid; gap: 8px; font-size: 11px; color: #a1a1aa; }
@@ -82,6 +84,7 @@
 .planList { list-style: none; margin: 0 0 28px; padding: 0; }
 .planList li { display: flex; gap: 16px; padding: 14px 0; align-items: flex-start; border-bottom: 1px solid #27242b; font-size: 14px; color: #bab4c0; }
 .planList span { flex-shrink: 0; display: grid; place-items: center; width: 27px; height: 27px; border: 1px solid #66573d; border-radius: 50%; font-size: 11px; color: #d7bc85; }
+.overviewActions { display: flex; flex-wrap: wrap; gap: 10px; }
 .infoGrid { display: grid; gap: 16px; grid-template-columns: 1fr 1fr; margin-bottom: 26px; }
 .panel { border: 1px solid #302b33; background: #141316; border-radius: 12px; padding: 21px; }
 .panel h3 { font-size: 14px; }
@@ -140,6 +143,20 @@
 .cautions { padding: 4px 0 24px; }
 .cautions h3 { font-size: 13px; color: #d8c297; }
 .lessonSources { margin-top: 26px; font-size: 11px; color: #a597ac; }
+.decisionList { display: grid; gap: 18px; }
+.decisionCard { padding: 24px; border: 1px solid #3b3833; border-radius: 14px; background: linear-gradient(135deg, #1e1b19, #141618); }
+.decisionCard h3 { margin-top: 7px; font-size: 20px; }
+.decisionSituation { margin-top: 14px !important; color: #cdc4d0; font-size: 14px; line-height: 1.8; }
+.decisionChoices { display: grid; gap: 9px; margin-top: 22px; }
+.decisionChoices button { width: 100%; min-height: 48px; padding: 12px 15px; border: 1px solid #514b4a; border-radius: 9px; text-align: left; color: #e5dce7; background: #242124; font-size: 13px; line-height: 1.5; cursor: pointer; }
+.decisionChoices button:hover { background: #302a2c; }
+.decisionChoices button[aria-pressed="true"] { border-color: #dab776; background: #352b22; color: #f4d8a0; }
+.decisionFeedback { margin-top: 18px; padding: 16px 18px; border: 1px solid #536e5e; border-radius: 10px; background: #18251d; color: #cae2d0; font-size: 13px; line-height: 1.75; }
+.decisionFeedback[data-result="review"] { border-color: #7e6346; background: #2a2118; color: #ead7bc; }
+.decisionFeedback p { margin-top: 7px !important; }
+.decisionFeedback p + p { margin-top: 12px !important; }
+.decisionFooter { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; margin-top: 20px; }
+.decisionFooter .sourceLinks { margin-top: 0; }
 .sourceList { padding: 0 !important; margin: 25px 0 !important; list-style: none; }
 .sourceList li { border-bottom: 1px solid #302631; }
 .sourceList a { overflow-wrap: anywhere; display: flex; justify-content: space-between; gap: 20px; padding: 15px 0; color: #c4b0cc; font-size: 13px; text-decoration: none; }
@@ -147,6 +164,8 @@
 .notice { padding: 16px 20px; border: 1px solid #7d5b3b; color: #e2c79f; background: #302317; border-radius: 10px; font-size: 12px; line-height: 1.8; margin-bottom: 18px !important; }
 .notice button { text-decoration: underline; cursor: pointer; }
 @media (max-width: 1000px) {
+  .libraryControls { grid-template-columns: minmax(0, 1fr) minmax(200px, 260px); }
+  .libraryControls .search:last-child { grid-column: 1 / -1; }
   .guideLayout { gap: 24px; grid-template-columns: minmax(0, 1fr) 250px; }
   .sidebar { padding: 18px; }
   .infoGrid { grid-template-columns: 1fr; }
@@ -180,14 +199,19 @@
 @media (max-width: 760px) {
   .page { padding: 20px 20px 40px; }
   .guidePage { padding-bottom: calc(140px + env(safe-area-inset-bottom)); }
-  .libraryHero { display: block; padding: 8px 0 22px; }
+  .libraryHero { display: block; padding: 0 0 12px; }
   .libraryHero h1 { font-size: clamp(29px, 7.5vw, 36px); }
   .libraryHero .lead { margin-top: 12px !important; font-size: 14px; line-height: 1.65; }
   .learningPath, .libraryDescription { display: none; }
-  .libraryHeading { align-items: stretch; flex-direction: column; gap: 16px; padding: 22px 0 18px; }
+  .libraryHeading { align-items: stretch; flex-direction: column; gap: 10px; padding: 14px 0 12px; }
+  .libraryHeading p:not(.eyebrow) { margin-top: 8px; }
   .search { min-width: 0; }
-  .libraryControls { grid-template-columns: minmax(0, 1fr); }
+  .libraryControls { grid-template-columns: minmax(0, 1fr); gap: 8px; margin-bottom: 8px; }
+  .libraryControls .search:last-child { grid-column: auto; }
   .search input, .search select { font-size: 16px; }
+  .search input, .search select { margin-top: 4px; }
+  .difficultyHint { margin-bottom: 8px !important; }
+  .libraryCount { margin-bottom: 12px; }
   .cardArtwork { height: 170px; padding-top: 18px; }
   .cardArtwork img { width: 88px; }
   .guideCardBody { padding: 20px; }
@@ -206,6 +230,7 @@
   .sectionNav { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); overflow: visible; gap: 6px; padding: 8px 0; }
 }
 @media (max-width: 440px) {
+  .decisionCard { padding: 18px; }
   .page { padding: 20px 16px 40px; }
   .guidePage { padding-bottom: calc(140px + env(safe-area-inset-bottom)); }
   .deckHero { display: block; }

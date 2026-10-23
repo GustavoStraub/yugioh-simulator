@@ -11,6 +11,8 @@ import {createDuel,Zone} from './duel.mjs';
 import {createBotObserver} from './bot-observer.mjs';
 const rounds=Number(process.env.BOT_ROUNDS??8);
 const seedOffset=Number(process.env.BOT_SEED_OFFSET??0);
+const tracePrompts=process.env.BOT_TRACE_PROMPTS==='1';
+const traceIdle=process.env.BOT_TRACE_IDLE==='1';
 const format=process.env.BOT_FORMAT??'tcg';
 const ids=(process.env.BOT_DECKS??'tcg-sdaz,tcg-lehd-aesir,tcg-lehd-destiny-hero,tcg-lehd-phantom-knights').split(',');
 const all=JSON.parse(readFileSync(format==='tcg'?'src/data/preset-decks-tcg.json':'src/data/preset-decks.json','utf8'));
@@ -25,7 +27,7 @@ const rows=[];
 for(const [left,right] of comparisons){
  for(let di=0;di<decks.length;di++)for(const mirror of [true,false]){
   const a=decks[di],b=mirror?a:decks[(di+1)%decks.length];
-  const row={format,left,right,deck:a.id,opponent:b.id,wins:0,losses:0,draws:0,inconclusive:0,rejected:0,fallbacks:0,decisions:0,limits:0,errors:0,seats:[{games:0,wins:0},{games:0,wins:0}],times:[],outcomes:{}};
+  const row={format,left,right,deck:a.id,opponent:b.id,wins:0,losses:0,draws:0,inconclusive:0,rejected:0,fallbacks:0,decisionUses:0,decisions:0,limits:0,errors:0,seats:[{games:0,wins:0},{games:0,wins:0}],times:[],outcomes:{},fallbackByPrompt:{},...(tracePrompts?{promptSamples:[]}:{} ),...(traceIdle?{idleSamples:[]}:{} )};
   for(let r=0;r<rounds;r++)for(const seat of [0,1]){
    // Os mesmos decks e compras ficam nos mesmos assentos. Só os cérebros
    // invertem; as comparações usam rigorosamente estas mesmas sementes.
@@ -35,7 +37,8 @@ for(const [left,right] of comparisons){
     decks:lists.map((d,i)=>shuffled(d.main,seed+BigInt(i*31))),
     place:lists.flatMap((d,player)=>d.extra.map(code=>({player,zone:Zone.EXTRA,code}))),seed,startingDraw:5});
    const observer=createBotObserver(duel,format);
-   const brains=await Promise.all(lists.map(async(d,i)=>{const kind=i===seat?left:right;return kind==='baseline'?new baseline():new BotBrain({difficulty:kind,deck:d,format,profile:await loadBotProfile(d,format),seed:31});}));
+   const brains=await Promise.all(lists.map(async(d,i)=>{const kind=i===seat?left:right;return kind==='baseline'?new baseline():new BotBrain({difficulty:kind==='hard-no-sequence'?'hard':kind,sequencePlanning:kind!=='hard-no-sequence',deck:d,format,profile:await loadBotProfile(d,format),seed:31,
+    onDecision:i===seat?(trace)=>{if(trace.fallback)row.fallbackByPrompt[trace.prompt]=(row.fallbackByPrompt[trace.prompt]??0)+1;if(trace.guideDecision)row.decisionUses++;if(tracePrompts&&[12,13].includes(trace.prompt)&&row.promptSamples.length<60){const p=trace.observation.prompt;row.promptSamples.push({type:p.type,code:p.code??null,controller:p.controller??null,description:p.description?.toString()??null,phase:trace.observation.phase,turn:trace.turn,chainCode:trace.observation.chainCode,response:trace.response,reason:trace.reason});}if(traceIdle&&trace.prompt===11&&row.idleSamples.length<150){const p=trace.observation.prompt,r=trace.response;const list=r.action===0?p.summons:r.action===1?p.special_summons:r.action===5?p.activates:r.action===3?p.monster_sets:r.action===4?p.spell_sets:[];row.idleSamples.push({turn:trace.turn,me:trace.observation.me,phase:trace.observation.phase,action:r.action,index:r.index,code:list[r.index]?.code??null,guide:trace.guideDecision,route:trace.route,reason:trace.reason,hand:trace.observation.board?.players[trace.observation.me].hand.map(c=>c.code),monsters:trace.observation.board?.players[trace.observation.me].monsters.filter(Boolean).map(c=>c.code)});}}:undefined});}));
    let outcome;
    try{outcome=duel.run(p=>{
     const state=observer(p),automatic=autoResponseFor(state.prompt,{resolvingCode:state.resolvingEffect?.code});if(automatic)return automatic;
@@ -54,7 +57,7 @@ for(const [left,right] of comparisons){
   console.log(`${left} × ${right} · ${a.id} × ${b.id}: ${row.wins}/${row.wins+row.losses}, inconclusivas ${row.inconclusive}`);
  }
 }
-const summary=comparisons.map(([left,right])=>{const rs=rows.filter(r=>r.left===left&&r.right===right),sum=k=>rs.reduce((s,r)=>s+r[k],0);return{left,right,wins:sum('wins'),losses:sum('losses'),draws:sum('draws'),inconclusive:sum('inconclusive'),rejected:sum('rejected'),fallbacks:sum('fallbacks'),ci95:ci(sum('wins'),sum('wins')+sum('losses'))};});
+const summary=comparisons.map(([left,right])=>{const rs=rows.filter(r=>r.left===left&&r.right===right),sum=k=>rs.reduce((s,r)=>s+r[k],0);return{left,right,wins:sum('wins'),losses:sum('losses'),draws:sum('draws'),inconclusive:sum('inconclusive'),rejected:sum('rejected'),fallbacks:sum('fallbacks'),decisionUses:sum('decisionUses'),ci95:ci(sum('wins'),sum('wins')+sum('losses'))};});
 const output={protocol:1,rounds,seedOffset,seedRange:'90001 + rodada*97 + deck*1009 + confronto*5003',format,summary,rows};
 mkdirSync('.cache/bot-evaluation',{recursive:true});const target=process.env.BOT_REPORT??`.cache/bot-evaluation/${format}.json`;writeFileSync(target,JSON.stringify(output,null,2)+'\n');
 console.log(JSON.stringify(summary,null,2));console.log(`Relatório: ${target}`);

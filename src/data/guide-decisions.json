@@ -1,0 +1,424 @@
+{
+  "tcg-5ds1": [
+    {
+      "id": "junk-do-cemiterio",
+      "botEligible": true,
+      "lessonId": "uma-invocacao-normal-vira-junk-warrior",
+      "title": "Um monstro pequeno no Cemitério muda a Invocação-Normal",
+      "situation": "Você tem Junk Synchron na mão, Speed Warrior no Cemitério e Junk Warrior no Extra. Qual jogada transforma a Invocação-Normal em mais presença?",
+      "signals": [
+        { "zone": "hand", "code": 63977008, "present": true },
+        { "zone": "grave", "code": 9365703, "present": true },
+        { "zone": "extra", "code": 60800381, "present": true }
+      ],
+      "choices": [
+        { "label": "Invocar Junk Synchron e trazer Speed Warrior", "explanation": "A Invocação-Normal reanima o Nível 2; os níveis 3 + 2 permitem fazer Junk Warrior. Confirme que o efeito de Junk Synchron pode resolver.", "action": { "kind": "summon", "code": 63977008, "mode": "normal" } },
+        { "label": "Guardar Junk Synchron e apenas passar", "explanation": "Você deixaria de converter agora o monstro que já está no Cemitério em uma Sincro disponível no Extra.", "action": { "kind": "hold", "code": 63977008 } }
+      ],
+      "correctChoice": 0,
+      "sourceIds": ["official-card-63977008", "official-card-60800381"]
+    }
+  ],
+  "tcg-sdaz": [
+    {
+      "id": "kitt-encontra-a-fusao",
+      "botEligible": true,
+      "lessonId": "encontrar-inicio",
+      "title": "Sem a magia inicial, use a peça que a encontra",
+      "situation": "Fusão do Marcado não está na sua mão, mas Springans Kitt está; a magia ainda está no Deck. Você também tem uma carta que pode devolver ao fundo do Deck.",
+      "signals": [
+        { "zone": "hand", "code": 45484331, "present": true },
+        { "zone": "hand", "code": 44362883, "present": false },
+        { "zone": "own-hand", "minCount": 2 },
+        { "zone": "deck", "code": 44362883, "present": true }
+      ],
+      "choices": [
+        { "label": "Invocar Kitt para acessar Fusão do Marcado", "explanation": "Kitt procura a magia, mas consome a Invocação-Normal e exige devolver uma carta da mão. Planeje essa devolução antes de ativar o efeito.", "action": { "kind": "summon", "code": 45484331, "mode": "normal" } },
+        { "label": "Esperar comprar a magia naturalmente", "explanation": "Você já tem uma forma de alcançá-la neste turno. Esperar perde tempo sem preservar uma vantagem equivalente neste cenário.", "action": { "kind": "hold", "code": 45484331 } }
+      ],
+      "correctChoice": 0,
+      "sourceIds": ["official-card-45484331", "official-card-44362883"]
+    },
+    {
+      "id": "albion-sem-descarte",
+      "botEligible": true,
+      "lessonId": "rota-albion",
+      "title": "Sem descarte, escolha a ponte que não pede outro card",
+      "situation": "Fusão do Marcado é sua única carta na mão. Arbaz e Ocultador de Efeitos estão no Deck; Albion e Jadespelho estão no Extra. Qual primeira Fusão permite continuar?",
+      "signals": [
+        { "zone": "hand", "code": 44362883, "present": true },
+        { "zone": "own-hand", "maxCount": 1 },
+        { "zone": "deck", "code": 68468459, "present": true },
+        { "zone": "deck", "code": 97268402, "present": true },
+        { "zone": "extra", "code": 87746184, "present": true },
+        { "zone": "extra", "code": 44146295, "present": true }
+      ],
+      "choices": [
+        { "label": "Começar por Albion", "explanation": "Albion pode seguir para Jadespelho banindo materiais; essa continuação não pede descarte. A rota altera os recursos que ficam disponíveis depois.", "action": { "kind": "activate", "code": 44362883, "targetCode": 87746184 } },
+        { "label": "Começar por Lubellion", "explanation": "Lubellion pede um descarte para realizar a segunda Fusão. Com a mão vazia após ativar a magia, esse caminho não continua como no exercício.", "action": { "kind": "activate", "code": 44362883, "targetCode": 70534340 } }
+      ],
+      "correctChoice": 0,
+      "sourceIds": ["official-card-44362883", "official-card-87746184", "official-card-70534340"]
+    }
+  ],
+  "tcg-lavd-speedroid": [
+    {
+      "id": "terrortop-preserva-normal",
+      "botEligible": true,
+      "lessonId": "terrortop-e-dice-fazem-cork-shooter",
+      "title": "Campo vazio: preserve sua Invocação-Normal",
+      "situation": "Terrortop está na mão e você não controla monstros. Como começar a sequência até Cork Shooter sem gastar a Invocação-Normal?",
+      "signals": [
+        { "zone": "hand", "code": 81275020, "present": true },
+        { "zone": "own-monsters", "maxCount": 0 }
+      ],
+      "choices": [
+        { "label": "Invocar Terrortop especialmente", "explanation": "A condição de Terrortop permite entrar com o campo vazio e ainda buscar Taketomborg. Você conserva a Invocação-Normal para outra peça.", "action": { "kind": "summon", "code": 81275020, "mode": "special" } },
+        { "label": "Invocar Terrortop normalmente", "explanation": "Terrortop ainda pode iniciar a linha, mas gastar a Invocação-Normal reduz suas opções sem necessidade neste cenário.", "action": { "kind": "summon", "code": 81275020, "mode": "normal" } }
+      ],
+      "correctChoice": 0,
+      "sourceIds": ["official-card-81275020"]
+    }
+  ],
+  "tcg-lehd-aesir": [
+    {
+      "id": "valquiria-antes-da-magia",
+      "botEligible": false,
+      "lessonId": "valquiria-faz-odin-sem-gullveig",
+      "title": "Indo segundo, a ordem das cartas decide a rota",
+      "situation": "O oponente controla um monstro; seu campo está vazio. Você tem Valkyrie e dois outros Nórdicos na mão. Quer chegar a Odin: o que deve fazer antes de ativar ou Baixar outra carta?",
+      "signals": [
+        { "zone": "hand", "code": 40844552, "present": true },
+        { "zone": "own-hand", "minCount": 3 },
+        { "zone": "own-field-cards", "maxCount": 0 },
+        { "zone": "opponent-monsters", "minCount": 1 },
+        { "zone": "extra", "code": 93483212, "present": true }
+      ],
+      "choices": [
+        { "label": "Invocar Valkyrie normalmente primeiro", "explanation": "A condição de Valkyrie é verificada quando ela é Invocada normalmente: o oponente deve controlar um monstro e você não pode controlar outras cartas. Depois, os dois Nórdicos da mão podem virar as Fichas da rota.", "action": { "kind": "summon", "code": 40844552, "mode": "normal" } },
+        { "label": "Guardar Valkyrie para depois de preparar o campo", "explanation": "Colocar outra carta no seu campo antes da Invocação-Normal tira a condição usada pelo efeito de Valkyrie neste cenário.", "action": { "kind": "hold", "code": 40844552 } }
+      ],
+      "correctChoice": 0,
+      "sourceIds": ["official-card-40844552", "official-card-93483212"]
+    }
+  ],
+  "tcg-lehd-destiny-hero": [
+    {
+      "id": "broca-negra-vira-lei-obscura",
+      "botEligible": true,
+      "lessonId": "dark-law",
+      "title": "A máscara não depende de Névoa Sombria",
+      "situation": "Broca-negra está no campo, sozinho ou com mais um HERÓI. Mudar a Máscara está na mão e Lei Obscura no Extra. Como estabelecer o controle de Cemitério antes de usar os monstros como material Link?",
+      "signals": [
+        { "zone": "monsters", "code": 91691605, "present": true },
+        { "zone": "monsters", "code": 26964762, "present": false },
+        { "zone": "own-monsters", "maxCount": 2 },
+        { "zone": "hand", "code": 21143940, "present": true },
+        { "zone": "extra", "code": 58481572, "present": true }
+      ],
+      "choices": [
+        { "label": "Usar Mudar a Máscara em um HERO de TREVAS e escolher Lei Obscura", "explanation": "Broca-negra e outros HERÓIS de TREVAS elegíveis podem ser transformados. Se um segundo HERO fraco estiver no campo, usá-lo preserva Broca-negra; a busca de Névoa Sombria não acontecerá nessa variante.", "action": { "kind": "activate", "code": 21143940, "targetCode": 58481572 } },
+        { "label": "Esperar por Névoa Sombria", "explanation": "Névoa Sombria acrescentaria uma busca, mas não é requisito para transformar outro HERO de TREVAS em Lei Obscura.", "action": { "kind": "hold", "code": 21143940 } }
+      ],
+      "correctChoice": 0,
+      "sourceIds": ["set-list", "mask-change", "dark-law"]
+    },
+    {
+      "id": "plasma-conta-os-tres-tributos",
+      "botEligible": false,
+      "lessonId": "plasma",
+      "title": "Plasma pede três corpos: confira o que você perde",
+      "situation": "Você controla Broca-negra, outro Broca-negra e Decisor; Plasma está na mão e o campo adversário está vazio. Vale trocar seus três monstros por Plasma agora?",
+      "signals": [
+        { "zone": "hand", "code": 83965310, "present": true },
+        { "zone": "monsters", "code": 91691605, "present": true },
+        { "zone": "monsters", "code": 64184058, "present": true },
+        { "zone": "own-monsters", "minCount": 3 },
+        { "zone": "opponent-monsters", "maxCount": 0 }
+      ],
+      "choices": [
+        { "label": "Preservar os três HERÓIS e guardar Plasma", "explanation": "Eles somam três corpos e já atacam. Sem monstro adversário para equipar ou efeitos para negar, Plasma de 1900 ATK não compensa esse custo agora. Reavalie se a mesa mudar.", "action": { "kind": "hold", "code": 83965310 } },
+        { "label": "Tributar os três imediatamente", "explanation": "A Invocação é legal, mas a legalidade sozinha não paga a perda dos três monstros nesta mesa vazia.", "action": { "kind": "summon", "code": 83965310, "mode": "special" } }
+      ],
+      "correctChoice": 0,
+      "sourceIds": ["plasma", "set-list"]
+    },
+    {
+      "id": "broca-negra-com-decisor",
+      "botEligible": true,
+      "lessonId": "dystopia",
+      "title": "Guarde a Invocação-Normal para quem traz outro HERÓI",
+      "situation": "Seu campo está vazio. Broca-negra e Decisor estão na mão, sem Malicioso. Qual deles deve receber a Invocação-Normal para terminar com dois monstros?",
+      "signals": [
+        { "zone": "hand", "code": 91691605, "present": true },
+        { "zone": "hand", "code": 64184058, "present": true },
+        { "zone": "hand", "code": 9411399, "present": false },
+        { "zone": "own-monsters", "maxCount": 0 }
+      ],
+      "choices": [
+        { "label": "Invocar Broca-negra e trazer Decisor da mão", "explanation": "Broca-negra pode Invocar especialmente um HERÓI do Destino com ATK até o seu. Decisor tem 1600 ATK e entra sem gastar outra Invocação-Normal.", "action": { "kind": "summon", "code": 91691605, "mode": "normal", "targetCode": 64184058 } },
+        { "label": "Invocar Decisor primeiro", "explanation": "Decisor não traz Broca-negra da mão; nessa ordem, o segundo corpo fica sem acesso imediato.", "action": { "kind": "hold", "code": 64184058 } }
+      ],
+      "correctChoice": 0,
+      "sourceIds": ["set-list"]
+    },
+    {
+      "id": "broca-negra-com-celestial",
+      "botEligible": true,
+      "lessonId": "dystopia",
+      "title": "Broca-negra também estende com Celestial",
+      "situation": "Seu campo está vazio. Broca-negra e Celestial estão na mão, sem Malicioso nem Decisor. Qual Invocação-Normal coloca ambos no campo?",
+      "signals": [
+        { "zone": "hand", "code": 91691605, "present": true },
+        { "zone": "hand", "code": 63362460, "present": true },
+        { "zone": "hand", "code": 9411399, "present": false },
+        { "zone": "hand", "code": 64184058, "present": false },
+        { "zone": "own-monsters", "maxCount": 0 }
+      ],
+      "choices": [
+        { "label": "Invocar Broca-negra e trazer Celestial", "explanation": "Celestial também tem 1600 ATK e pode ser Invocado pelo efeito de Broca-negra. Os dois corpos ficam disponíveis antes de decidir sobre Fusão ou combate.", "action": { "kind": "summon", "code": 91691605, "mode": "normal", "targetCode": 63362460 } },
+        { "label": "Invocar Celestial primeiro", "explanation": "A Invocação-Normal de Celestial não oferece a extensão da mão que Broca-negra oferece.", "action": { "kind": "hold", "code": 63362460 } }
+      ],
+      "correctChoice": 0,
+      "sourceIds": ["set-list"]
+    },
+    {
+      "id": "broca-negra-estende-com-malicioso",
+      "botEligible": true,
+      "lessonId": "dystopia",
+      "title": "Broca-negra transforma Malicioso em presença",
+      "situation": "Broca-negra foi Invocado e seu efeito oferece HERÓIS do Destino da mão. Malicioso está na mão, a outra cópia continua no Deck e você pode colocá-lo no campo. Qual alvo dá a melhor continuação?",
+      "signals": [
+        { "zone": "monsters", "code": 91691605, "present": true },
+        { "zone": "hand", "code": 9411399, "present": true },
+        { "zone": "deck", "code": 9411399, "present": true }
+      ],
+      "choices": [
+        { "label": "Invocar Malicioso da mão", "explanation": "Broca-negra aceita Malicioso porque seu ATK é menor. Quando Malicioso chegar ao Cemitério como material, poderá trazer a segunda cópia do Deck. Isso também coloca mais um corpo no campo agora.", "action": { "kind": "effect", "code": 91691605, "targetCode": 9411399 } },
+        { "label": "Invocar Anjo Negro só por custar menos recurso", "explanation": "Além de não oferecer a extensão de Cemitério de Malicioso, Anjo Negro no seu campo anularia as suas Magias, inclusive Mudar a Máscara.", "action": { "kind": "hold", "code": 91691605 } }
+      ],
+      "correctChoice": 0,
+      "sourceIds": ["set-list", "malicious"]
+    },
+    {
+      "id": "destiny-draw-com-malicious",
+      "botEligible": true,
+      "lessonId": "destiny-draw-transforma-malicious-em-desenvolvimento",
+      "title": "O descarte pode ser o começo da próxima jogada",
+      "situation": "Destiny Draw e Malicious estão na mão, e a outra cópia de Malicious ainda está no Deck. Como transformar esse descarte em cartas e um monstro?",
+      "signals": [
+        { "zone": "hand", "code": 45809008, "present": true },
+        { "zone": "monsters", "code": 26964762, "present": false },
+        { "zone": "hand", "code": 9411399, "present": true },
+        { "zone": "deck", "code": 9411399, "present": true }
+      ],
+      "choices": [
+        { "label": "Ativar Destiny Draw descartando Malicious", "explanation": "Você compra duas cartas; depois, Malicious no Cemitério pode ser banido para trazer a segunda cópia do Deck. Confira que ela continua no Deck antes de contar com o corpo extra.", "action": { "kind": "activate", "code": 45809008, "targetCode": 9411399 } },
+        { "label": "Guardar Destiny Draw e Malicious na mão", "explanation": "Isso preserva as cartas, mas deixa de usar a segunda cópia disponível no Deck como extensão imediata neste cenário.", "action": { "kind": "hold", "code": 45809008 } }
+      ],
+      "correctChoice": 0,
+      "sourceIds": ["official-card-45809008", "official-card-9411399"]
+    }
+  ],
+  "tcg-lehd-phantom-knights": [
+    {
+      "id": "reforcos-encontram-manto-para-botas",
+      "botEligible": true,
+      "lessonId": "primeiro-xyz",
+      "title": "Quando Botas já está na mão, busque o primeiro Cavaleiro",
+      "situation": "Botas Silenciosas e Reforço do Exército estão na mão, Manto Antigo não. Manto ainda está no Deck e Espada Quebrada no Extra. Qual busca libera a Invocação-Especial de Botas?",
+      "signals": [
+        { "zone": "hand", "code": 32807846, "present": true },
+        { "zone": "hand", "code": 36426778, "present": true },
+        { "zone": "hand", "code": 90432163, "present": false },
+        { "zone": "deck", "code": 90432163, "present": true },
+        { "zone": "extra", "code": 62709239, "present": true },
+        { "zone": "own-monsters", "maxCount": 0 }
+      ],
+      "choices": [
+        { "label": "Buscar Manto Antigo", "explanation": "Manto entra por Invocação-Normal, Botas entra especialmente por controlar um Cavaleiro Fantasma, e os dois Níveis 3 formam Espada Quebrada.", "action": { "kind": "activate", "code": 32807846, "targetCode": 90432163 } },
+        { "label": "Buscar um Guerreiro só pelo ATK", "explanation": "Um Nível 4 forte pode atacar, mas não forma a Xyz de Classe 3 com Botas nesta mão.", "action": { "kind": "hold", "code": 32807846 } }
+      ],
+      "correctChoice": 0,
+      "sourceIds": ["set-list", "ancient-cloak", "silent-boots", "break-sword"]
+    },
+    {
+      "id": "junk-forward-com-botas",
+      "botEligible": true,
+      "lessonId": "primeiro-xyz",
+      "title": "Dois Níveis 3 antes de escolher pelo ATK",
+      "situation": "Junk Forward já está sozinho no seu campo. Botas Silenciosas está na mão e Espada Quebrada no Extra. Qual Invocação-Normal converte os dois monstros em uma Xyz?",
+      "signals": [
+        { "zone": "monsters", "code": 56410040, "present": true },
+        { "zone": "own-monsters", "maxCount": 1 },
+        { "zone": "hand", "code": 36426778, "present": true },
+        { "zone": "extra", "code": 62709239, "present": true }
+      ],
+      "choices": [
+        { "label": "Invocar Botas normalmente e fazer Espada Quebrada", "explanation": "Junk Forward e Botas são Nível 3. Embora Botas tenha pouco ATK, usá-la como matéria evita deixar o turno sem Extra Deck.", "action": { "kind": "summon", "code": 36426778, "mode": "normal" } },
+        { "label": "Invocar um Nível 4 mais forte", "explanation": "O Nível 4 não compartilha o Nível de Junk Forward para a Invocação-Xyz de Classe 3.", "action": { "kind": "hold", "code": 36426778 } }
+      ],
+      "correctChoice": 0,
+      "sourceIds": ["set-list", "silent-boots", "break-sword"]
+    },
+    {
+      "id": "reforcos-encontram-botas-para-manto",
+      "botEligible": true,
+      "lessonId": "primeiro-xyz",
+      "title": "Busque a peça que falta antes da Invocação-Normal",
+      "situation": "Manto Antigo e Reforço do Exército estão na mão, mas Botas Silenciosas não. Botas ainda está no Deck e Espada Quebrada no Extra. Qual busca transforma Manto em dois Níveis 3?",
+      "signals": [
+        { "zone": "hand", "code": 32807846, "present": true },
+        { "zone": "hand", "code": 90432163, "present": true },
+        { "zone": "hand", "code": 36426778, "present": false },
+        { "zone": "deck", "code": 36426778, "present": true },
+        { "zone": "extra", "code": 62709239, "present": true },
+        { "zone": "own-monsters", "maxCount": 0 }
+      ],
+      "choices": [
+        { "label": "Ativar Reforço e buscar Botas Silenciosas", "explanation": "Reforço encontra Botas, pois ela é Guerreiro de Nível 3. Depois, Manto usa a Invocação-Normal, Botas entra especialmente e os dois fazem Espada Quebrada. Se Kagemucha também estiver na mão, há material para considerar Bardiche.", "action": { "kind": "activate", "code": 32807846, "targetCode": 36426778 } },
+        { "label": "Buscar um atacante de Nível 4", "explanation": "O ATK maior não completa os dois Níveis 3 que a linha precisa nesta mão.", "action": { "kind": "hold", "code": 32807846 } }
+      ],
+      "correctChoice": 0,
+      "sourceIds": ["set-list", "ancient-cloak", "silent-boots", "break-sword"]
+    },
+    {
+      "id": "reforcos-encontram-botas-para-luvas",
+      "botEligible": true,
+      "lessonId": "primeiro-xyz",
+      "title": "Luvas também precisa de outro Nível 3",
+      "situation": "Luvas Gastas e Reforço do Exército estão na mão, Botas Silenciosas não. Botas ainda está no Deck e Espada Quebrada no Extra. Qual carta Reforço deve encontrar?",
+      "signals": [
+        { "zone": "hand", "code": 32807846, "present": true },
+        { "zone": "hand", "code": 63821877, "present": true },
+        { "zone": "hand", "code": 36426778, "present": false },
+        { "zone": "deck", "code": 36426778, "present": true },
+        { "zone": "extra", "code": 62709239, "present": true },
+        { "zone": "own-monsters", "maxCount": 0 }
+      ],
+      "choices": [
+        { "label": "Buscar Botas e invocar Luvas normalmente", "explanation": "Luvas é um Cavaleiro Fantasma de Nível 3: a busca de Botas permite Invocação-Especial e depois Espada Quebrada. Luvas como matéria também aumenta o ATK desse Xyz TREVAS.", "action": { "kind": "activate", "code": 32807846, "targetCode": 36426778 } },
+        { "label": "Buscar apenas o Guerreiro de maior ATK", "explanation": "Esse critério ignora a extensão imediata de Botas nesta mão.", "action": { "kind": "hold", "code": 32807846 } }
+      ],
+      "correctChoice": 0,
+      "sourceIds": ["set-list", "silent-boots", "break-sword"]
+    },
+    {
+      "id": "kagemucha-sem-botas",
+      "botEligible": true,
+      "lessonId": "rusty-bardiche",
+      "title": "Sem Botas, Kagemucha ainda cria dois Níveis 3",
+      "situation": "Seu campo está vazio. Manto Antigo e Cavaleiro Kagemucha estão na mão, Botas Silenciosas não; Espada Quebrada está no Extra. Qual Invocação-Normal abre a Xyz sem depender de comprar Botas?",
+      "signals": [
+        { "zone": "hand", "code": 90432163, "present": true },
+        { "zone": "hand", "code": 19353570, "present": true },
+        { "zone": "hand", "code": 36426778, "present": false },
+        { "zone": "own-monsters", "maxCount": 0 },
+        { "zone": "extra", "code": 62709239, "present": true }
+      ],
+      "choices": [
+        { "label": "Invocar Manto Antigo e chamar Kagemucha", "explanation": "A Invocação-Normal do Nível 3 abre o efeito de Kagemucha na mão. Os dois corpos podem formar Espada Quebrada; Manto só buscará Botas depois de chegar ao Cemitério, não enquanto for material Xyz.", "action": { "kind": "summon", "code": 90432163, "mode": "normal" } },
+        { "label": "Invocar um Nível 4 por ter mais ATK", "explanation": "Kagemucha responde à Invocação-Normal de um Nível 3. O Nível 4 não abre essa extensão nesta mão.", "action": { "kind": "hold", "code": 90432163 } }
+      ],
+      "correctChoice": 0,
+      "sourceIds": ["ancient-cloak", "kagemucha", "break-sword"]
+    },
+    {
+      "id": "gloves-prepara-wing",
+      "botEligible": true,
+      "lessonId": "ragged-gloves-prepara-a-armadilha-certa",
+      "title": "Use o Cemitério para encontrar a extensão que falta",
+      "situation": "Ragged Gloves e Silent Boots estão no Cemitério, e Wing ainda está no Deck. Você precisa de outro corpo para a próxima Xyz. Qual efeito abre essa linha?",
+      "signals": [
+        { "zone": "grave", "code": 63821877, "present": true },
+        { "zone": "grave", "code": 36426778, "present": true },
+        { "zone": "deck", "code": 98431356, "present": true }
+      ],
+      "choices": [
+        { "label": "Banir Gloves para enviar Wing ao Cemitério", "explanation": "Wing pode então ser banida do Cemitério para reviver um Phantom Knights elegível. Gloves já foi gasto; conte os materiais restantes antes de escolher a Xyz.", "action": { "kind": "effect", "code": 63821877, "targetCode": 98431356 } },
+        { "label": "Guardar Gloves no Cemitério e encerrar a linha", "explanation": "A extensão pelo envio de Wing está disponível agora e fornece o corpo que falta para esta rota.", "action": { "kind": "hold", "code": 63821877 } }
+      ],
+      "correctChoice": 0,
+      "sourceIds": ["official-card-63821877", "official-card-98431356"]
+    }
+  ],
+  "tcg-sr13": [
+    {
+      "id": "genta-encontra-gates",
+      "botEligible": true,
+      "lessonId": "genta-coloca-gates-e-retorna",
+      "title": "Descarte por efeito para abrir o motor Mundo Negro",
+      "situation": "Genta está na mão e Gates ainda está no Deck. Como acessar o Campo sem esperar comprá-lo? Se Snoww também estiver na mão, ela pode continuar a sequência.",
+      "signals": [
+        { "zone": "hand", "code": 77895328, "present": true },
+        { "zone": "deck", "code": 33017655, "present": true }
+      ],
+      "choices": [
+        { "label": "Descartar Genta para buscar Gates", "explanation": "Genta encontra o Campo. Depois, se Snoww estiver disponível, Gates pode banir Genta como custo e descartá-la por efeito, abrindo compra e busca conforme a sequência da lição.", "action": { "kind": "effect", "code": 77895328, "targetCode": 33017655 } },
+        { "label": "Guardar Genta e esperar comprar Gates", "explanation": "A própria Genta já oferece acesso ao Campo neste cenário; esperar atrasa o motor sem necessidade.", "action": { "kind": "hold", "code": 77895328 } }
+      ],
+      "correctChoice": 0,
+      "sourceIds": ["official-card-77895328", "official-card-33017655", "official-card-60228941"]
+    }
+  ],
+  "tcg-l26d-sky-striker": [
+    {
+      "id": "raye-abre-o-link",
+      "botEligible": true,
+      "lessonId": "kagari-recupera-a-magia-do-turno",
+      "title": "Raye é a melhor Invocação-Normal quando as duas estão na mão",
+      "situation": "Seu campo está vazio, Raye e Roze estão na mão e Kagari está no Extra. Qual delas abre a linha que pode fazer um Link Sky Striker no mesmo turno?",
+      "signals": [
+        { "zone": "hand", "code": 26077387, "present": true },
+        { "zone": "hand", "code": 37351133, "present": true },
+        { "zone": "own-monsters", "maxCount": 0 },
+        { "zone": "extra", "code": 63288573, "present": true }
+      ],
+      "choices": [
+        { "label": "Invocar Raye normalmente", "explanation": "Raye pode usar seu efeito rápido para entrar em um Link Sky Striker e ainda oferece retorno do Cemitério depois. Roze continua na mão como opção para um momento em que não bloqueie suas Magias.", "action": { "kind": "summon", "code": 26077387, "mode": "normal" } },
+        { "label": "Invocar Roze normalmente", "explanation": "Roze tem 1500 ATK, mas não oferece a mesma transição imediata para Kagari. Ela pode permanecer na mão enquanto Raye libera a Zona de Monstros Principal.", "action": { "kind": "summon", "code": 37351133, "mode": "normal" } }
+      ],
+      "correctChoice": 0,
+      "sourceIds": ["official-card-26077387", "official-card-63288573"]
+    },
+    {
+      "id": "kagari-recupera-engage",
+      "botEligible": true,
+      "lessonId": "kagari-recupera-a-magia-do-turno",
+      "title": "Uma magia usada ainda pode voltar",
+      "situation": "Raye ocupa sua Zona de Monstros Principal, Engage está no Cemitério e Kagari está disponível no Extra. Qual Link libera a zona e recupera a magia?",
+      "signals": [
+        { "zone": "main-monsters", "code": 26077387, "present": true },
+        { "zone": "own-monsters", "maxCount": 1 },
+        { "zone": "grave", "code": 63166095, "present": true },
+        { "zone": "extra", "code": 63288573, "present": true }
+      ],
+      "choices": [
+        { "label": "Fazer Kagari e recuperar Engage", "explanation": "Kagari usa Raye como material Link, desocupa a Zona Principal e pode trazer Engage de volta do Cemitério. Confira a zona legal para a Invocação.", "action": { "kind": "summon", "code": 63288573, "mode": "link", "targetCode": 63166095 } },
+        { "label": "Deixar Raye na Zona Principal e esperar outra magia", "explanation": "Neste cenário, a zona ocupada atrapalha suas Magias Sky Striker e Engage já está disponível para recuperação.", "action": { "kind": "hold", "code": 26077387 } }
+      ],
+      "correctChoice": 0,
+      "sourceIds": ["official-card-26077387", "official-card-63288573", "official-card-63166095"]
+    },
+    {
+      "id": "libere-zona-principal",
+      "botEligible": true,
+      "lessonId": "kagari-recupera-a-magia-do-turno",
+      "title": "Libere a zona antes da magia",
+      "situation": "Raye ocupa sua Zona de Monstros Principal, Engage está na mão e Kagari está disponível no Extra. O que conferir antes de ativar Engage?",
+      "signals": [
+        { "zone": "main-monsters", "code": 26077387, "present": true },
+        { "zone": "own-monsters", "maxCount": 1 },
+        { "zone": "hand", "code": 63166095, "present": true },
+        { "zone": "extra", "code": 63288573, "present": true },
+        { "zone": "own-main-monsters", "minCount": 1 }
+      ],
+      "choices": [
+        { "label": "Usar Raye para fazer Kagari e então avaliar Engage", "explanation": "As Magias Sky Striker exigem sua Zona de Monstros Principal vazia. Faça o Link em uma zona legal, libere a zona principal e só depois verifique as demais condições de Engage.", "action": { "kind": "summon", "code": 63288573, "mode": "link" } },
+        { "label": "Ativar Engage com Raye na zona principal", "explanation": "A Zona de Monstros Principal ocupada impede essa ativação. Ter três Magias no Cemitério não remove essa exigência.", "action": { "kind": "activate", "code": 63166095 } }
+      ],
+      "correctChoice": 0,
+      "sourceIds": ["official-card-26077387", "official-card-63166095", "official-card-63288573"]
+    }
+  ]
+}

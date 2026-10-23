@@ -5,6 +5,8 @@ import type { BotPolicy } from "@/lib/duel/bot/difficulty";
 import { evaluateRoute } from "@/lib/duel/bot/evaluator";
 import { BotIntentStack } from "@/lib/duel/bot/intent";
 import type { DuelDeckPayload } from "@/lib/types";
+import type { BotGuideHints } from "@/lib/duel/bot/guide-hints";
+import type { BoardPlayer } from "@/lib/duel/board-state";
 
 export class BotPlanner {
   route: BotRoute | null = null;
@@ -22,17 +24,33 @@ export class BotPlanner {
   private repeatedAttempts = 0;
 
   readonly profile: BotDeckProfile | null;
+  readonly guide: BotGuideHints | null;
   private readonly deck: DuelDeckPayload | null;
-  constructor(profile: BotDeckProfile | null, deck: DuelDeckPayload | null) {
+  constructor(profile: BotDeckProfile | null, deck: DuelDeckPayload | null, guide: BotGuideHints | null = null) {
     this.profile = profile;
     this.deck = deck;
+    this.guide = profile ? null : guide;
   }
   get step(): BotStep | null { return this.route?.steps[this.stepIndex] ?? null; }
   get reserves(): number[] {
     if (!this.route) return this.continuation;
     return [...this.route.reserves, ...this.route.steps.slice(this.stepIndex + 1).flatMap((s) => s.action ? [s.action.code] : [])];
   }
-  get starters(): number[] { return this.profile?.roles.filter((r) => r.roles.includes("starter")).map((r) => r.code) ?? []; }
+  get starters(): number[] { return this.profile?.roles.filter((r) => r.roles.includes("starter")).map((r) => r.code)
+    ?? [...(this.guide?.opening ?? [])]; }
+  get protectedCards(): readonly number[] { return this.guide?.core ?? []; }
+
+  /** Uma abertura editorial só ganha prioridade quando suas peças observáveis existem. */
+  openingReady(code: number, mine: BoardPlayer): boolean {
+    if (!this.guide || !this.deck) return false;
+    const available = [...mine.hand, ...mine.monsters, ...mine.spells, ...mine.grave];
+    return this.guide.plays.some((play) => play.code === code && play.support.every((support) => {
+      if (play.zone === "grave") return mine.grave.some((card) => card.code === support);
+      if (play.zone === "deck") return remainingInDeck(this.deck!, mine, support) > 0
+        || mine.extra.some((card) => card.code === support);
+      return available.some((card) => card?.code === support);
+    }));
+  }
 
   observe(ctx: BotContext, policy: BotPolicy, deadline: number): void {
     if (this.turn !== ctx.turnCount) {
@@ -65,42 +83,72 @@ export class BotPlanner {
     // Uma ação que deixou de ser oferecida não autoriza avançar a receita.
     if (this.route && this.step && ctx.prompt.type === M.SELECT_IDLECMD) {
       const action = this.step.action;
-      if (!action || !ctx.prompt[action.kind].some((c) => c.code === action.code)) this.abandon("Recursos ou ação indisponíveis; procurando alternativa");
+      // Etapas sem `action` aguardam a resolução de um efeito ou uma escolha
+      // de material. Não aparecerem em SELECT_IDLECMD não invalida a rota.
+      if (action && !ctx.prompt[action.kind].some((c) => c.code === action.code)) this.abandon("Recursos ou ação indisponíveis; procurando alternativa");
     }
     if (this.route || ctx.prompt.type !== M.SELECT_IDLECMD || ctx.turnPlayer !== ctx.me) return;
     const prompt = ctx.prompt;
-    const candidates = this.profile.routes.filter((route) => !this.unavailable.has(route.id)
-      && (!route.minDifficulty || policy.considerResponses)
-      && this.canStart(route, ctx) && route.steps[0].action
-      && prompt[route.steps[0].action.kind].some((c) => c.code === route.steps[0].action!.code));
+    const candidates = this.profile.routes.flatMap((route) => {
+      if (this.unavailable.has(route.id) || (route.minDifficulty && !policy.considerResponses)) return [];
+      const entry = policy.considerResponses ? this.completedPrefix(route, ctx) : 0;
+      const action = route.steps[entry]?.action;
+      if (!action || !this.canStart(route, ctx, entry)
+        || !prompt[action.kind].some((card) => card.code === action.code)) return [];
+      return [{ route, entry }];
+    });
     this.alternatives = [];
-    let best: BotRoute | null = null;
+    let best: { route: BotRoute; entry: number } | null = null;
     let bestScore = -Infinity;
-    for (const route of candidates.slice(0, policy.alternatives)) {
+    for (const candidate of candidates.slice(0, policy.alternatives)) {
       if (performance.now() >= deadline && best) break;
-      const rating = evaluateRoute(route, ctx, policy);
+      const rating = evaluateRoute(candidate.route, ctx, policy);
       this.alternatives.push(rating);
-      if (rating.score > bestScore) { best = route; bestScore = rating.score; }
+      if (rating.score > bestScore) { best = candidate; bestScore = rating.score; }
     }
     // Parar faz parte da comparação: uma mesa já estabelecida não precisa de
     // uma segunda rota que só consome recursos. O motor pode oferecer mais.
-    const mine = ctx.readBoard(true).players[ctx.me];
+    const board = ctx.readBoard(true);
+    const mine = board.players[ctx.me];
+    const foe = board.players[1 - ctx.me];
     const established = mine.monsters.some((c) => c?.code && this.profile!.roles.some((r) => r.code === c.code && r.roles.includes("finisher")));
-    const stopScore = established && policy.preserveResources ? 200 : 0;
+    const myStrongest = Math.max(0, ...mine.monsters.map((c) => c && !c.faceDown
+      ? c.defense ? c.defenseValue ?? 0 : c.attack ?? 0 : 0));
+    const theirAttacks = foe.monsters.map((c) => c && !c.faceDown && !c.defense ? c.attack ?? 0 : 0);
+    const theirStrongest = Math.max(0, ...theirAttacks);
+    // Preservar uma mesa pronta é bom enquanto ela segura o campo. Se um
+    // atacante visível supera nosso melhor monstro, considerar outra rota.
+    const stopScore = established && policy.preserveResources
+      ? theirStrongest >= myStrongest ? 60 : 200
+      : 0;
     this.alternatives.push({ id: "preservar", score: stopScore, reason: "Preservar defesa e continuação existentes" });
     if (best && bestScore > stopScore) {
-      this.route = best;
-      this.stepIndex = 0;
+      this.route = best.route;
+      this.stepIndex = best.entry;
       this.substitutions.clear();
-      this.reason = "Rota compatível com os recursos conhecidos";
+      this.reason = best.entry > 0 ? "Retomando rota a partir do campo confirmado" : "Rota compatível com os recursos conhecidos";
     }
   }
 
-  private canStart(route: BotRoute, ctx: BotContext): boolean {
+  private completedPrefix(route: BotRoute, ctx: BotContext): number {
+    let index = 0;
+    while (index < route.steps.length && route.steps[index].completeWhen.length > 0
+      && route.steps[index].completeWhen.every((condition) => this.met(condition, ctx))) index += 1;
+    return index;
+  }
+
+  private canStart(route: BotRoute, ctx: BotContext, entry = 0): boolean {
     const mine = ctx.readBoard(true).players[ctx.me];
-    return mine.hand.length >= route.minHand && route.requires.every((r) => {
+    const priorActions = route.steps.slice(0, entry).flatMap((step) => step.action ? [step.action.code] : []);
+    if (mine.hand.length < Math.max(0, route.minHand - priorActions.length)) return false;
+    return route.requires.every((r) => {
       if (r.zone === "deck") return remainingInDeck(this.deck!, mine, r.code) >= r.count;
-      return mine[r.zone].filter((c) => c?.code === r.code).length >= r.count;
+      const available = mine[r.zone].filter((c) => c?.code === r.code).length;
+      if (r.zone !== "hand" || available >= r.count) return available >= r.count;
+      const used = priorActions.filter((code) => code === r.code).length;
+      const visible = [...mine.monsters, ...mine.spells, ...mine.grave, ...mine.banished]
+        .filter((card) => card?.code === r.code).length;
+      return available + Math.min(used, visible) >= r.count;
     });
   }
 
@@ -132,12 +180,24 @@ export class BotPlanner {
 
   recordSpend(cards: readonly OcgCardLoc[], ctx: BotContext): void {
     if (!this.step?.spend || !this.applies(ctx)) return;
-    const expected = this.step.targets.find((t) => t.location === L.HAND && t.scope !== "action");
-    const actual = cards.find((c) => c.location === L.HAND && c.controller === ctx.me);
-    if (!expected || !actual || expected.code === actual.code) return;
+    const expected = this.step.targets.filter((t) => t.location === L.HAND && t.scope !== "action");
+    const actual = cards.filter((c) => c.location === L.HAND && c.controller === ctx.me);
+    if (!expected.length || !actual.length) return;
     const zone = this.step.spend === "return" ? "hand" : this.step.spend === "banish" ? "banished" : "grave";
-    const count = ctx.readBoard(true).players[ctx.me][zone].filter((c) => c.code === actual.code).length;
-    this.substitutions.set(`${this.step.id}:${expected.code}`, { code: actual.code, count });
+    const taken = new Set<number>();
+    const thresholds = new Map<number, number>();
+    const board = ctx.readBoard(true).players[ctx.me];
+    for (const target of expected) {
+      let index = actual.findIndex((card, i) => !taken.has(i) && card.code === target.code);
+      if (index < 0) index = actual.findIndex((_, i) => !taken.has(i));
+      if (index < 0) break;
+      taken.add(index);
+      const code = actual[index].code;
+      const before = board[zone].filter((card) => card.code === code).length;
+      const count = thresholds.get(code) ?? before;
+      thresholds.set(code, count + 1);
+      this.substitutions.set(`${this.step.id}:${target.code}`, { code, count });
+    }
   }
 
   recordAttempt(ctx: BotContext): boolean {

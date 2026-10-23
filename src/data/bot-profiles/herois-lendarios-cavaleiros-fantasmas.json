@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "id": "herois-lendarios-cavaleiros-fantasmas",
-  "revision": 1,
+  "revision": 2,
   "format": "tcg",
   "presetId": "tcg-lehd-phantom-knights",
   "guide": {
@@ -83,7 +83,6 @@
     {
       "code": 62709239,
       "roles": [
-        "finisher",
         "interaction",
         "material"
       ]
@@ -97,7 +96,8 @@
     {
       "code": 26692769,
       "roles": [
-        "material"
+        "finisher",
+        "interaction"
       ]
     },
     {

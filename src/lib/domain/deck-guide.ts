@@ -51,6 +51,24 @@ export interface LessonPractice {
   stages: { title: string; instruction: string; why: string; targets: GuideCardTarget[]; completeWhen: PracticeCondition[] }[];
 }
 
+/** Sinais que podem ser conferidos na própria mão, nas zonas públicas ou na lista do deck. */
+export type GuideDecisionSignal =
+  | { zone: "hand" | "grave" | "monsters" | "main-monsters" | "extra" | "deck"; code: number; present: boolean }
+  | { zone: "own-hand" | "own-monsters" | "opponent-monsters" | "own-main-monsters" | "own-field-cards"; minCount?: number; maxCount?: number };
+
+export interface GuideDecision {
+  id: string;
+  /** Só vira preferência automática quando os sinais codificam os pré-requisitos relevantes. */
+  botEligible: boolean;
+  lessonId: string;
+  title: string;
+  situation: string;
+  signals: GuideDecisionSignal[];
+  choices: { label: string; explanation: string; action: { kind: "summon" | "activate" | "effect" | "hold"; code: number; mode?: "normal" | "special" | "link"; targetCode?: number } }[];
+  correctChoice: number;
+  sourceIds: string[];
+}
+
 export interface DeckGuide {
   schemaVersion: 1;
   id: string;
@@ -69,6 +87,7 @@ export interface DeckGuide {
   overview: { goal: string; plan: string[]; strengths: string[]; watchOut: string[] };
   keyCards: { code: number; name: string; role: string; explanation: string; sourceIds: string[] }[];
   lessons: GuideLesson[];
+  decisions?: GuideDecision[];
   sources: GuideSource[];
 }
 

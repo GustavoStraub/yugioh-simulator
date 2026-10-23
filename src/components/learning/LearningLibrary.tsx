@@ -10,8 +10,9 @@ import { normalizeSearch } from "@/lib/domain/preset-decks";
 import { DeckDifficulty } from "./DeckDifficulty";
 import styles from "./learning.module.css";
 
-type LibraryGuide = Pick<DeckGuide, "id" | "revision" | "title" | "description" | "difficulty" | "minutes" | "tags" | "coverCodes" | "presetId"> & { lessons: { id: string; steps: null[] }[]; searchText: string };
+type LibraryGuide = Pick<DeckGuide, "id" | "revision" | "title" | "description" | "difficulty" | "minutes" | "tags" | "coverCodes" | "presetId"> & { lessons: { id: string; steps: null[] }[]; practiceCount: number; decisionCount: number; searchText: string };
 type SortOrder = "default" | "newest" | "oldest" | "easiest" | "hardest";
+type GuideType = "all" | "practice" | "decisions";
 const DIFFICULTY_ORDER: Record<string, number> = { Iniciante: 1, Intermediário: 2, Avançado: 3 };
 const releaseYear = (guide: LibraryGuide) => Number.parseInt(getPresetDeck(guide.presetId)?.year ?? "0", 10) || 0;
 
@@ -19,9 +20,10 @@ export function LearningLibrary({ guides: allGuides }: { guides: LibraryGuide[] 
   const [query, setQuery] = useState("");
   const [visible, setVisible] = useState(12);
   const [sortOrder, setSortOrder] = useState<SortOrder>("default");
+  const [guideType, setGuideType] = useState<GuideType>("all");
   const guides = allGuides.filter((guide) => normalizeSearch(
     [guide.title, guide.description, guide.difficulty, guide.searchText, ...guide.tags].join(" "),
-  ).includes(normalizeSearch(query.trim()))).sort((a, b) => {
+  ).includes(normalizeSearch(query.trim())) && (guideType === "all" || (guideType === "practice" ? guide.practiceCount > 0 : guide.decisionCount > 0))).sort((a, b) => {
     if (sortOrder === "newest") return releaseYear(b) - releaseYear(a);
     if (sortOrder === "oldest") return releaseYear(a) - releaseYear(b);
     if (sortOrder === "easiest") return DIFFICULTY_ORDER[a.difficulty] - DIFFICULTY_ORDER[b.difficulty];
@@ -35,17 +37,17 @@ export function LearningLibrary({ guides: allGuides }: { guides: LibraryGuide[] 
         <div>
           <p className={styles.eyebrow}>Academia de duelos</p>
           <h1>Conheça o deck.<br /><span>Encontre sua jogada.</span></h1>
-          <p className={styles.lead}>Entenda o plano, descubra o papel das cartas e acompanhe as sequências antes de levar o deck para a mesa.</p>
+          <p className={styles.lead}>Entenda o plano, descubra o papel das cartas e aprenda a escolher uma rota quando a mão ou a mesa mudam.</p>
         </div>
         <ol className={styles.learningPath} aria-label="Como aprender">
-          {["Entenda o plano", "Aprenda as sequências", "Pratique na mesa", "Jogue contra o bot"].map((item, i) => (
+          {["Entenda o plano", "Compare as decisões", "Pratique as sequências", "Jogue contra o bot"].map((item, i) => (
             <li key={item}><span>{String(i + 1).padStart(2, "0")}</span>{item}</li>
           ))}
         </ol>
       </header>
 
       <div className={styles.libraryHeading}>
-        <div><p className={styles.eyebrow}>Guias para decks oficiais</p><h2>Escolha por onde começar</h2><p>Explore {allGuides.length} decks com estratégias em etapas.<span className={styles.libraryDescription}> Alguns guias também oferecem exercícios na mesa com mão preparada.</span></p></div>
+        <div><p className={styles.eyebrow}>Guias para decks oficiais</p><h2>Escolha por onde começar</h2><p>Explore {allGuides.length} decks com estratégias em etapas. {allGuides.filter((guide) => guide.decisionCount > 0).length} já têm cenários para comparar escolhas.<span className={styles.libraryDescription}> Alguns guias também oferecem exercícios na mesa com mão preparada.</span></p></div>
       </div>
 
       <div className={styles.libraryControls}>
@@ -59,6 +61,13 @@ export function LearningLibrary({ guides: allGuides }: { guides: LibraryGuide[] 
             <option value="hardest">Dificuldade: maior para menor</option>
           </select>
         </label>
+        <label className={styles.search}>Tipo de guia
+          <select value={guideType} onChange={(event) => { setGuideType(event.target.value as GuideType); setVisible(12); }}>
+            <option value="all">Todos</option>
+            <option value="decisions">Com decisões de jogo</option>
+            <option value="practice">Com exercícios na mesa</option>
+          </select>
+        </label>
       </div>
 
       <p className={styles.difficultyHint}>Dificuldade para pilotar: iniciante para planos diretos, intermediário para combinar efeitos e avançado para sequências e gestão de recursos mais exigentes. Lançamento considera o ano da edição.</p>
@@ -67,7 +76,7 @@ export function LearningLibrary({ guides: allGuides }: { guides: LibraryGuide[] 
         {guides.slice(0, visible).map((guide) => <GuideCard key={guide.id} guide={guide} />)}
       </div>
       {visible < guides.length && <button type="button" className={`${styles.secondaryButton} ${styles.libraryMore}`} onClick={() => setVisible((count) => count + 12)}>Mostrar mais guias</button>}
-      {guides.length === 0 && <p className={styles.empty} role="status">Nenhum guia encontrado. Busque pelo nome do deck ou por Fusão, Sincro, Xyz ou Link.</p>}
+      {guides.length === 0 && <p className={styles.empty} role="status">Nenhum guia encontrado. Tente outro nome ou escolha “Todos”.</p>}
       <p className={styles.footnote}>Guias produzidos pelo app para as listas oficiais disponíveis. Cada trilha inclui suas fontes e a data da revisão.</p>
     </div>
   );
@@ -97,6 +106,7 @@ function GuideCard({ guide }: { guide: LibraryGuide }) {
         <div className={styles.guideCardFooter}>
           <DeckDifficulty difficulty={guide.difficulty} />
           <p className={styles.meta}>{guide.lessons.length} lições · cerca de {guide.minutes} min</p>
+          <div className={styles.guideFeatures}>{guide.decisionCount > 0 && <span>{guide.decisionCount} {guide.decisionCount === 1 ? "decisão" : "decisões"} para comparar</span>}{guide.practiceCount > 0 && <span>{guide.practiceCount} {guide.practiceCount === 1 ? "exercício" : "exercícios"} na mesa</span>}</div>
           {started && <div className={styles.cardProgress}><progress aria-label={`Progresso em ${guide.title}`} max={guide.lessons.length} value={progress.completed.length} /><span>{progress.completed.length}/{guide.lessons.length} lições concluídas</span></div>}
           <Link className={styles.primaryButton} href={`/aprender/${guide.id}${started ? `?licao=${resume}` : ""}`}>
             {progress.completed.length === guide.lessons.length ? "Revisar trilha" : started ? "Continuar aprendendo" : "Conhecer o deck"}<span aria-hidden="true">↗</span>

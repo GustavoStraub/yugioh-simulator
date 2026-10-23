@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "id": "herois-lendarios-destiny-hero",
-  "revision": 1,
+  "revision": 2,
   "format": "tcg",
   "presetId": "tcg-lehd-destiny-hero",
   "guide": {
@@ -82,8 +82,7 @@
     {
       "code": 9411399,
       "roles": [
-        "finisher",
-        "interaction",
+        "extender",
         "material"
       ]
     },
@@ -96,7 +95,8 @@
     {
       "code": 90579153,
       "roles": [
-        "material"
+        "finisher",
+        "interaction"
       ]
     },
     {
@@ -114,7 +114,8 @@
     {
       "code": 58481572,
       "roles": [
-        "material"
+        "finisher",
+        "interaction"
       ]
     },
     {

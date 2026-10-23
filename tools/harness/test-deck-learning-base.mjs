@@ -9,6 +9,8 @@ import { getPresetDeck } from '@/lib/data/preset-decks-catalog';
 const read = file => JSON.parse(readFileSync(file, 'utf8'));
 const base = read('src/data/deck-learning-base.json');
 const presets = read('src/data/preset-decks-tcg.json');
+const authoredDecisions = read('src/data/guide-decisions.json');
+const authoredCardNotes = read('src/data/guide-card-notes.json');
 const selected = base.coverage.filter(item => item.status === 'selected').map(item => item.presetId);
 const excluded = base.coverage.filter(item => item.status === 'excluded').map(item => item.presetId);
 assert.equal(new Set(base.coverage.map(item => item.presetId)).size, presets.length);
@@ -76,6 +78,32 @@ for (const guide of DECK_GUIDES) {
       assert.equal(lesson.practice, null);
       assert.equal(lesson.startingHand, null);
     }
+  }
+  for (const decision of guide.decisions ?? []) {
+    assert.ok(guide.lessons.some(lesson => lesson.id === decision.lessonId), `decisão aponta para lição real: ${decision.id}`);
+    assert.ok(decision.title && decision.situation && decision.signals.length);
+    assert.ok(decision.choices.length >= 2 && decision.correctChoice >= 0 && decision.correctChoice < decision.choices.length);
+    assert.ok(decision.sourceIds.length && decision.sourceIds.every(id => sourceIds.has(id)), `fontes da decisão: ${decision.id}`);
+    for (const signal of decision.signals) {
+      if ('code' in signal) assert.ok(allowed.has(signal.code), `carta da condição está no deck: ${decision.id}`);
+      else assert.ok(signal.minCount !== undefined || signal.maxCount !== undefined, `contagem explícita: ${decision.id}`);
+    }
+    for (const choice of decision.choices) {
+      assert.ok(choice.label && choice.explanation && allowed.has(choice.action.code), `ação da escolha usa carta da lista: ${decision.id}`);
+      if (choice.action.targetCode) assert.ok(allowed.has(choice.action.targetCode), `alvo da escolha está no deck: ${decision.id}`);
+    }
+  }
+}
+assert.deepEqual(new Set(Object.keys(authoredDecisions)), new Set(DECK_GUIDES.filter(guide => guide.decisions?.length).map(guide => guide.presetId)));
+assert.equal(DECK_GUIDES.flatMap(guide => guide.decisions ?? []).length, 21);
+for (const [presetId, notes] of Object.entries(authoredCardNotes)) {
+  const guide = DECK_GUIDES.find(item => item.presetId === presetId);
+  assert.ok(guide, `notas ligadas a um guia: ${presetId}`);
+  for (const [code, note] of Object.entries(notes)) {
+    const card = guide.keyCards.find(item => item.code === Number(code));
+    assert.ok(card, `nota ligada a carta-chave: ${presetId}/${code}`);
+    assert.equal(card.role, note.role);
+    assert.equal(card.explanation, note.explanation);
   }
 }
 const strategyGuide = DECK_GUIDES.find(guide => guide.id === 'tcg-sr13');

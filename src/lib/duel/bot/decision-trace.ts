@@ -12,13 +12,14 @@ export interface BotDecisionTrace {
   prompt: number;
   objective: string;
   route: string | null;
+  guideDecision: string | null;
   alternatives: { id: string; score: number; reason: string }[];
   response: OcgResponse;
   reason: string;
   fallback: string | null;
   elapsedMs: number;
   budgetExhausted: boolean;
-  observation: { me: 0 | 1; prompt: OcgMessage; board: BoardState | null; lifePoints: readonly [number, number]; phase: number | null; chainCode: number | null };
+  observation: { me: 0 | 1; prompt: OcgMessage; board: BoardState | null; lifePoints: readonly [number, number]; phase: number | null; chainCode: number | null; resolvingCode: number | null; resolvingPlayer: number | null; resolvingDescription: string | null; step: string | null };
 }
 
 export interface BotDiagnostics {

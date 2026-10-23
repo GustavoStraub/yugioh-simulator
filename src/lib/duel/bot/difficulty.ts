@@ -11,9 +11,9 @@ export interface BotPolicy {
 }
 
 export const BOT_POLICIES: Record<BotDifficulty, BotPolicy> = {
-  easy: { cpuMs: 25, alternatives: 1, battleWidth: 1, battleDepth: 1, preserveResources: false, considerResponses: false },
-  medium: { cpuMs: 100, alternatives: 8, battleWidth: 4, battleDepth: 5, preserveResources: true, considerResponses: false },
-  hard: { cpuMs: 300, alternatives: 24, battleWidth: 8, battleDepth: 7, preserveResources: true, considerResponses: true },
+  easy: { cpuMs: 10, alternatives: 1, battleWidth: 1, battleDepth: 1, preserveResources: false, considerResponses: false },
+  medium: { cpuMs: 20, alternatives: 8, battleWidth: 4, battleDepth: 5, preserveResources: true, considerResponses: false },
+  hard: { cpuMs: 40, alternatives: 24, battleWidth: 8, battleDepth: 7, preserveResources: true, considerResponses: true },
 };
 
 export const BOT_DIFFICULTIES: { id: BotDifficulty; label: string; description: string }[] = [
