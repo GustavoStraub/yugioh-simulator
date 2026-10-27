@@ -2109,27 +2109,424 @@
   },
   {
     "id": "tcg-egs1",
+    "tactics": "slifer",
     "signature": "tcg:856784,4694209,5130393,5253985,10000020,12766474,12958919,14087893,17626381,18144506,19280589,19870120,21830679,22923081,23431858,26905245,27198001,32247099,34710660,37576645,39913299,42469671,42671151,44095762,52112003,59160188,59919307,67169062,67284107,67692580,71413901,72302403,78651105,79387392,83764718,86377375,86377375,86377375,93104632,98045062||",
     "core": [
       10000020,
       5253985,
       42469671,
       12958919,
-      32247099
+      32247099,
+      86377375,
+      59160188
     ],
     "extra": [],
     "opening": [
-      12958919,
-      42469671
+      86377375,
+      59160188
     ],
     "plays": [
       {
-        "code": 42469671,
-        "support": [],
+        "code": 86377375,
+        "support": [
+          59160188
+        ],
+        "zone": "deck"
+      },
+      {
+        "code": 86377375,
+        "support": [
+          59160188
+        ],
         "zone": "visible"
       }
     ],
-    "decisions": []
+    "decisions": [
+      {
+        "id": "slifer-ahrima-busca-covil",
+        "botEligible": true,
+        "lessonId": "ahrima-encontra-o-covil",
+        "title": "Ahrima na mão não é só um atacante",
+        "situation": "Sua mesa está vazia. Ahrima está na mão, Covil não está na mão e ainda há uma cópia no Deck. Qual ação prepara o motor sem gastar a Normal?",
+        "signals": [
+          {
+            "zone": "hand",
+            "code": 86377375,
+            "present": true
+          },
+          {
+            "zone": "hand",
+            "code": 59160188,
+            "present": false
+          },
+          {
+            "zone": "deck",
+            "code": 59160188,
+            "present": true
+          },
+          {
+            "zone": "own-field-cards",
+            "maxCount": 0
+          }
+        ],
+        "choices": [
+          {
+            "label": "Descartar Ahrima para buscar Covil",
+            "explanation": "É o efeito da mão e preserva a Invocação-Normal. Uma segunda cópia pode ser o monstro que usará o Campo.",
+            "action": {
+              "kind": "activate",
+              "code": 86377375,
+              "targetCode": 59160188
+            }
+          },
+          {
+            "label": "Invocar Ahrima esperando buscar ao entrar",
+            "explanation": "Ahrima não busca Covil ao ser Invocado. Você gastaria a Normal e ainda não teria o Campo.",
+            "action": {
+              "kind": "summon",
+              "code": 86377375,
+              "mode": "normal"
+            }
+          }
+        ],
+        "correctChoice": 0,
+        "sourceIds": [
+          "official-card-86377375",
+          "official-card-59160188"
+        ]
+      },
+      {
+        "id": "slifer-ahrima-preserva-o-corpo",
+        "botEligible": false,
+        "lessonId": "ahrima-tributa-o-adversario",
+        "title": "Quem paga o Tributo de Ahrima?",
+        "situation": "Covil está ativo e disponível; Ahrima está no seu campo, e há um monstro adversário elegível. Você quer remover a ameaça e repor a mão.",
+        "signals": [
+          {
+            "zone": "monsters",
+            "code": 86377375,
+            "present": true
+          },
+          {
+            "zone": "opponent-monsters",
+            "minCount": 1
+          }
+        ],
+        "choices": [
+          {
+            "label": "Ativar Ahrima e usar o adversário como custo pelo Covil",
+            "explanation": "Preserva Ahrima e remove antes da resolução. Depois você escolhe compra ou uma busca elegível, não Slifer.",
+            "action": {
+              "kind": "effect",
+              "code": 86377375
+            }
+          },
+          {
+            "label": "Sempre oferecer o próprio Ahrima",
+            "explanation": "Pode ser um custo legal, mas nesta situação entrega seu corpo e deixa a ameaça adversária. Se tributar a si mesmo, também perde a opção de busca.",
+            "action": {
+              "kind": "effect",
+              "code": 86377375,
+              "targetCode": 86377375
+            }
+          }
+        ],
+        "correctChoice": 0,
+        "sourceIds": [
+          "official-card-86377375",
+          "official-card-59160188"
+        ]
+      },
+      {
+        "id": "slifer-ahrima-nao-busca-o-deus",
+        "botEligible": false,
+        "lessonId": "ahrima-tributa-o-adversario",
+        "title": "O Campo não muda as cartas dentro do Deck",
+        "situation": "Ahrima acabou de tributar outro monstro e você escolheu buscar. Vishuda e Slifer continuam no Deck. Qual deles satisfaz a busca?",
+        "signals": [
+          {
+            "zone": "deck",
+            "code": 23431858,
+            "present": true
+          },
+          {
+            "zone": "deck",
+            "code": 10000020,
+            "present": true
+          }
+        ],
+        "choices": [
+          {
+            "label": "Vishuda, TREVAS com 2500 DEF",
+            "explanation": "É um dos dois alvos deste preset, junto com Duke Shade. Escolha conforme a continuação que precisa.",
+            "action": {
+              "kind": "effect",
+              "code": 86377375,
+              "targetCode": 23431858
+            }
+          },
+          {
+            "label": "Slifer, porque Covil o torna TREVAS",
+            "explanation": "Covil altera monstros face-up no campo, não atributos no Deck. Slifer é DIVINO lá.",
+            "action": {
+              "kind": "effect",
+              "code": 86377375,
+              "targetCode": 10000020
+            }
+          }
+        ],
+        "correctChoice": 0,
+        "sourceIds": [
+          "official-card-86377375",
+          "official-card-59160188",
+          "official-card-23431858",
+          "official-card-10000020"
+        ]
+      },
+      {
+        "id": "slifer-covil-nao-e-invocacao",
+        "botEligible": false,
+        "lessonId": "cruzar-almas-nao-e-covil",
+        "title": "Tributo como custo e Tributo para invocar não são iguais",
+        "situation": "Você tem Slifer e Cruzar Almas na mão e o adversário controla três monstros elegíveis. Você quer usá-los na invocação do Deus.",
+        "signals": [
+          {
+            "zone": "hand",
+            "code": 10000020,
+            "present": true
+          },
+          {
+            "zone": "hand",
+            "code": 5253985,
+            "present": true
+          },
+          {
+            "zone": "opponent-monsters",
+            "minCount": 3
+          }
+        ],
+        "choices": [
+          {
+            "label": "Ativar Cruzar Almas e resolver a Invocação-Tributo",
+            "explanation": "Essa magia concede a permissão de tributar adversários. Planeje o limite de ativações que passa a valer.",
+            "action": {
+              "kind": "activate",
+              "code": 5253985
+            }
+          },
+          {
+            "label": "Invocar Slifer normalmente usando só a permissão de Covil",
+            "explanation": "Covil não substitui os Tributos de uma Normal: ele substitui custo para ativar efeito.",
+            "action": {
+              "kind": "summon",
+              "code": 10000020,
+              "mode": "normal"
+            }
+          }
+        ],
+        "correctChoice": 0,
+        "sourceIds": [
+          "official-card-5253985",
+          "official-card-59160188",
+          "official-card-10000020"
+        ]
+      },
+      {
+        "id": "slifer-reator-precisa-de-janela",
+        "botEligible": false,
+        "lessonId": "slime-reator-e-avanco-de-carta",
+        "title": "Três corpos não dão uma segunda Normal",
+        "situation": "Você usou a Normal em Reator, criou duas Fichas e ainda tem Slifer e Avanço de Carta na mão. Nenhuma permissão extra foi aplicada.",
+        "signals": [
+          {
+            "zone": "monsters",
+            "code": 79387392,
+            "present": true
+          },
+          {
+            "zone": "hand",
+            "code": 10000020,
+            "present": true
+          },
+          {
+            "zone": "hand",
+            "code": 52112003,
+            "present": true
+          },
+          {
+            "zone": "own-monsters",
+            "minCount": 3
+          }
+        ],
+        "choices": [
+          {
+            "label": "Ativar Avanço para obter a Invocação-Tributo extra",
+            "explanation": "Agora existe tanto o pagamento de três corpos quanto uma janela legal para Invocar Slifer.",
+            "action": {
+              "kind": "activate",
+              "code": 52112003
+            }
+          },
+          {
+            "label": "Tratar os três corpos como uma nova Normal gratuita",
+            "explanation": "A Normal já foi gasta. O efeito de Reator permite Bestas Divinas, mas não concede uma Normal adicional.",
+            "action": {
+              "kind": "summon",
+              "code": 10000020,
+              "mode": "normal"
+            }
+          }
+        ],
+        "correctChoice": 0,
+        "sourceIds": [
+          "official-card-79387392",
+          "official-card-52112003",
+          "official-card-10000020"
+        ]
+      },
+      {
+        "id": "slifer-informacao-antes-do-nome",
+        "botEligible": false,
+        "lessonId": "avanco-e-o-nome-verdadeiro",
+        "title": "Troque o palpite por informação",
+        "situation": "Avanço e O Nome Verdadeiro estão na mão, você não conhece o topo e Slifer continua no Deck. Qual deve resolver primeiro?",
+        "signals": [
+          {
+            "zone": "hand",
+            "code": 52112003,
+            "present": true
+          },
+          {
+            "zone": "hand",
+            "code": 39913299,
+            "present": true
+          },
+          {
+            "zone": "deck",
+            "code": 10000020,
+            "present": true
+          }
+        ],
+        "choices": [
+          {
+            "label": "Avanço de Carta, mantendo conhecido o topo até a próxima ação",
+            "explanation": "Organize e memorize a primeira carta; não compre nem embaralhe antes da declaração.",
+            "action": {
+              "kind": "activate",
+              "code": 52112003
+            }
+          },
+          {
+            "label": "O Nome Verdadeiro declarando uma carta aleatória",
+            "explanation": "Você tem como transformar a declaração em uma decisão informada. Arriscar agora pode perder a carta e o acesso ao Deus.",
+            "action": {
+              "kind": "activate",
+              "code": 39913299
+            }
+          }
+        ],
+        "correctChoice": 0,
+        "sourceIds": [
+          "official-card-52112003",
+          "official-card-39913299",
+          "official-card-10000020"
+        ]
+      },
+      {
+        "id": "slifer-reanimacao-sem-objetivo",
+        "botEligible": false,
+        "lessonId": "recuperar-slifer-na-janela-certa",
+        "title": "Reanimar agora precisa ter uma função",
+        "situation": "É sua Main Phase 2, Slifer está no Cemitério, não há outro efeito útil para usar com ele e você tem Monstro que Renasce na mão. Você pretende mantê-lo para o próximo turno.",
+        "signals": [
+          {
+            "zone": "grave",
+            "code": 10000020,
+            "present": true
+          },
+          {
+            "zone": "hand",
+            "code": 83764718,
+            "present": true
+          }
+        ],
+        "choices": [
+          {
+            "label": "Guardar Monstro que Renasce para uma janela com retorno",
+            "explanation": "O Slifer Especial sairia já nesta Fase Final. Conserve a reanimação para ataque, controle ou defesa que ela realmente entregue.",
+            "action": {
+              "kind": "hold",
+              "code": 83764718
+            }
+          },
+          {
+            "label": "Reanimar para garantir que Slifer fique no próximo turno",
+            "explanation": "A reanimação não é uma Invocação-Tributo e não remove a obrigação da Fase Final.",
+            "action": {
+              "kind": "activate",
+              "code": 83764718,
+              "targetCode": 10000020
+            }
+          }
+        ],
+        "correctChoice": 0,
+        "sourceIds": [
+          "official-card-10000020",
+          "official-card-83764718"
+        ]
+      },
+      {
+        "id": "slifer-thunderforce-conta-a-mao",
+        "botEligible": false,
+        "lessonId": "thunderforce-protege-e-recompoe-a-mao",
+        "title": "Quanto ATK sobra depois da compra?",
+        "situation": "Sua mão tem duas cartas, uma delas Ataque Força Trovão. Você controla Slifer, é sua Main Phase e os dois monstros face-up adversários serão destruídos e enviados ao Cemitério. Você aplicará a compra.",
+        "signals": [
+          {
+            "zone": "monsters",
+            "code": 10000020,
+            "present": true
+          },
+          {
+            "zone": "hand",
+            "code": 42469671,
+            "present": true
+          },
+          {
+            "zone": "own-hand",
+            "minCount": 2,
+            "maxCount": 2
+          },
+          {
+            "zone": "opponent-monsters",
+            "minCount": 2
+          }
+        ],
+        "choices": [
+          {
+            "label": "Ativar e planejar Slifer com três cartas: 3000 ATK",
+            "explanation": "A Magia sai da mão: 2 − 1 + 2 = 3. Só um monstro poderá atacar depois da compra.",
+            "action": {
+              "kind": "activate",
+              "code": 42469671
+            }
+          },
+          {
+            "label": "Ativar e contar quatro cartas: 4000 ATK",
+            "explanation": "Essa conta esquece o gasto da própria Magia. O dano que você prometeu pode não existir.",
+            "action": {
+              "kind": "activate",
+              "code": 42469671
+            }
+          }
+        ],
+        "correctChoice": 0,
+        "sourceIds": [
+          "official-card-42469671",
+          "official-card-10000020"
+        ]
+      }
+    ]
   },
   {
     "id": "tcg-ygld-battle-city",

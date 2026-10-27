@@ -4,7 +4,7 @@
   "reviewedAt": "2026-10-16",
   "sourcePolicy": {
     "officialEffects": "Efeitos oficiais conferidos na evidência primária indicada por carta; não reproduzimos o texto completo dos efeitos.",
-    "editorialAdaptation": "Sequências autorais adaptadas aos efeitos e ao preset. Não alegam combo publicado nem validação no motor.",
+    "editorialAdaptation": "Sequências autorais adaptadas aos efeitos e ao preset, sem atribuição a combos publicados. Evidência de motor é indicada por lição quando existe; leituras não são apresentadas como exercícios executáveis.",
     "publishedReferences": "Referências publicadas são complementares; sua revisão integral não é presumida.",
     "importedLessons": "As três lições dos quatro guias ativos são preservadas com fontes em namespace próprio; prática executável removida nesta base."
   },
@@ -555,7 +555,7 @@
       "code": 71413901,
       "title": "Breaker the Magical Warrior",
       "url": "https://www.db.yugioh-card.com/yugiohdb/card_search.action?cid=5655&ope=2&request_locale=en",
-      "accessedAt": "2026-10-16",
+      "accessedAt": "2026-10-27",
       "verificationStatus": "verified-from-primary-evidence"
     },
     {
@@ -1806,7 +1806,7 @@
       "code": 59160188,
       "title": "Lair of Darkness",
       "url": "https://www.db.yugioh-card.com/yugiohdb/card_search.action?cid=13686&ope=2&request_locale=en",
-      "accessedAt": "2026-10-16",
+      "accessedAt": "2026-10-27",
       "verificationStatus": "verified-from-primary-evidence"
     },
     {
@@ -1815,7 +1815,7 @@
       "code": 86377375,
       "title": "Ahrima, the Wicked Warden",
       "url": "https://www.db.yugioh-card.com/yugiohdb/card_search.action?cid=13684&ope=2&request_locale=en",
-      "accessedAt": "2026-10-16",
+      "accessedAt": "2026-10-27",
       "verificationStatus": "verified-from-primary-evidence"
     },
     {
@@ -2942,7 +2942,7 @@
       "code": 5253985,
       "title": "Soul Crossing",
       "url": "https://www.db.yugioh-card.com/yugiohdb/card_search.action?cid=15838&ope=2&request_locale=en",
-      "accessedAt": "2026-10-16",
+      "accessedAt": "2026-10-27",
       "verificationStatus": "verified-from-primary-evidence"
     },
     {
@@ -2978,7 +2978,7 @@
       "code": 10000020,
       "title": "Slifer the Sky Dragon",
       "url": "https://www.db.yugioh-card.com/yugiohdb/card_search.action?cid=4999&ope=2&request_locale=en",
-      "accessedAt": "2026-10-16",
+      "accessedAt": "2026-10-27",
       "verificationStatus": "verified-from-primary-evidence"
     },
     {
@@ -2987,7 +2987,7 @@
       "code": 42469671,
       "title": "Thunderforce Attack",
       "url": "https://www.db.yugioh-card.com/yugiohdb/card_search.action?cid=15836&ope=2&request_locale=en",
-      "accessedAt": "2026-10-16",
+      "accessedAt": "2026-10-27",
       "verificationStatus": "verified-from-primary-evidence"
     },
     {
@@ -2996,7 +2996,7 @@
       "code": 12958919,
       "title": "Phantom Skyblaster",
       "url": "https://www.db.yugioh-card.com/yugiohdb/card_search.action?cid=7384&ope=2&request_locale=en",
-      "accessedAt": "2026-10-16",
+      "accessedAt": "2026-10-27",
       "verificationStatus": "verified-from-primary-evidence"
     },
     {
@@ -3005,7 +3005,7 @@
       "code": 32247099,
       "title": "Ultimate Divine-Beast",
       "url": "https://www.db.yugioh-card.com/yugiohdb/card_search.action?cid=15839&ope=2&request_locale=en",
-      "accessedAt": "2026-10-16",
+      "accessedAt": "2026-10-27",
       "verificationStatus": "verified-from-primary-evidence"
     },
     {
@@ -4404,6 +4404,292 @@
       "url": "https://www.db.yugioh-card.com/yugiohdb/card_search.action?cid=22355&ope=2&request_locale=en",
       "accessedAt": "2026-10-16",
       "verificationStatus": "verified-from-primary-evidence"
+    },
+    {
+      "id": "official-card-5130393",
+      "type": "official-card-effect",
+      "code": 5130393,
+      "title": "Millennium Seeker",
+      "url": "https://www.db.yugioh-card.com/yugiohdb/card_search.action?cid=15841&ope=2&request_locale=en",
+      "accessedAt": "2026-10-27",
+      "verificationStatus": "verified-from-primary-evidence"
+    },
+    {
+      "id": "official-card-19280589",
+      "type": "official-card-effect",
+      "code": 19280589,
+      "title": "Tellus the Little Angel",
+      "url": "https://www.db.yugioh-card.com/yugiohdb/card_search.action?cid=6551&ope=2&request_locale=en",
+      "accessedAt": "2026-10-27",
+      "verificationStatus": "verified-from-primary-evidence"
+    },
+    {
+      "id": "official-card-78651105",
+      "type": "official-card-effect",
+      "code": 78651105,
+      "title": "Beast King Barbaros",
+      "url": "https://www.db.yugioh-card.com/yugiohdb/card_search.action?cid=7346&ope=2&request_locale=en",
+      "accessedAt": "2026-10-27",
+      "verificationStatus": "verified-from-primary-evidence"
+    },
+    {
+      "id": "official-card-27198001",
+      "type": "official-card-effect",
+      "code": 27198001,
+      "title": "Nine-Tailed Fox",
+      "url": "https://www.db.yugioh-card.com/yugiohdb/card_search.action?cid=7363&ope=2&request_locale=en",
+      "accessedAt": "2026-10-27",
+      "verificationStatus": "verified-from-primary-evidence"
+    },
+    {
+      "id": "official-card-4694209",
+      "type": "official-card-effect",
+      "code": 4694209,
+      "title": "Card Guard",
+      "url": "https://www.db.yugioh-card.com/yugiohdb/card_search.action?cid=8526&ope=2&request_locale=en",
+      "accessedAt": "2026-10-27",
+      "verificationStatus": "verified-from-primary-evidence"
+    },
+    {
+      "id": "official-card-67692580",
+      "type": "official-card-effect",
+      "code": 67692580,
+      "title": "Caligo Claw Crow",
+      "url": "https://www.db.yugioh-card.com/yugiohdb/card_search.action?cid=10566&ope=2&request_locale=en",
+      "accessedAt": "2026-10-27",
+      "verificationStatus": "verified-from-primary-evidence"
+    },
+    {
+      "id": "official-card-34710660",
+      "type": "official-card-effect",
+      "code": 34710660,
+      "title": "Electromagnetic Turtle",
+      "url": "https://www.db.yugioh-card.com/yugiohdb/card_search.action?cid=11120&ope=2&request_locale=en",
+      "accessedAt": "2026-10-27",
+      "verificationStatus": "verified-from-primary-evidence"
+    },
+    {
+      "id": "official-card-22923081",
+      "type": "official-card-effect",
+      "code": 22923081,
+      "title": "Breaker the Dark Magical Warrior",
+      "url": "https://www.db.yugioh-card.com/yugiohdb/card_search.action?cid=11249&ope=2&request_locale=en",
+      "accessedAt": "2026-10-27",
+      "verificationStatus": "verified-from-primary-evidence"
+    },
+    {
+      "id": "official-card-67284107",
+      "type": "official-card-effect",
+      "code": 67284107,
+      "title": "Scapeghost",
+      "url": "https://www.db.yugioh-card.com/yugiohdb/card_search.action?cid=12432&ope=2&request_locale=en",
+      "accessedAt": "2026-10-27",
+      "verificationStatus": "verified-from-primary-evidence"
+    },
+    {
+      "id": "official-card-12766474",
+      "type": "official-card-effect",
+      "code": 12766474,
+      "title": "Duke Shade, the Sinister Shadow Lord",
+      "url": "https://www.db.yugioh-card.com/yugiohdb/card_search.action?cid=13685&ope=2&request_locale=en",
+      "accessedAt": "2026-10-27",
+      "verificationStatus": "verified-from-primary-evidence"
+    },
+    {
+      "id": "official-card-21830679",
+      "type": "official-card-effect",
+      "code": 21830679,
+      "title": "Clock Wyvern",
+      "url": "https://www.db.yugioh-card.com/yugiohdb/card_search.action?cid=13888&ope=2&request_locale=en",
+      "accessedAt": "2026-10-27",
+      "verificationStatus": "verified-from-primary-evidence"
+    },
+    {
+      "id": "official-card-23431858",
+      "type": "official-card-effect",
+      "code": 23431858,
+      "title": "Tenyi Spirit - Vishuda",
+      "url": "https://www.db.yugioh-card.com/yugiohdb/card_search.action?cid=14460&ope=2&request_locale=en",
+      "accessedAt": "2026-10-27",
+      "verificationStatus": "verified-from-primary-evidence"
+    },
+    {
+      "id": "official-card-79387392",
+      "type": "official-card-effect",
+      "code": 79387392,
+      "title": "Reactor Slime",
+      "url": "https://www.db.yugioh-card.com/yugiohdb/card_search.action?cid=15330&ope=2&request_locale=en",
+      "accessedAt": "2026-10-27",
+      "verificationStatus": "verified-from-primary-evidence"
+    },
+    {
+      "id": "official-card-72302403",
+      "type": "official-card-effect",
+      "code": 72302403,
+      "title": "Swords of Revealing Light",
+      "url": "https://www.db.yugioh-card.com/yugiohdb/card_search.action?cid=4354&ope=2&request_locale=en",
+      "accessedAt": "2026-10-27",
+      "verificationStatus": "verified-from-primary-evidence"
+    },
+    {
+      "id": "official-card-18144506",
+      "type": "official-card-effect",
+      "code": 18144506,
+      "title": "Harpie's Feather Duster",
+      "url": "https://www.db.yugioh-card.com/yugiohdb/card_search.action?cid=4678&ope=2&request_locale=en",
+      "accessedAt": "2026-10-27",
+      "verificationStatus": "verified-from-primary-evidence"
+    },
+    {
+      "id": "official-card-83764718",
+      "type": "official-card-effect",
+      "code": 83764718,
+      "title": "Monster Reborn",
+      "url": "https://www.db.yugioh-card.com/yugiohdb/card_search.action?cid=4842&ope=2&request_locale=en",
+      "accessedAt": "2026-10-27",
+      "verificationStatus": "verified-from-primary-evidence"
+    },
+    {
+      "id": "official-card-14087893",
+      "type": "official-card-effect",
+      "code": 14087893,
+      "title": "Book of Moon",
+      "url": "https://www.db.yugioh-card.com/yugiohdb/card_search.action?cid=5432&ope=2&request_locale=en",
+      "accessedAt": "2026-10-27",
+      "verificationStatus": "verified-from-primary-evidence"
+    },
+    {
+      "id": "official-card-98045062",
+      "type": "official-card-effect",
+      "code": 98045062,
+      "title": "Enemy Controller",
+      "url": "https://www.db.yugioh-card.com/yugiohdb/card_search.action?cid=5505&ope=2&request_locale=en",
+      "accessedAt": "2026-10-27",
+      "verificationStatus": "verified-from-primary-evidence"
+    },
+    {
+      "id": "official-card-67169062",
+      "type": "official-card-effect",
+      "code": 67169062,
+      "title": "Pot of Avarice",
+      "url": "https://www.db.yugioh-card.com/yugiohdb/card_search.action?cid=6511&ope=2&request_locale=en",
+      "accessedAt": "2026-10-27",
+      "verificationStatus": "verified-from-primary-evidence"
+    },
+    {
+      "id": "official-card-19870120",
+      "type": "official-card-effect",
+      "code": 19870120,
+      "title": "March of the Monarchs",
+      "url": "https://www.db.yugioh-card.com/yugiohdb/card_search.action?cid=10423&ope=2&request_locale=en",
+      "accessedAt": "2026-10-27",
+      "verificationStatus": "verified-from-primary-evidence"
+    },
+    {
+      "id": "official-card-17626381",
+      "type": "official-card-effect",
+      "code": 17626381,
+      "title": "Supply Squad",
+      "url": "https://www.db.yugioh-card.com/yugiohdb/card_search.action?cid=11147&ope=2&request_locale=en",
+      "accessedAt": "2026-10-27",
+      "verificationStatus": "verified-from-primary-evidence"
+    },
+    {
+      "id": "official-card-52112003",
+      "type": "official-card-effect",
+      "code": 52112003,
+      "title": "Card Advance",
+      "url": "https://www.db.yugioh-card.com/yugiohdb/card_search.action?cid=11425&ope=2&request_locale=en",
+      "accessedAt": "2026-10-27",
+      "verificationStatus": "verified-from-primary-evidence"
+    },
+    {
+      "id": "official-card-39913299",
+      "type": "official-card-effect",
+      "code": 39913299,
+      "title": "The True Name",
+      "url": "https://www.db.yugioh-card.com/yugiohdb/card_search.action?cid=12239&ope=2&request_locale=en",
+      "accessedAt": "2026-10-27",
+      "verificationStatus": "verified-from-primary-evidence"
+    },
+    {
+      "id": "official-card-93104632",
+      "type": "official-card-effect",
+      "code": 93104632,
+      "title": "One-Time Passcode",
+      "url": "https://www.db.yugioh-card.com/yugiohdb/card_search.action?cid=13277&ope=2&request_locale=en",
+      "accessedAt": "2026-10-27",
+      "verificationStatus": "verified-from-primary-evidence"
+    },
+    {
+      "id": "official-card-856784",
+      "type": "official-card-effect",
+      "code": 856784,
+      "title": "Draw of Fate",
+      "url": "https://www.db.yugioh-card.com/yugiohdb/card_search.action?cid=14215&ope=2&request_locale=en",
+      "accessedAt": "2026-10-27",
+      "verificationStatus": "verified-from-primary-evidence"
+    },
+    {
+      "id": "official-card-44095762",
+      "type": "official-card-effect",
+      "code": 44095762,
+      "title": "Mirror Force",
+      "url": "https://www.db.yugioh-card.com/yugiohdb/card_search.action?cid=4887&ope=2&request_locale=en",
+      "accessedAt": "2026-10-27",
+      "verificationStatus": "verified-from-primary-evidence"
+    },
+    {
+      "id": "official-card-37576645",
+      "type": "official-card-effect",
+      "code": 37576645,
+      "title": "Reckless Greed",
+      "url": "https://www.db.yugioh-card.com/yugiohdb/card_search.action?cid=5448&ope=2&request_locale=en",
+      "accessedAt": "2026-10-27",
+      "verificationStatus": "verified-from-primary-evidence"
+    },
+    {
+      "id": "official-card-26905245",
+      "type": "official-card-effect",
+      "code": 26905245,
+      "title": "Metal Reflect Slime",
+      "url": "https://www.db.yugioh-card.com/yugiohdb/card_search.action?cid=5686&ope=2&request_locale=en",
+      "accessedAt": "2026-10-27",
+      "verificationStatus": "verified-from-primary-evidence"
+    },
+    {
+      "id": "official-card-42671151",
+      "type": "official-card-effect",
+      "code": 42671151,
+      "title": "The Golden Apples",
+      "url": "https://www.db.yugioh-card.com/yugiohdb/card_search.action?cid=9362&ope=2&request_locale=en",
+      "accessedAt": "2026-10-27",
+      "verificationStatus": "verified-from-primary-evidence"
+    },
+    {
+      "id": "official-card-59919307",
+      "type": "official-card-effect",
+      "code": 59919307,
+      "title": "Back to the Front",
+      "url": "https://www.db.yugioh-card.com/yugiohdb/card_search.action?cid=13116&ope=2&request_locale=en",
+      "accessedAt": "2026-10-27",
+      "verificationStatus": "verified-from-primary-evidence"
+    },
+    {
+      "id": "official-slifer-product-2021",
+      "type": "official-product",
+      "title": "Konami — Egyptian God Deck: Slifer the Sky Dragon (lista oficial)",
+      "url": "https://www.db.yugioh-card.com/yugiohdb/card_search.action?ope=1&pid=2000001116000&request_locale=en&rp=99999",
+      "accessedAt": "2026-10-27",
+      "verificationStatus": "verified-from-primary-evidence"
+    },
+    {
+      "id": "slifer-duke-script-pinned",
+      "type": "engine-script",
+      "title": "ProjectIgnis — Duke Shade: restrição e histórico de Invocações-Especiais (script fixado)",
+      "url": "https://github.com/ProjectIgnis/CardScripts/blob/a30bd15c0fc5fad951762420c55f5e0b96f596ea/official/c12766474.lua",
+      "accessedAt": "2026-10-27",
+      "verificationStatus": "verified-in-pinned-engine"
     }
   ],
   "coverage": [
@@ -16856,10 +17142,10 @@
     },
     {
       "id": "tcg-egs1",
-      "difficulty": "Iniciante",
+      "difficulty": "Intermediário",
       "presetId": "tcg-egs1",
       "title": "Deck dos Deuses Egípcios: Slifer, o Dragão Celeste",
-      "gamePlan": "Produzir Tributos para Slifer e preservar a mão para seu ATK; Thunderforce Attack pode repor cartas na sua Fase Principal.",
+      "gamePlan": "Controle com Ahrima e Covil das Trevas, transforme corpos em uma Invocação-Tributo de Slifer e preserve a mão que sustenta seu ATK. Escolha entre controle, preparação e finalização conforme os recursos reais.",
       "coreCards": [
         {
           "code": 10000020,
@@ -16870,11 +17156,51 @@
           ]
         },
         {
+          "code": 86377375,
+          "name": "Ahrima, the Wicked Warden",
+          "namePt": "Ahrima, o Soberano Perverso",
+          "sourceIds": [
+            "official-card-86377375"
+          ]
+        },
+        {
+          "code": 59160188,
+          "name": "Lair of Darkness",
+          "namePt": "Covil das Trevas",
+          "sourceIds": [
+            "official-card-59160188"
+          ]
+        },
+        {
           "code": 5253985,
           "name": "Soul Crossing",
           "namePt": "Cruzar Almas",
           "sourceIds": [
             "official-card-5253985"
+          ]
+        },
+        {
+          "code": 79387392,
+          "name": "Reactor Slime",
+          "namePt": "Reator Limo",
+          "sourceIds": [
+            "official-card-79387392"
+          ]
+        },
+        {
+          "code": 52112003,
+          "name": "Card Advance",
+          "namePt": "Avançar Card",
+          "sourceIds": [
+            "official-card-52112003"
+          ]
+        },
+        {
+          "code": 39913299,
+          "name": "The True Name",
+          "namePt": "O Nome Verdadeiro",
+          "sourceIds": [
+            "official-card-39913299"
           ]
         },
         {
@@ -16894,11 +17220,235 @@
           ]
         },
         {
+          "code": 93104632,
+          "name": "One-Time Passcode",
+          "namePt": "Senha Única",
+          "sourceIds": [
+            "official-card-93104632"
+          ]
+        },
+        {
+          "code": 98045062,
+          "name": "Enemy Controller",
+          "namePt": "Controlador de Inimigos",
+          "sourceIds": [
+            "official-card-98045062"
+          ]
+        },
+        {
+          "code": 12766474,
+          "name": "Duke Shade, the Sinister Shadow Lord",
+          "namePt": "Duque Penumbra, o Senhor das Sombras Sinistro",
+          "sourceIds": [
+            "official-card-12766474"
+          ]
+        },
+        {
+          "code": 23431858,
+          "name": "Tenyi Spirit - Vishuda",
+          "namePt": "Espírito Tenyi - Vishuda",
+          "sourceIds": [
+            "official-card-23431858"
+          ]
+        },
+        {
+          "code": 19870120,
+          "name": "March of the Monarchs",
+          "namePt": "Marcha dos Monarcas",
+          "sourceIds": [
+            "official-card-19870120"
+          ]
+        },
+        {
+          "code": 4694209,
+          "name": "Card Guard",
+          "namePt": "Vigia Card",
+          "sourceIds": [
+            "official-card-4694209"
+          ]
+        },
+        {
           "code": 32247099,
           "name": "Ultimate Divine-Beast",
           "namePt": "Besta Divina Definitiva",
           "sourceIds": [
             "official-card-32247099"
+          ]
+        },
+        {
+          "code": 59919307,
+          "name": "Back to the Front",
+          "namePt": "De Trás à Frente",
+          "sourceIds": [
+            "official-card-59919307"
+          ]
+        },
+        {
+          "code": 83764718,
+          "name": "Monster Reborn",
+          "namePt": "Reviver Monstro",
+          "sourceIds": [
+            "official-card-83764718"
+          ]
+        },
+        {
+          "code": 67284107,
+          "name": "Scapeghost",
+          "namePt": "Fantasma Expiatório",
+          "sourceIds": [
+            "official-card-67284107"
+          ]
+        },
+        {
+          "code": 19280589,
+          "name": "Tellus the Little Angel",
+          "namePt": "Tellus, o Anjo Menor",
+          "sourceIds": [
+            "official-card-19280589"
+          ]
+        },
+        {
+          "code": 27198001,
+          "name": "Nine-Tailed Fox",
+          "namePt": "Raposa de Nove Caudas",
+          "sourceIds": [
+            "official-card-27198001"
+          ]
+        },
+        {
+          "code": 17626381,
+          "name": "Supply Squad",
+          "namePt": "Suprir o Pelotão",
+          "sourceIds": [
+            "official-card-17626381"
+          ]
+        },
+        {
+          "code": 37576645,
+          "name": "Reckless Greed",
+          "namePt": "Ganância Descuidada",
+          "sourceIds": [
+            "official-card-37576645"
+          ]
+        },
+        {
+          "code": 5130393,
+          "name": "Millennium Seeker",
+          "namePt": "Caçador do Milênio",
+          "sourceIds": [
+            "official-card-5130393"
+          ]
+        },
+        {
+          "code": 71413901,
+          "name": "Breaker the Magical Warrior",
+          "namePt": "Breaker, o Guerreiro Mágico",
+          "sourceIds": [
+            "official-card-71413901"
+          ]
+        },
+        {
+          "code": 78651105,
+          "name": "Beast King Barbaros",
+          "namePt": "Rei das Bestas Bárbaros",
+          "sourceIds": [
+            "official-card-78651105"
+          ]
+        },
+        {
+          "code": 67692580,
+          "name": "Caligo Claw Crow",
+          "namePt": "Corvo da Garra Negra",
+          "sourceIds": [
+            "official-card-67692580"
+          ]
+        },
+        {
+          "code": 34710660,
+          "name": "Electromagnetic Turtle",
+          "namePt": "Tartaruga Eletromagnética",
+          "sourceIds": [
+            "official-card-34710660"
+          ]
+        },
+        {
+          "code": 22923081,
+          "name": "Breaker the Dark Magical Warrior",
+          "namePt": "Breaker, o Guerreiro Mágico Negro",
+          "sourceIds": [
+            "official-card-22923081"
+          ]
+        },
+        {
+          "code": 21830679,
+          "name": "Clock Wyvern",
+          "namePt": "Wivern Clock",
+          "sourceIds": [
+            "official-card-21830679"
+          ]
+        },
+        {
+          "code": 72302403,
+          "name": "Swords of Revealing Light",
+          "namePt": "Espadas da Luz Reveladora",
+          "sourceIds": [
+            "official-card-72302403"
+          ]
+        },
+        {
+          "code": 18144506,
+          "name": "Harpie's Feather Duster",
+          "namePt": "Espanador de Penas da Harpia",
+          "sourceIds": [
+            "official-card-18144506"
+          ]
+        },
+        {
+          "code": 14087893,
+          "name": "Book of Moon",
+          "namePt": "Livro da Lua",
+          "sourceIds": [
+            "official-card-14087893"
+          ]
+        },
+        {
+          "code": 67169062,
+          "name": "Pot of Avarice",
+          "namePt": "Pote da Avarice",
+          "sourceIds": [
+            "official-card-67169062"
+          ]
+        },
+        {
+          "code": 856784,
+          "name": "Draw of Fate",
+          "namePt": "Compra Predestinada",
+          "sourceIds": [
+            "official-card-856784"
+          ]
+        },
+        {
+          "code": 44095762,
+          "name": "Mirror Force",
+          "namePt": "Força do Espelho",
+          "sourceIds": [
+            "official-card-44095762"
+          ]
+        },
+        {
+          "code": 26905245,
+          "name": "Metal Reflect Slime",
+          "namePt": "Limo Reflete Metal",
+          "sourceIds": [
+            "official-card-26905245"
+          ]
+        },
+        {
+          "code": 42671151,
+          "name": "The Golden Apples",
+          "namePt": "As Maçãs Douradas",
+          "sourceIds": [
+            "official-card-42671151"
           ]
         }
       ],
@@ -16949,34 +17499,414 @@
         "extra": [],
         "side": []
       },
-      "cautions": [],
+      "cautions": [
+        "Lista oficial de 40 cartas: três Ahrima, uma cópia das demais cartas e nenhum Extra Deck. Não depende de cartas adicionadas de outras versões.",
+        "Covil paga custos de efeitos; Cruzar Almas é a permissão para Invocar Slifer por Tributo usando adversários.",
+        "Invocação-Normal, Invocação-Tributo adicional e Invocação-Especial são recursos diferentes. Reator, Duke e Tellus impõem bloqueios que precisam ser planejados.",
+        "Slifer por Especial sai na Fase Final; Slifer por Tributo precisa de proteção e de cartas na mão."
+      ],
       "lessons": [
         {
-          "id": "skyblaster-ajuda-a-reunir-os-tributos",
-          "title": "Skyblaster ajuda a reunir os Tributos",
-          "scenario": "Phantom Skyblaster na mão e outros monstros no seu campo.",
+          "id": "ahrima-encontra-o-covil",
+          "title": "Ahrima encontra o Covil sem gastar a Invocação-Normal",
+          "scenario": "Sua mão tem duas cópias de Ahrima; Covil das Trevas ainda está no Deck. Você quer preparar controle antes de buscar Slifer.",
           "steps": [
             {
-              "action": "Invoque Skyblaster e gere Fichas conforme a quantidade real de monstros que controla.",
-              "cardCodes": []
+              "title": "Separe as funções das duas cópias",
+              "action": "Descarte um Ahrima, o Soberano Perverso para buscar Covil das Trevas; conserve a outra cópia na mão.",
+              "why": "A lista tem três Ahrima e apenas um Covil. O descarte encontra o Campo sem consumir sua Invocação-Normal.",
+              "cardCodes": [
+                86377375,
+                59160188
+              ]
             },
             {
-              "action": "Em uma janela de Invocação-Tributo disponível, ofereça três corpos para Slifer; Soul Crossing é uma forma de realizar a invocação durante a resolução de seu efeito.",
+              "title": "Prepare o Campo antes do custo",
+              "action": "Ative Covil das Trevas e, se houver um monstro adversário elegível para remover, Invoque o segundo Ahrima normalmente.",
+              "why": "Ahrima na mão é acesso ao Campo; Ahrima no campo converte Tributo em recurso. Uma cópia descartada não pode fazer as duas funções sozinha.",
               "cardCodes": [
+                59160188,
+                86377375
+              ]
+            },
+            {
+              "title": "Não descarte sem destino",
+              "action": "Se Covil já está ativo ou na sua mão, conserve Ahrima para o campo ou para outra necessidade da partida.",
+              "why": "Descarte sem outra cópia de Covil no Deck não é busca. Não transforme a carta que iniciaria o controle em gasto sem retorno.",
+              "cardCodes": [
+                86377375,
+                59160188
+              ]
+            }
+          ],
+          "outcome": "Covil ativo, Ahrima preservado no campo e uma linha de remoção preparada.",
+          "cautions": [
+            "Com apenas um Ahrima e nenhum Covil na mão, o descarte prepara o Campo, mas você ainda precisa de outra carta para pagar custos de Tributo.",
+            "A Invocação-Normal de Ahrima não busca o Campo: a busca exige descartá-lo da mão."
+          ],
+          "sourceIds": [
+            "official-card-86377375",
+            "official-card-59160188",
+            "official-slifer-product-2021"
+          ],
+          "validationStatus": "editorial-with-engine-evidence",
+          "startingHand": null,
+          "practice": null
+        },
+        {
+          "id": "ahrima-tributa-o-adversario",
+          "title": "Ahrima + Covil: remova uma ameaça e ganhe recurso",
+          "scenario": "Covil das Trevas está ativo, Ahrima está no seu campo e o adversário controla um monstro com a face para cima que pode ser oferecido como Tributo. A substituição do Campo ainda não foi usada neste turno.",
+          "steps": [
+            {
+              "title": "Pague com a ameaça adversária",
+              "action": "Ative o efeito de Ahrima no campo. Ao pagar o Tributo, use Covil das Trevas para oferecer um monstro de TREVAS do adversário, preservando Ahrima.",
+              "why": "O Campo torna os monstros face-up de TREVAS e substitui um monstro seu no custo. Essa remoção acontece antes da resolução de Ahrima; não é destruição nem escolha de alvo por efeito.",
+              "cardCodes": [
+                86377375,
+                59160188
+              ]
+            },
+            {
+              "title": "Escolha entre compra e acesso conhecido",
+              "action": "Compre uma carta ou, porque o Tributo foi outro monstro, busque um TREVAS com pelo menos 2000 de DEF: nesta lista, Duke Shade ou Vishuda.",
+              "why": "A compra mantém flexibilidade. A busca vale quando uma dessas peças resolve uma necessidade concreta. Slifer não é um alvo da busca: no Deck ele continua sendo DIVINO.",
+              "cardCodes": [
+                86377375,
+                12766474,
+                23431858,
+                10000020
+              ]
+            },
+            {
+              "title": "Planeje a reposição no fim do turno",
+              "action": "Mantenha Covil no campo até a Fase Final para gerar as Fichas de Tormento permitidas pelos Tributos realizados.",
+              "why": "As Fichas aparecem no campo do jogador do turno, em Defesa. No seu turno podem preparar Tributos futuros; no turno adversário podem dar corpos a ele.",
+              "cardCodes": [
+                59160188
+              ]
+            }
+          ],
+          "outcome": "Uma ameaça removida como custo, Ahrima mantido e compra ou busca em troca.",
+          "cautions": [
+            "A substituição de Covil é uma vez por turno, não uma vez para cada Ahrima. O efeito de Tributo de Ahrima também tem limite compartilhado entre cópias.",
+            "Ahrima é um efeito de ignição: não é uma remoção rápida no turno adversário.",
+            "Proteção contra alvo ou destruição não impede automaticamente o custo. Monstros que não podem ser tributados ou que não são afetados pela substituição exigem outra solução.",
+            "Se o efeito de Ahrima for negado depois de o custo ser pago, o monstro oferecido não volta. Não confunda isso com garantia de que a compra ou busca resolverá."
+          ],
+          "sourceIds": [
+            "official-card-86377375",
+            "official-card-59160188",
+            "official-card-12766474",
+            "official-card-23431858",
+            "official-card-10000020"
+          ],
+          "validationStatus": "editorial-with-engine-evidence",
+          "startingHand": null,
+          "practice": null
+        },
+        {
+          "id": "covil-e-controlador-de-inimigos",
+          "title": "Covil + Controlador: remova um monstro e tome outro",
+          "scenario": "Covil está ativo e sua substituição ainda está disponível. O adversário controla dois monstros face-up elegíveis. Controlador de Inimigos está na mão no seu turno ou foi Baixado em um turno anterior.",
+          "steps": [
+            {
+              "title": "Escolha o efeito que toma controle",
+              "action": "Ative a segunda opção de Controlador de Inimigos. Use Covil para tributar um dos monstros adversários e escolha o outro como alvo da tomada de controle.",
+              "why": "São duas operações diferentes: o primeiro monstro paga o custo; o segundo precisa continuar disponível como alvo legal.",
+              "cardCodes": [
+                98045062,
+                59160188
+              ]
+            },
+            {
+              "title": "Transforme controle temporário em vantagem",
+              "action": "No seu turno, ataque com o monstro tomado se puder ou use-o como um dos três Tributos de Slifer quando houver uma Invocação-Tributo disponível.",
+              "why": "O controle acaba na Fase Final. Consumir o corpo numa jogada útil pode evitar devolvê-lo; tomar sem conseguir usá-lo pode ser apenas defesa temporária.",
+              "cardCodes": [
+                98045062,
+                10000020,
+                5253985,
+                52112003
+              ]
+            },
+            {
+              "title": "Escolha quando gastar a substituição",
+              "action": "Compare esta linha com Ahrima antes de usar o Campo: Controlador remove uma ameaça e toma outra, enquanto Ahrima remove e repõe sua mão.",
+              "why": "Covil só substitui um custo por turno. Se gastar a permissão com Ahrima, Controlador precisará pagar com um monstro seu nesse mesmo turno.",
+              "cardCodes": [
+                86377375,
+                59160188,
+                98045062
+              ]
+            }
+          ],
+          "outcome": "Um monstro adversário no Cemitério e outro sob seu controle até a Fase Final.",
+          "cautions": [
+            "Não conte com o mesmo monstro para pagar o custo e ser o alvo que será tomado.",
+            "Magia Rápida Baixada normalmente não pode ser ativada no turno em que foi Baixada; no turno adversário, ela precisa estar preparada.",
+            "Ao usar esta resposta no turno adversário, as Fichas de Covil serão geradas para ele."
+          ],
+          "sourceIds": [
+            "official-card-98045062",
+            "official-card-59160188",
+            "official-card-86377375",
+            "official-card-10000020",
+            "official-card-5253985",
+            "official-card-52112003"
+          ],
+          "validationStatus": "editorial-with-engine-evidence",
+          "startingHand": null,
+          "practice": null
+        },
+        {
+          "id": "slime-reator-e-avanco-de-carta",
+          "title": "Slime Reator + Avanço de Carta: três Tributos no mesmo turno",
+          "scenario": "Sua mão contém Slime Reator, Avanço de Carta e Slifer. Sua Invocação-Normal está disponível e há três zonas de monstro livres.",
+          "steps": [
+            {
+              "title": "Reserve a Invocação-Tributo extra",
+              "action": "Ative Avanço de Carta, organize as cartas vistas no topo e guarde a Invocação-Tributo adicional para Slifer.",
+              "why": "A carta não dá uma segunda Invocação-Normal genérica: a permissão adicional é para Invocar por Tributo.",
+              "cardCodes": [
+                52112003,
+                10000020
+              ]
+            },
+            {
+              "title": "Forme exatamente os três corpos",
+              "action": "Invoque Slime Reator normalmente e ative seu primeiro efeito para criar duas Fichas de Slime.",
+              "why": "Reator mais duas Fichas são os três Tributos. Depois desse efeito você só pode Invocar normalmente ou especialmente Bestas Divinas pelo restante do turno.",
+              "cardCodes": [
+                79387392,
+                10000020
+              ]
+            },
+            {
+              "title": "Use a permissão que ainda falta",
+              "action": "Use a Invocação-Tributo adicional de Avanço de Carta, ofereça Reator e as duas Fichas e Invoque Slifer da mão.",
+              "why": "Sua Normal já foi usada no Reator. Sem Avanço ou outra janela como Cruzar Almas, reunir os corpos sozinho não permite uma segunda Normal.",
+              "cardCodes": [
+                52112003,
+                79387392,
+                10000020,
                 5253985
               ]
             }
           ],
-          "outcome": "Corpos preparados para o Deus.",
+          "outcome": "Slifer Invocado por Tributo, sem a obrigação de sair na Fase Final que acompanha uma Invocação-Especial.",
           "cautions": [
-            "Skyblaster sozinho não gera automaticamente três Tributos; a quantidade depende da mesa."
+            "Faça as outras Invocações que precisar antes do efeito de Reator; não planeje Clock Wyvern, Vishuda ou outras Fichas depois dele.",
+            "A lista não tem Slime dos Deuses Egípcios no Extra Deck. Slime Refletor de Metal não conta sozinho como três Tributos nesta lista."
+          ],
+          "sourceIds": [
+            "official-card-52112003",
+            "official-card-79387392",
+            "official-card-10000020",
+            "official-card-5253985",
+            "official-card-26905245"
+          ],
+          "validationStatus": "editorial-with-engine-evidence",
+          "startingHand": null,
+          "practice": null
+        },
+        {
+          "id": "skyblaster-ajuda-a-reunir-os-tributos",
+          "title": "Skyblaster: conte os corpos antes de gastar a Normal",
+          "scenario": "Sua mão contém Código de Acesso Único, Fantasma Destruidor Celeste, Slifer e Avanço de Carta. Sua mesa está vazia e você ainda pode Invocar normalmente.",
+          "steps": [
+            {
+              "title": "Crie o primeiro corpo antes da Normal",
+              "action": "Ative Código de Acesso Único para colocar uma Ficha de Segurança no campo.",
+              "why": "Quando Skyblaster entrar, já haverá outro monstro. Se ele for seu único monstro, produzirá no máximo uma Ficha: dois corpos no total, não três.",
+              "cardCodes": [
+                93104632,
+                12958919
+              ]
+            },
+            {
+              "title": "Conte Skyblaster junto",
+              "action": "Invoque Fantasma Destruidor Celeste normalmente. Com ele e a Ficha no campo, seu efeito pode criar duas Fichas de Skyblaster, se houver espaço.",
+              "why": "O limite usa o número de monstros que você controla, incluindo Skyblaster. Neste exemplo são quatro corpos depois da resolução.",
+              "cardCodes": [
+                12958919,
+                93104632
+              ]
+            },
+            {
+              "title": "Pague três e preserve o quarto",
+              "action": "Ative Avanço de Carta e Invoque Slifer por Tributo usando três desses corpos; escolha qual monstro vale preservar.",
+              "why": "A permissão adicional resolve o gasto da Normal em Skyblaster. Cruzar Almas é outra opção se estiver disponível, mas traz sua própria restrição quando usa adversários.",
+              "cardCodes": [
+                52112003,
+                10000020,
+                5253985
+              ]
+            }
+          ],
+          "outcome": "Slifer por Tributo e um corpo restante, em vez de uma mesa de Fichas sem janela para a invocação.",
+          "cautions": [
+            "Depois de aplicar o bloqueio de Duke Shade, não conte com Código de Acesso Único: Covil ativo não torna permitida uma nova Invocação-Especial de Ficha LUZ.",
+            "Evite gastar o efeito de dano de Skyblaster na Fase de Apoio se você precisa que os monstros Skyblaster ataquem naquele turno."
+          ],
+          "sourceIds": [
+            "official-card-93104632",
+            "official-card-12958919",
+            "official-card-52112003",
+            "official-card-10000020",
+            "official-card-5253985",
+            "official-card-12766474"
+          ],
+          "validationStatus": "editorial-with-engine-evidence",
+          "startingHand": null,
+          "practice": null
+        },
+        {
+          "id": "cruzar-almas-nao-e-covil",
+          "title": "Cruzar Almas: os três Tributos podem vir do adversário",
+          "scenario": "Slifer e Cruzar Almas estão na sua mão durante uma Fase Principal. Há três monstros elegíveis para o Tributo entre os dois campos.",
+          "steps": [
+            {
+              "title": "Prepare as outras ações primeiro",
+              "action": "Resolva buscas e proteções que você precisa antes de ativar Cruzar Almas. Se vai usá-la no turno adversário, prepare a Magia Rápida em um turno anterior.",
+              "why": "Se usar qualquer monstro adversário, a carta limitará as ativações seguintes que não sejam efeitos de Bestas Divinas.",
+              "cardCodes": [
+                5253985,
+                19870120
+              ]
+            },
+            {
+              "title": "Invoque pela permissão da Magia",
+              "action": "Resolva Cruzar Almas e Invoque Slifer por Tributo, escolhendo três monstros elegíveis; eles podem ser seus, do adversário ou uma mistura.",
+              "why": "Esta é a carta que permite usar adversários para a Invocação-Tributo. Covil substitui custos de efeitos e não concede essa permissão para uma Normal comum.",
+              "cardCodes": [
+                5253985,
+                10000020,
+                59160188
+              ]
+            },
+            {
+              "title": "Reserve a única ativação restante",
+              "action": "Se tributou um adversário, planeje no máximo uma ativação de carta ou efeito por turno até o fim do próximo turno, fora os efeitos de Bestas Divinas.",
+              "why": "Ataque Força Trovão é uma Magia e consome essa permissão; o efeito de Slifer pertence à exceção. Invocar Slifer desse modo é uma Invocação-Tributo, mesmo no turno adversário.",
+              "cardCodes": [
+                5253985,
+                42469671,
+                10000020
+              ]
+            }
+          ],
+          "outcome": "Slifer por Tributo e remoção de até três corpos adversários pela própria invocação.",
+          "cautions": [
+            "A magia pode receber resposta antes de resolver. Os Tributos da invocação não são pagos na ativação de Cruzar Almas.",
+            "Sem usar monstros adversários, a restrição adicional não se aplica.",
+            "O limite de ativações também exige atenção a efeitos que disparariam depois, inclusive os do Campo."
+          ],
+          "sourceIds": [
+            "official-card-5253985",
+            "official-card-10000020",
+            "official-card-59160188",
+            "official-card-42469671",
+            "official-card-19870120"
+          ],
+          "validationStatus": "editorial-with-engine-evidence",
+          "startingHand": null,
+          "practice": null
+        },
+        {
+          "id": "avanco-e-o-nome-verdadeiro",
+          "title": "Avanço de Carta + O Nome Verdadeiro: busque sem adivinhar",
+          "scenario": "Avanço de Carta e O Nome Verdadeiro estão na mão. Slifer continua no Deck. Você ainda não aplicou um bloqueio que impeça a Invocação-Especial de um DIVINO.",
+          "steps": [
+            {
+              "title": "Conheça o topo",
+              "action": "Ative Avanço de Carta e memorize o nome da carta que deixou no topo. Se quer acessar Slifer pela opção adicional de O Nome Verdadeiro, deixe outra carta no topo e mantenha Slifer no Deck.",
+              "why": "Escolher um nome às cegas transforma uma linha de acesso em aposta. Compras, buscas com embaralhamento e outros efeitos podem mudar o topo antes da próxima ação.",
+              "cardCodes": [
+                52112003,
+                39913299
+              ]
+            },
+            {
+              "title": "Resolva a informação antes da busca",
+              "action": "Ative O Nome Verdadeiro e declare o nome conhecido. Ao acertar, adicione a carta revelada à mão e escolha o que fazer com Slifer do Deck.",
+              "why": "Você pode acrescentar Slifer à mão para uma futura Invocação-Tributo ou Invocá-lo especialmente para uma necessidade imediata.",
+              "cardCodes": [
+                39913299,
+                10000020
+              ]
+            },
+            {
+              "title": "Decida quanto tempo precisa do Deus",
+              "action": "Prefira a mão se já preparou três Tributos e uma janela de invocação; escolha a Especial quando a presença temporária de Slifer justificar o gasto.",
+              "why": "Slifer Invocado especialmente será enviado ao Cemitério na Fase Final. A opção da mão preserva a chance de um Slifer permanente por Tributo.",
+              "cardCodes": [
+                39913299,
+                10000020,
+                52112003
+              ]
+            }
+          ],
+          "outcome": "Acesso previsível ao Slifer usando uma carta conhecida no topo.",
+          "cautions": [
+            "Se Slifer já está na mão ou no Cemitério, O Nome Verdadeiro não o encontra no Deck.",
+            "Covil só altera atributos no campo: Slifer continua DIVINO no Deck. Duke Shade pode impedir a Especial dele no turno em que seus efeitos forem usados.",
+            "Não use Draw of Fate como se ordenasse livremente o topo: suas três cartas são colocadas em ordem aleatória e há limite de ativações depois."
+          ],
+          "sourceIds": [
+            "official-card-52112003",
+            "official-card-39913299",
+            "official-card-10000020",
+            "official-card-12766474",
+            "official-card-856784",
+            "official-card-59160188"
+          ],
+          "validationStatus": "editorial-with-engine-evidence",
+          "startingHand": null,
+          "practice": null
+        },
+        {
+          "id": "slifer-controla-a-mesa-e-a-mao",
+          "title": "Slifer controla invocações, mas depende da sua mão",
+          "scenario": "Você controla Slifer e tem quatro cartas na mão. O adversário ainda está desenvolvendo o campo.",
+          "steps": [
+            {
+              "title": "Conte cartas antes de baixar tudo",
+              "action": "Com quatro cartas na mão, Slifer tem 4000 de ATK/DEF. Se Baixar duas sem repor a mão, ele cairá para 2000.",
+              "why": "A mão também é parte do seu campo: nem toda carta ganha valor ao ser Baixada. Preserve respostas úteis sem enfraquecer Slifer além do necessário.",
+              "cardCodes": [
+                10000020
+              ]
+            },
+            {
+              "title": "Reconheça o que o efeito alcança",
+              "action": "Slifer reduz 2000 de ATK dos monstros que o adversário Invocar normalmente ou especialmente em Ataque; se o ATK cair a zero por essa redução, eles são destruídos.",
+              "why": "Ele não limpa os monstros que já estavam no campo. Monstros em Defesa e Invocações-Virar não entram nessa condição.",
+              "cardCodes": [
+                10000020
+              ]
+            },
+            {
+              "title": "Compre com um objetivo",
+              "action": "Use Ataque Força Trovão na sua Fase Principal quando a compra justificar; guarde Ganância Imprudente para uma situação em que duas cartas agora valham pular as próximas duas Fases de Compra.",
+              "why": "Compra imediata pode aumentar o alcance de batalha de Slifer. Ganância não é vantagem gratuita de longo prazo e não recupera as compras puladas.",
+              "cardCodes": [
+                10000020,
+                42469671,
+                37576645
+              ]
+            }
+          ],
+          "outcome": "Uma mesa de controle com ATK calculado pelos recursos que realmente permanecem na mão.",
+          "cautions": [
+            "Slifer não é imune a todos os efeitos: seu texto protege a Invocação-Normal e a janela dessa invocação, não todos os turnos seguintes.",
+            "Um monstro que já tinha zero ATK não é destruído por ter o ATK reduzido de zero a zero.",
+            "Quando Slifer veio por Invocação-Especial, ele sai na Fase Final mesmo que tenha muita ATK."
           ],
           "sourceIds": [
             "official-card-10000020",
-            "official-card-5253985",
             "official-card-42469671",
-            "official-card-12958919",
-            "official-card-32247099"
+            "official-card-37576645"
           ],
           "validationStatus": "editorial-not-engine-tested",
           "startingHand": null,
@@ -16984,41 +17914,311 @@
         },
         {
           "id": "thunderforce-protege-e-recompoe-a-mao",
-          "title": "Thunderforce protege e recompõe a mão",
-          "scenario": "Slifer com nome original no campo e monstros adversários com a face para cima.",
+          "title": "Ataque Força Trovão: limpeza e mão maior na sua Main Phase",
+          "scenario": "Você controla um monstro cujo nome original é Slifer. O adversário tem dois monstros face-up que serão destruídos e enviados ao Cemitério dele.",
           "steps": [
             {
-              "action": "Ative Thunderforce Attack para destruir os monstros adversários com a face para cima.",
+              "title": "Escolha a janela que repõe sua mão",
+              "action": "Ative Ataque Força Trovão na sua Fase Principal se você precisa da compra; em outra fase, use-a pela limpeza sem contar com esse bônus.",
+              "why": "A compra opcional depende de a ativação ter ocorrido na sua Main Phase. A carta não destrói monstros adversários face-down.",
+              "cardCodes": [
+                42469671,
+                10000020
+              ]
+            },
+            {
+              "title": "Conte destinos, não apenas destruições",
+              "action": "Depois da destruição, compre pela quantidade de monstros destruídos pelo efeito e enviados ao Cemitério adversário. Fichas não viram cartas nesse Cemitério.",
+              "why": "A quantidade vista na mesa pode ser diferente da quantidade comprada; proteção, banimento ou Fichas mudam a conta.",
               "cardCodes": [
                 42469671
               ]
             },
             {
-              "action": "Se ativou na sua Fase Principal, compre pelas cartas destruídas e enviadas ao Cemitério conforme o efeito.",
-              "cardCodes": []
-            },
-            {
-              "action": "Recalcule o ATK de Slifer depois da compra.",
-              "cardCodes": []
+              "title": "Recalcule o ataque final",
+              "action": "Se você tinha duas cartas na mão incluindo a Magia, ativá-la deixa uma; comprar duas deixa três, e Slifer passa a ter 3000 de ATK/DEF. Se aplicou a compra, só um monstro poderá atacar neste turno.",
+              "why": "A Magia sai da mão antes de repor cartas. Avalie o dano final em vez de somar a compra ao valor antigo de Slifer.",
+              "cardCodes": [
+                42469671,
+                10000020
+              ]
             }
           ],
-          "outcome": "Limpeza e mão maior para sustentar Slifer.",
+          "outcome": "Campo adversário enfraquecido e compra que pode fortalecer o ataque do próprio Slifer.",
           "cautions": [
-            "Se comprar pelo efeito, apenas um monstro poderá atacar naquele turno; cartas não enviadas ao Cemitério não contam da mesma forma."
+            "Não gaste antes da batalha se você precisa atacar com vários monstros e pretende aplicar a compra.",
+            "A ativação e o efeito da Magia não podem ser negados, mas suas condições e a presença do Slifer exigida para ativar continuam importantes.",
+            "Depois de Cruzar Almas usando adversários, esta Magia ocupa a única ativação restante fora da exceção de Bestas Divinas."
           ],
           "sourceIds": [
-            "official-card-10000020",
-            "official-card-5253985",
             "official-card-42469671",
-            "official-card-12958919",
-            "official-card-32247099"
+            "official-card-10000020",
+            "official-card-5253985"
           ],
           "validationStatus": "editorial-not-engine-tested",
           "startingHand": null,
           "practice": null
+        },
+        {
+          "id": "proteger-slifer-e-o-covil",
+          "title": "Proteja o recurso certo: Slifer por Tributo e o próprio Campo",
+          "scenario": "Você tem Slifer Invocado por Tributo ou Covil sustentando o controle. Marcha dos Monarcas e Guarda de Cartas são suas opções de proteção.",
+          "steps": [
+            {
+              "title": "Monte a proteção contínua",
+              "action": "Ative Marcha dos Monarcas para impedir que seus monstros Invocados por Tributo sejam alvo de efeitos ou destruídos por efeitos.",
+              "why": "O Slifer por Tributo recebe proteção; um Slifer reanimado ou trazido por O Nome Verdadeiro não se torna Invocado por Tributo só por ser o mesmo monstro.",
+              "cardCodes": [
+                19870120,
+                10000020,
+                39913299
+              ]
+            },
+            {
+              "title": "Proteja o Campo quando ele for o motor",
+              "action": "Se Guarda de Cartas tiver seu Marcador, transfira-o para Covil das Trevas para absorver uma futura destruição do Campo.",
+              "why": "Manter Covil pode render mais controle do que adicionar dano. Guarda precisa escolher outra carta face-up; Marcha pode impedir que ele escolha seu Slifer por Tributo.",
+              "cardCodes": [
+                4694209,
+                59160188,
+                19870120,
+                10000020
+              ]
+            },
+            {
+              "title": "Identifique o que a proteção não cobre",
+              "action": "Continue respeitando Tributos, devoluções e remoções que não sejam destruição. Não conte com Marcha ou o Marcador para impedir Slifer Especial de ser enviado ao Cemitério na Fase Final.",
+              "why": "Enviar, destruir e tributar são operações diferentes. A proteção só cobre o que está escrito na carta.",
+              "cardCodes": [
+                19870120,
+                4694209,
+                10000020
+              ]
+            }
+          ],
+          "outcome": "Proteção alinhada ao motor da partida, sem confundir resistência com imunidade.",
+          "cautions": [
+            "Marcha bloqueia suas Invocações-Especiais do Extra, mas este preset não tem Extra Deck.",
+            "Guarda não pode transferir seu Marcador para si mesmo. O Marcador que ele recebe ao entrar aumenta seu ATK; a proteção de destruição é a do Marcador transferido."
+          ],
+          "sourceIds": [
+            "official-card-19870120",
+            "official-card-10000020",
+            "official-card-39913299",
+            "official-card-4694209",
+            "official-card-59160188"
+          ],
+          "validationStatus": "editorial-not-engine-tested",
+          "startingHand": null,
+          "practice": null
+        },
+        {
+          "id": "recuperar-slifer-na-janela-certa",
+          "title": "Reanime Slifer pela função que ele vai cumprir",
+          "scenario": "Slifer está no seu Cemitério. Você tem acesso a Besta Divina Definitiva, De Volta à Linha de Frente ou Monstro que Renasce.",
+          "steps": [
+            {
+              "title": "Prepare a volta no ataque",
+              "action": "Com Besta Divina Definitiva já ativa, quando um monstro adversário declarar ataque, descarte uma Magia/Armadilha, escolha Slifer no Cemitério e reanime-o em Defesa.",
+              "why": "A Armadilha redireciona o ataque para o Deus. Conte a DEF depois do descarte e não prometa que a reanimação sozinha sobreviverá à batalha.",
+              "cardCodes": [
+                32247099,
+                10000020
+              ]
+            },
+            {
+              "title": "Antecipe o desenvolvimento adversário",
+              "action": "Se usar De Volta à Linha de Frente para controlar a sequência adversária, traga Slifer antes das próximas Invocações em Ataque que você quer punir.",
+              "why": "Reanimá-lo depois de um monstro já ter sido Invocado não volta no tempo para disparar sua redução contra aquela invocação.",
+              "cardCodes": [
+                59919307,
+                10000020
+              ]
+            },
+            {
+              "title": "Planeje além da Fase Final",
+              "action": "Use Monstro que Renasce para o ataque ou efeito de que precisa agora. Se quiser manter Slifer em turnos seguintes, prepare a recuperação à mão e uma nova Invocação-Tributo por meios legais.",
+              "why": "Toda reanimação aqui é Especial: Slifer será enviado ao Cemitério na Fase Final. Besta Divina pode ter uma segunda função de limpeza nessa fase, sujeita às cartas adversárias que ativaram efeitos.",
+              "cardCodes": [
+                83764718,
+                10000020,
+                32247099
+              ]
+            }
+          ],
+          "outcome": "Defesa ou pressão temporária com o descarte e o prazo da reanimação já previstos.",
+          "cautions": [
+            "Duke Shade não recupera Slifer do Cemitério: ele não é TREVAS lá, mesmo se Covil estava ativo quando saiu do campo.",
+            "O custo de descartar para Besta Divina reduz a mão e, portanto, a DEF do Slifer reanimado.",
+            "Não apresente a limpeza da Fase Final como garantida: ela exige uma Besta Divina e só alcança cartas face-up elegíveis."
+          ],
+          "sourceIds": [
+            "official-card-32247099",
+            "official-card-59919307",
+            "official-card-83764718",
+            "official-card-10000020",
+            "official-card-12766474",
+            "official-card-59160188"
+          ],
+          "validationStatus": "editorial-not-engine-tested",
+          "startingHand": null,
+          "practice": null
+        },
+        {
+          "id": "fichas-e-recursos-sem-slifer",
+          "title": "Sem Slifer na mão: monte recursos em vez de entregar a mesa",
+          "scenario": "Você ainda não encontrou Slifer. Precisa sobreviver e reunir corpos com Scapeghost, Tellus ou Raposa de Nove Caudas, sem gastar todas as cartas.",
+          "steps": [
+            {
+              "title": "Use a linha que sua mão oferece",
+              "action": "Scapeghost virado pode encher zonas livres com Fichas. Tellus enviado da Zona de Monstros ao Cemitério pode deixar uma Ficha, inclusive quando foi tributado.",
+              "why": "Os dois repõem corpos por condições diferentes. Uma Ficha comum pode servir de Tributo, mas você ainda precisa de Slifer e da janela de Invocação-Tributo.",
+              "cardCodes": [
+                67284107,
+                19280589,
+                10000020
+              ]
+            },
+            {
+              "title": "Diferencie Tributo de destruição",
+              "action": "Raposa de Nove Caudas pode trocar dois monstros por sua entrada da mão ou do Cemitério; ela só deixa duas Fichas quando é destruída e enviada ao Cemitério. Esquadrão de Suprimentos também exige destruição para comprar.",
+              "why": "Oferecer Raposa como Tributo de Ahrima ou Slifer não dispara suas Fichas nem a compra de Suprimentos. Covil pode substituir apenas um dos dois Tributos do efeito da Raposa.",
+              "cardCodes": [
+                27198001,
+                17626381,
+                86377375,
+                10000020,
+                59160188
+              ]
+            },
+            {
+              "title": "Não gaste a peça que falta",
+              "action": "Antes de banir Tellus e uma Magia da mão para criar mais duas Fichas, confira se consegue usar esses corpos e respeitar as Especiais somente da mão pelo resto do turno.",
+              "why": "Banir seu único Cruzar Almas ou Avanço pode deixar três corpos sem forma de Invocar Slifer naquele turno. A restrição também pode impedir a linha de O Nome Verdadeiro pelo Deck.",
+              "cardCodes": [
+                19280589,
+                5253985,
+                52112003,
+                39913299
+              ]
+            }
+          ],
+          "outcome": "Corpos e cartas preservados para uma invocação futura, sem contar vantagens que não disparam.",
+          "cautions": [
+            "Esta lista não inclui Lilith, Diabolos nem Slime dos Deuses Egípcios. Não importe essas linhas do deck Covil ou de versões modificadas.",
+            "Metal Reflect Slime é um corpo defensivo de 3000 DEF; sua ativação normal segue as regras de Armadilhas. Reator só dá a exceção de ativá-la no mesmo turno quando a Baixa pelo próprio efeito de batalha."
+          ],
+          "sourceIds": [
+            "official-card-67284107",
+            "official-card-19280589",
+            "official-card-10000020",
+            "official-card-27198001",
+            "official-card-17626381",
+            "official-card-86377375",
+            "official-card-59160188",
+            "official-card-5253985",
+            "official-card-52112003",
+            "official-card-39913299",
+            "official-card-26905245",
+            "official-card-79387392"
+          ],
+          "validationStatus": "editorial-not-engine-tested",
+          "startingHand": null,
+          "practice": null
+        },
+        {
+          "id": "duke-vishuda-e-os-bloqueios",
+          "title": "Duke Shade e Vishuda: escolha um plano compatível",
+          "scenario": "Covil está ativo; Duke Shade está na mão e Vishuda ou Breaker, o Guerreiro Mágico das Trevas está no seu Cemitério. Você avalia continuar sem Slifer.",
+          "steps": [
+            {
+              "title": "Converta a substituição em corpo",
+              "action": "Ative Duke Shade da mão. Com Covil disponível, um dos Tributos pode ser um monstro adversário; escolha quantos outros corpos realmente precisa gastar.",
+              "why": "Cada Tributo aumenta seu ATK em 500, mas gastar mais monstros não é vantagem por si só. O custo mínimo já pode remover uma ameaça e deixar Duke no campo.",
+              "cardCodes": [
+                12766474,
+                59160188
+              ]
+            },
+            {
+              "title": "Recupere um alvo que existe",
+              "action": "Ao entrar, Duke pode devolver à mão Vishuda ou Breaker das Trevas do seu Cemitério: ambos são TREVAS de Nível 5 ou mais.",
+              "why": "Slifer DIVINO e Raposa FOGO não são alvos válidos no Cemitério. Covil não muda atributos nessa zona.",
+              "cardCodes": [
+                12766474,
+                23431858,
+                22923081,
+                10000020,
+                27198001,
+                59160188
+              ]
+            },
+            {
+              "title": "Decida antes das Invocações-Especiais",
+              "action": "Antes de usar Duke, confira se suas Especiais anteriores foram registradas como TREVAS. Depois do efeito, novas Especiais precisam ser de TREVAS antes de entrar no campo. Em outro plano, Vishuda pode entrar sem monstros de efeito ou ser banido da mão/Cemitério com uma Ficha sem efeito face-up para devolver uma carta adversária.",
+              "why": "A ordem do Campo importa: uma Ficha criada sob Covil já ativo é registrada como TREVAS; ativar Covil depois não muda uma invocação LUZ anterior. Depois do bloqueio de Duke, ele não autoriza novas Fichas LUZ. Slifer por Tributo é uma Normal e não entra nesse bloqueio de Especiais.",
+              "cardCodes": [
+                12766474,
+                23431858,
+                10000020
+              ]
+            }
+          ],
+          "outcome": "Uma linha alternativa de remoção e recuperação, escolhida sem bloquear a própria continuação.",
+          "cautions": [
+            "Exemplo de ordem: Covil → Ficha de Segurança permite usar Duke depois; Ficha de Segurança → Covil não apaga o histórico LUZ; Duke → Ficha de Segurança é impedido mesmo sob Covil. São três situações diferentes.",
+            "Sem motivo para ganhar recursos ou remover ameaça, preserve os corpos em vez de trocá-los por um Duke apenas maior."
+          ],
+          "sourceIds": [
+            "official-card-12766474",
+            "official-card-59160188",
+            "official-card-23431858",
+            "official-card-22923081",
+            "official-card-10000020",
+            "official-card-27198001",
+            "slifer-duke-script-pinned"
+          ],
+          "validationStatus": "editorial-with-engine-evidence",
+          "startingHand": null,
+          "practice": null
         }
       ],
-      "publishedSources": []
+      "publishedSources": [
+        "official-slifer-product-2021"
+      ],
+      "revision": 2,
+      "reviewedAt": "2026-10-27",
+      "overview": {
+        "goal": "Controle com Ahrima e Covil das Trevas, transforme corpos em uma Invocação-Tributo de Slifer e preserve a mão que sustenta seu ATK. Escolha entre controle, preparação e finalização conforme os recursos reais.",
+        "plan": [
+          "Sem Slifer: use Ahrima para acessar Covil e jogar uma partida de controle, em vez de gastar corpos sem continuação.",
+          "Com Slifer na mão: reúna três Tributos e preserve a janela de invocação com Avanço de Carta ou Cruzar Almas.",
+          "Com Avanço e O Nome Verdadeiro: conheça o topo e escolha entre buscar Slifer ou usá-lo temporariamente por Especial.",
+          "Com Slifer no campo: conserve cartas na mão, proteja a forma de invocação correta e use Ataque Força Trovão para abrir a finalização.",
+          "Antes de cada efeito: confira quem paga o custo, o que ganha, a Invocação disponível e os bloqueios do restante do turno."
+        ],
+        "strengths": [
+          "Ahrima + Covil remove como custo sem sacrificar automaticamente seu próprio monstro.",
+          "Há várias formas de produzir corpos e uma linha de acesso ao Slifer com topo conhecido.",
+          "Slifer e Ataque Força Trovão ligam controle da mesa à manutenção da mão."
+        ],
+        "watchOut": [
+          "Lista oficial de 40 cartas: três Ahrima, uma cópia das demais cartas e nenhum Extra Deck. Não depende de cartas adicionadas de outras versões.",
+          "Covil paga custos de efeitos; Cruzar Almas é a permissão para Invocar Slifer por Tributo usando adversários.",
+          "Invocação-Normal, Invocação-Tributo adicional e Invocação-Especial são recursos diferentes. Reator, Duke e Tellus impõem bloqueios que precisam ser planejados.",
+          "Slifer por Especial sai na Fase Final; Slifer por Tributo precisa de proteção e de cartas na mão."
+        ]
+      },
+      "botCoreCodes": [
+        10000020,
+        5253985,
+        42469671,
+        12958919,
+        32247099,
+        86377375,
+        59160188
+      ],
+      "botTactics": "slifer"
     },
     {
       "id": "tcg-ygld-battle-city",

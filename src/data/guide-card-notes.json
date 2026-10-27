@@ -16,5 +16,159 @@
     "50005218": { "role": "Busca condicional", "explanation": "Pode escolher Raye como alvo e revelar três cartas. A busca depende de encontrar uma carta Sky Striker entre elas; não é garantida." },
     "63288573": { "role": "Recupera uma Magia", "explanation": "Ao entrar por Link, recupera uma Magia Sky Striker do Cemitério. Planeje qual magia já foi usada e mantenha a Zona de Monstros Principal vazia para as próximas ativações." },
     "63166095": { "role": "Busca e possível compra", "explanation": "Antes de ativar, confirme que não controla monstros na Zona de Monstros Principal. A compra adicional depende de três Magias no Cemitério quando o efeito resolver." }
+  },
+  "tcg-egs1": {
+    "10000020": {
+      "role": "Condição de vitória e controle",
+      "explanation": "Converte cada carta na mão em 1000 ATK/DEF e pune novas Invocações em Ataque. Prefira a Invocação-Tributo para mantê-lo; as Especiais têm prazo na Fase Final. Não tem imunidade geral."
+    },
+    "86377375": {
+      "role": "Acesso ao Campo e remoção por custo",
+      "explanation": "Uma das três cópias pode ser descartada para buscar o único Covil. No campo, outra cópia usa o Tributo adversário permitido pelo Campo para comprar ou buscar Duke/Vishuda; não busca Slifer DIVINO no Deck."
+    },
+    "59160188": {
+      "role": "Motor de controle por Tributos",
+      "explanation": "Torna monstros face-up de TREVAS e substitui um monstro seu no custo de um efeito por um adversário, uma vez por turno. Não permite usar adversários numa Invocação-Tributo comum. As Fichas finais vão para o jogador do turno."
+    },
+    "5253985": {
+      "role": "Janela de Invocação-Tributo",
+      "explanation": "Permite Invocar Slifer com três Tributos entre os dois campos. Usar qualquer adversário impõe o limite de ativações até o fim do próximo turno; prepare outras ações antes."
+    },
+    "42469671": {
+      "role": "Remoção e reposição da mão",
+      "explanation": "Limpa monstros face-up adversários. Na sua Main Phase pode comprar pelos destruídos e enviados ao Cemitério adversário, mas restringe o ataque a um monstro. Fichas não rendem cartas enviadas a esse Cemitério."
+    },
+    "79387392": {
+      "role": "Três corpos com uma Normal",
+      "explanation": "Seu corpo e duas Fichas são os três Tributos do Deus. Precisa de Avanço de Carta ou outra janela se gastou a Normal para entrar. O efeito de Fichas bloqueia novas Normais/Especiais que não sejam Bestas Divinas."
+    },
+    "52112003": {
+      "role": "Permissão extra e informação",
+      "explanation": "Organiza até cinco cartas do topo e concede uma Invocação-Tributo adicional. Resolve o turno em que a Normal foi usada num gerador de corpos e prepara uma declaração correta para O Nome Verdadeiro."
+    },
+    "39913299": {
+      "role": "Acesso planejado ao Slifer",
+      "explanation": "Com topo conhecido por Avanço, acrescenta a carta declarada e acessa Slifer do Deck. Escolha mão para uma linha por Tributo ou Especial para efeito imediato; não trate a Especial como permanente."
+    },
+    "12958919": {
+      "role": "Multiplicador de corpos",
+      "explanation": "Ao entrar normalmente ou por Virar, conta seus monstros incluindo ele e pode criar até essa quantidade de Fichas. Sozinho chega a dois corpos; com um corpo prévio pode chegar a quatro."
+    },
+    "93104632": {
+      "role": "Corpo antes da Normal",
+      "explanation": "Cria uma Ficha de Segurança em Defesa sem gastar a Normal. Melhora a contagem de Skyblaster. Depois de aplicar o bloqueio de Duke Shade, Covil não autoriza criar uma nova Ficha LUZ. Se o Campo já estava ativo antes de uma Ficha anterior entrar, a análise do histórico é diferente."
+    },
+    "98045062": {
+      "role": "Interação em dois modos",
+      "explanation": "Muda a posição para sobreviver ou tributa um monstro para tomar outro até a Fase Final. Covil pode pagar com um adversário; nesse caso precisa haver outro alvo legal para tomar."
+    },
+    "12766474": {
+      "role": "Alternativa de remoção e recuperação",
+      "explanation": "Com Covil pode usar um adversário como custo para entrar. Recupera Vishuda ou Breaker das Trevas do Cemitério, não Slifer. Seus efeitos exigem um turno inteiro de Especiais somente TREVAS."
+    },
+    "23431858": {
+      "role": "Corpo ou devolução",
+      "explanation": "Entra da mão sem controlar monstros de efeito. Com um monstro face-up sem efeito, como uma Ficha comum, pode ser banido da mão ou do Cemitério para devolver uma carta adversária. É buscável por Ahrima e recuperável por Duke."
+    },
+    "19870120": {
+      "role": "Proteção para o Deus por Tributo",
+      "explanation": "Protege seus Invocados por Tributo contra alvo e destruição por efeitos. Não protege Slifer simplesmente reanimado, nem impede seu envio final. O bloqueio do Extra não custa uma rota a este preset, que não tem Extra."
+    },
+    "4694209": {
+      "role": "Proteção para o motor",
+      "explanation": "O Marcador inicial aumenta seu ATK. Transferi-lo para outra carta face-up dá a ela uma proteção contra destruição: Covil é um bom candidato quando sustenta a remoção por custo. Marcha pode impedir escolher seu Slifer por Tributo."
+    },
+    "32247099": {
+      "role": "Reanimação no ataque",
+      "explanation": "Reanima Slifer em Defesa quando o adversário declara ataque, pagando uma Magia/Armadilha da mão e redirecionando o ataque. Esse descarte reduz a DEF que Slifer terá. Seu outro efeito pode limpar cartas face-up elegíveis na Fase Final."
+    },
+    "59919307": {
+      "role": "Retorno em Defesa",
+      "explanation": "Reanima um monstro do seu Cemitério em Defesa. Slifer precisa voltar antes das próximas Invocações em Ataque que você quer punir; ele não aplica a redução retroativamente e sairá na Fase Final."
+    },
+    "83764718": {
+      "role": "Recurso imediato",
+      "explanation": "Reanima um monstro de qualquer Cemitério. Use Slifer por um ataque ou efeito concreto e planeje sua saída na Fase Final; reanimação não equivale a Invocação-Tributo."
+    },
+    "67284107": {
+      "role": "Reserva de Fichas",
+      "explanation": "Seu Flip produz quantas Fichas de Ovelha Negra couberem e você escolher. Oferece corpos para Tributo, mas exige preparar o monstro virado e sobreviver à janela de combate/remoção."
+    },
+    "19280589": {
+      "role": "Reposição ao ir ao Cemitério",
+      "explanation": "Deixa uma Ficha ao sair da Zona de Monstros para o Cemitério, inclusive por Tributo. Pode banir-se e uma Magia da mão para mais duas Fichas, mas bloqueia Especiais fora da mão pelo restante do turno."
+    },
+    "27198001": {
+      "role": "Corpo reciclável, Fichas por destruição",
+      "explanation": "Entra da mão ou Cemitério tributando dois monstros. Só deixa duas Fichas se for destruída e enviada ao Cemitério; ser tributada não basta. Covil substitui um dos custos, não ambos."
+    },
+    "17626381": {
+      "role": "Reposição por destruição",
+      "explanation": "Compra uma vez por turno quando um monstro seu é destruído por batalha ou efeito. Não compra só porque você ofereceu corpos como Tributo. Ative antes de uma troca por destruição que já valha a pena."
+    },
+    "37576645": {
+      "role": "Força imediata com dívida futura",
+      "explanation": "Duas cartas aumentam a mão e o ATK de Slifer, mas você pula as próximas duas Fases de Compra. Este preset tem uma cópia: não conte com cadeias de múltiplas Ganâncias para diluir a penalidade."
+    },
+    "856784": {
+      "role": "Busca emergencial com travas",
+      "explanation": "Exige seus PV menores e um monstro adversário com o maior ATK da mesa. Prepara três cartas em ordem aleatória, compra uma e depois bloqueia Baixar Magias/Armadilhas e limita você a mais uma ativação; escolha três saídas úteis."
+    },
+    "71413901": {
+      "role": "Remoção de Magia/Armadilha",
+      "explanation": "Recebe um Marcador na Normal; gastar esse Marcador destrói uma Magia/Armadilha e reduz seu ATK. Priorize alvos adversários relevantes e preserve Covil e suas proteções."
+    },
+    "22923081": {
+      "role": "Alvo de recuperação e remoção",
+      "explanation": "É Nível 6 de TREVAS para Duke recuperar. Sua Normal coloca dois Marcadores, mas só pode ativar a remoção uma vez por turno. Não prometa duas destruições imediatas por ter dois Marcadores."
+    },
+    "67692580": {
+      "role": "Extensor sem gastar a Normal",
+      "explanation": "Entra especialmente da mão se você controla um TREVAS. Acompanha Ahrima; com Covil, qualquer monstro seu face-up pode habilitá-lo. Não supere um bloqueio já aplicado por Reator."
+    },
+    "21830679": {
+      "role": "Dois corpos em uma entrada",
+      "explanation": "Ao entrar, reduz o próprio ATK pela metade para gerar uma Ficha. Junte um terceiro corpo e uma janela de Tributo. Depois do bloqueio de Duke, sua entrada e a Ficha VENTO não são permitidas. Para invocações anteriores, a presença de Covil naquele momento também importa."
+    },
+    "78651105": {
+      "role": "Pressão alternativa",
+      "explanation": "Pode entrar sem Tributo com ATK original de 1900 ou ser Invocado por Tributo com três corpos para destruir as cartas adversárias. Compare essa limpeza com guardar os mesmos três corpos para Slifer."
+    },
+    "5130393": {
+      "role": "Recuperação depois de dano",
+      "explanation": "Pode entrar da mão após você receber ao menos 1000 de dano. Seu outro efeito envolve uma escolha do adversário e pode dar uma carta a ele; não é roubo garantido de Cemitério."
+    },
+    "34710660": {
+      "role": "Defesa no Cemitério",
+      "explanation": "No turno adversário, pode ser banida do Cemitério para encerrar a Fase de Batalha, uma vez por Duelo. Não funciona só por estar na mão; planeje como chegou ao Cemitério."
+    },
+    "72302403": {
+      "role": "Tempo para montar a mão",
+      "explanation": "Impede ataques adversários enquanto permanecer face-up pelo prazo indicado e revela os monstros virados na ativação. Virá-los não é Invocação-Normal ou Especial para Slifer disparar."
+    },
+    "18144506": {
+      "role": "Abra o ataque sem atingir seu Campo",
+      "explanation": "Destrói Magias/Armadilhas adversárias preservando Covil e Marcha. Use antes de comprometer corpos ou do limite de Cruzar Almas quando a limpeza for necessária."
+    },
+    "14087893": {
+      "role": "Resposta de posição",
+      "explanation": "Pode esconder um monstro de efeito adversário virando-o para Defesa face-down, conforme o alvo permitido. Slifer não pune uma Invocação-Virar posterior como pune Normal/Especial em Ataque."
+    },
+    "67169062": {
+      "role": "Reciclagem com requisito real",
+      "explanation": "Precisa de cinco monstros no Cemitério para embaralhar e comprar duas cartas. Fichas não ficam no Cemitério para completar a conta; não devolva um alvo de reanimação importante sem comparar a continuação."
+    },
+    "44095762": {
+      "role": "Punição a ataques",
+      "explanation": "Destrói monstros adversários em Ataque quando um deles declara ataque. Não remove os que ficaram em Defesa e pode competir com Besta Divina pela janela e pelos recursos que você quer preservar."
+    },
+    "26905245": {
+      "role": "Parede de 3000 DEF e um Tributo",
+      "explanation": "É uma Armadilha que entra como monstro em Defesa, sem atacar. Reator pode Baixá-la com permissão especial na batalha; este preset não tem Slime dos Deuses Egípcios para convertê-la em três Tributos."
+    },
+    "42671151": {
+      "role": "Defesa após dano direto",
+      "explanation": "Exige receber dano de batalha sem controlar monstros, recupera os PV e cria uma Ficha com os valores efetivamente ganhos. Pode deixar um corpo para o próximo turno, mas não é prevenção universal do dano."
+    }
   }
 }

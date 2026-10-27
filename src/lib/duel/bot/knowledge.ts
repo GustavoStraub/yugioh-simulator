@@ -33,6 +33,8 @@ export class BotKnowledge {
   private resolvingLink: number | null = null;
   private lastFailed: { code: number; player: number; description: bigint; revision: number } | null = null;
   private revision = 0;
+  private deckRevision = 0;
+  private sortingMoves = 0;
   private facts: BotFact[] = [];
   private readonly attacks = new Map<string, number>();
   private readonly normalSummons = new Set<number>();
@@ -47,6 +49,16 @@ export class BotKnowledge {
   constructor(seat: 0 | 1) { this.seat = seat; }
 
   observe(message: OcgMessage): void {
+    if (message.type === M.SORT_CARD && message.player === this.seat
+      && message.cards.every(c => c.controller === this.seat && c.location === OcgLocation.DECK)) this.sortingMoves = message.cards.length;
+    const knownSortMove = message.type === M.MOVE && this.sortingMoves > 0
+      && message.from.controller === this.seat && message.to.controller === this.seat
+      && message.from.location === OcgLocation.DECK && message.to.location === OcgLocation.DECK;
+    if (knownSortMove) this.sortingMoves -= 1;
+    if (message.type === M.SHUFFLE_DECK && message.player === this.seat) this.sortingMoves = 0;
+    if ((message.type === M.SHUFFLE_DECK || message.type === M.DRAW) && message.player === this.seat
+      || message.type === M.MOVE && !knownSortMove && (message.from.controller === this.seat && message.from.location === OcgLocation.DECK
+        || message.to.controller === this.seat && message.to.location === OcgLocation.DECK)) this.deckRevision += 1;
     switch (message.type) {
       case M.NEW_TURN:
         this.turnPlayer = message.player;
@@ -101,6 +113,7 @@ export class BotKnowledge {
         break;
       }
       case M.CHAIN_END:
+        this.sortingMoves = 0;
         this.links.clear();
         this.resolvingLink = null;
         this.summoning = null;
@@ -170,6 +183,7 @@ export class BotKnowledge {
   context() {
     const top = [...this.links.values()].at(-1);
     return { turnPlayer: this.turnPlayer, turnCount: this.turnCount, phase: this.phase,
+      deckRevision: this.deckRevision,
       chainPlayer: top?.player ?? null, chainCode: top?.code ?? null,
       chainEffect: top ? { ...top, targets: top.targets?.map(target => ({ ...target })) } : null,
       resolvingEffect: this.resolvingLink === null ? null : this.links.get(this.resolvingLink) ?? null,

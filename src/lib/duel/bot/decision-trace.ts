@@ -39,10 +39,11 @@ export interface BotDecisionTrace {
   objective: string;
   route: string | null;
   guideDecision: string | null;
+  guideLesson?: string | null;
   alternatives: { id: string; score: number; reason: string }[];
   source: BotDecisionSource;
   candidates: BotCandidateTrace[];
-  capabilities: { candidateComparison: boolean; stateEvaluation: boolean; sequencePlanning: boolean; opponentMemory: boolean; recoveryPlanning: boolean };
+  capabilities: { candidateComparison: boolean; stateEvaluation: boolean; sequencePlanning: boolean; opponentMemory: boolean; recoveryPlanning: boolean; sliferStrategy?: boolean };
   selected: string;
   replacement: { reason: string; preferred: OcgResponse | null } | null;
   response: OcgResponse;

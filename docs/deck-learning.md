@@ -1,12 +1,30 @@
 # Aprender os decks
 
-A área `/aprender` apresenta 92 guias e 208 lições para os decks TCG
+A área `/aprender` apresenta 92 guias e 219 lições para os decks TCG
 selecionados do catálogo. Albaz Strike e os três decks de Heróis Lendários
 de 2018 mantêm seus três exercícios validados no motor e recebem cinco
-lições de estratégia cada. Os demais 88 guias oferecem duas estratégias
+lições de estratégia cada. Slifer tem 13 lições revisadas em profundidade; os demais 87 guias oferecem duas estratégias
 por deck. Cada guia mantém a lista exata de seu preset.
 O conteúdo é carregado dos JSONs do projeto; pesquisar as fontes é uma etapa
 de autoria, sem consulta ou geração de aulas durante a navegação do jogador.
+
+## Controle da revisão individual e integração com o bot
+
+Este processo reúne pesquisa individual da lista e dos efeitos, revisão das
+estratégias no `/aprender`, integração dessas estratégias às decisões do bot e
+validação das jogadas no motor e no navegador. **Somente Slifer concluiu este
+processo até agora.**
+
+| Deck | Revisão | Guia e integração | Evidências |
+| --- | --- | --- | --- |
+| Slifer — `tcg-egs1` | 2, em 27/10/2026 | 13 lições, 38 cartas distintas e 8 decisões de estudo; política do bot vinculada à lista oficial, inclusive no modo de assistir. | 14 situações roteirizadas no motor, 17 cenários com decisões do próprio bot e testes de worker e navegador. |
+
+Detalhes, fontes, estratégias implementadas e limites estão no
+[registro da revisão do Slifer](slifer-revisao-2026-10-27.md).
+Os outros 91 decks ainda não passaram por este processo completo. Seus guias,
+exercícios e comportamentos existentes não representam conclusão desta revisão
+individual com integração ao bot. Atualizar este registro conforme cada próximo
+deck for concluído.
 
 Cada deck tem uma dificuldade editorial em `deck-learning-base.json`, exibida
 nos cards e no guia e incluída na busca. A classificação considera a lista
@@ -19,7 +37,7 @@ do deck nem a duração da leitura.
 ## Organização
 
 - `src/data/deck-guides/<slug>.json`: os quatro guias com exercícios na mesa.
-- `src/data/deck-learning-base.json`: conteúdo e fontes das 196 novas
+- `src/data/deck-learning-base.json`: conteúdo e fontes das 207 novas
   estratégias, além do registro das 18 exclusões editoriais.
 - `src/lib/data/deck-learning-adapter.ts`: adapta a base para o leitor e
   preserva os exercícios, IDs, revisão e conteúdo dos quatro guias históricos.

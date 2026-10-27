@@ -1,16 +1,16 @@
 # Base editorial de aprendizado dos decks
 
-Esta base reúne planos e roteiros em português publicados na área `/aprender` pelo adaptador `src/lib/data/deck-learning-adapter.ts`. O arquivo `src/data/deck-learning-base.json` conserva o contrato de autoria editorial (schemaVersion 1, revisão 2026-10-16), com mãos e prática nulas para as novas estratégias. O adaptador preserva as 12 práticas executáveis dos quatro JSONs históricos e acrescenta as 196 leituras, sem inventar objetivos de execução.
+Esta base reúne planos e roteiros em português publicados na área `/aprender` pelo adaptador `src/lib/data/deck-learning-adapter.ts`. O arquivo `src/data/deck-learning-base.json` conserva o contrato de autoria editorial (schemaVersion 1, revisão 2026-10-16), com mãos e prática nulas para as novas estratégias. O adaptador preserva as 12 práticas executáveis dos quatro JSONs históricos e acrescenta as 207 leituras, sem inventar objetivos de execução.
 
 ## Escopo e critérios
 
 A cobertura contém exatamente 110 presets TCG: 92 selecionados e 18 excluídos. Não inclui presets GOAT; as cópias TCG com equivalente GOAT são explicitamente excluídas. A seleção é editorial: uma exclusão não significa que o deck não tenha qualquer jogada possível, apenas que não foi aceito no recorte de estratégia da base. A seleção editorial privilegia motores estratégicos presentes na lista exata; listas introdutórias, produtos de tutorial ou listas sem motor suficiente recebem justificativa individual. Não se acrescentam cartas de versões posteriores ou de múltiplas caixas.
 
-São 208 lições: 12 importadas dos quatro guias ativos e 196 novas. Os quatro guias existentes têm oito lições cada (três importadas, seguidas de cinco novas); os demais têm duas. Há 496 referências globais, incluindo fontes oficiais de efeitos verificadas e fontes preservadas dos guias ativos.
+São 219 lições: 12 importadas dos quatro guias ativos e 207 leituras de estratégia. Os quatro guias existentes têm oito lições cada (três importadas, seguidas de cinco novas); Slifer tem 13 e os demais 87 têm duas. Há 528 referências globais, incluindo fontes oficiais de efeitos verificadas e fontes preservadas dos guias ativos. A revisão individual do Slifer é de 27/10/2026; a data dos outros decks permanece preservada.
 
 ## Fontes e limites
 
-Os efeitos oficiais verificados têm URL e data de acesso por carta, sem reprodução integral do efeito. Os roteiros são adaptações autorais baseadas nesses efeitos, não combos atribuídos a publicações nem sequências validadas no motor. Fontes publicadas indicadas por deck são referências complementares; não se afirma revisão integral. Os passos novos identificam apenas nomes completos explicitamente escritos na ação, em inglês ou português; abreviações podem resultar em cardCodes vazio. Mãos iniciais e prática das novas lições são nulas. As lições importadas preservam suas mãos, preparação, passos e fontes, mas também têm prática nula nesta base.
+Os efeitos oficiais verificados têm URL e data de acesso por carta, sem reprodução integral do efeito. Os roteiros são adaptações autorais baseadas nesses efeitos, não combos atribuídos a publicações. O Slifer tem oito lições com evidência de sequências no motor em `test-slifer-guide.mjs`; as demais estratégias não passam a ser validadas por essa revisão. Fontes publicadas indicadas por deck são referências complementares; não se afirma revisão integral. Os passos novos identificam apenas nomes completos explicitamente escritos na ação, em inglês ou português; abreviações podem resultar em cardCodes vazio. Mãos iniciais e prática das novas lições são nulas. As lições importadas preservam suas mãos, preparação, passos e fontes, mas também têm prática nula nesta base.
 
 No app, uma estratégia apresenta seu cenário e etapas, permite consultar cartas
 e fontes, retomar a etapa e concluir explicitamente a leitura. Essa conclusão
@@ -505,10 +505,23 @@ Produzir Tributos e usar Soul Crossing para chegar a Obelisk; as Magias específ
 
 ### Deck dos Deuses Egípcios: Slifer, o Dragão Celeste (`tcg-egs1`)
 
-Produzir Tributos para Slifer e preservar a mão para seu ATK; Thunderforce Attack pode repor cartas na sua Fase Principal.
+Controle com Ahrima e Covil das Trevas, transforme corpos em uma Invocação-Tributo de Slifer e preserve a mão que sustenta seu ATK. Escolha entre controle, preparação e finalização conforme os recursos reais.
 
-- Skyblaster ajuda a reunir os Tributos
-- Thunderforce protege e recompõe a mão
+- Ahrima encontra o Covil sem gastar a Invocação-Normal
+- Ahrima + Covil: remova uma ameaça e ganhe recurso
+- Covil + Controlador: remova um monstro e tome outro
+- Slime Reator + Avanço de Carta: três Tributos no mesmo turno
+- Skyblaster: conte os corpos antes de gastar a Normal
+- Cruzar Almas: os três Tributos podem vir do adversário
+- Avanço de Carta + O Nome Verdadeiro: busque sem adivinhar
+- Slifer controla invocações, mas depende da sua mão
+- Ataque Força Trovão: limpeza e mão maior na sua Main Phase
+- Proteja o recurso certo: Slifer por Tributo e o próprio Campo
+- Reanime Slifer pela função que ele vai cumprir
+- Sem Slifer na mão: monte recursos em vez de entregar a mesa
+- Duke Shade e Vishuda: escolha um plano compatível
+
+Revisão detalhada: [Slifer — pesquisa e evidências](slifer-revisao-2026-10-27.md).
 
 ### Decks Lendários do Yugi — Battle City (`tcg-ygld-battle-city`)
 

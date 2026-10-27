@@ -97,8 +97,12 @@ export function DuelLobby() {
     opcoes.find((opcao) => opcao.id === opponentId) ?? opcoes[1] ?? opcoes[0] ?? null;
   const playerGuide = meuDeck.escolha ? getGuideForPreset(meuDeck.escolha) : null;
   const opponentGuide = opponent ? getGuideForPreset(opponent.id) : null;
-  const coverage = (deck: DuelDeckPayload) => botCoverage(deck, formato)?.coverage
-    ?? (guideHintsForDeck(deck, formato) ? "Difícil usa prioridades do guia; sequência ainda não validada no motor." : "Usa análise genérica.");
+  const coverage = (deck: DuelDeckPayload) => {
+    const hints = guideHintsForDeck(deck, formato);
+    return botCoverage(deck, formato)?.coverage ?? (hints?.tactics === "slifer"
+      ? "Usa Covil para controlar o campo e prepara os Tributos de Slifer."
+      : hints ? "Difícil usa prioridades do guia; sequência ainda não validada no motor." : "Usa análise genérica.");
+  };
 
   /** Bot × bot: o seu deck (pilotado pelo bot) contra o deck escolhido. */
   function handleSpectate() {

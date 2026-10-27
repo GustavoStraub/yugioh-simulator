@@ -50,7 +50,9 @@ const signature = (deck) => {
 const hints = base.decks.map((guide) => {
   const main = new Set(guide.deckSnapshot.main);
   const extraDeck = new Set(guide.deckSnapshot.extra);
-  const core = [...new Set(guide.coreCards.map((card) => card.code).filter((code) => main.has(code)))];
+  // Uma revisão pode explicar a lista inteira sem transformar todas as cartas
+  // em prioridades de execução. O bot recebe apenas o núcleo declarado.
+  const core = [...new Set((guide.botCoreCodes ?? guide.coreCards.map((card) => card.code)).filter((code) => main.has(code)))];
   const extra = [...new Set(guide.coreCards.map((card) => card.code).filter((code) => extraDeck.has(code)))];
   const firstSteps = guide.lessons.slice(0, 2).map((lesson) => lesson.steps[0]).filter(Boolean);
   const startingCodes = firstSteps.map((first) => first.cardCodes.length ? first.cardCodes : [openingCard(guide, first.action)].filter(Boolean));
@@ -76,7 +78,7 @@ const hints = base.decks.map((guide) => {
       : /busc|deck/.test(action) ? 'deck' : 'visible';
     return [{ code, support, zone }];
   });
-  return { id: guide.id, signature: signature(guide.deckSnapshot), core, extra, opening, plays, decisions: decisions[guide.id] ?? [] };
+  return { id: guide.id, ...(guide.botTactics ? { tactics: guide.botTactics } : {}), signature: signature(guide.deckSnapshot), core, extra, opening, plays, decisions: decisions[guide.id] ?? [] };
 });
 
 writeFileSync('src/data/bot-guide-hints.json', `${JSON.stringify(hints, null, 2)}\n`);

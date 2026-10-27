@@ -18,9 +18,9 @@ assert.deepEqual(new Set(base.coverage.map(item => item.presetId)), new Set(pres
 assert.deepEqual(new Set(DECK_GUIDES.map(guide => guide.presetId)), new Set(selected));
 assert.equal(DECK_GUIDES.length, 92);
 assert.equal(new Set(DECK_GUIDES.map(guide => guide.id)).size, DECK_GUIDES.length);
-assert.equal(DECK_GUIDES.flatMap(guide => guide.lessons).length, 208);
+assert.equal(DECK_GUIDES.flatMap(guide => guide.lessons).length, 219);
 assert.equal(DECK_GUIDES.flatMap(guide => guide.lessons).filter(hasLessonPractice).length, 12);
-assert.equal(DECK_GUIDES.flatMap(guide => guide.lessons).filter(lesson => !hasLessonPractice(lesson)).length, 196);
+assert.equal(DECK_GUIDES.flatMap(guide => guide.lessons).filter(lesson => !hasLessonPractice(lesson)).length, 207);
 for (const [id, tag] of [['tcg-sdgr', 'Xyz'], ['tcg-sr13', 'Fusão'], ['tcg-l26d-mitsurugi', 'Ritual'], ['tcg-sdpd', 'Pêndulo']]) {
   assert.ok(getDeckGuide(id).tags.includes(tag), `mecânica pesquisável derivada das cartas: ${id}/${tag}`);
 }
@@ -95,7 +95,7 @@ for (const guide of DECK_GUIDES) {
   }
 }
 assert.deepEqual(new Set(Object.keys(authoredDecisions)), new Set(DECK_GUIDES.filter(guide => guide.decisions?.length).map(guide => guide.presetId)));
-assert.equal(DECK_GUIDES.flatMap(guide => guide.decisions ?? []).length, 28);
+assert.equal(DECK_GUIDES.flatMap(guide => guide.decisions ?? []).length, 36);
 for (const [presetId, notes] of Object.entries(authoredCardNotes)) {
   const guide = DECK_GUIDES.find(item => item.presetId === presetId);
   assert.ok(guide, `notas ligadas a um guia: ${presetId}`);
@@ -121,5 +121,5 @@ for (const malformed of ['bad', ['a'], 1, null]) {
   assert.equal(progress.currentLesson, first.id, 'dados inválidos de etapa não apagam uma lição válida');
   assert.equal(progress.steps, undefined, 'dados inválidos não viram progresso de etapa');
 }
-console.log('✓ 92 guias, 208 lições e 18 exclusões integrados com listas e referências válidas');
-console.log('✓ 12 práticas e progresso dos quatro guias históricos preservados; 196 estratégias sem objetivos inventados');
+console.log('✓ 92 guias, 219 lições e 18 exclusões integrados com listas e referências válidas');
+console.log('✓ 12 práticas e progresso dos quatro guias históricos preservados; 207 estratégias sem objetivos inventados');

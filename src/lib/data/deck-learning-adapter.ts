@@ -7,7 +7,11 @@ import decisions from "@/data/guide-decisions.json";
 import cardNotes from "@/data/guide-card-notes.json";
 import type { DeckGuide, GuideDecision, GuideLesson } from "@/lib/domain/deck-guide";
 
-type EditorialDeck = typeof base.decks[number];
+type EditorialDeck = typeof base.decks[number] & {
+  revision?: number;
+  reviewedAt?: string;
+  overview?: DeckGuide["overview"];
+};
 
 // Este adaptador é consumido pelas rotas no servidor; o seletor usa apenas o índice leve.
 const cardDb = new OfficialCardDb(cardRows);
@@ -32,7 +36,10 @@ function strategyLesson(lesson: EditorialDeck["lessons"][number]): GuideLesson {
     id: lesson.id, title: lesson.title, summary: lesson.scenario ?? lesson.summary ?? "",
     minutes: Math.max(2, lesson.steps.length + 1), sourceIds: lesson.sourceIds,
     preparation: lesson.scenario ? [lesson.scenario] : ("preparation" in lesson ? lesson.preparation ?? [] : []), startingHand: null, practice: null,
-    steps: lesson.steps.map((step, index) => ({ title: `Etapa ${index + 1}`, action: step.action, why: "", cardCodes: step.cardCodes })),
+    steps: lesson.steps.map((step, index) => {
+      const content = step as typeof step & { title?: string; why?: string };
+      return { title: content.title ?? `Etapa ${index + 1}`, action: step.action, why: content.why ?? "", cardCodes: step.cardCodes };
+    }),
     outcome: lesson.outcome, cautions: lesson.cautions,
   };
 }
@@ -46,14 +53,15 @@ export function adaptLearningBase(historical: readonly DeckGuide[]): DeckGuide[]
     const sources = [...(previous?.sources ?? []), ...base.sources.filter((source) => sourceIds.has(source.id)).map(({ id, title, url }) => ({ id, title, url }))];
     return {
       schemaVersion: 1, id: previous?.id ?? deck.id, presetId: deck.presetId,
-      revision: previous?.revision ?? 1, reviewedAt: base.reviewedAt,
+      revision: previous?.revision ?? deck.revision ?? 1, reviewedAt: deck.reviewedAt ?? base.reviewedAt,
       title: previous?.title ?? deck.title, subtitle: previous?.subtitle ?? "Estratégia com a lista oficial",
       description: deck.gamePlan, difficulty: deck.difficulty,
       minutes: lessons.reduce((total, lesson) => total + lesson.minutes, 0),
       tags: previous?.tags ?? ["Estratégia", "TCG", ...snapshotTags(deck)],
       coverCodes: previous?.coverCodes ?? deck.coreCards.slice(0, 3).map((card) => card.code),
       deckSnapshot: { ...deck.deckSnapshot, format: "tcg" },
-      overview: previous ? { ...previous.overview, watchOut: [...new Set([...previous.overview.watchOut, ...deck.cautions])] } : { goal: deck.gamePlan, plan: lessons.map((lesson) => lesson.title), strengths: [], watchOut: deck.cautions },
+      overview: previous ? { ...previous.overview, watchOut: [...new Set([...previous.overview.watchOut, ...deck.cautions])] }
+        : deck.overview ?? { goal: deck.gamePlan, plan: lessons.map((lesson) => lesson.title), strengths: [], watchOut: deck.cautions },
       keyCards: [...(previous?.keyCards ?? []), ...deck.coreCards.filter((card) => !previous?.keyCards.some((item) => item.code === card.code)).map((card) => ({
         code: card.code, name: card.namePt || card.name,
         role: notes[String(card.code)]?.role ?? "Carta-chave",

@@ -173,7 +173,7 @@ export function DeckGuideApp({ guide, preset, initialLessonId }: {
           {section === "sources" && (
             <section aria-labelledby="guide-sources">
               <p className={styles.eyebrow}>De onde vem o conteúdo</p><h2 id="guide-sources">Fontes e revisão</h2>
-              <p className={styles.sectionIntro}>Explicações, decisões e roteiros elaborados pelo app a partir dos efeitos oficiais. Somente as lições identificadas como Exercício na mesa têm sequências verificadas no simulador por testes automatizados. Estratégias e decisões são cenários de estudo.</p>
+              <p className={styles.sectionIntro}>Explicações, decisões e roteiros elaborados a partir dos efeitos oficiais. Exercícios na mesa acompanham sua execução durante o treino. Estratégias e decisões apresentam cenários de estudo, com fontes, condições e cuidados descritos em cada roteiro.</p>
               <p className={styles.meta}>Revisado em {guide.reviewedAt.split("-").reverse().join("/")} · versão {guide.revision} · lista {preset.setCode} · regras TCG</p>
               <ul className={styles.sourceList}>{guide.sources.map((source) => <li key={source.id}><a href={source.url} target="_blank" rel="noreferrer">{source.title}<span aria-hidden="true">↗</span></a></li>)}</ul>
               <p className={styles.footnote}>Cada exercício começa com uma mão preparada e acompanha suas jogadas na mesa. O duelo livre contra o bot continua disponível como prática adicional.</p>
