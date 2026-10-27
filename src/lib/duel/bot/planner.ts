@@ -7,6 +7,7 @@ import { BotIntentStack } from "@/lib/duel/bot/intent";
 import type { DuelDeckPayload } from "@/lib/types";
 import type { BotGuideHints } from "@/lib/duel/bot/guide-hints";
 import type { BoardPlayer } from "@/lib/duel/board-state";
+import { compileTransitions, planningResources, transitionLines, type BotTransition, type TransitionLine } from "@/lib/duel/bot/transitions";
 
 export class BotPlanner {
   route: BotRoute | null = null;
@@ -20,16 +21,25 @@ export class BotPlanner {
   private readonly unavailable = new Set<string>();
   private substitutions = new Map<string, { code: number; count: number }>();
   private continuation: number[] = [];
+  /** Objetivo persistente, sem índices de prompts nem confirmação presumida. */
+  goal: { objective: string; reserves: number[]; createdTurn: number } | null = null;
   private lastAttempt = "";
   private repeatedAttempts = 0;
 
   readonly profile: BotDeckProfile | null;
   readonly guide: BotGuideHints | null;
   private readonly deck: DuelDeckPayload | null;
-  constructor(profile: BotDeckProfile | null, deck: DuelDeckPayload | null, guide: BotGuideHints | null = null) {
+  private readonly recovery: boolean;
+  readonly transitions: Map<string,BotTransition>;
+  previews: { route:string; lines:TransitionLine[] }[]=[];
+  readonly predictionChecks: { transition:string;turn:number;result:"confirmed"|"diverged"|"interrupted" }[]=[];
+  private readonly pendingTransitions=new Map<string,BotStep>();
+  constructor(profile: BotDeckProfile | null, deck: DuelDeckPayload | null, guide: BotGuideHints | null = null, recovery = true) {
     this.profile = profile;
     this.deck = deck;
     this.guide = profile ? null : guide;
+    this.recovery = recovery;
+    this.transitions=profile?compileTransitions(profile):new Map();
   }
   get step(): BotStep | null { return this.route?.steps[this.stepIndex] ?? null; }
   get reserves(): number[] {
@@ -58,23 +68,38 @@ export class BotPlanner {
       this.unavailable.clear();
       this.route = null;
       this.substitutions.clear();
-      this.continuation = [];
+      const own = ctx.readBoard(true).players[ctx.me];
+      const available = [...own.hand, ...own.monsters, ...own.spells, ...own.grave].filter(c => c?.code).map(c => c!.code);
+      this.continuation = this.recovery && ctx.strategy !== "stable" ? this.continuation.filter(code => available.includes(code)) : [];
+      if (!this.recovery) this.goal = null;
+      if (this.goal) {
+        this.goal.reserves = this.goal.reserves.filter(code => available.includes(code));
+        if (!this.goal.reserves.length) this.goal = null;
+      }
       this.intents.clear();
       this.lastAttempt = "";
       this.repeatedAttempts = 0;
+      this.pendingTransitions.clear();
     }
     const failed = ctx.failedEffect;
     if (failed && failed.revision !== this.failureRevision) {
       this.failureRevision = failed.revision;
-      this.intents.invalidate(failed.code);
-      if (failed.player === ctx.me && this.route?.steps.some((s) => s.effects.includes(failed.code))) this.abandon("Efeito da rota negado; recursos reavaliados");
+      if (failed.player === ctx.me) {
+        for(const [id,step]of this.pendingTransitions)if(stepHasEffect(step,failed.code,failed.description))this.checked(id,ctx,"interrupted");
+        this.intents.invalidate(failed.code, failed.description);
+        if (this.route?.steps.some(s => stepHasEffect(s, failed.code, failed.description))) this.abandon("Efeito da rota negado; recursos reavaliados");
+      }
     }
     // Fácil conhece funções, mas resolve escolhas localmente. Somente os
     // níveis que comparam a sequência mantêm reservas e uma rota completa.
     if (!this.profile || !this.deck || !policy.preserveResources) return;
-    while (this.step && this.step.completeWhen.every((condition) => this.met(condition, ctx))) this.stepIndex += 1;
+    while (this.step && this.step.completeWhen.every((condition) => this.met(condition, ctx))) {
+      this.checked(this.step.id,ctx,"confirmed");this.stepIndex += 1;
+    }
+    if(ctx.prompt.type===M.SELECT_IDLECMD&&!ctx.chainOpen)for(const id of this.pendingTransitions.keys())this.checked(id,ctx,"diverged");
     if (this.route && !this.step && !ctx.chainOpen && ctx.prompt.type === M.SELECT_IDLECMD) {
       this.continuation = [...this.route.reserves];
+      this.goal = { objective: this.route.objective, reserves: [...this.continuation], createdTurn: ctx.turnCount };
       this.unavailable.add(this.route.id);
       this.reason = "Resultado confirmado pelo campo após a corrente";
       this.route = null;
@@ -91,7 +116,7 @@ export class BotPlanner {
     const prompt = ctx.prompt;
     const candidates = this.profile.routes.flatMap((route) => {
       if (this.unavailable.has(route.id) || (route.minDifficulty && !policy.considerResponses)) return [];
-      const entry = policy.considerResponses ? this.completedPrefix(route, ctx) : 0;
+      const entry = policy.considerResponses && this.recovery ? this.completedPrefix(route, ctx) : 0;
       const action = route.steps[entry]?.action;
       if (!action || !this.canStart(route, ctx, entry)
         || !prompt[action.kind].some((card) => card.code === action.code)) return [];
@@ -100,9 +125,19 @@ export class BotPlanner {
     this.alternatives = [];
     let best: { route: BotRoute; entry: number } | null = null;
     let bestScore = -Infinity;
-    for (const candidate of candidates.slice(0, policy.alternatives)) {
+    const rated = candidates.map(candidate => ({ ...candidate, rating: evaluateRoute(candidate.route, ctx, policy) }));
+    const ranked = ctx.strategy === "stable" ? rated : rated.sort((a,b) => b.rating.score - a.rating.score);
+    this.previews=[];
+    if(ctx.strategy!=="stable"&&this.recovery){
+      const resources=planningResources(ctx,this.deck);
+      for(const candidate of ranked.slice(0,policy.alternatives)){
+        if(performance.now()>=deadline&&this.previews.length)break;
+        this.previews.push({route:candidate.route.id,lines:transitionLines(candidate.route,candidate.entry,resources,ctx,deadline,policy.considerResponses?3:2)});
+      }
+    }
+    for (const candidate of ranked.slice(0, policy.alternatives)) {
       if (performance.now() >= deadline && best) break;
-      const rating = evaluateRoute(candidate.route, ctx, policy);
+      const rating = candidate.rating;
       this.alternatives.push(rating);
       if (rating.score > bestScore) { best = candidate; bestScore = rating.score; }
     }
@@ -127,7 +162,19 @@ export class BotPlanner {
       this.stepIndex = best.entry;
       this.substitutions.clear();
       this.reason = best.entry > 0 ? "Retomando rota a partir do campo confirmado" : "Rota compatível com os recursos conhecidos";
+      this.goal = { objective: best.route.objective, reserves: [...best.route.reserves], createdTurn: ctx.turnCount };
     }
+  }
+
+  recordTransition(step:BotStep):void {
+    if(step.completeWhen.length)this.pendingTransitions.set(step.id,step);
+  }
+
+  private checked(id:string,ctx:BotContext,result:"confirmed"|"diverged"|"interrupted"):void {
+    if(!this.pendingTransitions.has(id))return;
+    this.predictionChecks.push({transition:id,turn:ctx.turnCount,result});
+    if(this.predictionChecks.length>128)this.predictionChecks.shift();
+    this.pendingTransitions.delete(id);
   }
 
   private completedPrefix(route: BotRoute, ctx: BotContext): number {
@@ -181,7 +228,8 @@ export class BotPlanner {
   recordSpend(cards: readonly OcgCardLoc[], ctx: BotContext): void {
     if (!this.step?.spend || !this.applies(ctx)) return;
     const expected = this.step.targets.filter((t) => t.location === L.HAND && t.scope !== "action");
-    const actual = cards.filter((c) => c.location === L.HAND && c.controller === ctx.me);
+    const actual = cards.filter(c => c.controller === ctx.me && (c.location === L.HAND
+      || this.step?.spend === "banish" && (c.location === L.MZONE || c.location === L.SZONE)));
     if (!expected.length || !actual.length) return;
     const zone = this.step.spend === "return" ? "hand" : this.step.spend === "banish" ? "banished" : "grave";
     const taken = new Set<number>();
@@ -213,7 +261,10 @@ export class BotPlanner {
   }
 
   abandon(reason: string): void {
-    if (this.route) this.unavailable.add(this.route.id);
+    if (this.route) {
+      this.unavailable.add(this.route.id);
+      this.continuation = [...this.route.reserves];
+    }
     this.route = null;
     this.stepIndex = 0;
     this.substitutions.clear();

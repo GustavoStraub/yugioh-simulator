@@ -2,6 +2,7 @@ import type { OcgCoreSync } from "@n1xx1/ocgcore-wasm";
 
 import type { EngineStringsDb } from "@/lib/duel/engine-strings";
 import type { OfficialCardDb } from "@/lib/duel/official-card-data";
+import type { BotAnalysisTransport } from "@/lib/duel/bot/analysis-protocol";
 
 /**
  * De onde a sessão de duelo tira o que não é regra de jogo: o binário do
@@ -15,6 +16,7 @@ import type { OfficialCardDb } from "@/lib/duel/official-card-data";
  * pode ter em duas versões.
  */
 export interface DuelAssets {
+  createBotWorker?(): BotAnalysisTransport;
   /** Instancia o core wasm já pronto para `createDuel`. */
   loadCore(printErr: (message: string) => void): Promise<OcgCoreSync>;
   /** Conteúdo de um script Lua pelo nome do arquivo, ou `null` se não existir. */

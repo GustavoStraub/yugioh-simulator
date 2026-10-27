@@ -2,6 +2,12 @@ import type { DuelDeckPayload, DuelFormat } from "@/lib/types";
 import type { BoardPlayer } from "@/lib/duel/board-state";
 
 export type BotZone = "hand" | "monsters" | "spells" | "grave" | "banished" | "extra";
+export interface BotDeckRequirements {
+  main: { code: number; count: number }[];
+  extra: { code: number; count: number }[];
+  alternatives?: { zone: "main" | "extra"; minCount: number; codes: number[] }[];
+  forbidden?: number[];
+}
 export type BotCondition =
   | { kind: "card"; zone: BotZone; code: number; count?: number; absent?: boolean }
   | { kind: "offered"; code: number; location: number }
@@ -20,6 +26,7 @@ export interface BotStep {
   options?: number[];
 }
 export interface BotRoute {
+  deckRequirements?: BotDeckRequirements;
   id: string;
   minDifficulty?: "hard";
   lesson: string;
@@ -31,6 +38,8 @@ export interface BotRoute {
   result: { pressure: number; interaction: number; continuation: number; cost: number; exposure: number };
 }
 export interface BotDeckProfile {
+  engineRequirements?: BotDeckRequirements;
+  compatibility?: { mode: "partial"; sourceSignature: string; disabledRoutes: string[] };
   schemaVersion: 1;
   id: string;
   revision: number;
@@ -54,6 +63,33 @@ export function matchesBotProfile(profile: BotDeckProfile, deck: DuelDeckPayload
     && deckSignature(profile.deckSnapshot, profile.format) === deckSignature(deck, format);
 }
 
+export function satisfiesDeckRequirements(deck: DuelDeckPayload, requirements: BotDeckRequirements): boolean {
+  return (["main","extra"] as const).every(zone=>requirements[zone].every(r=>deck[zone].filter(code=>code===r.code).length>=r.count))
+    && (requirements.alternatives??[]).every(r=>deck[r.zone].filter(code=>r.codes.includes(code)).length>=r.minCount)
+    && !(requirements.forbidden??[]).some(code=>[...deck.main,...deck.extra].includes(code));
+}
+
+/** Exige declaração editorial de cada rota; sem ela a compatibilidade parcial não é inferida. */
+export function compatibleBotProfile(profile: BotDeckProfile, deck: DuelDeckPayload, format: DuelFormat): BotDeckProfile | null {
+  if (!validateBotProfile(profile) || profile.format!==format) return null;
+  if (matchesBotProfile(profile,deck,format)) return profile;
+  if (!profile.engineRequirements || !satisfiesDeckRequirements(deck,profile.engineRequirements)) return null;
+  const routes=profile.routes.filter(route=>route.deckRequirements&&satisfiesDeckRequirements(deck,route.deckRequirements));
+  if (!routes.length) return null;
+  return { ...profile, routes, compatibility:{mode:"partial",sourceSignature:deckSignature(profile.deckSnapshot,format),
+    disabledRoutes:[...new Set([...(profile.compatibility?.disabledRoutes??[]),
+      ...profile.routes.filter(route=>!routes.includes(route)).map(route=>route.id)])]} };
+}
+
+function validRequirements(value: BotDeckRequirements | undefined, codes: Set<number>): boolean {
+  if (!value) return true;
+  return ["main","extra"].every(zone=>Array.isArray(value[zone as "main"|"extra"]))
+    && [...value.main,...value.extra].every(r=>codes.has(r.code)&&Number.isInteger(r.count)&&r.count>0)
+    && (value.alternatives??[]).every(r=>["main","extra"].includes(r.zone)&&Number.isInteger(r.minCount)&&r.minCount>0
+      && r.codes.length>0&&r.codes.every(code=>codes.has(code)))
+    && (value.forbidden??[]).every(code=>Number.isSafeInteger(code)&&code>0);
+}
+
 /** Rejeita dados inválidos antes de o planejador poder executá-los. */
 export function validateBotProfile(value: unknown): value is BotDeckProfile {
   try {
@@ -68,11 +104,13 @@ export function validateBotProfile(value: unknown): value is BotDeckProfile {
   const ids = new Set<string>();
   const zones = new Set(["hand", "monsters", "spells", "grave", "banished", "extra", "deck"]);
   return profile.schemaVersion === 1 && Number.isInteger(profile.revision) && profile.revision > 0
+    && validRequirements(profile.engineRequirements,codes)
     && profile.roles.every((r) => codes.has(r.code) && r.roles.every((role) => ["starter", "extender", "interaction", "recovery", "finisher", "material"].includes(role)))
     && profile.routes.length > 0 && profile.routes.every((route) => {
       if (ids.has(route.id)) return false;
       ids.add(route.id);
       return (!route.minDifficulty || route.minDifficulty === "hard")
+        && validRequirements(route.deckRequirements,codes)
         && typeof route.id === "string" && typeof route.lesson === "string" && Number.isInteger(route.minHand) && route.minHand >= 0
         && Object.values(route.result).every((n) => Number.isFinite(n) && n >= 0)
         && route.steps.length > 0 && route.requires.every((r) => codes.has(r.code) && zones.has(r.zone) && Number.isInteger(r.count) && r.count > 0)
@@ -129,8 +167,20 @@ export function botCoverage(deck: DuelDeckPayload, format: DuelFormat) {
   return manifest.find((entry) => entry.signature === deckSignature(deck, format)) ?? null;
 }
 
-export async function loadBotProfile(deck: DuelDeckPayload, format: DuelFormat): Promise<BotDeckProfile | null> {
+export async function loadBotProfile(deck: DuelDeckPayload, format: DuelFormat, options: { allowPartial?: boolean } = {}): Promise<BotDeckProfile | null> {
   const candidate = manifest.find((entry) => entry.signature === deckSignature(deck, format));
+  if (!candidate && options.allowPartial) {
+    const matches=await Promise.all(manifest.map(async entry=>{
+      try {
+        if(!LOADER_BY_ID[entry.id]) return null;
+        const raw=(await LOADER_BY_ID[entry.id]()).profile as BotDeckProfile;
+        const original=await loadBotProfile(raw.deckSnapshot,format);
+        return original?compatibleBotProfile(original,deck,format):null;
+      } catch { return null; }
+    }));
+    return matches.filter((profile): profile is BotDeckProfile=>Boolean(profile))
+      .sort((a,b)=>b.routes.length-a.routes.length||a.id.localeCompare(b.id))[0]??null;
+  }
   if (!candidate || !LOADER_BY_ID[candidate.id]) return null;
   try {
     const { profile: raw, guide } = await LOADER_BY_ID[candidate.id]();

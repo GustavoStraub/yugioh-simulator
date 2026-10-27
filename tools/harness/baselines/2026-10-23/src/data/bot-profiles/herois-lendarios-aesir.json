@@ -1,0 +1,5256 @@
+{
+  "schemaVersion": 1,
+  "id": "herois-lendarios-aesir",
+  "revision": 1,
+  "format": "tcg",
+  "presetId": "tcg-lehd-aesir",
+  "guide": {
+    "id": "herois-lendarios-aesir",
+    "revision": 1
+  },
+  "deckSnapshot": {
+    "format": "tcg",
+    "main": [
+      15394083,
+      15394083,
+      14677495,
+      14677495,
+      88283496,
+      88283496,
+      41788781,
+      41788781,
+      13455953,
+      13455953,
+      40666140,
+      40666140,
+      77060848,
+      73417207,
+      76348260,
+      40844552,
+      61777313,
+      2333365,
+      50433147,
+      55154048,
+      55154048,
+      28643791,
+      25789292,
+      27243130,
+      96864811,
+      83764718,
+      54447022,
+      53129443,
+      64697431,
+      5318639,
+      14464864,
+      14464864,
+      42793609,
+      42793609,
+      89792713,
+      89792713,
+      15286412,
+      15286412,
+      86827882,
+      16308000
+    ],
+    "extra": [
+      90207654,
+      30604579,
+      67098114,
+      93483212,
+      8561192,
+      37910722,
+      8763963,
+      34408491,
+      76774528,
+      42566602
+    ],
+    "side": []
+  },
+  "roles": [
+    {
+      "code": 13455953,
+      "roles": [
+        "starter"
+      ]
+    },
+    {
+      "code": 90207654,
+      "roles": [
+        "material"
+      ]
+    },
+    {
+      "code": 41788781,
+      "roles": [
+        "material",
+        "starter"
+      ]
+    },
+    {
+      "code": 15394083,
+      "roles": [
+        "material",
+        "starter"
+      ]
+    },
+    {
+      "code": 14677495,
+      "roles": [
+        "material",
+        "starter"
+      ]
+    },
+    {
+      "code": 30604579,
+      "roles": [
+        "finisher",
+        "interaction",
+        "material"
+      ]
+    },
+    {
+      "code": 40844552,
+      "roles": [
+        "material",
+        "starter"
+      ]
+    },
+    {
+      "code": 88283496,
+      "roles": [
+        "material",
+        "starter"
+      ]
+    },
+    {
+      "code": 40666140,
+      "roles": [
+        "material",
+        "starter"
+      ]
+    },
+    {
+      "code": 93483212,
+      "roles": [
+        "finisher",
+        "interaction",
+        "material"
+      ]
+    },
+    {
+      "code": 77060848,
+      "roles": [
+        "material"
+      ]
+    },
+    {
+      "code": 76348260,
+      "roles": [
+        "material",
+        "starter"
+      ]
+    },
+    {
+      "code": 67098114,
+      "roles": [
+        "finisher",
+        "interaction",
+        "material"
+      ]
+    },
+    {
+      "code": 61777313,
+      "roles": [
+        "starter"
+      ]
+    },
+    {
+      "code": 73417207,
+      "roles": [
+        "starter"
+      ]
+    }
+  ],
+  "routes": [
+    {
+      "id": "thor",
+      "lesson": "thor",
+      "objective": "Thor, Senhor dos Aesir e Gullveig no campo; os três materiais Sincro no Cemitério.",
+      "requires": [
+        {
+          "code": 13455953,
+          "zone": "hand",
+          "count": 1
+        },
+        {
+          "code": 90207654,
+          "zone": "extra",
+          "count": 1
+        },
+        {
+          "code": 41788781,
+          "zone": "deck",
+          "count": 1
+        },
+        {
+          "code": 15394083,
+          "zone": "deck",
+          "count": 1
+        },
+        {
+          "code": 14677495,
+          "zone": "deck",
+          "count": 1
+        },
+        {
+          "code": 30604579,
+          "zone": "extra",
+          "count": 1
+        }
+      ],
+      "minHand": 4,
+      "reserves": [
+        83764718
+      ],
+      "steps": [
+        {
+          "id": "thor-0",
+          "effects": [
+            13455953
+          ],
+          "targets": [
+            {
+              "code": 13455953,
+              "location": 2
+            }
+          ],
+          "completeWhen": [
+            {
+              "kind": "card",
+              "zone": "monsters",
+              "code": 13455953
+            }
+          ],
+          "action": {
+            "kind": "summons",
+            "code": 13455953
+          }
+        },
+        {
+          "id": "thor-1",
+          "effects": [
+            90207654
+          ],
+          "targets": [
+            {
+              "code": 90207654,
+              "location": 64
+            },
+            {
+              "code": 13455953,
+              "location": 4
+            }
+          ],
+          "completeWhen": [
+            {
+              "kind": "card",
+              "zone": "monsters",
+              "code": 90207654
+            }
+          ],
+          "action": {
+            "kind": "special_summons",
+            "code": 90207654
+          },
+          "effectIndices": {
+            "90207654": [
+              0
+            ]
+          }
+        },
+        {
+          "id": "thor-2",
+          "effects": [
+            90207654
+          ],
+          "targets": [
+            {
+              "code": 90207654,
+              "location": 4,
+              "scope": "action"
+            },
+            {
+              "code": 42793609,
+              "location": 2
+            },
+            {
+              "code": 89792713,
+              "location": 2
+            },
+            {
+              "code": 86827882,
+              "location": 2
+            }
+          ],
+          "completeWhen": [
+            {
+              "kind": "card",
+              "zone": "banished",
+              "code": 42793609
+            },
+            {
+              "kind": "card",
+              "zone": "banished",
+              "code": 89792713
+            },
+            {
+              "kind": "card",
+              "zone": "banished",
+              "code": 86827882
+            }
+          ],
+          "spend": "banish",
+          "effectIndices": {
+            "90207654": [
+              0
+            ]
+          }
+        },
+        {
+          "id": "thor-3",
+          "effects": [
+            90207654
+          ],
+          "targets": [
+            {
+              "code": 41788781,
+              "location": 1
+            },
+            {
+              "code": 15394083,
+              "location": 1
+            },
+            {
+              "code": 14677495,
+              "location": 1
+            }
+          ],
+          "completeWhen": [
+            {
+              "kind": "card",
+              "zone": "monsters",
+              "code": 41788781
+            },
+            {
+              "kind": "card",
+              "zone": "monsters",
+              "code": 15394083
+            },
+            {
+              "kind": "card",
+              "zone": "monsters",
+              "code": 14677495
+            }
+          ],
+          "effectIndices": {
+            "90207654": [
+              0
+            ]
+          }
+        },
+        {
+          "id": "thor-4",
+          "effects": [
+            30604579
+          ],
+          "targets": [
+            {
+              "code": 30604579,
+              "location": 64
+            },
+            {
+              "code": 41788781,
+              "location": 4
+            },
+            {
+              "code": 15394083,
+              "location": 4
+            },
+            {
+              "code": 14677495,
+              "location": 4
+            }
+          ],
+          "completeWhen": [
+            {
+              "kind": "card",
+              "zone": "monsters",
+              "code": 30604579
+            }
+          ],
+          "action": {
+            "kind": "special_summons",
+            "code": 30604579
+          }
+        }
+      ],
+      "result": {
+        "pressure": 3500,
+        "interaction": 1,
+        "continuation": 1,
+        "cost": 3,
+        "exposure": 3
+      }
+    },
+    {
+      "id": "odin",
+      "lesson": "odin",
+      "objective": "Odin, Pai dos Aesir e Gullveig no campo; os três materiais Sincro no Cemitério.",
+      "requires": [
+        {
+          "code": 13455953,
+          "zone": "hand",
+          "count": 1
+        },
+        {
+          "code": 90207654,
+          "zone": "extra",
+          "count": 1
+        },
+        {
+          "code": 40844552,
+          "zone": "deck",
+          "count": 1
+        },
+        {
+          "code": 88283496,
+          "zone": "deck",
+          "count": 1
+        },
+        {
+          "code": 40666140,
+          "zone": "deck",
+          "count": 1
+        },
+        {
+          "code": 93483212,
+          "zone": "extra",
+          "count": 1
+        }
+      ],
+      "minHand": 4,
+      "reserves": [
+        83764718
+      ],
+      "steps": [
+        {
+          "id": "odin-0",
+          "effects": [
+            13455953
+          ],
+          "targets": [
+            {
+              "code": 13455953,
+              "location": 2
+            }
+          ],
+          "completeWhen": [
+            {
+              "kind": "card",
+              "zone": "monsters",
+              "code": 13455953
+            }
+          ],
+          "action": {
+            "kind": "summons",
+            "code": 13455953
+          }
+        },
+        {
+          "id": "odin-1",
+          "effects": [
+            90207654
+          ],
+          "targets": [
+            {
+              "code": 90207654,
+              "location": 64
+            },
+            {
+              "code": 13455953,
+              "location": 4
+            }
+          ],
+          "completeWhen": [
+            {
+              "kind": "card",
+              "zone": "monsters",
+              "code": 90207654
+            }
+          ],
+          "action": {
+            "kind": "special_summons",
+            "code": 90207654
+          },
+          "effectIndices": {
+            "90207654": [
+              0
+            ]
+          }
+        },
+        {
+          "id": "odin-2",
+          "effects": [
+            90207654
+          ],
+          "targets": [
+            {
+              "code": 90207654,
+              "location": 4,
+              "scope": "action"
+            },
+            {
+              "code": 42793609,
+              "location": 2
+            },
+            {
+              "code": 89792713,
+              "location": 2
+            },
+            {
+              "code": 86827882,
+              "location": 2
+            }
+          ],
+          "completeWhen": [
+            {
+              "kind": "card",
+              "zone": "banished",
+              "code": 42793609
+            },
+            {
+              "kind": "card",
+              "zone": "banished",
+              "code": 89792713
+            },
+            {
+              "kind": "card",
+              "zone": "banished",
+              "code": 86827882
+            }
+          ],
+          "spend": "banish",
+          "effectIndices": {
+            "90207654": [
+              0
+            ]
+          }
+        },
+        {
+          "id": "odin-3",
+          "effects": [
+            90207654
+          ],
+          "targets": [
+            {
+              "code": 40844552,
+              "location": 1
+            },
+            {
+              "code": 88283496,
+              "location": 1
+            },
+            {
+              "code": 40666140,
+              "location": 1
+            }
+          ],
+          "completeWhen": [
+            {
+              "kind": "card",
+              "zone": "monsters",
+              "code": 40844552
+            },
+            {
+              "kind": "card",
+              "zone": "monsters",
+              "code": 88283496
+            },
+            {
+              "kind": "card",
+              "zone": "monsters",
+              "code": 40666140
+            }
+          ],
+          "effectIndices": {
+            "90207654": [
+              0
+            ]
+          }
+        },
+        {
+          "id": "odin-4",
+          "effects": [
+            93483212
+          ],
+          "targets": [
+            {
+              "code": 93483212,
+              "location": 64
+            },
+            {
+              "code": 40844552,
+              "location": 4
+            },
+            {
+              "code": 88283496,
+              "location": 4
+            },
+            {
+              "code": 40666140,
+              "location": 4
+            }
+          ],
+          "completeWhen": [
+            {
+              "kind": "card",
+              "zone": "monsters",
+              "code": 93483212
+            }
+          ],
+          "action": {
+            "kind": "special_summons",
+            "code": 93483212
+          }
+        }
+      ],
+      "result": {
+        "pressure": 3500,
+        "interaction": 1,
+        "continuation": 1,
+        "cost": 3,
+        "exposure": 3
+      }
+    },
+    {
+      "id": "loki",
+      "lesson": "loki",
+      "objective": "Loki, Senhor dos Aesir e Gullveig no campo; os três materiais Sincro no Cemitério.",
+      "requires": [
+        {
+          "code": 13455953,
+          "zone": "hand",
+          "count": 1
+        },
+        {
+          "code": 90207654,
+          "zone": "extra",
+          "count": 1
+        },
+        {
+          "code": 77060848,
+          "zone": "deck",
+          "count": 1
+        },
+        {
+          "code": 15394083,
+          "zone": "deck",
+          "count": 1
+        },
+        {
+          "code": 76348260,
+          "zone": "deck",
+          "count": 1
+        },
+        {
+          "code": 67098114,
+          "zone": "extra",
+          "count": 1
+        }
+      ],
+      "minHand": 4,
+      "reserves": [
+        83764718
+      ],
+      "steps": [
+        {
+          "id": "loki-0",
+          "effects": [
+            13455953
+          ],
+          "targets": [
+            {
+              "code": 13455953,
+              "location": 2
+            }
+          ],
+          "completeWhen": [
+            {
+              "kind": "card",
+              "zone": "monsters",
+              "code": 13455953
+            }
+          ],
+          "action": {
+            "kind": "summons",
+            "code": 13455953
+          }
+        },
+        {
+          "id": "loki-1",
+          "effects": [
+            90207654
+          ],
+          "targets": [
+            {
+              "code": 90207654,
+              "location": 64
+            },
+            {
+              "code": 13455953,
+              "location": 4
+            }
+          ],
+          "completeWhen": [
+            {
+              "kind": "card",
+              "zone": "monsters",
+              "code": 90207654
+            }
+          ],
+          "action": {
+            "kind": "special_summons",
+            "code": 90207654
+          },
+          "effectIndices": {
+            "90207654": [
+              0
+            ]
+          }
+        },
+        {
+          "id": "loki-2",
+          "effects": [
+            90207654
+          ],
+          "targets": [
+            {
+              "code": 90207654,
+              "location": 4,
+              "scope": "action"
+            },
+            {
+              "code": 42793609,
+              "location": 2
+            },
+            {
+              "code": 89792713,
+              "location": 2
+            },
+            {
+              "code": 86827882,
+              "location": 2
+            }
+          ],
+          "completeWhen": [
+            {
+              "kind": "card",
+              "zone": "banished",
+              "code": 42793609
+            },
+            {
+              "kind": "card",
+              "zone": "banished",
+              "code": 89792713
+            },
+            {
+              "kind": "card",
+              "zone": "banished",
+              "code": 86827882
+            }
+          ],
+          "spend": "banish",
+          "effectIndices": {
+            "90207654": [
+              0
+            ]
+          }
+        },
+        {
+          "id": "loki-3",
+          "effects": [
+            90207654
+          ],
+          "targets": [
+            {
+              "code": 77060848,
+              "location": 1
+            },
+            {
+              "code": 15394083,
+              "location": 1
+            },
+            {
+              "code": 76348260,
+              "location": 1
+            }
+          ],
+          "completeWhen": [
+            {
+              "kind": "card",
+              "zone": "monsters",
+              "code": 77060848
+            },
+            {
+              "kind": "card",
+              "zone": "monsters",
+              "code": 15394083
+            },
+            {
+              "kind": "card",
+              "zone": "monsters",
+              "code": 76348260
+            }
+          ],
+          "effectIndices": {
+            "90207654": [
+              0
+            ]
+          }
+        },
+        {
+          "id": "loki-4",
+          "effects": [
+            67098114
+          ],
+          "targets": [
+            {
+              "code": 67098114,
+              "location": 64
+            },
+            {
+              "code": 77060848,
+              "location": 4
+            },
+            {
+              "code": 15394083,
+              "location": 4
+            },
+            {
+              "code": 76348260,
+              "location": 4
+            }
+          ],
+          "completeWhen": [
+            {
+              "kind": "card",
+              "zone": "monsters",
+              "code": 67098114
+            }
+          ],
+          "action": {
+            "kind": "special_summons",
+            "code": 67098114
+          }
+        }
+      ],
+      "result": {
+        "pressure": 3500,
+        "interaction": 1,
+        "continuation": 1,
+        "cost": 3,
+        "exposure": 3
+      }
+    },
+    {
+      "id": "thor--40666140",
+      "lesson": "thor",
+      "objective": "Thor, Senhor dos Aesir e Gullveig no campo; os três materiais Sincro no Cemitério.",
+      "requires": [
+        {
+          "code": 40666140,
+          "zone": "hand",
+          "count": 1
+        },
+        {
+          "code": 90207654,
+          "zone": "extra",
+          "count": 1
+        },
+        {
+          "code": 41788781,
+          "zone": "deck",
+          "count": 1
+        },
+        {
+          "code": 15394083,
+          "zone": "deck",
+          "count": 1
+        },
+        {
+          "code": 14677495,
+          "zone": "deck",
+          "count": 1
+        },
+        {
+          "code": 30604579,
+          "zone": "extra",
+          "count": 1
+        }
+      ],
+      "minHand": 4,
+      "reserves": [
+        83764718
+      ],
+      "steps": [
+        {
+          "id": "thor--40666140-0",
+          "effects": [
+            40666140
+          ],
+          "targets": [
+            {
+              "code": 40666140,
+              "location": 2
+            }
+          ],
+          "completeWhen": [
+            {
+              "kind": "card",
+              "zone": "monsters",
+              "code": 40666140
+            }
+          ],
+          "action": {
+            "kind": "summons",
+            "code": 40666140
+          }
+        },
+        {
+          "id": "thor--40666140-1",
+          "effects": [
+            90207654
+          ],
+          "targets": [
+            {
+              "code": 90207654,
+              "location": 64
+            },
+            {
+              "code": 40666140,
+              "location": 4
+            }
+          ],
+          "completeWhen": [
+            {
+              "kind": "card",
+              "zone": "monsters",
+              "code": 90207654
+            }
+          ],
+          "action": {
+            "kind": "special_summons",
+            "code": 90207654
+          },
+          "effectIndices": {
+            "90207654": [
+              0
+            ]
+          }
+        },
+        {
+          "id": "thor--40666140-2",
+          "effects": [
+            90207654
+          ],
+          "targets": [
+            {
+              "code": 90207654,
+              "location": 4,
+              "scope": "action"
+            },
+            {
+              "code": 42793609,
+              "location": 2
+            },
+            {
+              "code": 89792713,
+              "location": 2
+            },
+            {
+              "code": 86827882,
+              "location": 2
+            }
+          ],
+          "completeWhen": [
+            {
+              "kind": "card",
+              "zone": "banished",
+              "code": 42793609
+            },
+            {
+              "kind": "card",
+              "zone": "banished",
+              "code": 89792713
+            },
+            {
+              "kind": "card",
+              "zone": "banished",
+              "code": 86827882
+            }
+          ],
+          "spend": "banish",
+          "effectIndices": {
+            "90207654": [
+              0
+            ]
+          }
+        },
+        {
+          "id": "thor--40666140-3",
+          "effects": [
+            90207654
+          ],
+          "targets": [
+            {
+              "code": 41788781,
+              "location": 1
+            },
+            {
+              "code": 15394083,
+              "location": 1
+            },
+            {
+              "code": 14677495,
+              "location": 1
+            }
+          ],
+          "completeWhen": [
+            {
+              "kind": "card",
+              "zone": "monsters",
+              "code": 41788781
+            },
+            {
+              "kind": "card",
+              "zone": "monsters",
+              "code": 15394083
+            },
+            {
+              "kind": "card",
+              "zone": "monsters",
+              "code": 14677495
+            }
+          ],
+          "effectIndices": {
+            "90207654": [
+              0
+            ]
+          }
+        },
+        {
+          "id": "thor--40666140-4",
+          "effects": [
+            30604579
+          ],
+          "targets": [
+            {
+              "code": 30604579,
+              "location": 64
+            },
+            {
+              "code": 41788781,
+              "location": 4
+            },
+            {
+              "code": 15394083,
+              "location": 4
+            },
+            {
+              "code": 14677495,
+              "location": 4
+            }
+          ],
+          "completeWhen": [
+            {
+              "kind": "card",
+              "zone": "monsters",
+              "code": 30604579
+            }
+          ],
+          "action": {
+            "kind": "special_summons",
+            "code": 30604579
+          }
+        }
+      ],
+      "result": {
+        "pressure": 3500,
+        "interaction": 1,
+        "continuation": 2,
+        "cost": 3,
+        "exposure": 3
+      },
+      "minDifficulty": "hard"
+    },
+    {
+      "id": "thor--40844552",
+      "lesson": "thor",
+      "objective": "Thor, Senhor dos Aesir e Gullveig no campo; os três materiais Sincro no Cemitério.",
+      "requires": [
+        {
+          "code": 40844552,
+          "zone": "hand",
+          "count": 1
+        },
+        {
+          "code": 90207654,
+          "zone": "extra",
+          "count": 1
+        },
+        {
+          "code": 41788781,
+          "zone": "deck",
+          "count": 1
+        },
+        {
+          "code": 15394083,
+          "zone": "deck",
+          "count": 1
+        },
+        {
+          "code": 14677495,
+          "zone": "deck",
+          "count": 1
+        },
+        {
+          "code": 30604579,
+          "zone": "extra",
+          "count": 1
+        }
+      ],
+      "minHand": 4,
+      "reserves": [
+        83764718
+      ],
+      "steps": [
+        {
+          "id": "thor--40844552-0",
+          "effects": [
+            40844552
+          ],
+          "targets": [
+            {
+              "code": 40844552,
+              "location": 2
+            }
+          ],
+          "completeWhen": [
+            {
+              "kind": "card",
+              "zone": "monsters",
+              "code": 40844552
+            }
+          ],
+          "action": {
+            "kind": "summons",
+            "code": 40844552
+          }
+        },
+        {
+          "id": "thor--40844552-1",
+          "effects": [
+            90207654
+          ],
+          "targets": [
+            {
+              "code": 90207654,
+              "location": 64
+            },
+            {
+              "code": 40844552,
+              "location": 4
+            }
+          ],
+          "completeWhen": [
+            {
+              "kind": "card",
+              "zone": "monsters",
+              "code": 90207654
+            }
+          ],
+          "action": {
+            "kind": "special_summons",
+            "code": 90207654
+          },
+          "effectIndices": {
+            "90207654": [
+              0
+            ]
+          }
+        },
+        {
+          "id": "thor--40844552-2",
+          "effects": [
+            90207654
+          ],
+          "targets": [
+            {
+              "code": 90207654,
+              "location": 4,
+              "scope": "action"
+            },
+            {
+              "code": 42793609,
+              "location": 2
+            },
+            {
+              "code": 89792713,
+              "location": 2
+            },
+            {
+              "code": 86827882,
+              "location": 2
+            }
+          ],
+          "completeWhen": [
+            {
+              "kind": "card",
+              "zone": "banished",
+              "code": 42793609
+            },
+            {
+              "kind": "card",
+              "zone": "banished",
+              "code": 89792713
+            },
+            {
+              "kind": "card",
+              "zone": "banished",
+              "code": 86827882
+            }
+          ],
+          "spend": "banish",
+          "effectIndices": {
+            "90207654": [
+              0
+            ]
+          }
+        },
+        {
+          "id": "thor--40844552-3",
+          "effects": [
+            90207654
+          ],
+          "targets": [
+            {
+              "code": 41788781,
+              "location": 1
+            },
+            {
+              "code": 15394083,
+              "location": 1
+            },
+            {
+              "code": 14677495,
+              "location": 1
+            }
+          ],
+          "completeWhen": [
+            {
+              "kind": "card",
+              "zone": "monsters",
+              "code": 41788781
+            },
+            {
+              "kind": "card",
+              "zone": "monsters",
+              "code": 15394083
+            },
+            {
+              "kind": "card",
+              "zone": "monsters",
+              "code": 14677495
+            }
+          ],
+          "effectIndices": {
+            "90207654": [
+              0
+            ]
+          }
+        },
+        {
+          "id": "thor--40844552-4",
+          "effects": [
+            30604579
+          ],
+          "targets": [
+            {
+              "code": 30604579,
+              "location": 64
+            },
+            {
+              "code": 41788781,
+              "location": 4
+            },
+            {
+              "code": 15394083,
+              "location": 4
+            },
+            {
+              "code": 14677495,
+              "location": 4
+            }
+          ],
+          "completeWhen": [
+            {
+              "kind": "card",
+              "zone": "monsters",
+              "code": 30604579
+            }
+          ],
+          "action": {
+            "kind": "special_summons",
+            "code": 30604579
+          }
+        }
+      ],
+      "result": {
+        "pressure": 3500,
+        "interaction": 1,
+        "continuation": 2,
+        "cost": 3,
+        "exposure": 3
+      },
+      "minDifficulty": "hard"
+    },
+    {
+      "id": "thor--61777313",
+      "lesson": "thor",
+      "objective": "Thor, Senhor dos Aesir e Gullveig no campo; os três materiais Sincro no Cemitério.",
+      "requires": [
+        {
+          "code": 61777313,
+          "zone": "hand",
+          "count": 1
+        },
+        {
+          "code": 90207654,
+          "zone": "extra",
+          "count": 1
+        },
+        {
+          "code": 41788781,
+          "zone": "deck",
+          "count": 1
+        },
+        {
+          "code": 15394083,
+          "zone": "deck",
+          "count": 1
+        },
+        {
+          "code": 14677495,
+          "zone": "deck",
+          "count": 1
+        },
+        {
+          "code": 30604579,
+          "zone": "extra",
+          "count": 1
+        }
+      ],
+      "minHand": 4,
+      "reserves": [
+        83764718
+      ],
+      "steps": [
+        {
+          "id": "thor--61777313-0",
+          "effects": [
+            61777313
+          ],
+          "targets": [
+            {
+              "code": 61777313,
+              "location": 2
+            }
+          ],
+          "completeWhen": [
+            {
+              "kind": "card",
+              "zone": "monsters",
+              "code": 61777313
+            }
+          ],
+          "action": {
+            "kind": "summons",
+            "code": 61777313
+          }
+        },
+        {
+          "id": "thor--61777313-1",
+          "effects": [
+            90207654
+          ],
+          "targets": [
+            {
+              "code": 90207654,
+              "location": 64
+            },
+            {
+              "code": 61777313,
+              "location": 4
+            }
+          ],
+          "completeWhen": [
+            {
+              "kind": "card",
+              "zone": "monsters",
+              "code": 90207654
+            }
+          ],
+          "action": {
+            "kind": "special_summons",
+            "code": 90207654
+          },
+          "effectIndices": {
+            "90207654": [
+              0
+            ]
+          }
+        },
+        {
+          "id": "thor--61777313-2",
+          "effects": [
+            90207654
+          ],
+          "targets": [
+            {
+              "code": 90207654,
+              "location": 4,
+              "scope": "action"
+            },
+            {
+              "code": 42793609,
+              "location": 2
+            },
+            {
+              "code": 89792713,
+              "location": 2
+            },
+            {
+              "code": 86827882,
+              "location": 2
+            }
+          ],
+          "completeWhen": [
+            {
+              "kind": "card",
+              "zone": "banished",
+              "code": 42793609
+            },
+            {
+              "kind": "card",
+              "zone": "banished",
+              "code": 89792713
+            },
+            {
+              "kind": "card",
+              "zone": "banished",
+              "code": 86827882
+            }
+          ],
+          "spend": "banish",
+          "effectIndices": {
+            "90207654": [
+              0
+            ]
+          }
+        },
+        {
+          "id": "thor--61777313-3",
+          "effects": [
+            90207654
+          ],
+          "targets": [
+            {
+              "code": 41788781,
+              "location": 1
+            },
+            {
+              "code": 15394083,
+              "location": 1
+            },
+            {
+              "code": 14677495,
+              "location": 1
+            }
+          ],
+          "completeWhen": [
+            {
+              "kind": "card",
+              "zone": "monsters",
+              "code": 41788781
+            },
+            {
+              "kind": "card",
+              "zone": "monsters",
+              "code": 15394083
+            },
+            {
+              "kind": "card",
+              "zone": "monsters",
+              "code": 14677495
+            }
+          ],
+          "effectIndices": {
+            "90207654": [
+              0
+            ]
+          }
+        },
+        {
+          "id": "thor--61777313-4",
+          "effects": [
+            30604579
+          ],
+          "targets": [
+            {
+              "code": 30604579,
+              "location": 64
+            },
+            {
+              "code": 41788781,
+              "location": 4
+            },
+            {
+              "code": 15394083,
+              "location": 4
+            },
+            {
+              "code": 14677495,
+              "location": 4
+            }
+          ],
+          "completeWhen": [
+            {
+              "kind": "card",
+              "zone": "monsters",
+              "code": 30604579
+            }
+          ],
+          "action": {
+            "kind": "special_summons",
+            "code": 30604579
+          }
+        }
+      ],
+      "result": {
+        "pressure": 3500,
+        "interaction": 1,
+        "continuation": 2,
+        "cost": 3,
+        "exposure": 3
+      },
+      "minDifficulty": "hard"
+    },
+    {
+      "id": "thor--73417207",
+      "lesson": "thor",
+      "objective": "Thor, Senhor dos Aesir e Gullveig no campo; os três materiais Sincro no Cemitério.",
+      "requires": [
+        {
+          "code": 73417207,
+          "zone": "hand",
+          "count": 1
+        },
+        {
+          "code": 90207654,
+          "zone": "extra",
+          "count": 1
+        },
+        {
+          "code": 41788781,
+          "zone": "deck",
+          "count": 1
+        },
+        {
+          "code": 15394083,
+          "zone": "deck",
+          "count": 1
+        },
+        {
+          "code": 14677495,
+          "zone": "deck",
+          "count": 1
+        },
+        {
+          "code": 30604579,
+          "zone": "extra",
+          "count": 1
+        }
+      ],
+      "minHand": 4,
+      "reserves": [
+        83764718
+      ],
+      "steps": [
+        {
+          "id": "thor--73417207-0",
+          "effects": [
+            73417207
+          ],
+          "targets": [
+            {
+              "code": 73417207,
+              "location": 2
+            }
+          ],
+          "completeWhen": [
+            {
+              "kind": "card",
+              "zone": "monsters",
+              "code": 73417207
+            }
+          ],
+          "action": {
+            "kind": "summons",
+            "code": 73417207
+          }
+        },
+        {
+          "id": "thor--73417207-1",
+          "effects": [
+            90207654
+          ],
+          "targets": [
+            {
+              "code": 90207654,
+              "location": 64
+            },
+            {
+              "code": 73417207,
+              "location": 4
+            }
+          ],
+          "completeWhen": [
+            {
+              "kind": "card",
+              "zone": "monsters",
+              "code": 90207654
+            }
+          ],
+          "action": {
+            "kind": "special_summons",
+            "code": 90207654
+          },
+          "effectIndices": {
+            "90207654": [
+              0
+            ]
+          }
+        },
+        {
+          "id": "thor--73417207-2",
+          "effects": [
+            90207654
+          ],
+          "targets": [
+            {
+              "code": 90207654,
+              "location": 4,
+              "scope": "action"
+            },
+            {
+              "code": 42793609,
+              "location": 2
+            },
+            {
+              "code": 89792713,
+              "location": 2
+            },
+            {
+              "code": 86827882,
+              "location": 2
+            }
+          ],
+          "completeWhen": [
+            {
+              "kind": "card",
+              "zone": "banished",
+              "code": 42793609
+            },
+            {
+              "kind": "card",
+              "zone": "banished",
+              "code": 89792713
+            },
+            {
+              "kind": "card",
+              "zone": "banished",
+              "code": 86827882
+            }
+          ],
+          "spend": "banish",
+          "effectIndices": {
+            "90207654": [
+              0
+            ]
+          }
+        },
+        {
+          "id": "thor--73417207-3",
+          "effects": [
+            90207654
+          ],
+          "targets": [
+            {
+              "code": 41788781,
+              "location": 1
+            },
+            {
+              "code": 15394083,
+              "location": 1
+            },
+            {
+              "code": 14677495,
+              "location": 1
+            }
+          ],
+          "completeWhen": [
+            {
+              "kind": "card",
+              "zone": "monsters",
+              "code": 41788781
+            },
+            {
+              "kind": "card",
+              "zone": "monsters",
+              "code": 15394083
+            },
+            {
+              "kind": "card",
+              "zone": "monsters",
+              "code": 14677495
+            }
+          ],
+          "effectIndices": {
+            "90207654": [
+              0
+            ]
+          }
+        },
+        {
+          "id": "thor--73417207-4",
+          "effects": [
+            30604579
+          ],
+          "targets": [
+            {
+              "code": 30604579,
+              "location": 64
+            },
+            {
+              "code": 41788781,
+              "location": 4
+            },
+            {
+              "code": 15394083,
+              "location": 4
+            },
+            {
+              "code": 14677495,
+              "location": 4
+            }
+          ],
+          "completeWhen": [
+            {
+              "kind": "card",
+              "zone": "monsters",
+              "code": 30604579
+            }
+          ],
+          "action": {
+            "kind": "special_summons",
+            "code": 30604579
+          }
+        }
+      ],
+      "result": {
+        "pressure": 3500,
+        "interaction": 1,
+        "continuation": 2,
+        "cost": 3,
+        "exposure": 3
+      },
+      "minDifficulty": "hard"
+    },
+    {
+      "id": "thor--76348260",
+      "lesson": "thor",
+      "objective": "Thor, Senhor dos Aesir e Gullveig no campo; os três materiais Sincro no Cemitério.",
+      "requires": [
+        {
+          "code": 76348260,
+          "zone": "hand",
+          "count": 1
+        },
+        {
+          "code": 90207654,
+          "zone": "extra",
+          "count": 1
+        },
+        {
+          "code": 41788781,
+          "zone": "deck",
+          "count": 1
+        },
+        {
+          "code": 15394083,
+          "zone": "deck",
+          "count": 1
+        },
+        {
+          "code": 14677495,
+          "zone": "deck",
+          "count": 1
+        },
+        {
+          "code": 30604579,
+          "zone": "extra",
+          "count": 1
+        }
+      ],
+      "minHand": 4,
+      "reserves": [
+        83764718
+      ],
+      "steps": [
+        {
+          "id": "thor--76348260-0",
+          "effects": [
+            76348260
+          ],
+          "targets": [
+            {
+              "code": 76348260,
+              "location": 2
+            }
+          ],
+          "completeWhen": [
+            {
+              "kind": "card",
+              "zone": "monsters",
+              "code": 76348260
+            }
+          ],
+          "action": {
+            "kind": "summons",
+            "code": 76348260
+          }
+        },
+        {
+          "id": "thor--76348260-1",
+          "effects": [
+            90207654
+          ],
+          "targets": [
+            {
+              "code": 90207654,
+              "location": 64
+            },
+            {
+              "code": 76348260,
+              "location": 4
+            }
+          ],
+          "completeWhen": [
+            {
+              "kind": "card",
+              "zone": "monsters",
+              "code": 90207654
+            }
+          ],
+          "action": {
+            "kind": "special_summons",
+            "code": 90207654
+          },
+          "effectIndices": {
+            "90207654": [
+              0
+            ]
+          }
+        },
+        {
+          "id": "thor--76348260-2",
+          "effects": [
+            90207654
+          ],
+          "targets": [
+            {
+              "code": 90207654,
+              "location": 4,
+              "scope": "action"
+            },
+            {
+              "code": 42793609,
+              "location": 2
+            },
+            {
+              "code": 89792713,
+              "location": 2
+            },
+            {
+              "code": 86827882,
+              "location": 2
+            }
+          ],
+          "completeWhen": [
+            {
+              "kind": "card",
+              "zone": "banished",
+              "code": 42793609
+            },
+            {
+              "kind": "card",
+              "zone": "banished",
+              "code": 89792713
+            },
+            {
+              "kind": "card",
+              "zone": "banished",
+              "code": 86827882
+            }
+          ],
+          "spend": "banish",
+          "effectIndices": {
+            "90207654": [
+              0
+            ]
+          }
+        },
+        {
+          "id": "thor--76348260-3",
+          "effects": [
+            90207654
+          ],
+          "targets": [
+            {
+              "code": 41788781,
+              "location": 1
+            },
+            {
+              "code": 15394083,
+              "location": 1
+            },
+            {
+              "code": 14677495,
+              "location": 1
+            }
+          ],
+          "completeWhen": [
+            {
+              "kind": "card",
+              "zone": "monsters",
+              "code": 41788781
+            },
+            {
+              "kind": "card",
+              "zone": "monsters",
+              "code": 15394083
+            },
+            {
+              "kind": "card",
+              "zone": "monsters",
+              "code": 14677495
+            }
+          ],
+          "effectIndices": {
+            "90207654": [
+              0
+            ]
+          }
+        },
+        {
+          "id": "thor--76348260-4",
+          "effects": [
+            30604579
+          ],
+          "targets": [
+            {
+              "code": 30604579,
+              "location": 64
+            },
+            {
+              "code": 41788781,
+              "location": 4
+            },
+            {
+              "code": 15394083,
+              "location": 4
+            },
+            {
+              "code": 14677495,
+              "location": 4
+            }
+          ],
+          "completeWhen": [
+            {
+              "kind": "card",
+              "zone": "monsters",
+              "code": 30604579
+            }
+          ],
+          "action": {
+            "kind": "special_summons",
+            "code": 30604579
+          }
+        }
+      ],
+      "result": {
+        "pressure": 3500,
+        "interaction": 1,
+        "continuation": 2,
+        "cost": 3,
+        "exposure": 3
+      },
+      "minDifficulty": "hard"
+    },
+    {
+      "id": "thor--88283496",
+      "lesson": "thor",
+      "objective": "Thor, Senhor dos Aesir e Gullveig no campo; os três materiais Sincro no Cemitério.",
+      "requires": [
+        {
+          "code": 88283496,
+          "zone": "hand",
+          "count": 1
+        },
+        {
+          "code": 90207654,
+          "zone": "extra",
+          "count": 1
+        },
+        {
+          "code": 41788781,
+          "zone": "deck",
+          "count": 1
+        },
+        {
+          "code": 15394083,
+          "zone": "deck",
+          "count": 1
+        },
+        {
+          "code": 14677495,
+          "zone": "deck",
+          "count": 1
+        },
+        {
+          "code": 30604579,
+          "zone": "extra",
+          "count": 1
+        }
+      ],
+      "minHand": 4,
+      "reserves": [
+        83764718
+      ],
+      "steps": [
+        {
+          "id": "thor--88283496-0",
+          "effects": [
+            88283496
+          ],
+          "targets": [
+            {
+              "code": 88283496,
+              "location": 2
+            }
+          ],
+          "completeWhen": [
+            {
+              "kind": "card",
+              "zone": "monsters",
+              "code": 88283496
+            }
+          ],
+          "action": {
+            "kind": "summons",
+            "code": 88283496
+          }
+        },
+        {
+          "id": "thor--88283496-1",
+          "effects": [
+            90207654
+          ],
+          "targets": [
+            {
+              "code": 90207654,
+              "location": 64
+            },
+            {
+              "code": 88283496,
+              "location": 4
+            }
+          ],
+          "completeWhen": [
+            {
+              "kind": "card",
+              "zone": "monsters",
+              "code": 90207654
+            }
+          ],
+          "action": {
+            "kind": "special_summons",
+            "code": 90207654
+          },
+          "effectIndices": {
+            "90207654": [
+              0
+            ]
+          }
+        },
+        {
+          "id": "thor--88283496-2",
+          "effects": [
+            90207654
+          ],
+          "targets": [
+            {
+              "code": 90207654,
+              "location": 4,
+              "scope": "action"
+            },
+            {
+              "code": 42793609,
+              "location": 2
+            },
+            {
+              "code": 89792713,
+              "location": 2
+            },
+            {
+              "code": 86827882,
+              "location": 2
+            }
+          ],
+          "completeWhen": [
+            {
+              "kind": "card",
+              "zone": "banished",
+              "code": 42793609
+            },
+            {
+              "kind": "card",
+              "zone": "banished",
+              "code": 89792713
+            },
+            {
+              "kind": "card",
+              "zone": "banished",
+              "code": 86827882
+            }
+          ],
+          "spend": "banish",
+          "effectIndices": {
+            "90207654": [
+              0
+            ]
+          }
+        },
+        {
+          "id": "thor--88283496-3",
+          "effects": [
+            90207654
+          ],
+          "targets": [
+            {
+              "code": 41788781,
+              "location": 1
+            },
+            {
+              "code": 15394083,
+              "location": 1
+            },
+            {
+              "code": 14677495,
+              "location": 1
+            }
+          ],
+          "completeWhen": [
+            {
+              "kind": "card",
+              "zone": "monsters",
+              "code": 41788781
+            },
+            {
+              "kind": "card",
+              "zone": "monsters",
+              "code": 15394083
+            },
+            {
+              "kind": "card",
+              "zone": "monsters",
+              "code": 14677495
+            }
+          ],
+          "effectIndices": {
+            "90207654": [
+              0
+            ]
+          }
+        },
+        {
+          "id": "thor--88283496-4",
+          "effects": [
+            30604579
+          ],
+          "targets": [
+            {
+              "code": 30604579,
+              "location": 64
+            },
+            {
+              "code": 41788781,
+              "location": 4
+            },
+            {
+              "code": 15394083,
+              "location": 4
+            },
+            {
+              "code": 14677495,
+              "location": 4
+            }
+          ],
+          "completeWhen": [
+            {
+              "kind": "card",
+              "zone": "monsters",
+              "code": 30604579
+            }
+          ],
+          "action": {
+            "kind": "special_summons",
+            "code": 30604579
+          }
+        }
+      ],
+      "result": {
+        "pressure": 3500,
+        "interaction": 1,
+        "continuation": 2,
+        "cost": 3,
+        "exposure": 3
+      },
+      "minDifficulty": "hard"
+    },
+    {
+      "id": "odin--14677495",
+      "lesson": "odin",
+      "objective": "Odin, Pai dos Aesir e Gullveig no campo; os três materiais Sincro no Cemitério.",
+      "requires": [
+        {
+          "code": 14677495,
+          "zone": "hand",
+          "count": 1
+        },
+        {
+          "code": 90207654,
+          "zone": "extra",
+          "count": 1
+        },
+        {
+          "code": 40844552,
+          "zone": "deck",
+          "count": 1
+        },
+        {
+          "code": 88283496,
+          "zone": "deck",
+          "count": 1
+        },
+        {
+          "code": 40666140,
+          "zone": "deck",
+          "count": 1
+        },
+        {
+          "code": 93483212,
+          "zone": "extra",
+          "count": 1
+        }
+      ],
+      "minHand": 4,
+      "reserves": [
+        83764718
+      ],
+      "steps": [
+        {
+          "id": "odin--14677495-0",
+          "effects": [
+            14677495
+          ],
+          "targets": [
+            {
+              "code": 14677495,
+              "location": 2
+            }
+          ],
+          "completeWhen": [
+            {
+              "kind": "card",
+              "zone": "monsters",
+              "code": 14677495
+            }
+          ],
+          "action": {
+            "kind": "summons",
+            "code": 14677495
+          }
+        },
+        {
+          "id": "odin--14677495-1",
+          "effects": [
+            90207654
+          ],
+          "targets": [
+            {
+              "code": 90207654,
+              "location": 64
+            },
+            {
+              "code": 14677495,
+              "location": 4
+            }
+          ],
+          "completeWhen": [
+            {
+              "kind": "card",
+              "zone": "monsters",
+              "code": 90207654
+            }
+          ],
+          "action": {
+            "kind": "special_summons",
+            "code": 90207654
+          },
+          "effectIndices": {
+            "90207654": [
+              0
+            ]
+          }
+        },
+        {
+          "id": "odin--14677495-2",
+          "effects": [
+            90207654
+          ],
+          "targets": [
+            {
+              "code": 90207654,
+              "location": 4,
+              "scope": "action"
+            },
+            {
+              "code": 42793609,
+              "location": 2
+            },
+            {
+              "code": 89792713,
+              "location": 2
+            },
+            {
+              "code": 86827882,
+              "location": 2
+            }
+          ],
+          "completeWhen": [
+            {
+              "kind": "card",
+              "zone": "banished",
+              "code": 42793609
+            },
+            {
+              "kind": "card",
+              "zone": "banished",
+              "code": 89792713
+            },
+            {
+              "kind": "card",
+              "zone": "banished",
+              "code": 86827882
+            }
+          ],
+          "spend": "banish",
+          "effectIndices": {
+            "90207654": [
+              0
+            ]
+          }
+        },
+        {
+          "id": "odin--14677495-3",
+          "effects": [
+            90207654
+          ],
+          "targets": [
+            {
+              "code": 40844552,
+              "location": 1
+            },
+            {
+              "code": 88283496,
+              "location": 1
+            },
+            {
+              "code": 40666140,
+              "location": 1
+            }
+          ],
+          "completeWhen": [
+            {
+              "kind": "card",
+              "zone": "monsters",
+              "code": 40844552
+            },
+            {
+              "kind": "card",
+              "zone": "monsters",
+              "code": 88283496
+            },
+            {
+              "kind": "card",
+              "zone": "monsters",
+              "code": 40666140
+            }
+          ],
+          "effectIndices": {
+            "90207654": [
+              0
+            ]
+          }
+        },
+        {
+          "id": "odin--14677495-4",
+          "effects": [
+            93483212
+          ],
+          "targets": [
+            {
+              "code": 93483212,
+              "location": 64
+            },
+            {
+              "code": 40844552,
+              "location": 4
+            },
+            {
+              "code": 88283496,
+              "location": 4
+            },
+            {
+              "code": 40666140,
+              "location": 4
+            }
+          ],
+          "completeWhen": [
+            {
+              "kind": "card",
+              "zone": "monsters",
+              "code": 93483212
+            }
+          ],
+          "action": {
+            "kind": "special_summons",
+            "code": 93483212
+          }
+        }
+      ],
+      "result": {
+        "pressure": 3500,
+        "interaction": 1,
+        "continuation": 2,
+        "cost": 3,
+        "exposure": 3
+      },
+      "minDifficulty": "hard"
+    },
+    {
+      "id": "odin--15394083",
+      "lesson": "odin",
+      "objective": "Odin, Pai dos Aesir e Gullveig no campo; os três materiais Sincro no Cemitério.",
+      "requires": [
+        {
+          "code": 15394083,
+          "zone": "hand",
+          "count": 1
+        },
+        {
+          "code": 90207654,
+          "zone": "extra",
+          "count": 1
+        },
+        {
+          "code": 40844552,
+          "zone": "deck",
+          "count": 1
+        },
+        {
+          "code": 88283496,
+          "zone": "deck",
+          "count": 1
+        },
+        {
+          "code": 40666140,
+          "zone": "deck",
+          "count": 1
+        },
+        {
+          "code": 93483212,
+          "zone": "extra",
+          "count": 1
+        }
+      ],
+      "minHand": 4,
+      "reserves": [
+        83764718
+      ],
+      "steps": [
+        {
+          "id": "odin--15394083-0",
+          "effects": [
+            15394083
+          ],
+          "targets": [
+            {
+              "code": 15394083,
+              "location": 2
+            }
+          ],
+          "completeWhen": [
+            {
+              "kind": "card",
+              "zone": "monsters",
+              "code": 15394083
+            }
+          ],
+          "action": {
+            "kind": "summons",
+            "code": 15394083
+          }
+        },
+        {
+          "id": "odin--15394083-1",
+          "effects": [
+            90207654
+          ],
+          "targets": [
+            {
+              "code": 90207654,
+              "location": 64
+            },
+            {
+              "code": 15394083,
+              "location": 4
+            }
+          ],
+          "completeWhen": [
+            {
+              "kind": "card",
+              "zone": "monsters",
+              "code": 90207654
+            }
+          ],
+          "action": {
+            "kind": "special_summons",
+            "code": 90207654
+          },
+          "effectIndices": {
+            "90207654": [
+              0
+            ]
+          }
+        },
+        {
+          "id": "odin--15394083-2",
+          "effects": [
+            90207654
+          ],
+          "targets": [
+            {
+              "code": 90207654,
+              "location": 4,
+              "scope": "action"
+            },
+            {
+              "code": 42793609,
+              "location": 2
+            },
+            {
+              "code": 89792713,
+              "location": 2
+            },
+            {
+              "code": 86827882,
+              "location": 2
+            }
+          ],
+          "completeWhen": [
+            {
+              "kind": "card",
+              "zone": "banished",
+              "code": 42793609
+            },
+            {
+              "kind": "card",
+              "zone": "banished",
+              "code": 89792713
+            },
+            {
+              "kind": "card",
+              "zone": "banished",
+              "code": 86827882
+            }
+          ],
+          "spend": "banish",
+          "effectIndices": {
+            "90207654": [
+              0
+            ]
+          }
+        },
+        {
+          "id": "odin--15394083-3",
+          "effects": [
+            90207654
+          ],
+          "targets": [
+            {
+              "code": 40844552,
+              "location": 1
+            },
+            {
+              "code": 88283496,
+              "location": 1
+            },
+            {
+              "code": 40666140,
+              "location": 1
+            }
+          ],
+          "completeWhen": [
+            {
+              "kind": "card",
+              "zone": "monsters",
+              "code": 40844552
+            },
+            {
+              "kind": "card",
+              "zone": "monsters",
+              "code": 88283496
+            },
+            {
+              "kind": "card",
+              "zone": "monsters",
+              "code": 40666140
+            }
+          ],
+          "effectIndices": {
+            "90207654": [
+              0
+            ]
+          }
+        },
+        {
+          "id": "odin--15394083-4",
+          "effects": [
+            93483212
+          ],
+          "targets": [
+            {
+              "code": 93483212,
+              "location": 64
+            },
+            {
+              "code": 40844552,
+              "location": 4
+            },
+            {
+              "code": 88283496,
+              "location": 4
+            },
+            {
+              "code": 40666140,
+              "location": 4
+            }
+          ],
+          "completeWhen": [
+            {
+              "kind": "card",
+              "zone": "monsters",
+              "code": 93483212
+            }
+          ],
+          "action": {
+            "kind": "special_summons",
+            "code": 93483212
+          }
+        }
+      ],
+      "result": {
+        "pressure": 3500,
+        "interaction": 1,
+        "continuation": 2,
+        "cost": 3,
+        "exposure": 3
+      },
+      "minDifficulty": "hard"
+    },
+    {
+      "id": "odin--41788781",
+      "lesson": "odin",
+      "objective": "Odin, Pai dos Aesir e Gullveig no campo; os três materiais Sincro no Cemitério.",
+      "requires": [
+        {
+          "code": 41788781,
+          "zone": "hand",
+          "count": 1
+        },
+        {
+          "code": 90207654,
+          "zone": "extra",
+          "count": 1
+        },
+        {
+          "code": 40844552,
+          "zone": "deck",
+          "count": 1
+        },
+        {
+          "code": 88283496,
+          "zone": "deck",
+          "count": 1
+        },
+        {
+          "code": 40666140,
+          "zone": "deck",
+          "count": 1
+        },
+        {
+          "code": 93483212,
+          "zone": "extra",
+          "count": 1
+        }
+      ],
+      "minHand": 4,
+      "reserves": [
+        83764718
+      ],
+      "steps": [
+        {
+          "id": "odin--41788781-0",
+          "effects": [
+            41788781
+          ],
+          "targets": [
+            {
+              "code": 41788781,
+              "location": 2
+            }
+          ],
+          "completeWhen": [
+            {
+              "kind": "card",
+              "zone": "monsters",
+              "code": 41788781
+            }
+          ],
+          "action": {
+            "kind": "summons",
+            "code": 41788781
+          }
+        },
+        {
+          "id": "odin--41788781-1",
+          "effects": [
+            90207654
+          ],
+          "targets": [
+            {
+              "code": 90207654,
+              "location": 64
+            },
+            {
+              "code": 41788781,
+              "location": 4
+            }
+          ],
+          "completeWhen": [
+            {
+              "kind": "card",
+              "zone": "monsters",
+              "code": 90207654
+            }
+          ],
+          "action": {
+            "kind": "special_summons",
+            "code": 90207654
+          },
+          "effectIndices": {
+            "90207654": [
+              0
+            ]
+          }
+        },
+        {
+          "id": "odin--41788781-2",
+          "effects": [
+            90207654
+          ],
+          "targets": [
+            {
+              "code": 90207654,
+              "location": 4,
+              "scope": "action"
+            },
+            {
+              "code": 42793609,
+              "location": 2
+            },
+            {
+              "code": 89792713,
+              "location": 2
+            },
+            {
+              "code": 86827882,
+              "location": 2
+            }
+          ],
+          "completeWhen": [
+            {
+              "kind": "card",
+              "zone": "banished",
+              "code": 42793609
+            },
+            {
+              "kind": "card",
+              "zone": "banished",
+              "code": 89792713
+            },
+            {
+              "kind": "card",
+              "zone": "banished",
+              "code": 86827882
+            }
+          ],
+          "spend": "banish",
+          "effectIndices": {
+            "90207654": [
+              0
+            ]
+          }
+        },
+        {
+          "id": "odin--41788781-3",
+          "effects": [
+            90207654
+          ],
+          "targets": [
+            {
+              "code": 40844552,
+              "location": 1
+            },
+            {
+              "code": 88283496,
+              "location": 1
+            },
+            {
+              "code": 40666140,
+              "location": 1
+            }
+          ],
+          "completeWhen": [
+            {
+              "kind": "card",
+              "zone": "monsters",
+              "code": 40844552
+            },
+            {
+              "kind": "card",
+              "zone": "monsters",
+              "code": 88283496
+            },
+            {
+              "kind": "card",
+              "zone": "monsters",
+              "code": 40666140
+            }
+          ],
+          "effectIndices": {
+            "90207654": [
+              0
+            ]
+          }
+        },
+        {
+          "id": "odin--41788781-4",
+          "effects": [
+            93483212
+          ],
+          "targets": [
+            {
+              "code": 93483212,
+              "location": 64
+            },
+            {
+              "code": 40844552,
+              "location": 4
+            },
+            {
+              "code": 88283496,
+              "location": 4
+            },
+            {
+              "code": 40666140,
+              "location": 4
+            }
+          ],
+          "completeWhen": [
+            {
+              "kind": "card",
+              "zone": "monsters",
+              "code": 93483212
+            }
+          ],
+          "action": {
+            "kind": "special_summons",
+            "code": 93483212
+          }
+        }
+      ],
+      "result": {
+        "pressure": 3500,
+        "interaction": 1,
+        "continuation": 2,
+        "cost": 3,
+        "exposure": 3
+      },
+      "minDifficulty": "hard"
+    },
+    {
+      "id": "odin--61777313",
+      "lesson": "odin",
+      "objective": "Odin, Pai dos Aesir e Gullveig no campo; os três materiais Sincro no Cemitério.",
+      "requires": [
+        {
+          "code": 61777313,
+          "zone": "hand",
+          "count": 1
+        },
+        {
+          "code": 90207654,
+          "zone": "extra",
+          "count": 1
+        },
+        {
+          "code": 40844552,
+          "zone": "deck",
+          "count": 1
+        },
+        {
+          "code": 88283496,
+          "zone": "deck",
+          "count": 1
+        },
+        {
+          "code": 40666140,
+          "zone": "deck",
+          "count": 1
+        },
+        {
+          "code": 93483212,
+          "zone": "extra",
+          "count": 1
+        }
+      ],
+      "minHand": 4,
+      "reserves": [
+        83764718
+      ],
+      "steps": [
+        {
+          "id": "odin--61777313-0",
+          "effects": [
+            61777313
+          ],
+          "targets": [
+            {
+              "code": 61777313,
+              "location": 2
+            }
+          ],
+          "completeWhen": [
+            {
+              "kind": "card",
+              "zone": "monsters",
+              "code": 61777313
+            }
+          ],
+          "action": {
+            "kind": "summons",
+            "code": 61777313
+          }
+        },
+        {
+          "id": "odin--61777313-1",
+          "effects": [
+            90207654
+          ],
+          "targets": [
+            {
+              "code": 90207654,
+              "location": 64
+            },
+            {
+              "code": 61777313,
+              "location": 4
+            }
+          ],
+          "completeWhen": [
+            {
+              "kind": "card",
+              "zone": "monsters",
+              "code": 90207654
+            }
+          ],
+          "action": {
+            "kind": "special_summons",
+            "code": 90207654
+          },
+          "effectIndices": {
+            "90207654": [
+              0
+            ]
+          }
+        },
+        {
+          "id": "odin--61777313-2",
+          "effects": [
+            90207654
+          ],
+          "targets": [
+            {
+              "code": 90207654,
+              "location": 4,
+              "scope": "action"
+            },
+            {
+              "code": 42793609,
+              "location": 2
+            },
+            {
+              "code": 89792713,
+              "location": 2
+            },
+            {
+              "code": 86827882,
+              "location": 2
+            }
+          ],
+          "completeWhen": [
+            {
+              "kind": "card",
+              "zone": "banished",
+              "code": 42793609
+            },
+            {
+              "kind": "card",
+              "zone": "banished",
+              "code": 89792713
+            },
+            {
+              "kind": "card",
+              "zone": "banished",
+              "code": 86827882
+            }
+          ],
+          "spend": "banish",
+          "effectIndices": {
+            "90207654": [
+              0
+            ]
+          }
+        },
+        {
+          "id": "odin--61777313-3",
+          "effects": [
+            90207654
+          ],
+          "targets": [
+            {
+              "code": 40844552,
+              "location": 1
+            },
+            {
+              "code": 88283496,
+              "location": 1
+            },
+            {
+              "code": 40666140,
+              "location": 1
+            }
+          ],
+          "completeWhen": [
+            {
+              "kind": "card",
+              "zone": "monsters",
+              "code": 40844552
+            },
+            {
+              "kind": "card",
+              "zone": "monsters",
+              "code": 88283496
+            },
+            {
+              "kind": "card",
+              "zone": "monsters",
+              "code": 40666140
+            }
+          ],
+          "effectIndices": {
+            "90207654": [
+              0
+            ]
+          }
+        },
+        {
+          "id": "odin--61777313-4",
+          "effects": [
+            93483212
+          ],
+          "targets": [
+            {
+              "code": 93483212,
+              "location": 64
+            },
+            {
+              "code": 40844552,
+              "location": 4
+            },
+            {
+              "code": 88283496,
+              "location": 4
+            },
+            {
+              "code": 40666140,
+              "location": 4
+            }
+          ],
+          "completeWhen": [
+            {
+              "kind": "card",
+              "zone": "monsters",
+              "code": 93483212
+            }
+          ],
+          "action": {
+            "kind": "special_summons",
+            "code": 93483212
+          }
+        }
+      ],
+      "result": {
+        "pressure": 3500,
+        "interaction": 1,
+        "continuation": 2,
+        "cost": 3,
+        "exposure": 3
+      },
+      "minDifficulty": "hard"
+    },
+    {
+      "id": "odin--73417207",
+      "lesson": "odin",
+      "objective": "Odin, Pai dos Aesir e Gullveig no campo; os três materiais Sincro no Cemitério.",
+      "requires": [
+        {
+          "code": 73417207,
+          "zone": "hand",
+          "count": 1
+        },
+        {
+          "code": 90207654,
+          "zone": "extra",
+          "count": 1
+        },
+        {
+          "code": 40844552,
+          "zone": "deck",
+          "count": 1
+        },
+        {
+          "code": 88283496,
+          "zone": "deck",
+          "count": 1
+        },
+        {
+          "code": 40666140,
+          "zone": "deck",
+          "count": 1
+        },
+        {
+          "code": 93483212,
+          "zone": "extra",
+          "count": 1
+        }
+      ],
+      "minHand": 4,
+      "reserves": [
+        83764718
+      ],
+      "steps": [
+        {
+          "id": "odin--73417207-0",
+          "effects": [
+            73417207
+          ],
+          "targets": [
+            {
+              "code": 73417207,
+              "location": 2
+            }
+          ],
+          "completeWhen": [
+            {
+              "kind": "card",
+              "zone": "monsters",
+              "code": 73417207
+            }
+          ],
+          "action": {
+            "kind": "summons",
+            "code": 73417207
+          }
+        },
+        {
+          "id": "odin--73417207-1",
+          "effects": [
+            90207654
+          ],
+          "targets": [
+            {
+              "code": 90207654,
+              "location": 64
+            },
+            {
+              "code": 73417207,
+              "location": 4
+            }
+          ],
+          "completeWhen": [
+            {
+              "kind": "card",
+              "zone": "monsters",
+              "code": 90207654
+            }
+          ],
+          "action": {
+            "kind": "special_summons",
+            "code": 90207654
+          },
+          "effectIndices": {
+            "90207654": [
+              0
+            ]
+          }
+        },
+        {
+          "id": "odin--73417207-2",
+          "effects": [
+            90207654
+          ],
+          "targets": [
+            {
+              "code": 90207654,
+              "location": 4,
+              "scope": "action"
+            },
+            {
+              "code": 42793609,
+              "location": 2
+            },
+            {
+              "code": 89792713,
+              "location": 2
+            },
+            {
+              "code": 86827882,
+              "location": 2
+            }
+          ],
+          "completeWhen": [
+            {
+              "kind": "card",
+              "zone": "banished",
+              "code": 42793609
+            },
+            {
+              "kind": "card",
+              "zone": "banished",
+              "code": 89792713
+            },
+            {
+              "kind": "card",
+              "zone": "banished",
+              "code": 86827882
+            }
+          ],
+          "spend": "banish",
+          "effectIndices": {
+            "90207654": [
+              0
+            ]
+          }
+        },
+        {
+          "id": "odin--73417207-3",
+          "effects": [
+            90207654
+          ],
+          "targets": [
+            {
+              "code": 40844552,
+              "location": 1
+            },
+            {
+              "code": 88283496,
+              "location": 1
+            },
+            {
+              "code": 40666140,
+              "location": 1
+            }
+          ],
+          "completeWhen": [
+            {
+              "kind": "card",
+              "zone": "monsters",
+              "code": 40844552
+            },
+            {
+              "kind": "card",
+              "zone": "monsters",
+              "code": 88283496
+            },
+            {
+              "kind": "card",
+              "zone": "monsters",
+              "code": 40666140
+            }
+          ],
+          "effectIndices": {
+            "90207654": [
+              0
+            ]
+          }
+        },
+        {
+          "id": "odin--73417207-4",
+          "effects": [
+            93483212
+          ],
+          "targets": [
+            {
+              "code": 93483212,
+              "location": 64
+            },
+            {
+              "code": 40844552,
+              "location": 4
+            },
+            {
+              "code": 88283496,
+              "location": 4
+            },
+            {
+              "code": 40666140,
+              "location": 4
+            }
+          ],
+          "completeWhen": [
+            {
+              "kind": "card",
+              "zone": "monsters",
+              "code": 93483212
+            }
+          ],
+          "action": {
+            "kind": "special_summons",
+            "code": 93483212
+          }
+        }
+      ],
+      "result": {
+        "pressure": 3500,
+        "interaction": 1,
+        "continuation": 2,
+        "cost": 3,
+        "exposure": 3
+      },
+      "minDifficulty": "hard"
+    },
+    {
+      "id": "odin--76348260",
+      "lesson": "odin",
+      "objective": "Odin, Pai dos Aesir e Gullveig no campo; os três materiais Sincro no Cemitério.",
+      "requires": [
+        {
+          "code": 76348260,
+          "zone": "hand",
+          "count": 1
+        },
+        {
+          "code": 90207654,
+          "zone": "extra",
+          "count": 1
+        },
+        {
+          "code": 40844552,
+          "zone": "deck",
+          "count": 1
+        },
+        {
+          "code": 88283496,
+          "zone": "deck",
+          "count": 1
+        },
+        {
+          "code": 40666140,
+          "zone": "deck",
+          "count": 1
+        },
+        {
+          "code": 93483212,
+          "zone": "extra",
+          "count": 1
+        }
+      ],
+      "minHand": 4,
+      "reserves": [
+        83764718
+      ],
+      "steps": [
+        {
+          "id": "odin--76348260-0",
+          "effects": [
+            76348260
+          ],
+          "targets": [
+            {
+              "code": 76348260,
+              "location": 2
+            }
+          ],
+          "completeWhen": [
+            {
+              "kind": "card",
+              "zone": "monsters",
+              "code": 76348260
+            }
+          ],
+          "action": {
+            "kind": "summons",
+            "code": 76348260
+          }
+        },
+        {
+          "id": "odin--76348260-1",
+          "effects": [
+            90207654
+          ],
+          "targets": [
+            {
+              "code": 90207654,
+              "location": 64
+            },
+            {
+              "code": 76348260,
+              "location": 4
+            }
+          ],
+          "completeWhen": [
+            {
+              "kind": "card",
+              "zone": "monsters",
+              "code": 90207654
+            }
+          ],
+          "action": {
+            "kind": "special_summons",
+            "code": 90207654
+          },
+          "effectIndices": {
+            "90207654": [
+              0
+            ]
+          }
+        },
+        {
+          "id": "odin--76348260-2",
+          "effects": [
+            90207654
+          ],
+          "targets": [
+            {
+              "code": 90207654,
+              "location": 4,
+              "scope": "action"
+            },
+            {
+              "code": 42793609,
+              "location": 2
+            },
+            {
+              "code": 89792713,
+              "location": 2
+            },
+            {
+              "code": 86827882,
+              "location": 2
+            }
+          ],
+          "completeWhen": [
+            {
+              "kind": "card",
+              "zone": "banished",
+              "code": 42793609
+            },
+            {
+              "kind": "card",
+              "zone": "banished",
+              "code": 89792713
+            },
+            {
+              "kind": "card",
+              "zone": "banished",
+              "code": 86827882
+            }
+          ],
+          "spend": "banish",
+          "effectIndices": {
+            "90207654": [
+              0
+            ]
+          }
+        },
+        {
+          "id": "odin--76348260-3",
+          "effects": [
+            90207654
+          ],
+          "targets": [
+            {
+              "code": 40844552,
+              "location": 1
+            },
+            {
+              "code": 88283496,
+              "location": 1
+            },
+            {
+              "code": 40666140,
+              "location": 1
+            }
+          ],
+          "completeWhen": [
+            {
+              "kind": "card",
+              "zone": "monsters",
+              "code": 40844552
+            },
+            {
+              "kind": "card",
+              "zone": "monsters",
+              "code": 88283496
+            },
+            {
+              "kind": "card",
+              "zone": "monsters",
+              "code": 40666140
+            }
+          ],
+          "effectIndices": {
+            "90207654": [
+              0
+            ]
+          }
+        },
+        {
+          "id": "odin--76348260-4",
+          "effects": [
+            93483212
+          ],
+          "targets": [
+            {
+              "code": 93483212,
+              "location": 64
+            },
+            {
+              "code": 40844552,
+              "location": 4
+            },
+            {
+              "code": 88283496,
+              "location": 4
+            },
+            {
+              "code": 40666140,
+              "location": 4
+            }
+          ],
+          "completeWhen": [
+            {
+              "kind": "card",
+              "zone": "monsters",
+              "code": 93483212
+            }
+          ],
+          "action": {
+            "kind": "special_summons",
+            "code": 93483212
+          }
+        }
+      ],
+      "result": {
+        "pressure": 3500,
+        "interaction": 1,
+        "continuation": 2,
+        "cost": 3,
+        "exposure": 3
+      },
+      "minDifficulty": "hard"
+    },
+    {
+      "id": "loki--14677495",
+      "lesson": "loki",
+      "objective": "Loki, Senhor dos Aesir e Gullveig no campo; os três materiais Sincro no Cemitério.",
+      "requires": [
+        {
+          "code": 14677495,
+          "zone": "hand",
+          "count": 1
+        },
+        {
+          "code": 90207654,
+          "zone": "extra",
+          "count": 1
+        },
+        {
+          "code": 77060848,
+          "zone": "deck",
+          "count": 1
+        },
+        {
+          "code": 15394083,
+          "zone": "deck",
+          "count": 1
+        },
+        {
+          "code": 76348260,
+          "zone": "deck",
+          "count": 1
+        },
+        {
+          "code": 67098114,
+          "zone": "extra",
+          "count": 1
+        }
+      ],
+      "minHand": 4,
+      "reserves": [
+        83764718
+      ],
+      "steps": [
+        {
+          "id": "loki--14677495-0",
+          "effects": [
+            14677495
+          ],
+          "targets": [
+            {
+              "code": 14677495,
+              "location": 2
+            }
+          ],
+          "completeWhen": [
+            {
+              "kind": "card",
+              "zone": "monsters",
+              "code": 14677495
+            }
+          ],
+          "action": {
+            "kind": "summons",
+            "code": 14677495
+          }
+        },
+        {
+          "id": "loki--14677495-1",
+          "effects": [
+            90207654
+          ],
+          "targets": [
+            {
+              "code": 90207654,
+              "location": 64
+            },
+            {
+              "code": 14677495,
+              "location": 4
+            }
+          ],
+          "completeWhen": [
+            {
+              "kind": "card",
+              "zone": "monsters",
+              "code": 90207654
+            }
+          ],
+          "action": {
+            "kind": "special_summons",
+            "code": 90207654
+          },
+          "effectIndices": {
+            "90207654": [
+              0
+            ]
+          }
+        },
+        {
+          "id": "loki--14677495-2",
+          "effects": [
+            90207654
+          ],
+          "targets": [
+            {
+              "code": 90207654,
+              "location": 4,
+              "scope": "action"
+            },
+            {
+              "code": 42793609,
+              "location": 2
+            },
+            {
+              "code": 89792713,
+              "location": 2
+            },
+            {
+              "code": 86827882,
+              "location": 2
+            }
+          ],
+          "completeWhen": [
+            {
+              "kind": "card",
+              "zone": "banished",
+              "code": 42793609
+            },
+            {
+              "kind": "card",
+              "zone": "banished",
+              "code": 89792713
+            },
+            {
+              "kind": "card",
+              "zone": "banished",
+              "code": 86827882
+            }
+          ],
+          "spend": "banish",
+          "effectIndices": {
+            "90207654": [
+              0
+            ]
+          }
+        },
+        {
+          "id": "loki--14677495-3",
+          "effects": [
+            90207654
+          ],
+          "targets": [
+            {
+              "code": 77060848,
+              "location": 1
+            },
+            {
+              "code": 15394083,
+              "location": 1
+            },
+            {
+              "code": 76348260,
+              "location": 1
+            }
+          ],
+          "completeWhen": [
+            {
+              "kind": "card",
+              "zone": "monsters",
+              "code": 77060848
+            },
+            {
+              "kind": "card",
+              "zone": "monsters",
+              "code": 15394083
+            },
+            {
+              "kind": "card",
+              "zone": "monsters",
+              "code": 76348260
+            }
+          ],
+          "effectIndices": {
+            "90207654": [
+              0
+            ]
+          }
+        },
+        {
+          "id": "loki--14677495-4",
+          "effects": [
+            67098114
+          ],
+          "targets": [
+            {
+              "code": 67098114,
+              "location": 64
+            },
+            {
+              "code": 77060848,
+              "location": 4
+            },
+            {
+              "code": 15394083,
+              "location": 4
+            },
+            {
+              "code": 76348260,
+              "location": 4
+            }
+          ],
+          "completeWhen": [
+            {
+              "kind": "card",
+              "zone": "monsters",
+              "code": 67098114
+            }
+          ],
+          "action": {
+            "kind": "special_summons",
+            "code": 67098114
+          }
+        }
+      ],
+      "result": {
+        "pressure": 3500,
+        "interaction": 1,
+        "continuation": 2,
+        "cost": 3,
+        "exposure": 3
+      },
+      "minDifficulty": "hard"
+    },
+    {
+      "id": "loki--40666140",
+      "lesson": "loki",
+      "objective": "Loki, Senhor dos Aesir e Gullveig no campo; os três materiais Sincro no Cemitério.",
+      "requires": [
+        {
+          "code": 40666140,
+          "zone": "hand",
+          "count": 1
+        },
+        {
+          "code": 90207654,
+          "zone": "extra",
+          "count": 1
+        },
+        {
+          "code": 77060848,
+          "zone": "deck",
+          "count": 1
+        },
+        {
+          "code": 15394083,
+          "zone": "deck",
+          "count": 1
+        },
+        {
+          "code": 76348260,
+          "zone": "deck",
+          "count": 1
+        },
+        {
+          "code": 67098114,
+          "zone": "extra",
+          "count": 1
+        }
+      ],
+      "minHand": 4,
+      "reserves": [
+        83764718
+      ],
+      "steps": [
+        {
+          "id": "loki--40666140-0",
+          "effects": [
+            40666140
+          ],
+          "targets": [
+            {
+              "code": 40666140,
+              "location": 2
+            }
+          ],
+          "completeWhen": [
+            {
+              "kind": "card",
+              "zone": "monsters",
+              "code": 40666140
+            }
+          ],
+          "action": {
+            "kind": "summons",
+            "code": 40666140
+          }
+        },
+        {
+          "id": "loki--40666140-1",
+          "effects": [
+            90207654
+          ],
+          "targets": [
+            {
+              "code": 90207654,
+              "location": 64
+            },
+            {
+              "code": 40666140,
+              "location": 4
+            }
+          ],
+          "completeWhen": [
+            {
+              "kind": "card",
+              "zone": "monsters",
+              "code": 90207654
+            }
+          ],
+          "action": {
+            "kind": "special_summons",
+            "code": 90207654
+          },
+          "effectIndices": {
+            "90207654": [
+              0
+            ]
+          }
+        },
+        {
+          "id": "loki--40666140-2",
+          "effects": [
+            90207654
+          ],
+          "targets": [
+            {
+              "code": 90207654,
+              "location": 4,
+              "scope": "action"
+            },
+            {
+              "code": 42793609,
+              "location": 2
+            },
+            {
+              "code": 89792713,
+              "location": 2
+            },
+            {
+              "code": 86827882,
+              "location": 2
+            }
+          ],
+          "completeWhen": [
+            {
+              "kind": "card",
+              "zone": "banished",
+              "code": 42793609
+            },
+            {
+              "kind": "card",
+              "zone": "banished",
+              "code": 89792713
+            },
+            {
+              "kind": "card",
+              "zone": "banished",
+              "code": 86827882
+            }
+          ],
+          "spend": "banish",
+          "effectIndices": {
+            "90207654": [
+              0
+            ]
+          }
+        },
+        {
+          "id": "loki--40666140-3",
+          "effects": [
+            90207654
+          ],
+          "targets": [
+            {
+              "code": 77060848,
+              "location": 1
+            },
+            {
+              "code": 15394083,
+              "location": 1
+            },
+            {
+              "code": 76348260,
+              "location": 1
+            }
+          ],
+          "completeWhen": [
+            {
+              "kind": "card",
+              "zone": "monsters",
+              "code": 77060848
+            },
+            {
+              "kind": "card",
+              "zone": "monsters",
+              "code": 15394083
+            },
+            {
+              "kind": "card",
+              "zone": "monsters",
+              "code": 76348260
+            }
+          ],
+          "effectIndices": {
+            "90207654": [
+              0
+            ]
+          }
+        },
+        {
+          "id": "loki--40666140-4",
+          "effects": [
+            67098114
+          ],
+          "targets": [
+            {
+              "code": 67098114,
+              "location": 64
+            },
+            {
+              "code": 77060848,
+              "location": 4
+            },
+            {
+              "code": 15394083,
+              "location": 4
+            },
+            {
+              "code": 76348260,
+              "location": 4
+            }
+          ],
+          "completeWhen": [
+            {
+              "kind": "card",
+              "zone": "monsters",
+              "code": 67098114
+            }
+          ],
+          "action": {
+            "kind": "special_summons",
+            "code": 67098114
+          }
+        }
+      ],
+      "result": {
+        "pressure": 3500,
+        "interaction": 1,
+        "continuation": 2,
+        "cost": 3,
+        "exposure": 3
+      },
+      "minDifficulty": "hard"
+    },
+    {
+      "id": "loki--40844552",
+      "lesson": "loki",
+      "objective": "Loki, Senhor dos Aesir e Gullveig no campo; os três materiais Sincro no Cemitério.",
+      "requires": [
+        {
+          "code": 40844552,
+          "zone": "hand",
+          "count": 1
+        },
+        {
+          "code": 90207654,
+          "zone": "extra",
+          "count": 1
+        },
+        {
+          "code": 77060848,
+          "zone": "deck",
+          "count": 1
+        },
+        {
+          "code": 15394083,
+          "zone": "deck",
+          "count": 1
+        },
+        {
+          "code": 76348260,
+          "zone": "deck",
+          "count": 1
+        },
+        {
+          "code": 67098114,
+          "zone": "extra",
+          "count": 1
+        }
+      ],
+      "minHand": 4,
+      "reserves": [
+        83764718
+      ],
+      "steps": [
+        {
+          "id": "loki--40844552-0",
+          "effects": [
+            40844552
+          ],
+          "targets": [
+            {
+              "code": 40844552,
+              "location": 2
+            }
+          ],
+          "completeWhen": [
+            {
+              "kind": "card",
+              "zone": "monsters",
+              "code": 40844552
+            }
+          ],
+          "action": {
+            "kind": "summons",
+            "code": 40844552
+          }
+        },
+        {
+          "id": "loki--40844552-1",
+          "effects": [
+            90207654
+          ],
+          "targets": [
+            {
+              "code": 90207654,
+              "location": 64
+            },
+            {
+              "code": 40844552,
+              "location": 4
+            }
+          ],
+          "completeWhen": [
+            {
+              "kind": "card",
+              "zone": "monsters",
+              "code": 90207654
+            }
+          ],
+          "action": {
+            "kind": "special_summons",
+            "code": 90207654
+          },
+          "effectIndices": {
+            "90207654": [
+              0
+            ]
+          }
+        },
+        {
+          "id": "loki--40844552-2",
+          "effects": [
+            90207654
+          ],
+          "targets": [
+            {
+              "code": 90207654,
+              "location": 4,
+              "scope": "action"
+            },
+            {
+              "code": 42793609,
+              "location": 2
+            },
+            {
+              "code": 89792713,
+              "location": 2
+            },
+            {
+              "code": 86827882,
+              "location": 2
+            }
+          ],
+          "completeWhen": [
+            {
+              "kind": "card",
+              "zone": "banished",
+              "code": 42793609
+            },
+            {
+              "kind": "card",
+              "zone": "banished",
+              "code": 89792713
+            },
+            {
+              "kind": "card",
+              "zone": "banished",
+              "code": 86827882
+            }
+          ],
+          "spend": "banish",
+          "effectIndices": {
+            "90207654": [
+              0
+            ]
+          }
+        },
+        {
+          "id": "loki--40844552-3",
+          "effects": [
+            90207654
+          ],
+          "targets": [
+            {
+              "code": 77060848,
+              "location": 1
+            },
+            {
+              "code": 15394083,
+              "location": 1
+            },
+            {
+              "code": 76348260,
+              "location": 1
+            }
+          ],
+          "completeWhen": [
+            {
+              "kind": "card",
+              "zone": "monsters",
+              "code": 77060848
+            },
+            {
+              "kind": "card",
+              "zone": "monsters",
+              "code": 15394083
+            },
+            {
+              "kind": "card",
+              "zone": "monsters",
+              "code": 76348260
+            }
+          ],
+          "effectIndices": {
+            "90207654": [
+              0
+            ]
+          }
+        },
+        {
+          "id": "loki--40844552-4",
+          "effects": [
+            67098114
+          ],
+          "targets": [
+            {
+              "code": 67098114,
+              "location": 64
+            },
+            {
+              "code": 77060848,
+              "location": 4
+            },
+            {
+              "code": 15394083,
+              "location": 4
+            },
+            {
+              "code": 76348260,
+              "location": 4
+            }
+          ],
+          "completeWhen": [
+            {
+              "kind": "card",
+              "zone": "monsters",
+              "code": 67098114
+            }
+          ],
+          "action": {
+            "kind": "special_summons",
+            "code": 67098114
+          }
+        }
+      ],
+      "result": {
+        "pressure": 3500,
+        "interaction": 1,
+        "continuation": 2,
+        "cost": 3,
+        "exposure": 3
+      },
+      "minDifficulty": "hard"
+    },
+    {
+      "id": "loki--41788781",
+      "lesson": "loki",
+      "objective": "Loki, Senhor dos Aesir e Gullveig no campo; os três materiais Sincro no Cemitério.",
+      "requires": [
+        {
+          "code": 41788781,
+          "zone": "hand",
+          "count": 1
+        },
+        {
+          "code": 90207654,
+          "zone": "extra",
+          "count": 1
+        },
+        {
+          "code": 77060848,
+          "zone": "deck",
+          "count": 1
+        },
+        {
+          "code": 15394083,
+          "zone": "deck",
+          "count": 1
+        },
+        {
+          "code": 76348260,
+          "zone": "deck",
+          "count": 1
+        },
+        {
+          "code": 67098114,
+          "zone": "extra",
+          "count": 1
+        }
+      ],
+      "minHand": 4,
+      "reserves": [
+        83764718
+      ],
+      "steps": [
+        {
+          "id": "loki--41788781-0",
+          "effects": [
+            41788781
+          ],
+          "targets": [
+            {
+              "code": 41788781,
+              "location": 2
+            }
+          ],
+          "completeWhen": [
+            {
+              "kind": "card",
+              "zone": "monsters",
+              "code": 41788781
+            }
+          ],
+          "action": {
+            "kind": "summons",
+            "code": 41788781
+          }
+        },
+        {
+          "id": "loki--41788781-1",
+          "effects": [
+            90207654
+          ],
+          "targets": [
+            {
+              "code": 90207654,
+              "location": 64
+            },
+            {
+              "code": 41788781,
+              "location": 4
+            }
+          ],
+          "completeWhen": [
+            {
+              "kind": "card",
+              "zone": "monsters",
+              "code": 90207654
+            }
+          ],
+          "action": {
+            "kind": "special_summons",
+            "code": 90207654
+          },
+          "effectIndices": {
+            "90207654": [
+              0
+            ]
+          }
+        },
+        {
+          "id": "loki--41788781-2",
+          "effects": [
+            90207654
+          ],
+          "targets": [
+            {
+              "code": 90207654,
+              "location": 4,
+              "scope": "action"
+            },
+            {
+              "code": 42793609,
+              "location": 2
+            },
+            {
+              "code": 89792713,
+              "location": 2
+            },
+            {
+              "code": 86827882,
+              "location": 2
+            }
+          ],
+          "completeWhen": [
+            {
+              "kind": "card",
+              "zone": "banished",
+              "code": 42793609
+            },
+            {
+              "kind": "card",
+              "zone": "banished",
+              "code": 89792713
+            },
+            {
+              "kind": "card",
+              "zone": "banished",
+              "code": 86827882
+            }
+          ],
+          "spend": "banish",
+          "effectIndices": {
+            "90207654": [
+              0
+            ]
+          }
+        },
+        {
+          "id": "loki--41788781-3",
+          "effects": [
+            90207654
+          ],
+          "targets": [
+            {
+              "code": 77060848,
+              "location": 1
+            },
+            {
+              "code": 15394083,
+              "location": 1
+            },
+            {
+              "code": 76348260,
+              "location": 1
+            }
+          ],
+          "completeWhen": [
+            {
+              "kind": "card",
+              "zone": "monsters",
+              "code": 77060848
+            },
+            {
+              "kind": "card",
+              "zone": "monsters",
+              "code": 15394083
+            },
+            {
+              "kind": "card",
+              "zone": "monsters",
+              "code": 76348260
+            }
+          ],
+          "effectIndices": {
+            "90207654": [
+              0
+            ]
+          }
+        },
+        {
+          "id": "loki--41788781-4",
+          "effects": [
+            67098114
+          ],
+          "targets": [
+            {
+              "code": 67098114,
+              "location": 64
+            },
+            {
+              "code": 77060848,
+              "location": 4
+            },
+            {
+              "code": 15394083,
+              "location": 4
+            },
+            {
+              "code": 76348260,
+              "location": 4
+            }
+          ],
+          "completeWhen": [
+            {
+              "kind": "card",
+              "zone": "monsters",
+              "code": 67098114
+            }
+          ],
+          "action": {
+            "kind": "special_summons",
+            "code": 67098114
+          }
+        }
+      ],
+      "result": {
+        "pressure": 3500,
+        "interaction": 1,
+        "continuation": 2,
+        "cost": 3,
+        "exposure": 3
+      },
+      "minDifficulty": "hard"
+    },
+    {
+      "id": "loki--61777313",
+      "lesson": "loki",
+      "objective": "Loki, Senhor dos Aesir e Gullveig no campo; os três materiais Sincro no Cemitério.",
+      "requires": [
+        {
+          "code": 61777313,
+          "zone": "hand",
+          "count": 1
+        },
+        {
+          "code": 90207654,
+          "zone": "extra",
+          "count": 1
+        },
+        {
+          "code": 77060848,
+          "zone": "deck",
+          "count": 1
+        },
+        {
+          "code": 15394083,
+          "zone": "deck",
+          "count": 1
+        },
+        {
+          "code": 76348260,
+          "zone": "deck",
+          "count": 1
+        },
+        {
+          "code": 67098114,
+          "zone": "extra",
+          "count": 1
+        }
+      ],
+      "minHand": 4,
+      "reserves": [
+        83764718
+      ],
+      "steps": [
+        {
+          "id": "loki--61777313-0",
+          "effects": [
+            61777313
+          ],
+          "targets": [
+            {
+              "code": 61777313,
+              "location": 2
+            }
+          ],
+          "completeWhen": [
+            {
+              "kind": "card",
+              "zone": "monsters",
+              "code": 61777313
+            }
+          ],
+          "action": {
+            "kind": "summons",
+            "code": 61777313
+          }
+        },
+        {
+          "id": "loki--61777313-1",
+          "effects": [
+            90207654
+          ],
+          "targets": [
+            {
+              "code": 90207654,
+              "location": 64
+            },
+            {
+              "code": 61777313,
+              "location": 4
+            }
+          ],
+          "completeWhen": [
+            {
+              "kind": "card",
+              "zone": "monsters",
+              "code": 90207654
+            }
+          ],
+          "action": {
+            "kind": "special_summons",
+            "code": 90207654
+          },
+          "effectIndices": {
+            "90207654": [
+              0
+            ]
+          }
+        },
+        {
+          "id": "loki--61777313-2",
+          "effects": [
+            90207654
+          ],
+          "targets": [
+            {
+              "code": 90207654,
+              "location": 4,
+              "scope": "action"
+            },
+            {
+              "code": 42793609,
+              "location": 2
+            },
+            {
+              "code": 89792713,
+              "location": 2
+            },
+            {
+              "code": 86827882,
+              "location": 2
+            }
+          ],
+          "completeWhen": [
+            {
+              "kind": "card",
+              "zone": "banished",
+              "code": 42793609
+            },
+            {
+              "kind": "card",
+              "zone": "banished",
+              "code": 89792713
+            },
+            {
+              "kind": "card",
+              "zone": "banished",
+              "code": 86827882
+            }
+          ],
+          "spend": "banish",
+          "effectIndices": {
+            "90207654": [
+              0
+            ]
+          }
+        },
+        {
+          "id": "loki--61777313-3",
+          "effects": [
+            90207654
+          ],
+          "targets": [
+            {
+              "code": 77060848,
+              "location": 1
+            },
+            {
+              "code": 15394083,
+              "location": 1
+            },
+            {
+              "code": 76348260,
+              "location": 1
+            }
+          ],
+          "completeWhen": [
+            {
+              "kind": "card",
+              "zone": "monsters",
+              "code": 77060848
+            },
+            {
+              "kind": "card",
+              "zone": "monsters",
+              "code": 15394083
+            },
+            {
+              "kind": "card",
+              "zone": "monsters",
+              "code": 76348260
+            }
+          ],
+          "effectIndices": {
+            "90207654": [
+              0
+            ]
+          }
+        },
+        {
+          "id": "loki--61777313-4",
+          "effects": [
+            67098114
+          ],
+          "targets": [
+            {
+              "code": 67098114,
+              "location": 64
+            },
+            {
+              "code": 77060848,
+              "location": 4
+            },
+            {
+              "code": 15394083,
+              "location": 4
+            },
+            {
+              "code": 76348260,
+              "location": 4
+            }
+          ],
+          "completeWhen": [
+            {
+              "kind": "card",
+              "zone": "monsters",
+              "code": 67098114
+            }
+          ],
+          "action": {
+            "kind": "special_summons",
+            "code": 67098114
+          }
+        }
+      ],
+      "result": {
+        "pressure": 3500,
+        "interaction": 1,
+        "continuation": 2,
+        "cost": 3,
+        "exposure": 3
+      },
+      "minDifficulty": "hard"
+    },
+    {
+      "id": "loki--73417207",
+      "lesson": "loki",
+      "objective": "Loki, Senhor dos Aesir e Gullveig no campo; os três materiais Sincro no Cemitério.",
+      "requires": [
+        {
+          "code": 73417207,
+          "zone": "hand",
+          "count": 1
+        },
+        {
+          "code": 90207654,
+          "zone": "extra",
+          "count": 1
+        },
+        {
+          "code": 77060848,
+          "zone": "deck",
+          "count": 1
+        },
+        {
+          "code": 15394083,
+          "zone": "deck",
+          "count": 1
+        },
+        {
+          "code": 76348260,
+          "zone": "deck",
+          "count": 1
+        },
+        {
+          "code": 67098114,
+          "zone": "extra",
+          "count": 1
+        }
+      ],
+      "minHand": 4,
+      "reserves": [
+        83764718
+      ],
+      "steps": [
+        {
+          "id": "loki--73417207-0",
+          "effects": [
+            73417207
+          ],
+          "targets": [
+            {
+              "code": 73417207,
+              "location": 2
+            }
+          ],
+          "completeWhen": [
+            {
+              "kind": "card",
+              "zone": "monsters",
+              "code": 73417207
+            }
+          ],
+          "action": {
+            "kind": "summons",
+            "code": 73417207
+          }
+        },
+        {
+          "id": "loki--73417207-1",
+          "effects": [
+            90207654
+          ],
+          "targets": [
+            {
+              "code": 90207654,
+              "location": 64
+            },
+            {
+              "code": 73417207,
+              "location": 4
+            }
+          ],
+          "completeWhen": [
+            {
+              "kind": "card",
+              "zone": "monsters",
+              "code": 90207654
+            }
+          ],
+          "action": {
+            "kind": "special_summons",
+            "code": 90207654
+          },
+          "effectIndices": {
+            "90207654": [
+              0
+            ]
+          }
+        },
+        {
+          "id": "loki--73417207-2",
+          "effects": [
+            90207654
+          ],
+          "targets": [
+            {
+              "code": 90207654,
+              "location": 4,
+              "scope": "action"
+            },
+            {
+              "code": 42793609,
+              "location": 2
+            },
+            {
+              "code": 89792713,
+              "location": 2
+            },
+            {
+              "code": 86827882,
+              "location": 2
+            }
+          ],
+          "completeWhen": [
+            {
+              "kind": "card",
+              "zone": "banished",
+              "code": 42793609
+            },
+            {
+              "kind": "card",
+              "zone": "banished",
+              "code": 89792713
+            },
+            {
+              "kind": "card",
+              "zone": "banished",
+              "code": 86827882
+            }
+          ],
+          "spend": "banish",
+          "effectIndices": {
+            "90207654": [
+              0
+            ]
+          }
+        },
+        {
+          "id": "loki--73417207-3",
+          "effects": [
+            90207654
+          ],
+          "targets": [
+            {
+              "code": 77060848,
+              "location": 1
+            },
+            {
+              "code": 15394083,
+              "location": 1
+            },
+            {
+              "code": 76348260,
+              "location": 1
+            }
+          ],
+          "completeWhen": [
+            {
+              "kind": "card",
+              "zone": "monsters",
+              "code": 77060848
+            },
+            {
+              "kind": "card",
+              "zone": "monsters",
+              "code": 15394083
+            },
+            {
+              "kind": "card",
+              "zone": "monsters",
+              "code": 76348260
+            }
+          ],
+          "effectIndices": {
+            "90207654": [
+              0
+            ]
+          }
+        },
+        {
+          "id": "loki--73417207-4",
+          "effects": [
+            67098114
+          ],
+          "targets": [
+            {
+              "code": 67098114,
+              "location": 64
+            },
+            {
+              "code": 77060848,
+              "location": 4
+            },
+            {
+              "code": 15394083,
+              "location": 4
+            },
+            {
+              "code": 76348260,
+              "location": 4
+            }
+          ],
+          "completeWhen": [
+            {
+              "kind": "card",
+              "zone": "monsters",
+              "code": 67098114
+            }
+          ],
+          "action": {
+            "kind": "special_summons",
+            "code": 67098114
+          }
+        }
+      ],
+      "result": {
+        "pressure": 3500,
+        "interaction": 1,
+        "continuation": 2,
+        "cost": 3,
+        "exposure": 3
+      },
+      "minDifficulty": "hard"
+    },
+    {
+      "id": "loki--88283496",
+      "lesson": "loki",
+      "objective": "Loki, Senhor dos Aesir e Gullveig no campo; os três materiais Sincro no Cemitério.",
+      "requires": [
+        {
+          "code": 88283496,
+          "zone": "hand",
+          "count": 1
+        },
+        {
+          "code": 90207654,
+          "zone": "extra",
+          "count": 1
+        },
+        {
+          "code": 77060848,
+          "zone": "deck",
+          "count": 1
+        },
+        {
+          "code": 15394083,
+          "zone": "deck",
+          "count": 1
+        },
+        {
+          "code": 76348260,
+          "zone": "deck",
+          "count": 1
+        },
+        {
+          "code": 67098114,
+          "zone": "extra",
+          "count": 1
+        }
+      ],
+      "minHand": 4,
+      "reserves": [
+        83764718
+      ],
+      "steps": [
+        {
+          "id": "loki--88283496-0",
+          "effects": [
+            88283496
+          ],
+          "targets": [
+            {
+              "code": 88283496,
+              "location": 2
+            }
+          ],
+          "completeWhen": [
+            {
+              "kind": "card",
+              "zone": "monsters",
+              "code": 88283496
+            }
+          ],
+          "action": {
+            "kind": "summons",
+            "code": 88283496
+          }
+        },
+        {
+          "id": "loki--88283496-1",
+          "effects": [
+            90207654
+          ],
+          "targets": [
+            {
+              "code": 90207654,
+              "location": 64
+            },
+            {
+              "code": 88283496,
+              "location": 4
+            }
+          ],
+          "completeWhen": [
+            {
+              "kind": "card",
+              "zone": "monsters",
+              "code": 90207654
+            }
+          ],
+          "action": {
+            "kind": "special_summons",
+            "code": 90207654
+          },
+          "effectIndices": {
+            "90207654": [
+              0
+            ]
+          }
+        },
+        {
+          "id": "loki--88283496-2",
+          "effects": [
+            90207654
+          ],
+          "targets": [
+            {
+              "code": 90207654,
+              "location": 4,
+              "scope": "action"
+            },
+            {
+              "code": 42793609,
+              "location": 2
+            },
+            {
+              "code": 89792713,
+              "location": 2
+            },
+            {
+              "code": 86827882,
+              "location": 2
+            }
+          ],
+          "completeWhen": [
+            {
+              "kind": "card",
+              "zone": "banished",
+              "code": 42793609
+            },
+            {
+              "kind": "card",
+              "zone": "banished",
+              "code": 89792713
+            },
+            {
+              "kind": "card",
+              "zone": "banished",
+              "code": 86827882
+            }
+          ],
+          "spend": "banish",
+          "effectIndices": {
+            "90207654": [
+              0
+            ]
+          }
+        },
+        {
+          "id": "loki--88283496-3",
+          "effects": [
+            90207654
+          ],
+          "targets": [
+            {
+              "code": 77060848,
+              "location": 1
+            },
+            {
+              "code": 15394083,
+              "location": 1
+            },
+            {
+              "code": 76348260,
+              "location": 1
+            }
+          ],
+          "completeWhen": [
+            {
+              "kind": "card",
+              "zone": "monsters",
+              "code": 77060848
+            },
+            {
+              "kind": "card",
+              "zone": "monsters",
+              "code": 15394083
+            },
+            {
+              "kind": "card",
+              "zone": "monsters",
+              "code": 76348260
+            }
+          ],
+          "effectIndices": {
+            "90207654": [
+              0
+            ]
+          }
+        },
+        {
+          "id": "loki--88283496-4",
+          "effects": [
+            67098114
+          ],
+          "targets": [
+            {
+              "code": 67098114,
+              "location": 64
+            },
+            {
+              "code": 77060848,
+              "location": 4
+            },
+            {
+              "code": 15394083,
+              "location": 4
+            },
+            {
+              "code": 76348260,
+              "location": 4
+            }
+          ],
+          "completeWhen": [
+            {
+              "kind": "card",
+              "zone": "monsters",
+              "code": 67098114
+            }
+          ],
+          "action": {
+            "kind": "special_summons",
+            "code": 67098114
+          }
+        }
+      ],
+      "result": {
+        "pressure": 3500,
+        "interaction": 1,
+        "continuation": 2,
+        "cost": 3,
+        "exposure": 3
+      },
+      "minDifficulty": "hard"
+    }
+  ],
+  "coverage": "3 planos principais · 19 variações de início para o Difícil"
+}

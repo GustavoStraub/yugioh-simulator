@@ -31,6 +31,19 @@ function encodeScriptPath(path: string): string {
 }
 
 export const browserAssets: DuelAssets = {
+  createBotWorker() {
+    const worker = new Worker(new URL("./bot/analysis-worker.ts",import.meta.url),{type:"module"});
+    return {
+      send(request) { worker.postMessage(request); },
+      listen(receive,failed) {
+        const message = (event: MessageEvent) => receive(event.data);
+        const error = (event: ErrorEvent) => failed(new Error(event.message));
+        worker.addEventListener("message",message); worker.addEventListener("error",error);
+        return () => { worker.removeEventListener("message",message); worker.removeEventListener("error",error); };
+      },
+      terminate() { worker.terminate(); },
+    };
+  },
   async loadCore(printErr) {
     const core = await createCore({
       sync: true,

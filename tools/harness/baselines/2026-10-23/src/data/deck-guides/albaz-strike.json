@@ -1,0 +1,826 @@
+{
+  "schemaVersion": 1,
+  "id": "albaz-strike",
+  "presetId": "tcg-sdaz",
+  "revision": 2,
+  "reviewedAt": "2026-10-16",
+  "title": "Albaz Strike",
+  "subtitle": "Uma carta abre o caminho. Duas Fusões mudam a mesa.",
+  "description": "Aprenda o plano do Golpe de Arbaz: acessar a Fusão do Marcado, escolher seus materiais e preparar Jadespelho para interagir com o adversário.",
+  "difficulty": "Intermediário",
+  "minutes": 15,
+  "tags": [
+    "Fusão",
+    "Controle",
+    "TCG"
+  ],
+  "coverCodes": [
+    70534340,
+    44146295,
+    87746184
+  ],
+  "deckSnapshot": {
+    "format": "tcg",
+    "main": [
+      19096726,
+      45484331,
+      82489470,
+      68468459,
+      25451383,
+      69680031,
+      88264978,
+      48770333,
+      55878038,
+      28674152,
+      20292186,
+      99234526,
+      61901281,
+      15381421,
+      48048590,
+      423585,
+      59438930,
+      97268402,
+      8972398,
+      18973184,
+      44362883,
+      34995106,
+      62022479,
+      33550694,
+      22829942,
+      74335036,
+      75500286,
+      49238328,
+      24224830,
+      54693926,
+      81767888,
+      17751597,
+      67100549,
+      93595154,
+      81223446,
+      59919307,
+      11429811,
+      24207889,
+      83326048,
+      10813327
+    ],
+    "extra": [
+      44146295,
+      70534340,
+      41373230,
+      34848821,
+      1906812,
+      87746184
+    ],
+    "side": []
+  },
+  "overview": {
+    "goal": "Estabelecer uma Fusão que pressione o campo e manter recursos para continuar jogando no próximo turno.",
+    "plan": [
+      "Encontre a Fusão do Marcado na mão ou por meio de Springans Kitt.",
+      "Escolha a primeira Fusão conforme os materiais e as cartas que pode gastar.",
+      "Chegue a Jadespelho e preserve uma interação para o momento certo."
+    ],
+    "strengths": [
+      "Materiais também podem vir do Deck.",
+      "As Fusões abrem novas jogadas e ajudam a administrar recursos."
+    ],
+    "watchOut": [
+      "Este guia usa uma única caixa: 40 cartas no Principal e 6 no Extra, com as quantidades do catálogo.",
+      "Cada lição abre a mesa com a mão preparada. Execute as jogadas para concluir o exercício.",
+      "Confira cada efeito e sua restrição antes de comprometer suas cartas."
+    ]
+  },
+  "keyCards": [
+    {
+      "code": 44362883,
+      "name": "Fusão do Marcado",
+      "role": "Inicia a jogada",
+      "explanation": "Permite usar dois materiais da mão, do campo ou do Deck. No turno em que a ativa, suas Invocações do Extra ficam limitadas a Fusões.",
+      "sourceIds": [
+        "branded-fusion"
+      ]
+    },
+    {
+      "code": 45484331,
+      "name": "Springans Kitt",
+      "role": "Encontra a peça",
+      "explanation": "Ao ser invocada, acessa uma Magia ou Armadilha do Marcado e depois devolve uma carta da mão ao fundo do Deck. Planeje essa devolução.",
+      "sourceIds": [
+        "kitt"
+      ]
+    },
+    {
+      "code": 68468459,
+      "name": "Caído de Arbaz",
+      "role": "Conecta as Fusões",
+      "explanation": "É o material citado pelas Fusões do guia. Seu próprio efeito também permite fundir usando monstros adversários compatíveis, ao custo de um descarte.",
+      "sourceIds": [
+        "set-list"
+      ]
+    },
+    {
+      "code": 70534340,
+      "name": "Lubellion, o Dragão Ardente",
+      "role": "Continua a sequência",
+      "explanation": "Ao ser Invocado por Fusão, pode descartar uma carta para realizar outra Fusão, devolvendo os materiais ao Deck. Assim, reaproveita Arbaz.",
+      "sourceIds": [
+        "lubellion"
+      ]
+    },
+    {
+      "code": 87746184,
+      "name": "Albion, o Dragão Marcado",
+      "role": "Oferece outra rota",
+      "explanation": "Realiza outra Fusão banindo materiais. Se for enviado ao Cemitério naquele turno, seu efeito na Fase Final pode preparar uma Magia ou Armadilha do Marcado.",
+      "sourceIds": [
+        "albion"
+      ]
+    },
+    {
+      "code": 44146295,
+      "name": "Jadespelho, o Dragão da Lâmina Gélida",
+      "role": "Interage com a mesa",
+      "explanation": "Envia uma Fusão adequada do Extra ao Cemitério para banir um monstro do campo. Escolha o momento: esse efeito fica indisponível no turno seguinte.",
+      "sourceIds": [
+        "mirrorjade"
+      ]
+    },
+    {
+      "code": 19096726,
+      "name": "Mercourier da Tri-Brigada",
+      "role": "Protege sua posição",
+      "explanation": "Com uma Fusão que mencione Arbaz sob seu controle, pode responder a um efeito de monstro adversário. Vale considerar se é melhor preservá-lo na mão.",
+      "sourceIds": [
+        "mercourier"
+      ]
+    }
+  ],
+  "lessons": [
+    {
+      "id": "primeira-fusao",
+      "title": "Sua primeira sequência até Jadespelho",
+      "summary": "Transforme Fusão do Marcado e um descarte em uma presença no campo.",
+      "minutes": 5,
+      "sourceIds": [
+        "branded-fusion",
+        "lubellion",
+        "mirrorjade"
+      ],
+      "preparation": [
+        "Sua Fase Principal, campo vazio e sem interrupções.",
+        "Arbaz e Mercourier estão no Deck; Lubellion e Jadespelho estão no Extra.",
+        "Guarde Despertar o Dragão para o descarte deste exemplo."
+      ],
+      "startingHand": [
+        44362883,
+        10813327,
+        97268402,
+        24224830,
+        59919307
+      ],
+      "steps": [
+        {
+          "title": "Comece pela magia",
+          "action": "Ative Fusão do Marcado e escolha Lubellion como a Fusão a invocar.",
+          "why": "A primeira escolha define quais materiais usar.",
+          "cardCodes": [
+            44362883,
+            70534340
+          ]
+        },
+        {
+          "title": "Separe os materiais",
+          "action": "Selecione Caído de Arbaz e Mercourier da Tri-Brigada no Deck.",
+          "why": "Eles atendem ao material nomeado e ao requisito de um monstro de TREVAS.",
+          "cardCodes": [
+            68468459,
+            19096726
+          ]
+        },
+        {
+          "title": "Pague pela continuação",
+          "action": "Aceite o efeito de Lubellion e descarte Despertar o Dragão.",
+          "why": "Esse descarte é um custo necessário para seguir por esta rota.",
+          "cardCodes": [
+            70534340,
+            10813327
+          ]
+        },
+        {
+          "title": "Chegue a Jadespelho",
+          "action": "Escolha Jadespelho; use Arbaz do Cemitério e Lubellion do campo como materiais.",
+          "why": "A própria Fusão recém-invocada atende ao segundo material de Jadespelho. Os materiais retornam ao Deck ou Extra correspondente.",
+          "cardCodes": [
+            44146295,
+            68468459,
+            70534340
+          ]
+        }
+      ],
+      "outcome": "Jadespelho no campo, com sua Invocação-Normal preservada.",
+      "cautions": [
+        "Reserve o descarte antes de começar.",
+        "Mercourier foi usado como material e não está na mão para proteger sua mesa."
+      ],
+      "practice": {
+        "goal": [
+          {
+            "kind": "card",
+            "zone": "monsters",
+            "code": 44146295
+          },
+          {
+            "kind": "card",
+            "zone": "grave",
+            "code": 10813327
+          },
+          {
+            "kind": "card",
+            "zone": "extra",
+            "code": 70534340
+          },
+          {
+            "kind": "card",
+            "zone": "grave",
+            "code": 44362883
+          },
+          {
+            "kind": "card",
+            "zone": "hand",
+            "code": 97268402
+          }
+        ],
+        "stages": [
+          {
+            "title": "Ative a Fusão do Marcado",
+            "instruction": "Clique na Fusão do Marcado da sua mão e escolha Ativar. Quando o jogo pedir a primeira Fusão, selecione Lubellion.",
+            "why": "A magia usa materiais do seu Deck e preserva sua Invocação-Normal.",
+            "completeWhen": [
+              {
+                "kind": "offered",
+                "code": 70534340,
+                "location": 64
+              }
+            ],
+            "targets": [
+              {
+                "code": 44362883,
+                "location": 2
+              }
+            ]
+          },
+          {
+            "title": "Invoque Lubellion",
+            "instruction": "Escolha Lubellion no Extra. Como materiais, selecione Caído de Arbaz e Mercourier da Tri-Brigada no Deck. Confirme as escolhas e a zona de invocação.",
+            "why": "Arbaz é o material nomeado e Mercourier atende ao requisito de TREVAS.",
+            "completeWhen": [
+              {
+                "kind": "card",
+                "zone": "monsters",
+                "code": 70534340
+              }
+            ],
+            "targets": [
+              {
+                "code": 70534340,
+                "location": 64
+              },
+              {
+                "code": 68468459,
+                "location": 1
+              },
+              {
+                "code": 19096726,
+                "location": 1
+              }
+            ]
+          },
+          {
+            "title": "Pague o descarte",
+            "instruction": "Aceite o efeito de Lubellion. Selecione Despertar o Dragão na mão para descartar e confirme.",
+            "why": "A próxima Fusão depende desse custo. Preserve as outras cartas da mão.",
+            "completeWhen": [
+              {
+                "kind": "card",
+                "zone": "grave",
+                "code": 10813327
+              }
+            ],
+            "targets": [
+              {
+                "code": 70534340,
+                "location": 4
+              },
+              {
+                "code": 10813327,
+                "location": 2
+              }
+            ]
+          },
+          {
+            "title": "Faça a segunda Fusão",
+            "instruction": "Selecione Jadespelho no Extra. Use Caído de Arbaz do Cemitério e Lubellion do campo como materiais; confirme e escolha uma zona.",
+            "why": "Os dois materiais voltam para os decks correspondentes, completando a sequência.",
+            "completeWhen": [
+              {
+                "kind": "card",
+                "zone": "monsters",
+                "code": 44146295
+              },
+              {
+                "kind": "card",
+                "zone": "extra",
+                "code": 70534340
+              }
+            ],
+            "targets": [
+              {
+                "code": 44146295,
+                "location": 64
+              },
+              {
+                "code": 68468459,
+                "location": 16
+              },
+              {
+                "code": 70534340,
+                "location": 4
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "rota-albion",
+      "title": "Uma alternativa sem o descarte",
+      "summary": "Use Albion como ponte e entenda o destino dos seus materiais.",
+      "minutes": 5,
+      "sourceIds": [
+        "branded-fusion",
+        "albion",
+        "mirrorjade"
+      ],
+      "preparation": [
+        "Mesma situação: sua Fase Principal, campo vazio e sem interrupções.",
+        "Arbaz e Ocultador de Efeitos estão no Deck; Albion e Jadespelho estão no Extra."
+      ],
+      "startingHand": [
+        44362883,
+        10813327,
+        19096726,
+        24224830,
+        59919307
+      ],
+      "steps": [
+        {
+          "title": "Escolha a ponte de LUZ",
+          "action": "Ative Fusão do Marcado para invocar Albion, o Dragão Marcado.",
+          "why": "Desta vez, sua primeira Fusão pede um monstro de LUZ junto de Arbaz.",
+          "cardCodes": [
+            44362883,
+            87746184
+          ]
+        },
+        {
+          "title": "Use materiais do Deck",
+          "action": "Escolha Arbaz e Ocultador de Efeitos do Deck.",
+          "why": "Você preserva a mão, mas usa uma carta que poderia servir de interação em outro momento.",
+          "cardCodes": [
+            68468459,
+            97268402
+          ]
+        },
+        {
+          "title": "Continue com Albion",
+          "action": "Aceite o efeito de Albion e escolha Jadespelho.",
+          "why": "Essa continuação não exige o descarte da rota anterior.",
+          "cardCodes": [
+            87746184,
+            44146295
+          ]
+        },
+        {
+          "title": "Banir também gasta recursos",
+          "action": "Use Arbaz do Cemitério e o próprio Albion do campo como materiais, banindo ambos.",
+          "why": "Albion está no campo e pode ser usado como a Fusão exigida por Jadespelho.",
+          "cardCodes": [
+            68468459,
+            87746184,
+            44146295
+          ]
+        }
+      ],
+      "outcome": "Jadespelho no campo; Mercourier continua na mão. Albion e Arbaz estão banidos.",
+      "cautions": [
+        "Nesta rota, Albion não termina no Cemitério: não haverá sua busca na Fase Final.",
+        "A rota economiza um descarte, mas muda os recursos disponíveis depois."
+      ],
+      "practice": {
+        "goal": [
+          {
+            "kind": "card",
+            "zone": "monsters",
+            "code": 44146295
+          },
+          {
+            "kind": "card",
+            "zone": "banished",
+            "code": 87746184
+          },
+          {
+            "kind": "card",
+            "zone": "banished",
+            "code": 68468459
+          },
+          {
+            "kind": "card",
+            "zone": "hand",
+            "code": 19096726
+          }
+        ],
+        "stages": [
+          {
+            "title": "Comece pela magia",
+            "instruction": "Ative a Fusão do Marcado da sua mão. A primeira Fusão desta vez será Albion, o Dragão Marcado.",
+            "why": "Esta rota usa um material de LUZ e preserva as cartas da mão.",
+            "completeWhen": [
+              {
+                "kind": "offered",
+                "code": 87746184,
+                "location": 64
+              }
+            ],
+            "targets": [
+              {
+                "code": 44362883,
+                "location": 2
+              }
+            ]
+          },
+          {
+            "title": "Invoque Albion",
+            "instruction": "Escolha Albion no Extra. Use Caído de Arbaz e Ocultador de Efeitos do Deck como materiais; confirme e escolha a zona.",
+            "why": "Arbaz e um monstro de LUZ atendem aos materiais de Albion.",
+            "completeWhen": [
+              {
+                "kind": "card",
+                "zone": "monsters",
+                "code": 87746184
+              }
+            ],
+            "targets": [
+              {
+                "code": 87746184,
+                "location": 64
+              },
+              {
+                "code": 68468459,
+                "location": 1
+              },
+              {
+                "code": 97268402,
+                "location": 1
+              }
+            ]
+          },
+          {
+            "title": "Continue o efeito",
+            "instruction": "Aceite o efeito de Albion para realizar outra Invocação-Fusão.",
+            "why": "Você seguirá sem o descarte exigido pela rota de Lubellion.",
+            "completeWhen": [
+              {
+                "kind": "offered",
+                "code": 44146295,
+                "location": 64
+              }
+            ],
+            "targets": [
+              {
+                "code": 87746184,
+                "location": 4
+              }
+            ]
+          },
+          {
+            "title": "Banir para fundir",
+            "instruction": "Escolha Jadespelho. Use Arbaz do Cemitério e o próprio Albion do campo como materiais; confirme e escolha a zona.",
+            "why": "Ambos são banidos. Mercourier permanece na mão para uma futura interação.",
+            "completeWhen": [
+              {
+                "kind": "card",
+                "zone": "monsters",
+                "code": 44146295
+              },
+              {
+                "kind": "card",
+                "zone": "banished",
+                "code": 87746184
+              },
+              {
+                "kind": "card",
+                "zone": "banished",
+                "code": 68468459
+              }
+            ],
+            "targets": [
+              {
+                "code": 44146295,
+                "location": 64
+              },
+              {
+                "code": 68468459,
+                "location": 16
+              },
+              {
+                "code": 87746184,
+                "location": 4
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "encontrar-inicio",
+      "title": "Quando a magia não vem na mão",
+      "summary": "Comece com Kitt e planeje a carta que volta para o Deck.",
+      "minutes": 5,
+      "sourceIds": [
+        "kitt",
+        "branded-fusion",
+        "lubellion",
+        "mirrorjade"
+      ],
+      "preparation": [
+        "Sua Fase Principal, sem interrupções e com a Invocação-Normal disponível.",
+        "Fusão do Marcado está no Deck. Preserve duas cartas: uma para devolver com Kitt e outra para descartar com Lubellion."
+      ],
+      "startingHand": [
+        45484331,
+        10813327,
+        97268402,
+        24224830,
+        59919307
+      ],
+      "steps": [
+        {
+          "title": "Invoque Kitt",
+          "action": "Faça a Invocação-Normal de Springans Kitt e aceite seu efeito.",
+          "why": "Ela oferece acesso à magia que não veio na mão inicial.",
+          "cardCodes": [
+            45484331
+          ]
+        },
+        {
+          "title": "Busque e devolva",
+          "action": "Adicione Fusão do Marcado à mão; depois devolva De Trás à Frente ao fundo do Deck.",
+          "why": "A carta que volta é escolhida da mão após a busca. Preserve a magia recém-obtida.",
+          "cardCodes": [
+            44362883,
+            59919307
+          ]
+        },
+        {
+          "title": "Retome a primeira sequência",
+          "action": "Ative a magia: invoque Lubellion com Arbaz e Mercourier do Deck, descarte Despertar o Dragão e faça Jadespelho com Lubellion e Arbaz.",
+          "why": "Kitt muda a forma de começar; o restante da primeira lição continua válido.",
+          "cardCodes": [
+            44362883,
+            68468459,
+            19096726,
+            70534340,
+            10813327,
+            44146295
+          ]
+        }
+      ],
+      "outcome": "Kitt e Jadespelho no campo. Sua Invocação-Normal já foi usada.",
+      "cautions": [
+        "Kitt devolve uma carta ao fundo; considere esse custo ao avaliar sua mão.",
+        "Os exemplos pressupõem que o adversário não interrompe a sequência."
+      ],
+      "practice": {
+        "goal": [
+          {
+            "kind": "card",
+            "zone": "monsters",
+            "code": 45484331
+          },
+          {
+            "kind": "card",
+            "zone": "monsters",
+            "code": 44146295
+          },
+          {
+            "kind": "card",
+            "zone": "grave",
+            "code": 10813327
+          },
+          {
+            "kind": "card",
+            "zone": "extra",
+            "code": 70534340
+          },
+          {
+            "kind": "card",
+            "zone": "hand",
+            "code": 59919307,
+            "absent": true
+          }
+        ],
+        "stages": [
+          {
+            "title": "Invoque Springans Kitt",
+            "instruction": "Clique em Kitt na mão, escolha Invocar e uma zona de monstro. Aceite o efeito de busca quando ele aparecer.",
+            "why": "Você usa sua Invocação-Normal para encontrar o começo da sequência.",
+            "completeWhen": [
+              {
+                "kind": "card",
+                "zone": "monsters",
+                "code": 45484331
+              }
+            ],
+            "targets": [
+              {
+                "code": 45484331,
+                "location": 2
+              }
+            ]
+          },
+          {
+            "title": "Busque e devolva",
+            "instruction": "Escolha Fusão do Marcado no Deck. Depois coloque De Trás à Frente, da sua mão, no fundo do Deck. Confirme as duas escolhas.",
+            "why": "Preserve a magia e Despertar o Dragão para a continuação.",
+            "completeWhen": [
+              {
+                "kind": "card",
+                "zone": "hand",
+                "code": 44362883
+              },
+              {
+                "kind": "card",
+                "zone": "hand",
+                "code": 59919307,
+                "absent": true
+              }
+            ],
+            "targets": [
+              {
+                "code": 45484331,
+                "location": 4
+              },
+              {
+                "code": 44362883,
+                "location": 1
+              },
+              {
+                "code": 59919307,
+                "location": 2
+              }
+            ]
+          },
+          {
+            "title": "Ative a Fusão do Marcado",
+            "instruction": "Clique na Fusão do Marcado da sua mão e escolha Ativar. Quando o jogo pedir a primeira Fusão, selecione Lubellion.",
+            "why": "A magia usa materiais do seu Deck e preserva sua Invocação-Normal.",
+            "completeWhen": [
+              {
+                "kind": "offered",
+                "code": 70534340,
+                "location": 64
+              }
+            ],
+            "targets": [
+              {
+                "code": 44362883,
+                "location": 2
+              }
+            ]
+          },
+          {
+            "title": "Invoque Lubellion",
+            "instruction": "Escolha Lubellion no Extra. Como materiais, selecione Caído de Arbaz e Mercourier da Tri-Brigada no Deck. Confirme as escolhas e a zona de invocação.",
+            "why": "Arbaz é o material nomeado e Mercourier atende ao requisito de TREVAS.",
+            "completeWhen": [
+              {
+                "kind": "card",
+                "zone": "monsters",
+                "code": 70534340
+              }
+            ],
+            "targets": [
+              {
+                "code": 70534340,
+                "location": 64
+              },
+              {
+                "code": 68468459,
+                "location": 1
+              },
+              {
+                "code": 19096726,
+                "location": 1
+              }
+            ]
+          },
+          {
+            "title": "Pague o descarte",
+            "instruction": "Aceite o efeito de Lubellion. Selecione Despertar o Dragão na mão para descartar e confirme.",
+            "why": "A próxima Fusão depende desse custo. Preserve as outras cartas da mão.",
+            "completeWhen": [
+              {
+                "kind": "card",
+                "zone": "grave",
+                "code": 10813327
+              }
+            ],
+            "targets": [
+              {
+                "code": 70534340,
+                "location": 4
+              },
+              {
+                "code": 10813327,
+                "location": 2
+              }
+            ]
+          },
+          {
+            "title": "Faça a segunda Fusão",
+            "instruction": "Selecione Jadespelho no Extra. Use Caído de Arbaz do Cemitério e Lubellion do campo como materiais; confirme e escolha uma zona.",
+            "why": "Os dois materiais voltam para os decks correspondentes, completando a sequência.",
+            "completeWhen": [
+              {
+                "kind": "card",
+                "zone": "monsters",
+                "code": 44146295
+              },
+              {
+                "kind": "card",
+                "zone": "extra",
+                "code": 70534340
+              }
+            ],
+            "targets": [
+              {
+                "code": 44146295,
+                "location": 64
+              },
+              {
+                "code": 68468459,
+                "location": 16
+              },
+              {
+                "code": 70534340,
+                "location": 4
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ],
+  "sources": [
+    {
+      "id": "product",
+      "title": "Konami · Apresentação do Albaz Strike",
+      "url": "https://www.yugioh-card.com/en/products/sdaz/"
+    },
+    {
+      "id": "set-list",
+      "title": "Konami · Cartas e efeitos do produto SDAZ",
+      "url": "https://www.db.yugioh-card.com/yugiohdb/card_search.action?ope=1&pid=2000001156000&request_locale=en&rp=99999"
+    },
+    {
+      "id": "branded-fusion",
+      "title": "Konami · Branded Fusion",
+      "url": "https://www.db.yugioh-card.com/yugiohdb/card_search.action?cid=17066&ope=2&request_locale=en"
+    },
+    {
+      "id": "lubellion",
+      "title": "Konami · Lubellion the Searing Dragon",
+      "url": "https://www.db.yugioh-card.com/yugiohdb/card_search.action?cid=17070&ope=2&request_locale=en"
+    },
+    {
+      "id": "mirrorjade",
+      "title": "Konami · Mirrorjade the Iceblade Dragon",
+      "url": "https://www.db.yugioh-card.com/yugiohdb/card_search.action?cid=17069&ope=2&request_locale=en"
+    },
+    {
+      "id": "albion",
+      "title": "Konami · Albion the Branded Dragon",
+      "url": "https://www.db.yugioh-card.com/yugiohdb/card_search.action?cid=15994&ope=2&request_locale=en"
+    },
+    {
+      "id": "kitt",
+      "title": "Konami · Springans Kitt",
+      "url": "https://www.db.yugioh-card.com/yugiohdb/card_search.action?cid=17063&ope=2&request_locale=en"
+    },
+    {
+      "id": "mercourier",
+      "title": "Konami · Tri-Brigade Mercourier",
+      "url": "https://www.db.yugioh-card.com/yugiohdb/card_search.action?cid=17062&ope=2&request_locale=en"
+    }
+  ]
+}

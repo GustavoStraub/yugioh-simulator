@@ -1,3 +1,4 @@
+import { engineRecoveryValue } from "@/lib/duel/bot/engine-tactics";
 import {
   OcgLocation,
   OcgMessageType,
@@ -25,6 +26,7 @@ import {
 import { isDeclarable } from "@/lib/duel/announce-filter";
 import type { BoardCard, BoardPlayer, BoardState } from "@/lib/duel/board-state";
 import { botAutoResponse } from "@/lib/duel/bot-responder";
+import { autoResponseFor } from "@/lib/duel/auto-response";
 import {
   counterCostOf,
   FOG_TRAPS,
@@ -43,19 +45,21 @@ import { isValidSum, sumRequestOf } from "@/lib/duel/sum-selection";
 import type { DuelDeckPayload, DuelFormat } from "@/lib/types";
 import type { GuideDecision } from "@/lib/domain/deck-guide";
 import { BOT_POLICIES, botDifficulty, botRandom, type BotDifficulty } from "@/lib/duel/bot/difficulty";
-import { matchesBotProfile, validateBotProfile, type BotDeckProfile } from "@/lib/duel/bot/deck-profile";
+import { compatibleBotProfile, matchesBotProfile, validateBotProfile, type BotDeckProfile } from "@/lib/duel/bot/deck-profile";
 import { BotPlanner } from "@/lib/duel/bot/planner";
 import { guideHintsForDeck } from "@/lib/duel/bot/guide-hints";
 import type { BotGuideHints } from "@/lib/duel/bot/guide-hints";
-import { decisionEffectTarget, decisionMoves, sequenceFollowUp, type DecisionMove } from "@/lib/duel/bot/decision-policy";
+import { decisionEffectTarget, decisionHolds, decisionMoves, sequenceFollowUp, type DecisionMove } from "@/lib/duel/bot/decision-policy";
 import { profileResponse, mirrorjadeScore } from "@/lib/duel/bot/effect-handlers";
-import { resourceValue } from "@/lib/duel/bot/evaluator";
+import { actionValue, evaluateRoute, resourceValue } from "@/lib/duel/bot/evaluator";
+import { effectModel, interruptionValue } from "@/lib/duel/bot/effect-model";
 import { planBattle } from "@/lib/duel/bot/battle-planner";
 import { validBotResponse } from "@/lib/duel/bot/response-validator";
 import { decodeFieldMask } from "@/lib/duel/field-places";
 import { linkedZones, pointedZones } from "@/lib/duel/link-geometry";
-import { newBotDiagnostics, type BotDecisionTrace } from "@/lib/duel/bot/decision-trace";
+import { newBotDiagnostics, type BotActionIdentity, type BotCandidateTrace, type BotDecisionSource, type BotDecisionTrace } from "@/lib/duel/bot/decision-trace";
 import type { BotEffect, BotFact } from "@/lib/duel/bot/knowledge";
+import { effectValue, effectTargetValue } from "@/lib/duel/bot/effect-value";
 
 /**
  * Tudo que o bot pode consultar para decidir uma jogada.
@@ -67,6 +71,9 @@ import type { BotEffect, BotFact } from "@/lib/duel/bot/knowledge";
  * pilhas — só a Main Phase precisa saber o que há no cemitério.
  */
 export interface BotContext {
+  strategy?: "stable" | "experimental";
+  /** Inclui a extração e máscara da observação no orçamento total. */
+  decisionStartedAt?: number;
   prompt: OcgMessage;
   me: 0 | 1;
   readBoard: (full: boolean) => BoardState;
@@ -87,6 +94,9 @@ export interface BotContext {
    * única decisão segura era guardá-la para sempre.
    */
   chainCode?: number | null;
+  chainEffect?: BotEffect | null;
+  attacksDeclared?: Readonly<Record<string, number>>;
+  turnResources?: { normalUsed: boolean; effectsUsed: readonly string[]; restrictions: readonly string[] };
   /**
    * Monstro sendo Invocado agora — entre o SUMMONING (ou SPSUMMONING,
    * FLIPSUMMONING) e o fim da janela "quando um monstro seria Invocado", a
@@ -97,16 +107,25 @@ export interface BotContext {
   format?: DuelFormat;
   resolvingEffect?: BotEffect | null;
   chainOpen?: boolean;
-  failedEffect?: { code: number; player: number; revision: number } | null;
+  failedEffect?: { code: number; player: number; description?: bigint; revision: number } | null;
   retryCount?: number;
   observedFacts?: readonly BotFact[];
   chainTargets?: NonNullable<BotEffect["targets"]>;
 }
 
 export interface BotConfig {
+  execution?: "auto" | "inline" | "worker";
+  partialProfiles?: boolean;
   difficulty?: BotDifficulty;
   /** Desliga a projeção de duas ações apenas em avaliações A/B. */
   sequencePlanning?: boolean;
+  /** Comparação conjunta em calibração; só promover após a bateria de força. */
+  candidateComparison?: boolean;
+  /** Isola os modelos de efeito/combate da comparação de candidatos em A/B. */
+  tacticalModel?: boolean;
+  stateEvaluation?: boolean;
+  opponentMemory?: boolean;
+  recoveryPlanning?: boolean;
   /** Lista própria, sem ordem de compra. Nunca a lista adversária. */
   deck?: DuelDeckPayload;
   format?: DuelFormat;
@@ -181,10 +200,14 @@ interface Plan {
   setsBackrow?: boolean;
   decision?: DecisionMove;
   continuation?: GuideDecision;
+  hold?: GuideDecision;
+  source?: BotDecisionSource;
+  components?: Record<string, number>;
+  reason?: string;
 }
 
-function chave(card: OcgCardLoc): string {
-  return `${card.code}:${card.controller}:${card.location}:${card.sequence}`;
+function chave(card: OcgCardLoc, effect = false): string {
+  return `${card.code}:${card.controller}:${card.location}:${card.sequence}${effect ? `:${"description" in card ? String(card.description) : ""}` : ""}`;
 }
 
 function responseKey(response: OcgResponse): string {
@@ -223,6 +246,11 @@ export class BotBrain {
   readonly planner: BotPlanner;
   private readonly decisionGuide: BotGuideHints | null;
   private readonly sequencePlanning: boolean;
+  private readonly candidateComparison: boolean;
+  private readonly tacticalModel: boolean;
+  private readonly stateEvaluation: boolean;
+  private readonly opponentMemory: boolean;
+  private readonly recoveryPlanning: boolean;
   private readonly deck: DuelDeckPayload | null;
   lastTrace: BotDecisionTrace | null = null;
   private readonly random: () => number;
@@ -235,14 +263,21 @@ export class BotBrain {
   constructor(config: BotConfig = {}) {
     this.difficulty = botDifficulty(config.difficulty);
     this.random = botRandom(config.seed);
-    const profile = config.profile && config.deck && validateBotProfile(config.profile)
+    const profile = config.partialProfiles && config.profile && config.deck
+      ? compatibleBotProfile(config.profile,config.deck,config.format??config.deck.format??"goat")
+      : config.profile && config.deck && validateBotProfile(config.profile)
       && matchesBotProfile(config.profile, config.deck, config.format ?? config.deck.format ?? "goat") ? config.profile : null;
     const guide = this.difficulty === "hard" && config.deck
       ? guideHintsForDeck(config.deck, config.format ?? config.deck.format ?? "goat") : null;
     this.decisionGuide = guide;
     this.sequencePlanning = config.sequencePlanning ?? true;
+    this.candidateComparison = config.candidateComparison ?? config.stateEvaluation ?? false;
+    this.tacticalModel = config.tacticalModel ?? this.candidateComparison;
+    this.stateEvaluation = config.stateEvaluation ?? this.candidateComparison;
+    this.opponentMemory = config.opponentMemory ?? true;
+    this.recoveryPlanning = config.recoveryPlanning ?? true;
     this.deck = config.deck ?? null;
-    this.planner = new BotPlanner(profile, this.deck, profile ? null : guide);
+    this.planner = new BotPlanner(profile, this.deck, profile ? null : guide, this.recoveryPlanning);
     this.onDecision = config.onDecision;
   }
   /** Turno a que o estado abaixo se refere — muda, zera tudo. */
@@ -262,6 +297,10 @@ export class BotBrain {
   private plannedSummonCode: number | null = null;
   private pendingDecisionTarget: number | null = null;
   private usedGuideDecision: string | null = null;
+  private candidates: BotCandidateTrace[] = [];
+  private decisionSource: BotDecisionSource = "heuristic";
+  private replacement: BotDecisionTrace["replacement"] = null;
+  private chosenCandidateId: string | null = null;
 
   /**
    * Decide a resposta a um prompt.
@@ -274,14 +313,25 @@ export class BotBrain {
   decide(ctx: BotContext): OcgResponse {
     const read = ctx.readBoard;
     let observedBoard: BoardState | null = null;
-    ctx = { ...ctx, readBoard: (full) => { observedBoard = read(full); return observedBoard; } };
-    const started = performance.now();
+    let fullBoard: BoardState | null = null;
+    let partialBoard: BoardState | null = null;
+    ctx = { ...ctx, strategy: this.tacticalModel ? "experimental" : "stable", observedFacts: this.opponentMemory ? ctx.observedFacts : [],
+      readBoard: (full) => {
+        observedBoard = full ? (fullBoard ??= read(true)) : (fullBoard ?? (partialBoard ??= read(false)));
+        return observedBoard;
+      } };
+    const started = ctx.decisionStartedAt ?? performance.now();
     this.usedGuideDecision = null;
+    this.candidates = [];
+    this.chosenCandidateId = null;
+    this.replacement = null;
+    this.decisionSource = "heuristic";
     const policy = BOT_POLICIES[this.difficulty];
     // A busca usa o orçamento da dificuldade; 40 ms é o teto atual na thread
     // da mesa. O corte fixo anterior de 12 ms anulava a diferença entre níveis.
     this.deadline = started + policy.cpuMs;
     let fallback: string | null = null;
+    const replansBefore = this.planner.replans;
     if (ctx.turnCount !== this.turn) {
       this.turn = ctx.turnCount;
       this.idleSteps = 0;
@@ -300,18 +350,39 @@ export class BotBrain {
     } else this.rejected.clear();
     let response: OcgResponse | null = null;
     try {
-      this.observeProgress(ctx);
-      this.planner.observe(ctx, policy, this.deadline);
-      response = profileResponse(ctx, this.planner, policy) ?? this.think(ctx);
-      if (!response) fallback = "Efeito sem modelo específico; reserva genérica";
+      response = autoResponseFor(ctx.prompt, { resolvingCode: ctx.resolvingEffect?.code });
+      if (response) this.decisionSource = "automatic";
+      else {
+        this.observeProgress(ctx);
+        this.planner.observe(ctx, policy, this.deadline);
+        response = ctx.prompt.type === OcgMessageType.SELECT_IDLECMD && this.candidateComparison ? null : profileResponse(ctx, this.planner, policy);
+        if (response) this.decisionSource = "route";
+        else response = this.think(ctx);
+      }
+      if (!response) { fallback = "Efeito sem modelo específico; reserva genérica"; this.decisionSource = "fallback-unmodeled"; }
       else if (!validBotResponse(ctx.prompt, response, ctx.cardDb)) {
+        this.replacement = { reason: "Resposta reprovada no contrato do prompt", preferred: response };
         response = null;
         fallback = "Resposta reprovada no contrato do prompt";
+        this.decisionSource = "rejected-recovery";
       }
     } catch (error) {
+      response = null;
       fallback = `Falha na análise: ${error instanceof Error ? error.message : "erro desconhecido"}`;
+      this.decisionSource = "fallback-error";
     }
     response = this.safeResponse(ctx, response);
+    if (ctx.retryCount) this.decisionSource = "rejected-recovery";
+    if (this.usedGuideDecision && this.decisionSource === "heuristic") this.decisionSource = "guide";
+    if (!fallback && this.decisionSource === "fallback-unmodeled") fallback = "Escolha sem modelo específico; respondedor genérico ou ordem obrigatória";
+    const finalKey = responseKey(response);
+    let selected = this.candidates.find(candidate => candidate.id === this.chosenCandidateId && responseKey(candidate.response) === finalKey)
+      ?? this.candidates.find(candidate => responseKey(candidate.response) === finalKey);
+    if (!selected || selected.source !== this.decisionSource) {
+      selected = this.candidate(ctx, response, 0, this.decisionSource,
+        fallback ?? (this.decisionSource === "route" ? this.planner.reason : "Escolha local do prompt"));
+      this.candidates.push(selected);
+    }
     if (ctx.prompt.type === OcgMessageType.SELECT_IDLECMD && response.type === OcgResponseType.SELECT_IDLECMD) {
       const cards = response.action === SelectIdleCMDAction.SELECT_SPECIAL_SUMMON ? ctx.prompt.special_summons
         : response.action === SelectIdleCMDAction.SELECT_SUMMON ? ctx.prompt.summons : null;
@@ -323,16 +394,24 @@ export class BotBrain {
       difficulty: this.difficulty, profile: this.planner.profile?.id ?? null, revision: this.planner.profile?.revision ?? null,
       turn: ctx.turnCount, prompt: ctx.prompt.type, objective: this.planner.route?.objective ?? "Combate, sobrevivência e recursos disponíveis",
       route: this.planner.route?.id ?? null, alternatives: [...this.planner.alternatives], response,
+      source: this.decisionSource, candidates: this.candidates, selected: selected.id, replacement: this.replacement,
+      capabilities: { candidateComparison: this.candidateComparison, stateEvaluation: this.stateEvaluation,
+        sequencePlanning: this.sequencePlanning, opponentMemory: this.opponentMemory, recoveryPlanning: this.recoveryPlanning },
       guideDecision: this.usedGuideDecision,
-      reason: this.planner.reason, fallback, elapsedMs, budgetExhausted: performance.now() >= this.deadline,
-      observation: { me: ctx.me, prompt: ctx.prompt, board: observedBoard, lifePoints: ctx.lifePoints, phase: ctx.phase,
+      reason: (this.decisionSource === "guide" && this.usedGuideDecision ? this.planner.reason : selected.reason)
+        + (this.planner.replans > replansBefore ? `; ${this.planner.reason}` : ""),
+      fallback: fallback ?? this.replacement?.reason ?? null, elapsedMs, budgetExhausted: performance.now() >= this.deadline,
+      planning:{goal:this.planner.goal?.objective??null,transition:this.planner.step?.id??null,
+        branches:this.planner.step?this.planner.transitions.get(this.planner.step.id)?.next??[]:[],predictions:this.planner.predictionChecks.slice(-8)},
+      observation: { me: ctx.me, prompt: ctx.prompt, board: observedBoard, lifePoints: [...ctx.lifePoints], phase: ctx.phase,
         chainCode: ctx.chainCode ?? null, resolvingCode: ctx.resolvingEffect?.code ?? null,
         resolvingPlayer: ctx.resolvingEffect?.player ?? null,
         resolvingDescription: ctx.resolvingEffect?.description?.toString() ?? null, step: this.planner.step?.id ?? null },
     };
     this.lastTrace = trace;
     this.diagnostics.decisions += 1;
-    this.diagnostics.fallbacks += fallback ? 1 : 0;
+    this.diagnostics.sources[trace.source] += 1;
+    this.diagnostics.fallbacks += trace.source.startsWith("fallback") || trace.source === "rejected-recovery" ? 1 : 0;
     this.diagnostics.replans = this.planner.replans;
     this.diagnostics.budgetExhaustions += trace.budgetExhausted ? 1 : 0;
     this.diagnostics.timings.push(elapsedMs);
@@ -384,8 +463,58 @@ export class BotBrain {
       p.options.forEach((_, index) => candidates.push({ type: OcgResponseType.SELECT_OPTION, index }));
     } else if (p.type === OcgMessageType.SELECT_EFFECTYN) candidates.push({ type: OcgResponseType.SELECT_EFFECTYN, yes: false });
     else if (p.type === OcgMessageType.SELECT_YESNO) candidates.push({ type: OcgResponseType.SELECT_YESNO, yes: false });
-    return candidates.find((r) => !this.rejected.has(responseKey(r)) && validBotResponse(p, r, ctx.cardDb))
+    const chosen = candidates.find((r) => !this.rejected.has(responseKey(r)) && validBotResponse(p, r, ctx.cardDb))
       ?? candidates.find((r) => validBotResponse(p, r, ctx.cardDb)) ?? candidates[0];
+    if (!preferred || responseKey(chosen) !== responseKey(preferred)) {
+      this.replacement ??= { preferred, reason: preferred ? "Resposta anterior rejeitada; selecionada alternativa legal" : "Ausência de resposta modelada; respondedor genérico" };
+      if (preferred) {
+        this.decisionSource = "rejected-recovery";
+        this.plannedTarget = null;
+        this.pendingDecisionTarget = null;
+        this.usedGuideDecision = null;
+        this.planner.intents.clear();
+        this.planner.abandon(this.replacement.reason);
+      }
+    }
+    return chosen;
+  }
+
+  private candidate(ctx: BotContext, response: OcgResponse, score: number,
+    source: BotDecisionSource = "heuristic", reason = "Valor local da ação", components: Record<string, number> = { heuristic: score }): BotCandidateTrace {
+    const p = ctx.prompt;
+    let card: OcgCardLoc | undefined;
+    if (p.type === OcgMessageType.SELECT_IDLECMD && response.type === OcgResponseType.SELECT_IDLECMD && response.index !== null) {
+      const lists = { [SelectIdleCMDAction.SELECT_SUMMON]: p.summons, [SelectIdleCMDAction.SELECT_SPECIAL_SUMMON]: p.special_summons,
+        [SelectIdleCMDAction.SELECT_ACTIVATE]: p.activates, [SelectIdleCMDAction.SELECT_MONSTER_SET]: p.monster_sets,
+        [SelectIdleCMDAction.SELECT_SPELL_SET]: p.spell_sets, [SelectIdleCMDAction.SELECT_POS_CHANGE]: p.pos_changes };
+      card = lists[response.action as keyof typeof lists]?.[response.index];
+    } else if (p.type === OcgMessageType.SELECT_CHAIN && response.type === OcgResponseType.SELECT_CHAIN && response.index !== null) card = p.selects[response.index];
+    else if (p.type === OcgMessageType.SELECT_CARD && response.type === OcgResponseType.SELECT_CARD) card = p.selects[response.indicies?.[0] ?? -1];
+    else if (p.type === OcgMessageType.SELECT_UNSELECT_CARD && response.type === OcgResponseType.SELECT_UNSELECT_CARD && response.index!==null) card=p.select_cards[response.index]??p.unselect_cards[response.index-p.select_cards.length];
+    else if (p.type === OcgMessageType.SELECT_SUM && response.type === OcgResponseType.SELECT_SUM) card=p.selects[response.indicies[0]];
+    else if (p.type === OcgMessageType.SELECT_TRIBUTE && response.type === OcgResponseType.SELECT_TRIBUTE) card=p.selects[response.indicies?.[0]??-1];
+    else if (p.type === OcgMessageType.SELECT_EFFECTYN) card = p;
+    else if (p.type === OcgMessageType.SELECT_BATTLECMD && response.type === OcgResponseType.SELECT_BATTLECMD && response.index !== null) {
+      card = response.action === SelectBattleCMDAction.SELECT_BATTLE ? p.attacks[response.index] : p.chains[response.index];
+    }
+    const identity: BotActionIdentity | null = card ? { code: card.code, controller: card.controller,
+      location: card.location, sequence: card.sequence, description: "description" in card ? String(card.description) : null } : null;
+    const resources = response.type === OcgResponseType.SELECT_IDLECMD && response.action === SelectIdleCMDAction.SELECT_SUMMON ? ["normal-summon"] : [];
+    if (p.type === OcgMessageType.SELECT_CARD && response.type === OcgResponseType.SELECT_CARD) {
+      for (const index of response.indicies ?? []) {
+        const chosen = p.selects[index];
+        if (chosen?.controller === ctx.me && chosen.location === OcgLocation.HAND) resources.push(`selected-hand:${chave(chosen)}`);
+      }
+    }
+    const targetCards=(p.type===OcgMessageType.SELECT_CARD&&response.type===OcgResponseType.SELECT_CARD
+      ||p.type===OcgMessageType.SELECT_SUM&&response.type===OcgResponseType.SELECT_SUM
+      ||p.type===OcgMessageType.SELECT_TRIBUTE&&response.type===OcgResponseType.SELECT_TRIBUTE)
+      ?(response.indicies??[]).map(index=>p.selects[index]).filter(Boolean):[];
+    const targets=targetCards.map(target=>({code:target.code,controller:target.controller,location:target.location,sequence:target.sequence,
+      description:"description" in target?String(target.description):null}));
+    return { id: `${source}:${responseKey(response)}`, source, response, score, components, reason, identity,targets,
+      resources, expected: source === "route" ? this.planner.route?.objective ?? "Confirmar o resultado no campo" : reason,
+      confidence: source === "automatic" ? "modeled" : source.startsWith("fallback") ? "unknown" : "heuristic" };
   }
 
   /** @returns `null` quando não há heurística e o fallback deve responder. */
@@ -399,6 +528,13 @@ export class BotBrain {
       case OcgMessageType.SELECT_CHAIN:
         return this.chain(prompt, ctx);
       case OcgMessageType.SELECT_EFFECTYN:
+        if (prompt.controller === ctx.me) {
+          const value = effectValue(prompt, ctx);
+          if (value !== null) {
+            if (value > 0) this.noteActivation(prompt);
+            return { type: OcgResponseType.SELECT_EFFECTYN, yes: value > 0 };
+          }
+        }
         if (this.decisionGuide?.id === "tcg-lehd-destiny-hero" && prompt.code === 91691605
           && prompt.controller === ctx.me) {
           const hand = ctx.readBoard(true).players[ctx.me].hand;
@@ -506,7 +642,7 @@ export class BotBrain {
 
     const board = ctx.readBoard(true);
     const [mine, foe] = lados(board, ctx.me);
-    const plans: Plan[] = [];
+    let plans: Plan[] = [];
 
     message.activates.forEach((card, index) => {
       // `to_bp` só existe na Main Phase 1: é o "ainda dá para atacar".
@@ -584,18 +720,44 @@ export class BotBrain {
     }
 
     // Os cenários do Aprender só influenciam ações oferecidas pelo motor.
-    // O perfil executável ainda tem prioridade (profileResponse roda antes).
+    // Rotas, guias e ações genéricas participam da mesma comparação.
     if (this.decisionGuide && this.deck) {
+      for (const hold of decisionHolds(this.decisionGuide.decisions, board, ctx.me, this.deck)) {
+        const action = hold.choices[hold.correctChoice].action;
+        if (!action || action.kind !== "hold") continue;
+        for (const plan of plans) {
+          if (plan.response.type !== OcgResponseType.SELECT_IDLECMD) continue;
+          const r = plan.response;
+          const list = r.action === SelectIdleCMDAction.SELECT_ACTIVATE ? message.activates
+            : r.action === SelectIdleCMDAction.SELECT_SUMMON ? message.summons : r.action === SelectIdleCMDAction.SELECT_SPECIAL_SUMMON ? message.special_summons : [];
+          if (r.index !== null && list[r.index]?.code === action.code) {
+            plan.score -= 65;
+            plan.reason = `Guardar recurso: ${hold.title}`;
+          }
+          if (r.action === SelectIdleCMDAction.TO_EP || r.action === SelectIdleCMDAction.TO_BP) {
+            plan.score += 35; plan.source = "guide"; plan.hold = hold; plan.reason = `Guardar recurso: ${hold.title}`;
+          }
+        }
+      }
       for (const move of decisionMoves(this.decisionGuide.decisions, board, ctx.me, this.deck, message)) {
         if (move.action === SelectIdleCMDAction.SELECT_ACTIVATE
-          && (this.activations.get(chave(move.card)) ?? 0) >= SAME_CARD_ACTIVATIONS) continue;
+          && (this.activations.get(chave(move.card, this.tacticalModel)) ?? 0) >= SAME_CARD_ACTIVATIONS) continue;
         const existing = plans.find((plan) => plan.response.type === OcgResponseType.SELECT_IDLECMD
           && plan.response.action === move.action && plan.response.index === move.index);
+        const heldTarget = move.targetCode && mine.hand.some(card => card.code === move.targetCode);
+        const accessGain = move.targetCode && !heldTarget ? 35 : 0;
+        const extensionGain = heldTarget ? 30 : 0;
+        const evidence = 25 + accessGain + extensionGain;
         if (existing) {
-          existing.score = Math.max(existing.score, 125);
+          const gain = this.candidateComparison ? evidence : Math.max(0,125-existing.score);
+          existing.components = this.candidateComparison
+            ? { heuristic: existing.score, guideContext: 25, missingPiece: accessGain, continuation: extensionGain }
+            : { heuristic: existing.score, editorialPrior: gain };
+          existing.score += gain;
           existing.decision = move;
         } else {
-          plans.push({ score: 125, response: idle(move.action, move.index),
+          plans.push({ score: this.candidateComparison ? 70 + evidence : 125, response: idle(move.action, move.index),
+            components: this.candidateComparison ? { contextualAction: 70, guideContext: 25, missingPiece: accessGain, continuation: extensionGain } : { editorialPrior: 125 },
             activated: move.action === SelectIdleCMDAction.SELECT_ACTIVATE ? move.card : undefined,
             decision: move });
         }
@@ -612,19 +774,80 @@ export class BotBrain {
           ? message.summons[plan.response.index] : message.special_summons[plan.response.index];
         const next = sequenceFollowUp(this.decisionGuide.decisions, board, ctx.me, this.deck, action, card);
         if (next) {
-          plan.score = Math.max(plan.score, 121);
+          plan.score = this.candidateComparison ? plan.score + 40 : Math.max(plan.score,121);
           plan.continuation = next;
         }
       }
     }
 
+    if(this.candidateComparison)for(const [cards,action]of [[message.summons,SelectIdleCMDAction.SELECT_SUMMON],[message.activates,SelectIdleCMDAction.SELECT_ACTIVATE]] as const)
+      cards.forEach((card,index)=>{
+        if(engineRecoveryValue(this.decisionGuide?.id,ctx,action,index)&&!plans.some(plan=>plan.response.type===OcgResponseType.SELECT_IDLECMD&&plan.response.action===action&&plan.response.index===index))
+          plans.push({score:70,response:idle(action,index),activated:action===SelectIdleCMDAction.SELECT_ACTIVATE?card:undefined});
+      });
+    if(this.candidateComparison)for(const plan of plans)if(plan.response.type===OcgResponseType.SELECT_IDLECMD&&plan.response.index!==null){
+      const recovery=engineRecoveryValue(this.decisionGuide?.id,ctx,plan.response.action,plan.response.index);
+      if(recovery){plan.components={...(plan.components??{heuristic:plan.score}),engineRecovery:recovery};plan.score+=recovery;plan.reason="Recuperar uma peça observável do motor";}
+    }
+
+    const step = this.planner.step;
+    if (step?.action) {
+      const action = { summons: SelectIdleCMDAction.SELECT_SUMMON, special_summons: SelectIdleCMDAction.SELECT_SPECIAL_SUMMON,
+        activates: SelectIdleCMDAction.SELECT_ACTIVATE }[step.action.kind];
+      const index = message[step.action.kind].findIndex(c => c.code === step.action!.code);
+      if (index >= 0 && this.planner.route) {
+        const rating = evaluateRoute(this.planner.route, ctx, BOT_POLICIES[this.difficulty]);
+        const response = idle(action, index);
+        const existing = plans.find(plan => responseKey(plan.response) === responseKey(response));
+        const routePlan: Plan = { score: rating.score, response, source: "route", reason: rating.reason,
+          components: rating.components };
+        if (existing) Object.assign(existing, routePlan); else plans.push(routePlan);
+      }
+    }
+    if (this.stateEvaluation && this.difficulty !== "easy") for (const plan of plans) {
+      // Um papel de starter não prova que o efeito tenha continuação nesta
+      // mão. Só cobre o custo de oportunidade de uma linha viável agora.
+      const starters = this.planner.starters.filter(code => this.planner.openingReady(code, mine)
+        || plans.some(other => (other.decision || other.continuation || other.source === "route")
+          && other.response.type === OcgResponseType.SELECT_IDLECMD && other.response.action === SelectIdleCMDAction.SELECT_SUMMON
+          && other.response.index !== null && message.summons[other.response.index]?.code === code));
+      const parts = actionValue(ctx, plan.response, starters);
+      // O guia confirma uma função de acesso contextual que a lista de papéis
+      // por código pode não cobrir (ex.: Broca-negra + Decisor).
+      if (plan.decision || plan.continuation) delete parts.normalOpportunity;
+      if (this.planner.route) {
+        // Não confundir o corpo intermediário com o objetivo já alcançado.
+        delete parts.preserve;
+        if (plan.source === "route") delete parts.extensionCost;
+      }
+      plan.components = { ...(plan.components ?? { heuristic: plan.score }), ...parts };
+      plan.score += Object.values(parts).reduce((sum, n) => sum + n, 0);
+    }
+
+    // Guias e rotas também precisam justificar o gasto. Um bônus editorial
+    // não pode recriar uma ativação que só destruiria nossos recursos.
+    plans = plans.filter(plan => {
+      const r = plan.response;
+      return r.type !== OcgResponseType.SELECT_IDLECMD || r.action !== SelectIdleCMDAction.SELECT_ACTIVATE
+        || r.index === null || (effectValue(message.activates[r.index], ctx) ?? 1) > 0;
+    });
+
     // Sem nada melhor a fazer e sem End Phase oferecida (Main 2 depois de uma
     // batalha), o core ainda espera resposta — o fallback é quem sabe montá-la.
-    if (plans.length === 0) return botAutoResponse(message);
+    if (plans.length === 0) { this.decisionSource = "fallback-unmodeled"; return botAutoResponse(message); }
+
+    this.candidates = plans.map((plan) => this.candidate(ctx, plan.response, plan.score,
+      plan.source ?? (plan.decision || plan.continuation ? "guide" : "heuristic"),
+      plan.reason ?? (plan.decision ? `Cenário do guia: ${plan.decision.decision.title}` : plan.continuation ? `Sequência prevista pelo guia: ${plan.continuation.title}` : "Valor local da ação"), plan.components));
 
     plans.sort((a, b) => b.score - a.score);
     const acceptable = this.difficulty === "easy" ? plans.filter((p) => p.score >= plans[0].score - 20).slice(0, 3) : plans.slice(0, 1);
-    return this.commit(acceptable[Math.floor(this.random() * acceptable.length)]);
+    const chosen = acceptable[Math.floor(this.random() * acceptable.length)];
+    if (chosen.source === "route") {
+      const response = profileResponse(ctx, this.planner, BOT_POLICIES[this.difficulty]);
+      if (response) { this.decisionSource = "route"; return response; }
+    }
+    return this.commit(chosen);
   }
 
   /**
@@ -775,8 +998,11 @@ export class BotBrain {
     foe: BoardPlayer,
     antesDaBatalha = false,
   ): number {
-    const usos = this.activations.get(chave(card)) ?? 0;
+    const usos = this.activations.get(chave(card, this.tacticalModel)) ?? 0;
     if (usos >= SAME_CARD_ACTIVATIONS) return -1;
+
+    const value = effectValue(card, ctx);
+    if (value !== null) return value;
 
     if (card.code === 44146295) return mirrorjadeScore(ctx, BOT_POLICIES[this.difficulty]);
 
@@ -1033,7 +1259,7 @@ export class BotBrain {
 
     if (atual.defense) {
       // De pé só se puder atacar sem morrer.
-      const { score } = appraiseAttack(atk, ocupadas(foe.monsters).length === 0, foe);
+      const { score } = appraiseAttack(atk, ocupadas(foe.monsters).length === 0, foe, this.tacticalModel);
       return score > 0 ? 34 : -1;
     }
     // Deitar quando o campo dele passa por cima de mim e a defesa segura mais.
@@ -1047,7 +1273,7 @@ export class BotBrain {
     for (const card of ocupadas(mine.monsters)) {
       if (card.defense || card.faceDown) continue;
       const atk = knownStats(card)?.attack ?? 0;
-      const { score } = appraiseAttack(atk, semDefesa, foe);
+      const { score } = appraiseAttack(atk, semDefesa, foe, this.tacticalModel);
       melhor = Math.max(melhor, score);
     }
     // Sem ataque que valha, a Battle Phase ainda é melhor que a End Phase: dá
@@ -1081,21 +1307,35 @@ export class BotBrain {
     const board = ctx.readBoard(false);
     const [mine, foe] = lados(board, ctx.me);
 
-    let melhor: (Plan & { target: BoardCard | null }) | null = null;
+    type BattlePlan = Plan & { target: BoardCard | null; traceId?: string };
+    const record = (plan: BattlePlan, expected = "Avaliar dano e campo restante", confidence: BotCandidateTrace["confidence"] = "heuristic"): BattlePlan => {
+      const candidate = this.candidate(ctx, plan.response, plan.score, "heuristic", expected);
+      candidate.expected = expected;
+      candidate.confidence = confidence;
+      candidate.id += `:target=${plan.target?.sequence ?? "direct"}:${this.candidates.length}`;
+      candidate.targets = plan.target?.code ? [{ code: plan.target.code, controller: plan.target.controller,
+        location: plan.target.location, sequence: plan.target.sequence, description: null }] : [];
+      this.candidates.push(candidate);
+      return { ...plan, traceId: candidate.id };
+    };
+    let melhor: BattlePlan | null = null;
+    const stop = encerrar();
+    if (validBotResponse(message, stop, ctx.cardDb)) record({ score: 0, response: stop, target: null }, "Encerrar batalha e preservar o campo");
     const planned = planBattle(message, ctx, BOT_POLICIES[this.difficulty], this.deadline);
-    if (planned) melhor = { score: planned.score,
-      response: cmd(SelectBattleCMDAction.SELECT_BATTLE, planned.index), target: planned.target };
+    if (planned) melhor = record({ score: planned.score,
+      response: cmd(SelectBattleCMDAction.SELECT_BATTLE, planned.index), target: planned.target },
+      planned.lethal === "modeled" ? "Letal demonstrado nos efeitos cobertos" : planned.lethal === "uncertain" ? "Tentativa de letal sob incerteza" : "Ordem de ataques e campo restante",
+      planned.lethal === "modeled" ? "modeled" : planned.lethal === "uncertain" ? "unknown" : "heuristic");
 
     message.chains.forEach((card, index) => {
       const score = this.scoreActivation(card, ctx, mine, foe);
-      if (score > 0 && (!melhor || score > melhor.score)) {
-        melhor = {
+      const option = record({
           score,
           response: cmd(SelectBattleCMDAction.SELECT_CHAIN, index),
           activated: card,
           target: null,
-        };
-      }
+        }, "Ativar efeito na batalha");
+      if (score > 0 && (!melhor || score > melhor.score)) melhor = option;
     });
 
     message.attacks.forEach((card, index) => {
@@ -1104,19 +1344,19 @@ export class BotBrain {
       const atk =
         (meu ? knownStats(meu)?.attack : null) ??
         readIntel(card.code, ctx.cardDb).atk;
-      const { score, target } = appraiseAttack(atk, card.can_direct, foe);
-      if (score > 0 && (!melhor || score > melhor.score)) {
-        melhor = {
+      const { score, target } = appraiseAttack(atk, card.can_direct, foe, this.tacticalModel);
+      const option = record({
           score,
           response: cmd(SelectBattleCMDAction.SELECT_BATTLE, index),
           target,
-        };
-      }
+        }, "Dano e risco do ataque local");
+      if (score > 0 && (!melhor || score > melhor.score)) melhor = option;
     });
 
     if (!melhor) return encerrar();
 
-    const escolhido = melhor as Plan & { target: BoardCard | null };
+    const escolhido = melhor as BattlePlan;
+    this.chosenCandidateId = escolhido.traceId ?? null;
     // Guardado para o SELECT_CARD em que o core pergunta quem apanha.
     this.plannedTarget = escolhido.target
       ? {
@@ -1139,7 +1379,7 @@ export class BotBrain {
 
     if (message.selects.length === 0) return responder(null);
     // Recusar uma corrente forçada é resposta inválida — o core devolve RETRY.
-    if (message.forced) return responder(0);
+    if (message.forced) { this.decisionSource = "fallback-unmodeled"; return responder(0); }
 
     this.chainSteps += 1;
     if (this.chainSteps > CHAIN_BUDGET) return responder(null);
@@ -1152,11 +1392,14 @@ export class BotBrain {
 
     message.selects.forEach((card, index) => {
       const score = this.scoreChain(card, ctx, mine, foe);
+      this.candidates.push(this.candidate(ctx, responder(index), score));
+      this.candidates.push(this.candidate(ctx,{type:OcgResponseType.SELECT_UNSELECT_CARD,index},score,"heuristic","Custo marginal do material selecionável"));
       if (score > melhorScore) {
         melhorScore = score;
         melhorIndex = index;
       }
     });
+    this.candidates.push(this.candidate(ctx, responder(null), CHAIN_THRESHOLD, "heuristic", "Guardar interação para outra janela"));
 
     if (melhorIndex === null) return responder(null);
     this.noteActivation(message.selects[melhorIndex]);
@@ -1179,8 +1422,11 @@ export class BotBrain {
     mine: BoardPlayer,
     foe: BoardPlayer,
   ): number {
-    const usos = this.activations.get(chave(card)) ?? 0;
+    const usos = this.activations.get(chave(card, this.tacticalModel)) ?? 0;
     if (usos >= SAME_CARD_ACTIVATIONS) return -1;
+
+    const value = effectValue(card, ctx);
+    if (value !== null) return value;
 
     if (card.code === 44146295) {
       if ("description" in card && (card.description as bigint) === (44146295n << 20n) + 1n) return 100;
@@ -1213,6 +1459,10 @@ export class BotBrain {
     // (Kuriboh, Honest). No próprio turno sem nada dele em jogo, guarda.
     if (card.location === OcgLocation.HAND && intel.isMonster) {
       if (eloMeu) return -1;
+      if (this.tacticalModel && this.difficulty !== "easy") {
+        const timing = interruptionValue(card, ctx);
+        if (timing !== null) return timing;
+      }
       const naBatalha = ctx.phase !== null && (ctx.phase & BATTLE_PHASES) !== 0;
       return eloDele || turnoDele || naBatalha ? 72 : -1;
     }
@@ -1428,6 +1678,16 @@ export class BotBrain {
     const candidatos = message.selects;
     if (candidatos.length === 0) return null;
 
+    // Durante os custos/alvos o elo ainda não começou a resolver. A intenção
+    // guarda o efeito que escolhemos; durante a resolução o contexto prevalece.
+    const effect = ctx.resolvingEffect ?? this.planner.intents.current();
+    if (effect && candidatos.every(card => effectTargetValue(effect, card, ctx) !== null)) {
+      const ranked = candidatos.map((card, index) => ({ index, score: effectTargetValue(effect, card, ctx)! }))
+        .sort((a, b) => b.score - a.score);
+      const count = Math.max(message.min, Math.min(message.max, ranked.filter(c => c.score > 0).length));
+      return { type: OcgResponseType.SELECT_CARD, indicies: ranked.slice(0, count).map(c => c.index) };
+    }
+
     if (this.pendingDecisionTarget !== null && message.min <= 1 && message.max >= 1) {
       const index = candidatos.findIndex((card) => card.controller === ctx.me && card.code === this.pendingDecisionTarget);
       if (index >= 0) {
@@ -1473,10 +1733,16 @@ export class BotBrain {
       score: this.scoreCandidate(card, ctx, board),
     }));
     notas.sort((a, b) => b.score - a.score);
+    this.candidates = notas.map(({ index }) => {
+      const selected = [notas.find(n => n.index === index)!, ...notas.filter(n => n.index !== index)].slice(0, quantos);
+      return this.candidate(ctx, { type: OcgResponseType.SELECT_CARD, indicies: selected.map(n => n.index) },
+        selected.reduce((sum,n) => sum+n.score,0), "heuristic", "Valor do alvo e custo de oportunidade");
+    }).filter(candidate => validBotResponse(message, candidate.response, ctx.cardDb));
 
     // Alguns efeitos permitem escolher zero cartas. Se só há custos próprios,
     // uma escolha opcional não deve entregar um recurso sem benefício.
     if (message.min === 0 && notas[0].score <= 0) {
+      this.candidates.push(this.candidate(ctx, { type: OcgResponseType.SELECT_CARD, indicies: [] }, 0, "heuristic", "Preservar recurso na seleção opcional"));
       return { type: OcgResponseType.SELECT_CARD, indicies: [] };
     }
 
@@ -1523,15 +1789,20 @@ export class BotBrain {
 
     switch (card.location) {
       case OcgLocation.HAND:
-      case OcgLocation.DECK:
-        // Custo (descarte) ou busca — o sinal é invertido no primeiro caso, e
-        // não dá para distinguir. Preferir a carta de menor valor erra pouco:
-        // num descarte é o certo, e numa busca de deck o formato quase sempre
-        // busca peça específica, não a maior.
-        return card.location === OcgLocation.HAND
-          ? -resourceValue(card.code, ctx, this.difficulty === "easy" ? [] : [...this.planner.reserves, ...this.planner.protectedCards],
-            this.difficulty === "easy" ? [] : this.planner.starters)
-          : valor + (this.planner.starters.includes(card.code) ? 5000 : 0);
+        return -resourceValue(card.code, ctx, this.difficulty === "easy" ? [] : [...this.planner.reserves, ...this.planner.protectedCards],
+          this.difficulty === "easy" ? [] : this.planner.starters);
+      case OcgLocation.DECK: {
+        const hand = board.players[ctx.me].hand;
+        const duplicate = hand.some(held => held.code === card.code);
+        const alternativeAccess = ctx.prompt.type === OcgMessageType.SELECT_CARD && ctx.prompt.selects.some(other =>
+          other.controller === ctx.me && other.location === OcgLocation.DECK && this.planner.starters.includes(other.code)
+          && !hand.some(held => held.code === other.code));
+        // Outra cópia continua útil quando não existe acesso alternativo. Um
+        // alvo contextual do guia é escolhido antes desta regra genérica.
+        const isSearch = ctx.resolvingEffect && effectModel(ctx.resolvingEffect.code, ctx.resolvingEffect.description)?.kind === "search";
+        const opportunity = this.tacticalModel && isSearch && this.difficulty !== "easy" && duplicate ? alternativeAccess ? 6000 : 600 : 0;
+        return valor + (this.planner.starters.includes(card.code) ? 5000 : 0) - opportunity;
+      }
       case OcgLocation.GRAVE:
       case OcgLocation.REMOVED:
         // Recuperar: o melhor que houver.
@@ -1565,6 +1836,7 @@ export class BotBrain {
     let melhorScore = -Infinity;
     message.select_cards.forEach((card, index) => {
       const score = this.scoreCandidate(card, ctx, board);
+      this.candidates.push(this.candidate(ctx,{type:OcgResponseType.SELECT_UNSELECT_CARD,index},score,"heuristic","Custo marginal do material selecionável"));
       if (score > melhorScore) {
         melhorScore = score;
         melhor = index;
@@ -1573,6 +1845,7 @@ export class BotBrain {
     // Já dá para encerrar e o que sobra é CUSTO (carta própria: material,
     // descarte): para no mínimo. Seguir marcando enquanto houvesse candidata
     // entregava cartas a mais — "envie até 3" virava sempre 3.
+    if(message.can_finish)this.candidates.push(this.candidate(ctx,{type:OcgResponseType.SELECT_UNSELECT_CARD,index:null},0,"heuristic","Encerrar a seleção sem custo adicional"));
     if (message.can_finish && melhorScore < 0) {
       return { type: OcgResponseType.SELECT_UNSELECT_CARD, index: null };
     }
@@ -1620,6 +1893,7 @@ export class BotBrain {
       if (total > melhorCusto) continue;
       if (total === melhorCusto && melhor && escolhidas.length >= melhor.length) continue;
       if (!isValidSum(request, escolhidas)) continue;
+      this.candidates.push(this.candidate(ctx,{type:OcgResponseType.SELECT_SUM,indicies:escolhidas},-total,"heuristic","Combinação válida melhora o custo dos materiais"));
       melhor = escolhidas;
       melhorCusto = total;
     }
@@ -1689,6 +1963,7 @@ export class BotBrain {
           OcgPosition.FACEDOWN_ATTACK,
         ];
 
+    this.candidates=permitidas.map(position=>this.candidate(ctx,{type:OcgResponseType.SELECT_POSITION,position},ordem.length-ordem.indexOf(position),"heuristic","Posição legal conforme pressão e defesa"));
     const escolhida = ordem.find((pos) => permitidas.includes(pos)) ?? permitidas[0];
     return { type: OcgResponseType.SELECT_POSITION, position: escolhida };
   }
@@ -1721,6 +1996,10 @@ export class BotBrain {
       return (place.sequence >= 5 ? -8 : 10) - (reservedForLink ? 6 : 0);
     };
     available.sort((a, b) => score(b) - score(a));
+    this.candidates=available.map(place=>{
+      const places=[place,...available.filter(other=>other!==place)].slice(0,Math.max(1,message.count));
+      return this.candidate(ctx,{type:OcgResponseType.SELECT_PLACE,places},places.reduce((sum,p)=>sum+score(p),0),"heuristic","Zonas livres e setas Link próprias e adversárias");
+    });
     const selected = available.slice(0, Math.max(1, message.count));
     this.plannedSummonCode = null;
     return { type: OcgResponseType.SELECT_PLACE, places: selected };
@@ -1746,13 +2025,16 @@ export class BotBrain {
     } else if (plan.continuation) {
       this.usedGuideDecision = plan.continuation.id;
       this.planner.reason = `Sequência prevista pelo guia: ${plan.continuation.title}`;
+    } else if (plan.hold) {
+      this.usedGuideDecision = plan.hold.id;
+      this.planner.reason = `Guardar recurso: ${plan.hold.title}`;
     }
     return plan.response;
   }
 
   private noteActivation(card: OcgCardLoc): void {
     this.plannedTarget = null;
-    const key = chave(card);
+    const key = chave(card, this.tacticalModel);
     this.activations.set(key, (this.activations.get(key) ?? 0) + 1);
     this.planner.intents.begin(card.code, this.planner.route, this.planner.step,
       "description" in card ? card.description as bigint : undefined);

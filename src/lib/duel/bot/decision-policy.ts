@@ -74,6 +74,12 @@ export function decisionMoves(
   return moves;
 }
 
+/** Guardar é uma sugestão comparável; outras ações ainda podem evitar derrota ou produzir vitória. */
+export function decisionHolds(decisions: readonly GuideDecision[], board: BoardState, me: 0 | 1, deck: DuelDeckPayload) {
+  return decisions.filter(decision => decisionApplies(decision, board, me, deck)
+    && decision.choices[decision.correctChoice]?.action?.kind === "hold");
+}
+
 /** Uma decisão do guia também pode orientar o alvo de um efeito já em resolução. */
 export function decisionEffectTarget(
   decisions: readonly GuideDecision[], board: BoardState, me: 0 | 1,

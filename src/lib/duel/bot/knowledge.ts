@@ -3,6 +3,8 @@ import { maskHiddenCards, maskKey } from "@/lib/duel/prompt-mask";
 import type { BoardState } from "@/lib/duel/board-state";
 
 export interface BotEffect {
+  location?: number;
+  sequence?: number;
   code: number;
   player: number;
   description: bigint;
@@ -14,7 +16,7 @@ export interface BotEffect {
 export interface BotHypothesis {
   kind: "battle-response" | "hand-response";
   evidence: string;
-  confidence: "possible";
+  confidence: "possible" | "seen" | "known";
 }
 export interface BotFact {
   code: number;
@@ -29,9 +31,13 @@ export class BotKnowledge {
   private readonly links = new Map<number, BotEffect>();
   private readonly revealed = new Set<string>();
   private resolvingLink: number | null = null;
-  private lastFailed: { code: number; player: number; revision: number } | null = null;
+  private lastFailed: { code: number; player: number; description: bigint; revision: number } | null = null;
   private revision = 0;
   private facts: BotFact[] = [];
+  private readonly attacks = new Map<string, number>();
+  private readonly normalSummons = new Set<number>();
+  private readonly usedEffects = new Set<string>();
+  private readonly restrictions = new Set<string>();
   turnPlayer: number | null = null;
   turnCount = 0;
   phase: number | null = null;
@@ -50,7 +56,14 @@ export class BotKnowledge {
         this.resolvingLink = null;
         this.summoning = null;
         this.revealed.clear();
+        this.attacks.clear();
+        this.normalSummons.clear();this.usedEffects.clear();this.restrictions.clear();
         break;
+      case M.ATTACK: {
+        const key = maskKey(message.card.controller, message.card.location, message.card.sequence);
+        this.attacks.set(key, (this.attacks.get(key) ?? 0) + 1);
+        break;
+      }
       case M.NEW_PHASE:
         this.phase = message.phase;
         this.summoning = null;
@@ -58,7 +71,10 @@ export class BotKnowledge {
       case M.CHAINING:
         this.remember(message.code, message.controller, null);
         this.links.set(message.chain_size, { code: message.code, player: message.controller,
-          description: message.description, link: message.chain_size, negated: false });
+          description: message.description, link: message.chain_size, negated: false,
+          location:message.triggering_location,sequence:message.triggering_sequence });
+        this.usedEffects.add(`${message.controller}:${message.code}:${message.description}`);
+        if(message.controller===this.seat&&message.code===44362883)this.restrictions.add("fusion-only");
         break;
       case M.CHAIN_SOLVING:
         this.resolvingLink = message.chain_size;
@@ -80,7 +96,7 @@ export class BotKnowledge {
         const effect = this.links.get(message.chain_size);
         if (effect) {
           effect.negated = true;
-          this.lastFailed = { code: effect.code, player: effect.player, revision: ++this.revision };
+          this.lastFailed = { code: effect.code, player: effect.player, description: effect.description, revision: ++this.revision };
         }
         break;
       }
@@ -110,8 +126,12 @@ export class BotKnowledge {
           if (target.controller === message.from.controller && target.location === message.from.location
             && target.sequence === message.from.sequence) target.present = false;
         }
+        if (message.type === M.MOVE) this.attacks.delete(maskKey(message.from.controller, message.from.location, message.from.sequence));
         break;
       case M.SUMMONING:
+        this.normalSummons.add(message.controller);
+        this.summoning = {code:message.code,player:message.controller};
+        break;
       case M.SPSUMMONING:
       case M.FLIPSUMMONING:
         this.summoning = { code: message.controller !== this.seat && (message.position & OcgPosition.FACEDOWN) !== 0 ? 0 : message.code, player: message.controller };
@@ -151,9 +171,12 @@ export class BotKnowledge {
     const top = [...this.links.values()].at(-1);
     return { turnPlayer: this.turnPlayer, turnCount: this.turnCount, phase: this.phase,
       chainPlayer: top?.player ?? null, chainCode: top?.code ?? null,
+      chainEffect: top ? { ...top, targets: top.targets?.map(target => ({ ...target })) } : null,
       resolvingEffect: this.resolvingLink === null ? null : this.links.get(this.resolvingLink) ?? null,
       chainOpen: this.links.size > 0, failedEffect: this.lastFailed, summoning: this.summoning,
       chainTargets: top?.targets?.map((target) => ({ ...target })) ?? [],
-      observedFacts: this.facts.map((fact) => ({ ...fact })) };
+      observedFacts: this.facts.map((fact) => ({ ...fact })), attacksDeclared: Object.fromEntries(this.attacks),
+      turnResources:{normalUsed:this.normalSummons.has(this.seat),effectsUsed:[...this.usedEffects].filter(key=>key.startsWith(`${this.seat}:`)),
+        restrictions:[...this.restrictions]} };
   }
 }

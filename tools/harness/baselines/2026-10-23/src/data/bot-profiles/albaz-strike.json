@@ -1,0 +1,678 @@
+{
+  "schemaVersion": 1,
+  "id": "albaz-strike",
+  "revision": 1,
+  "format": "tcg",
+  "presetId": "tcg-sdaz",
+  "guide": {
+    "id": "albaz-strike",
+    "revision": 2
+  },
+  "deckSnapshot": {
+    "format": "tcg",
+    "main": [
+      19096726,
+      45484331,
+      82489470,
+      68468459,
+      25451383,
+      69680031,
+      88264978,
+      48770333,
+      55878038,
+      28674152,
+      20292186,
+      99234526,
+      61901281,
+      15381421,
+      48048590,
+      423585,
+      59438930,
+      97268402,
+      8972398,
+      18973184,
+      44362883,
+      34995106,
+      62022479,
+      33550694,
+      22829942,
+      74335036,
+      75500286,
+      49238328,
+      24224830,
+      54693926,
+      81767888,
+      17751597,
+      67100549,
+      93595154,
+      81223446,
+      59919307,
+      11429811,
+      24207889,
+      83326048,
+      10813327
+    ],
+    "extra": [
+      44146295,
+      70534340,
+      41373230,
+      34848821,
+      1906812,
+      87746184
+    ],
+    "side": []
+  },
+  "roles": [
+    {
+      "code": 44362883,
+      "roles": [
+        "material",
+        "starter"
+      ]
+    },
+    {
+      "code": 68468459,
+      "roles": [
+        "material"
+      ]
+    },
+    {
+      "code": 19096726,
+      "roles": [
+        "material"
+      ]
+    },
+    {
+      "code": 70534340,
+      "roles": [
+        "material"
+      ]
+    },
+    {
+      "code": 44146295,
+      "roles": [
+        "finisher",
+        "interaction",
+        "material"
+      ]
+    },
+    {
+      "code": 97268402,
+      "roles": [
+        "material"
+      ]
+    },
+    {
+      "code": 87746184,
+      "roles": [
+        "material"
+      ]
+    },
+    {
+      "code": 45484331,
+      "roles": [
+        "starter"
+      ]
+    }
+  ],
+  "routes": [
+    {
+      "id": "primeira-fusao",
+      "lesson": "primeira-fusao",
+      "objective": "Jadespelho no campo, com sua Invocação-Normal preservada.",
+      "requires": [
+        {
+          "code": 44362883,
+          "zone": "hand",
+          "count": 1
+        },
+        {
+          "code": 68468459,
+          "zone": "deck",
+          "count": 1
+        },
+        {
+          "code": 19096726,
+          "zone": "deck",
+          "count": 1
+        },
+        {
+          "code": 70534340,
+          "zone": "extra",
+          "count": 1
+        },
+        {
+          "code": 44146295,
+          "zone": "extra",
+          "count": 1
+        }
+      ],
+      "minHand": 2,
+      "reserves": [
+        97268402
+      ],
+      "steps": [
+        {
+          "id": "primeira-fusao-0",
+          "effects": [
+            44362883
+          ],
+          "targets": [
+            {
+              "code": 44362883,
+              "location": 2
+            }
+          ],
+          "completeWhen": [
+            {
+              "kind": "offered",
+              "code": 70534340,
+              "location": 64
+            }
+          ],
+          "action": {
+            "kind": "activates",
+            "code": 44362883
+          }
+        },
+        {
+          "id": "primeira-fusao-1",
+          "effects": [
+            44362883
+          ],
+          "targets": [
+            {
+              "code": 70534340,
+              "location": 64
+            },
+            {
+              "code": 68468459,
+              "location": 1
+            },
+            {
+              "code": 19096726,
+              "location": 1
+            }
+          ],
+          "completeWhen": [
+            {
+              "kind": "card",
+              "zone": "monsters",
+              "code": 70534340
+            }
+          ]
+        },
+        {
+          "id": "primeira-fusao-2",
+          "effects": [
+            70534340
+          ],
+          "targets": [
+            {
+              "code": 70534340,
+              "location": 4
+            },
+            {
+              "code": 10813327,
+              "location": 2
+            }
+          ],
+          "completeWhen": [
+            {
+              "kind": "card",
+              "zone": "grave",
+              "code": 10813327
+            }
+          ],
+          "spend": "discard",
+          "effectIndices": {
+            "70534340": [
+              0
+            ]
+          }
+        },
+        {
+          "id": "primeira-fusao-3",
+          "effects": [
+            70534340
+          ],
+          "targets": [
+            {
+              "code": 44146295,
+              "location": 64
+            },
+            {
+              "code": 68468459,
+              "location": 16
+            },
+            {
+              "code": 70534340,
+              "location": 4
+            }
+          ],
+          "completeWhen": [
+            {
+              "kind": "card",
+              "zone": "monsters",
+              "code": 44146295
+            },
+            {
+              "kind": "card",
+              "zone": "extra",
+              "code": 70534340
+            }
+          ],
+          "effectIndices": {
+            "70534340": [
+              0
+            ]
+          }
+        }
+      ],
+      "result": {
+        "pressure": 3000,
+        "interaction": 1,
+        "continuation": 2,
+        "cost": 1,
+        "exposure": 1
+      }
+    },
+    {
+      "id": "rota-albion",
+      "lesson": "rota-albion",
+      "objective": "Jadespelho no campo; Mercourier continua na mão. Albion e Arbaz estão banidos.",
+      "requires": [
+        {
+          "code": 44362883,
+          "zone": "hand",
+          "count": 1
+        },
+        {
+          "code": 68468459,
+          "zone": "deck",
+          "count": 1
+        },
+        {
+          "code": 97268402,
+          "zone": "deck",
+          "count": 1
+        },
+        {
+          "code": 87746184,
+          "zone": "extra",
+          "count": 1
+        },
+        {
+          "code": 44146295,
+          "zone": "extra",
+          "count": 1
+        }
+      ],
+      "minHand": 1,
+      "reserves": [
+        19096726
+      ],
+      "steps": [
+        {
+          "id": "rota-albion-0",
+          "effects": [
+            44362883
+          ],
+          "targets": [
+            {
+              "code": 44362883,
+              "location": 2
+            }
+          ],
+          "completeWhen": [
+            {
+              "kind": "offered",
+              "code": 87746184,
+              "location": 64
+            }
+          ],
+          "action": {
+            "kind": "activates",
+            "code": 44362883
+          }
+        },
+        {
+          "id": "rota-albion-1",
+          "effects": [
+            44362883
+          ],
+          "targets": [
+            {
+              "code": 87746184,
+              "location": 64
+            },
+            {
+              "code": 68468459,
+              "location": 1
+            },
+            {
+              "code": 97268402,
+              "location": 1
+            }
+          ],
+          "completeWhen": [
+            {
+              "kind": "card",
+              "zone": "monsters",
+              "code": 87746184
+            }
+          ]
+        },
+        {
+          "id": "rota-albion-2",
+          "effects": [
+            87746184
+          ],
+          "targets": [
+            {
+              "code": 87746184,
+              "location": 4
+            }
+          ],
+          "completeWhen": [
+            {
+              "kind": "offered",
+              "code": 44146295,
+              "location": 64
+            }
+          ],
+          "effectIndices": {
+            "87746184": [
+              0
+            ]
+          }
+        },
+        {
+          "id": "rota-albion-3",
+          "effects": [
+            87746184
+          ],
+          "targets": [
+            {
+              "code": 44146295,
+              "location": 64
+            },
+            {
+              "code": 68468459,
+              "location": 16
+            },
+            {
+              "code": 87746184,
+              "location": 4
+            }
+          ],
+          "completeWhen": [
+            {
+              "kind": "card",
+              "zone": "monsters",
+              "code": 44146295
+            },
+            {
+              "kind": "card",
+              "zone": "banished",
+              "code": 87746184
+            },
+            {
+              "kind": "card",
+              "zone": "banished",
+              "code": 68468459
+            }
+          ],
+          "effectIndices": {
+            "87746184": [
+              0
+            ]
+          }
+        }
+      ],
+      "result": {
+        "pressure": 3000,
+        "interaction": 1,
+        "continuation": 1,
+        "cost": 0,
+        "exposure": 1
+      }
+    },
+    {
+      "id": "encontrar-inicio",
+      "lesson": "encontrar-inicio",
+      "objective": "Kitt e Jadespelho no campo. Sua Invocação-Normal já foi usada.",
+      "requires": [
+        {
+          "code": 45484331,
+          "zone": "hand",
+          "count": 1
+        },
+        {
+          "code": 44362883,
+          "zone": "deck",
+          "count": 1
+        },
+        {
+          "code": 68468459,
+          "zone": "deck",
+          "count": 1
+        },
+        {
+          "code": 19096726,
+          "zone": "deck",
+          "count": 1
+        },
+        {
+          "code": 70534340,
+          "zone": "extra",
+          "count": 1
+        },
+        {
+          "code": 44146295,
+          "zone": "extra",
+          "count": 1
+        }
+      ],
+      "minHand": 3,
+      "reserves": [
+        44362883,
+        97268402
+      ],
+      "steps": [
+        {
+          "id": "encontrar-inicio-0",
+          "effects": [
+            45484331
+          ],
+          "targets": [
+            {
+              "code": 45484331,
+              "location": 2
+            }
+          ],
+          "completeWhen": [
+            {
+              "kind": "card",
+              "zone": "monsters",
+              "code": 45484331
+            }
+          ],
+          "action": {
+            "kind": "summons",
+            "code": 45484331
+          },
+          "effectIndices": {
+            "45484331": [
+              0,
+              1
+            ]
+          }
+        },
+        {
+          "id": "encontrar-inicio-1",
+          "effects": [
+            45484331
+          ],
+          "targets": [
+            {
+              "code": 45484331,
+              "location": 4
+            },
+            {
+              "code": 44362883,
+              "location": 1
+            },
+            {
+              "code": 59919307,
+              "location": 2
+            }
+          ],
+          "completeWhen": [
+            {
+              "kind": "card",
+              "zone": "hand",
+              "code": 44362883
+            },
+            {
+              "kind": "card",
+              "zone": "hand",
+              "code": 59919307,
+              "absent": true
+            }
+          ],
+          "spend": "return",
+          "effectIndices": {
+            "45484331": [
+              1
+            ]
+          }
+        },
+        {
+          "id": "encontrar-inicio-2",
+          "effects": [
+            44362883
+          ],
+          "targets": [
+            {
+              "code": 44362883,
+              "location": 2
+            }
+          ],
+          "completeWhen": [
+            {
+              "kind": "offered",
+              "code": 70534340,
+              "location": 64
+            }
+          ],
+          "action": {
+            "kind": "activates",
+            "code": 44362883
+          }
+        },
+        {
+          "id": "encontrar-inicio-3",
+          "effects": [
+            44362883
+          ],
+          "targets": [
+            {
+              "code": 70534340,
+              "location": 64
+            },
+            {
+              "code": 68468459,
+              "location": 1
+            },
+            {
+              "code": 19096726,
+              "location": 1
+            }
+          ],
+          "completeWhen": [
+            {
+              "kind": "card",
+              "zone": "monsters",
+              "code": 70534340
+            }
+          ]
+        },
+        {
+          "id": "encontrar-inicio-4",
+          "effects": [
+            70534340
+          ],
+          "targets": [
+            {
+              "code": 70534340,
+              "location": 4
+            },
+            {
+              "code": 10813327,
+              "location": 2
+            }
+          ],
+          "completeWhen": [
+            {
+              "kind": "card",
+              "zone": "grave",
+              "code": 10813327
+            }
+          ],
+          "spend": "discard",
+          "effectIndices": {
+            "70534340": [
+              0
+            ]
+          }
+        },
+        {
+          "id": "encontrar-inicio-5",
+          "effects": [
+            70534340
+          ],
+          "targets": [
+            {
+              "code": 44146295,
+              "location": 64
+            },
+            {
+              "code": 68468459,
+              "location": 16
+            },
+            {
+              "code": 70534340,
+              "location": 4
+            }
+          ],
+          "completeWhen": [
+            {
+              "kind": "card",
+              "zone": "monsters",
+              "code": 44146295
+            },
+            {
+              "kind": "card",
+              "zone": "extra",
+              "code": 70534340
+            }
+          ],
+          "effectIndices": {
+            "70534340": [
+              0
+            ]
+          }
+        }
+      ],
+      "result": {
+        "pressure": 3000,
+        "interaction": 1,
+        "continuation": 1,
+        "cost": 2,
+        "exposure": 2
+      }
+    }
+  ],
+  "coverage": "3 rotas revisadas · Albaz Strike"
+}

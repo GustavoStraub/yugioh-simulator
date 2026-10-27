@@ -83,7 +83,12 @@
     "test:sfx": "node tools/harness/test-sfx.mjs",
     "test:browser-legendary-guides": "node tools/harness/test-browser-legendary-guides.mjs",
     "test:bot-strategy": "node --import ./tools/harness/ts-loader-register.mjs tools/harness/test-bot-strategy.mjs",
+    "test:bot-resources": "node --import ./tools/harness/ts-loader-register.mjs tools/harness/test-bot-resource-value.mjs",
     "test:bot-decisions": "node --import ./tools/harness/ts-loader-register.mjs tools/harness/test-bot-decisions.mjs",
+    "test:bot-evolution": "node --import ./tools/harness/ts-loader-register.mjs tools/harness/test-bot-evolution.mjs && node --import ./tools/harness/ts-loader-register.mjs tools/harness/test-bot-evolution-core.mjs",
+    "freeze:bot": "node tools/harness/freeze-bot.mjs",
+    "replay:bot": "node --import ./tools/harness/ts-loader-register.mjs tools/harness/replay-bot.mjs",
+    "compare:bot-replays": "node tools/harness/compare-bot-replays.mjs",
     "test:browser-bot": "node tools/harness/test-browser-bot-difficulty.mjs",
     "eval:bot": "node --import ./tools/harness/ts-loader-register.mjs tools/harness/evaluate-bot.mjs"
   },

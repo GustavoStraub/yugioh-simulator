@@ -12,6 +12,7 @@ import {
 } from "@/lib/duel/engine-strings";
 import { OfficialCardDb, type CardDb } from "@/lib/duel/official-card-data";
 import { fetchCardScript } from "@/lib/duel/script-source";
+import { nodeBotAnalysisTransport } from "@/server/duel/bot-analysis-transport";
 
 const REPO = join(dirname(fileURLToPath(import.meta.url)), "../../..");
 
@@ -67,6 +68,7 @@ let cardDbCache: OfficialCardDb | null = null;
 let engineStringsCache: EngineStringsDb | null = null;
 
 export const nodeAssets: DuelAssets = {
+  createBotWorker: nodeBotAnalysisTransport,
   loadCore(printErr) {
     corePromise ??= (async () => {
       const file = readFileSync(WASM_PATH);

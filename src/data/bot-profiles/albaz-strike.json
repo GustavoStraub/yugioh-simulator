@@ -275,6 +275,32 @@
         "continuation": 2,
         "cost": 1,
         "exposure": 1
+      },
+      "deckRequirements": {
+        "main": [
+          {
+            "code": 19096726,
+            "count": 1
+          },
+          {
+            "code": 44362883,
+            "count": 1
+          },
+          {
+            "code": 68468459,
+            "count": 1
+          }
+        ],
+        "extra": [
+          {
+            "code": 44146295,
+            "count": 1
+          },
+          {
+            "code": 70534340,
+            "count": 1
+          }
+        ]
       }
     },
     {
@@ -436,6 +462,32 @@
         "continuation": 1,
         "cost": 0,
         "exposure": 1
+      },
+      "deckRequirements": {
+        "main": [
+          {
+            "code": 44362883,
+            "count": 1
+          },
+          {
+            "code": 68468459,
+            "count": 1
+          },
+          {
+            "code": 97268402,
+            "count": 1
+          }
+        ],
+        "extra": [
+          {
+            "code": 44146295,
+            "count": 1
+          },
+          {
+            "code": 87746184,
+            "count": 1
+          }
+        ]
       }
     },
     {
@@ -671,8 +723,56 @@
         "continuation": 1,
         "cost": 2,
         "exposure": 2
+      },
+      "deckRequirements": {
+        "main": [
+          {
+            "code": 19096726,
+            "count": 1
+          },
+          {
+            "code": 44362883,
+            "count": 1
+          },
+          {
+            "code": 45484331,
+            "count": 1
+          },
+          {
+            "code": 68468459,
+            "count": 1
+          }
+        ],
+        "extra": [
+          {
+            "code": 44146295,
+            "count": 1
+          },
+          {
+            "code": 70534340,
+            "count": 1
+          }
+        ]
       }
     }
   ],
-  "coverage": "3 rotas revisadas · Albaz Strike"
+  "coverage": "3 rotas revisadas · Albaz Strike",
+  "engineRequirements": {
+    "main": [
+      {
+        "code": 44362883,
+        "count": 1
+      },
+      {
+        "code": 68468459,
+        "count": 1
+      }
+    ],
+    "extra": [
+      {
+        "code": 44146295,
+        "count": 1
+      }
+    ]
+  }
 }

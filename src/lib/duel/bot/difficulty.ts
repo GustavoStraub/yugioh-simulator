@@ -1,4 +1,4 @@
-/** O orçamento muda a análise, nunca as regras, listas ou compras do duelo. */
+/** Modos antigos ficam disponíveis só para comparações do harness. O app usa hard. */
 export type BotDifficulty = "easy" | "medium" | "hard";
 
 export interface BotPolicy {
@@ -17,13 +17,11 @@ export const BOT_POLICIES: Record<BotDifficulty, BotPolicy> = {
 };
 
 export const BOT_DIFFICULTIES: { id: BotDifficulty; label: string; description: string }[] = [
-  { id: "easy", label: "Fácil", description: "Aprenda o deck e pratique suas primeiras jogadas." },
-  { id: "medium", label: "Médio", description: "Enfrente um bot que conhece as estratégias do deck." },
   { id: "hard", label: "Difícil", description: "Enfrente um bot que planeja sequências e adapta suas respostas." },
 ];
 
 export function botDifficulty(value: unknown): BotDifficulty {
-  return value === "easy" || value === "hard" ? value : "medium";
+  return value === "easy" || value === "medium" ? value : "hard";
 }
 
 /** Independente da semente do core: não permite inferir a ordem de compras. */

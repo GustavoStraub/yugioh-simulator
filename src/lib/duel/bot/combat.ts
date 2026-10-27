@@ -67,7 +67,7 @@ export interface AttackAppraisal {
  * para não dominar a conta. Um bot que só maximiza dano entra em toda troca
  * ruim; um que só evita trocas nunca fecha o duelo.
  */
-function scoreAgainst(attack: number, defender: BoardCard): number {
+function scoreAgainst(attack: number, defender: BoardCard, protection: boolean): number {
   const stats = knownStats(defender);
 
   // Monstro virado: o bot não sabe o que tem pela frente.
@@ -75,6 +75,7 @@ function scoreAgainst(attack: number, defender: BoardCard): number {
     const margin = attack - ASSUMED_SET_DEFENSE;
     return margin / 40 - FACEDOWN_RISK;
   }
+  if (protection && battleProtected(defender)) return defender.defense ? -25 : attack > stats.attack ? (attack - stats.attack) / 25 : -70;
 
   if (defender.defense) {
     if (attack > stats.defense) return 45 + (attack - stats.defense) / 100;
@@ -93,6 +94,22 @@ function scoreAgainst(attack: number, defender: BoardCard): number {
   return -70 - (stats.attack - attack) / 25;
 }
 
+/** Somente proteções incondicionais verificadas nos scripts das cartas cobertas. */
+export function battleProtected(card: BoardCard): boolean {
+  return !card.negated && (card.code === 23205979 || card.code === 31305911);
+}
+
+export function battleOutcome(attack: number, attacker: BoardCard | null, target: BoardCard | null) {
+  const stats = target ? knownStats(target) : null;
+  const power = !target ? 0 : stats ? target.defense ? stats.defense : stats.attack : ASSUMED_SET_DEFENSE;
+  const destroyTarget = Boolean(target && stats && !battleProtected(target) && (target.defense ? attack > power : attack >= power));
+  const lostAttacker = Boolean(target && !target.defense && attack <= power && !(attacker && battleProtected(attacker)));
+  const piercing = attacker?.code === 18036057 && !attacker.negated;
+  const damage = !target ? attack : !target.defense || piercing ? Math.max(0, attack-power) : 0;
+  const taken = target ? Math.max(0, power-attack) : 0;
+  return { damage, taken, destroyTarget, lostAttacker, uncertain: Boolean(target && !stats) };
+}
+
 /**
  * Melhor alvo para um atacante, e quanto vale atacar.
  *
@@ -105,6 +122,7 @@ export function appraiseAttack(
   attack: number,
   canDirect: boolean,
   opponent: BoardPlayer,
+  protection = true,
 ): { score: number; target: BoardCard | null } {
   if (canDirect) {
     // Dano direto não tem risco nenhum: só precisa valer mais que passar.
@@ -119,7 +137,7 @@ export function appraiseAttack(
     target: null,
   };
   for (const defender of defenders) {
-    const score = scoreAgainst(attack, defender);
+    const score = scoreAgainst(attack, defender, protection);
     if (score > best.score) best = { score, target: defender };
   }
   return best;

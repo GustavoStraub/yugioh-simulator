@@ -7,17 +7,28 @@ import { resourceValue } from "@/lib/duel/bot/evaluator";
 import { decodeFieldMask } from "@/lib/duel/field-places";
 import { knownStats, threatOf } from "@/lib/duel/bot/combat";
 import { stepHasEffect } from "@/lib/duel/bot/deck-profile";
+import { effectValue, effectTargetValue } from "@/lib/duel/bot/effect-value";
 
 const MIRRORJADE = 44146295;
 const ALBION = 87746184;
 
 /** Escolhas de uma intenção existente, sempre reconstruídas do prompt atual. */
 export function profileResponse(ctx: BotContext, planner: BotPlanner, policy: BotPolicy): OcgResponse | null {
+  const step=planner.step;
+  const response=profileResponseFor(ctx,planner,policy);
+  if(response&&step&&response.type!==R.SELECT_PLACE&&response.type!==R.SELECT_POSITION
+    &&!(response.type===R.SELECT_CHAIN&&response.index===null)
+    &&!(response.type===R.SELECT_EFFECTYN&&!response.yes))planner.recordTransition(step);
+  return response;
+}
+
+function profileResponseFor(ctx: BotContext, planner: BotPlanner, policy: BotPolicy): OcgResponse | null {
   const p = ctx.prompt;
   const step = planner.step;
   if (p.type === M.SELECT_IDLECMD && step?.action) {
     const index = p[step.action.kind].findIndex((c) => c.code === step.action!.code);
     if (index >= 0) {
+      if (step.action.kind === "activates" && (effectValue(p.activates[index], ctx) ?? 1) <= 0) return null;
       if (!planner.recordAttempt(ctx)) return null;
       const action = { summons: A.SELECT_SUMMON, special_summons: A.SELECT_SPECIAL_SUMMON, activates: A.SELECT_ACTIVATE }[step.action.kind];
       const card = p[step.action.kind][index];
@@ -31,6 +42,7 @@ export function profileResponse(ctx: BotContext, planner: BotPlanner, policy: Bo
       && step.targets.some((t) => t.scope !== "selection" && t.code === c.code && t.location === c.location));
     if (index >= 0) {
       const card = p.selects[index];
+      if (!p.forced && (effectValue(card, ctx) ?? 1) <= 0) return null;
       planner.intents.begin(card.code, planner.route, step, card.description);
       return { type: R.SELECT_CHAIN, index };
     }
@@ -40,6 +52,7 @@ export function profileResponse(ctx: BotContext, planner: BotPlanner, policy: Bo
     }
   }
   if (p.type === M.SELECT_EFFECTYN && step && stepHasEffect(step, p.code, p.description)) {
+    if ((effectValue(p, ctx) ?? 1) <= 0) return { type: R.SELECT_EFFECTYN, yes: false };
     planner.intents.begin(p.code, planner.route, step, p.description);
     return { type: R.SELECT_EFFECTYN, yes: true };
   }
@@ -64,6 +77,10 @@ export function profileResponse(ctx: BotContext, planner: BotPlanner, policy: Bo
     if (places.length >= Math.max(1, p.count)) return { type: R.SELECT_PLACE, places: places.slice(0, Math.max(1, p.count)) };
   }
   const effect = ctx.resolvingEffect?.code ?? planner.intents.current()?.code;
+  // A mesma análise de alvos vale para rotas e para decisões genéricas.
+  const effectIdentity = ctx.resolvingEffect ?? planner.intents.current();
+  if (p.type === M.SELECT_CARD && effectIdentity
+    && p.selects.some(c => effectTargetValue(effectIdentity, c, ctx) !== null)) return null;
   if (p.type === M.SELECT_CARD && effect === MIRRORJADE) {
     if (p.selects.every((c) => c.controller === ctx.me && c.location === L.EXTRA)) {
       const index = p.selects.findIndex((c) => c.code === ALBION);
@@ -85,10 +102,12 @@ export function profileResponse(ctx: BotContext, planner: BotPlanner, policy: Bo
   const ranked = cards.map((card, index) => ({ card, index, score: planner.targetScore(card, ctx) ?? -100_000 }));
   // Devolução/descarte alternativo: preserve a única peça de acesso e gaste
   // uma cópia redundante quando a carta do exemplo não está disponível.
-  if (step.spend && cards.every((c) => c.controller === ctx.me && c.location === L.HAND)) {
+  if (step.spend && cards.every(c => c.controller === ctx.me && (c.location === L.HAND
+    || step.spend === "banish" && (c.location === L.MZONE || c.location === L.SZONE)))) {
     for (const item of ranked) {
       const preferred = step.targets.some((t) => t.code === item.card.code && t.location === L.HAND);
-      item.score = (preferred ? 2000 : 0) - resourceValue(item.card.code, ctx,
+      const protectsSequence = item.card.location !== L.HAND && step.effects.includes(item.card.code);
+      item.score = (preferred ? 2000 : 0) - (protectsSequence ? 8000 : 0) - resourceValue(item.card.code, ctx,
         policy.preserveResources ? planner.reserves : [], policy.preserveResources ? planner.starters : []);
     }
   }

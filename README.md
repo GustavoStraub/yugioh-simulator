@@ -15,8 +15,10 @@ Concluir os objetivos salva o progresso no navegador para cada jogador. O atalho
 abre um duelo livre contra o bot com a lista oficial. Autoria dos JSONs e
 validação das jogadas: [guias de decks](docs/deck-learning.md).
 
-A proposta de evolução dos bots, com estratégias por deck e níveis Fácil,
-Médio e Difícil, está em [inteligência dos bots](docs/inteligencia-bot.md).
+Os duelos e o modo de assistir usam um único nível: **Difícil**, com estratégias
+dos guias disponíveis. A revisão de custos, destruição própria e testes está em
+[decisões com retorno](docs/bot-recursos-2026-10-27.md). A proposta histórica está
+em [inteligência dos bots](docs/inteligencia-bot.md).
 
 ## Telefone e tablet
 

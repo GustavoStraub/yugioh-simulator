@@ -14,6 +14,7 @@ import { nodeAssets } from '@/server/duel/node-assets';
 const registry = CardRegistry.fromCatalog(JSON.parse(readFileSync('.cache/catalog/catalog.json','utf8')));
 const variants=JSON.parse(readFileSync('src/data/bot-profiles/scenarios.json','utf8'));
 const times = [];
+const predictions=new Map();
 let count = 0;
 for (const guide of DECK_GUIDES.filter(g => g.lessons.some(l=>l.practice))) {
   const deck = getPresetDeck(guide.presetId);
@@ -33,8 +34,9 @@ for (const guide of DECK_GUIDES.filter(g => g.lessons.some(l=>l.practice))) {
       await session.start({
         playerName:'Bot sob teste',playerDeck:deck,opponentName:'Parceiro',opponentDeck:getPresetDeck('tcg-sdy'),
         format:'tcg',registry,assets:nodeAssets,pace:0,cutIns:false,openingHands:[lesson.startingHand,getPresetDeck('tcg-sdy').main.slice(0,5)],watchSeat:0,
-        seats:[{kind:'bot',name:'Bot',bot:{difficulty,profile:routeProfile,onDecision(t){
+        seats:[{kind:'bot',name:'Bot',bot:{difficulty,execution:process.env.BOT_EXECUTION??'inline',candidateComparison:process.env.BOT_EXPERIMENTAL==='1',profile:routeProfile,onDecision(t){
           trace.push(t); times.push(t.elapsedMs);
+          for(const check of t.planning?.predictions??[])predictions.set(`${guide.id}/${lesson.id}/${difficulty}/${check.transition}/${check.turn}`,check.result);
           if (++decisions > 160) throw new Error('decisões excessivas');
           if (t.prompt === M.SELECT_IDLECMD && session.getSnapshot().turnCount===1) {
             const board = readBoardState(session.core,session.handle,0);
@@ -54,4 +56,4 @@ for (const guide of DECK_GUIDES.filter(g => g.lessons.some(l=>l.practice))) {
     } finally {session.dispose();}
   }
 }
-console.log(JSON.stringify({routes:count,cpu:timingPercentiles(times)},null,2));
+console.log(JSON.stringify({routes:count,cpu:timingPercentiles(times),predictions:Object.fromEntries(["confirmed","diverged","interrupted"].map(result=>[result,[...predictions.values()].filter(x=>x===result).length]))},null,2));

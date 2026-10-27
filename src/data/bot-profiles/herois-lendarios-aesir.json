@@ -400,6 +400,36 @@
         "continuation": 1,
         "cost": 3,
         "exposure": 3
+      },
+      "deckRequirements": {
+        "main": [
+          {
+            "code": 13455953,
+            "count": 1
+          },
+          {
+            "code": 14677495,
+            "count": 1
+          },
+          {
+            "code": 15394083,
+            "count": 1
+          },
+          {
+            "code": 41788781,
+            "count": 1
+          }
+        ],
+        "extra": [
+          {
+            "code": 30604579,
+            "count": 1
+          },
+          {
+            "code": 90207654,
+            "count": 1
+          }
+        ]
       }
     },
     {
@@ -630,6 +660,36 @@
         "continuation": 1,
         "cost": 3,
         "exposure": 3
+      },
+      "deckRequirements": {
+        "main": [
+          {
+            "code": 13455953,
+            "count": 1
+          },
+          {
+            "code": 40666140,
+            "count": 1
+          },
+          {
+            "code": 40844552,
+            "count": 1
+          },
+          {
+            "code": 88283496,
+            "count": 1
+          }
+        ],
+        "extra": [
+          {
+            "code": 90207654,
+            "count": 1
+          },
+          {
+            "code": 93483212,
+            "count": 1
+          }
+        ]
       }
     },
     {
@@ -860,6 +920,36 @@
         "continuation": 1,
         "cost": 3,
         "exposure": 3
+      },
+      "deckRequirements": {
+        "main": [
+          {
+            "code": 13455953,
+            "count": 1
+          },
+          {
+            "code": 15394083,
+            "count": 1
+          },
+          {
+            "code": 76348260,
+            "count": 1
+          },
+          {
+            "code": 77060848,
+            "count": 1
+          }
+        ],
+        "extra": [
+          {
+            "code": 67098114,
+            "count": 1
+          },
+          {
+            "code": 90207654,
+            "count": 1
+          }
+        ]
       }
     },
     {
@@ -1091,7 +1181,37 @@
         "cost": 3,
         "exposure": 3
       },
-      "minDifficulty": "hard"
+      "minDifficulty": "hard",
+      "deckRequirements": {
+        "main": [
+          {
+            "code": 14677495,
+            "count": 1
+          },
+          {
+            "code": 15394083,
+            "count": 1
+          },
+          {
+            "code": 40666140,
+            "count": 1
+          },
+          {
+            "code": 41788781,
+            "count": 1
+          }
+        ],
+        "extra": [
+          {
+            "code": 30604579,
+            "count": 1
+          },
+          {
+            "code": 90207654,
+            "count": 1
+          }
+        ]
+      }
     },
     {
       "id": "thor--40844552",
@@ -1322,7 +1442,37 @@
         "cost": 3,
         "exposure": 3
       },
-      "minDifficulty": "hard"
+      "minDifficulty": "hard",
+      "deckRequirements": {
+        "main": [
+          {
+            "code": 14677495,
+            "count": 1
+          },
+          {
+            "code": 15394083,
+            "count": 1
+          },
+          {
+            "code": 40844552,
+            "count": 1
+          },
+          {
+            "code": 41788781,
+            "count": 1
+          }
+        ],
+        "extra": [
+          {
+            "code": 30604579,
+            "count": 1
+          },
+          {
+            "code": 90207654,
+            "count": 1
+          }
+        ]
+      }
     },
     {
       "id": "thor--61777313",
@@ -1553,7 +1703,37 @@
         "cost": 3,
         "exposure": 3
       },
-      "minDifficulty": "hard"
+      "minDifficulty": "hard",
+      "deckRequirements": {
+        "main": [
+          {
+            "code": 14677495,
+            "count": 1
+          },
+          {
+            "code": 15394083,
+            "count": 1
+          },
+          {
+            "code": 41788781,
+            "count": 1
+          },
+          {
+            "code": 61777313,
+            "count": 1
+          }
+        ],
+        "extra": [
+          {
+            "code": 30604579,
+            "count": 1
+          },
+          {
+            "code": 90207654,
+            "count": 1
+          }
+        ]
+      }
     },
     {
       "id": "thor--73417207",
@@ -1784,7 +1964,37 @@
         "cost": 3,
         "exposure": 3
       },
-      "minDifficulty": "hard"
+      "minDifficulty": "hard",
+      "deckRequirements": {
+        "main": [
+          {
+            "code": 14677495,
+            "count": 1
+          },
+          {
+            "code": 15394083,
+            "count": 1
+          },
+          {
+            "code": 41788781,
+            "count": 1
+          },
+          {
+            "code": 73417207,
+            "count": 1
+          }
+        ],
+        "extra": [
+          {
+            "code": 30604579,
+            "count": 1
+          },
+          {
+            "code": 90207654,
+            "count": 1
+          }
+        ]
+      }
     },
     {
       "id": "thor--76348260",
@@ -2015,7 +2225,37 @@
         "cost": 3,
         "exposure": 3
       },
-      "minDifficulty": "hard"
+      "minDifficulty": "hard",
+      "deckRequirements": {
+        "main": [
+          {
+            "code": 14677495,
+            "count": 1
+          },
+          {
+            "code": 15394083,
+            "count": 1
+          },
+          {
+            "code": 41788781,
+            "count": 1
+          },
+          {
+            "code": 76348260,
+            "count": 1
+          }
+        ],
+        "extra": [
+          {
+            "code": 30604579,
+            "count": 1
+          },
+          {
+            "code": 90207654,
+            "count": 1
+          }
+        ]
+      }
     },
     {
       "id": "thor--88283496",
@@ -2246,7 +2486,37 @@
         "cost": 3,
         "exposure": 3
       },
-      "minDifficulty": "hard"
+      "minDifficulty": "hard",
+      "deckRequirements": {
+        "main": [
+          {
+            "code": 14677495,
+            "count": 1
+          },
+          {
+            "code": 15394083,
+            "count": 1
+          },
+          {
+            "code": 41788781,
+            "count": 1
+          },
+          {
+            "code": 88283496,
+            "count": 1
+          }
+        ],
+        "extra": [
+          {
+            "code": 30604579,
+            "count": 1
+          },
+          {
+            "code": 90207654,
+            "count": 1
+          }
+        ]
+      }
     },
     {
       "id": "odin--14677495",
@@ -2477,7 +2747,37 @@
         "cost": 3,
         "exposure": 3
       },
-      "minDifficulty": "hard"
+      "minDifficulty": "hard",
+      "deckRequirements": {
+        "main": [
+          {
+            "code": 14677495,
+            "count": 1
+          },
+          {
+            "code": 40666140,
+            "count": 1
+          },
+          {
+            "code": 40844552,
+            "count": 1
+          },
+          {
+            "code": 88283496,
+            "count": 1
+          }
+        ],
+        "extra": [
+          {
+            "code": 90207654,
+            "count": 1
+          },
+          {
+            "code": 93483212,
+            "count": 1
+          }
+        ]
+      }
     },
     {
       "id": "odin--15394083",
@@ -2708,7 +3008,37 @@
         "cost": 3,
         "exposure": 3
       },
-      "minDifficulty": "hard"
+      "minDifficulty": "hard",
+      "deckRequirements": {
+        "main": [
+          {
+            "code": 15394083,
+            "count": 1
+          },
+          {
+            "code": 40666140,
+            "count": 1
+          },
+          {
+            "code": 40844552,
+            "count": 1
+          },
+          {
+            "code": 88283496,
+            "count": 1
+          }
+        ],
+        "extra": [
+          {
+            "code": 90207654,
+            "count": 1
+          },
+          {
+            "code": 93483212,
+            "count": 1
+          }
+        ]
+      }
     },
     {
       "id": "odin--41788781",
@@ -2939,7 +3269,37 @@
         "cost": 3,
         "exposure": 3
       },
-      "minDifficulty": "hard"
+      "minDifficulty": "hard",
+      "deckRequirements": {
+        "main": [
+          {
+            "code": 40666140,
+            "count": 1
+          },
+          {
+            "code": 40844552,
+            "count": 1
+          },
+          {
+            "code": 41788781,
+            "count": 1
+          },
+          {
+            "code": 88283496,
+            "count": 1
+          }
+        ],
+        "extra": [
+          {
+            "code": 90207654,
+            "count": 1
+          },
+          {
+            "code": 93483212,
+            "count": 1
+          }
+        ]
+      }
     },
     {
       "id": "odin--61777313",
@@ -3170,7 +3530,37 @@
         "cost": 3,
         "exposure": 3
       },
-      "minDifficulty": "hard"
+      "minDifficulty": "hard",
+      "deckRequirements": {
+        "main": [
+          {
+            "code": 40666140,
+            "count": 1
+          },
+          {
+            "code": 40844552,
+            "count": 1
+          },
+          {
+            "code": 61777313,
+            "count": 1
+          },
+          {
+            "code": 88283496,
+            "count": 1
+          }
+        ],
+        "extra": [
+          {
+            "code": 90207654,
+            "count": 1
+          },
+          {
+            "code": 93483212,
+            "count": 1
+          }
+        ]
+      }
     },
     {
       "id": "odin--73417207",
@@ -3401,7 +3791,37 @@
         "cost": 3,
         "exposure": 3
       },
-      "minDifficulty": "hard"
+      "minDifficulty": "hard",
+      "deckRequirements": {
+        "main": [
+          {
+            "code": 40666140,
+            "count": 1
+          },
+          {
+            "code": 40844552,
+            "count": 1
+          },
+          {
+            "code": 73417207,
+            "count": 1
+          },
+          {
+            "code": 88283496,
+            "count": 1
+          }
+        ],
+        "extra": [
+          {
+            "code": 90207654,
+            "count": 1
+          },
+          {
+            "code": 93483212,
+            "count": 1
+          }
+        ]
+      }
     },
     {
       "id": "odin--76348260",
@@ -3632,7 +4052,37 @@
         "cost": 3,
         "exposure": 3
       },
-      "minDifficulty": "hard"
+      "minDifficulty": "hard",
+      "deckRequirements": {
+        "main": [
+          {
+            "code": 40666140,
+            "count": 1
+          },
+          {
+            "code": 40844552,
+            "count": 1
+          },
+          {
+            "code": 76348260,
+            "count": 1
+          },
+          {
+            "code": 88283496,
+            "count": 1
+          }
+        ],
+        "extra": [
+          {
+            "code": 90207654,
+            "count": 1
+          },
+          {
+            "code": 93483212,
+            "count": 1
+          }
+        ]
+      }
     },
     {
       "id": "loki--14677495",
@@ -3863,7 +4313,37 @@
         "cost": 3,
         "exposure": 3
       },
-      "minDifficulty": "hard"
+      "minDifficulty": "hard",
+      "deckRequirements": {
+        "main": [
+          {
+            "code": 14677495,
+            "count": 1
+          },
+          {
+            "code": 15394083,
+            "count": 1
+          },
+          {
+            "code": 76348260,
+            "count": 1
+          },
+          {
+            "code": 77060848,
+            "count": 1
+          }
+        ],
+        "extra": [
+          {
+            "code": 67098114,
+            "count": 1
+          },
+          {
+            "code": 90207654,
+            "count": 1
+          }
+        ]
+      }
     },
     {
       "id": "loki--40666140",
@@ -4094,7 +4574,37 @@
         "cost": 3,
         "exposure": 3
       },
-      "minDifficulty": "hard"
+      "minDifficulty": "hard",
+      "deckRequirements": {
+        "main": [
+          {
+            "code": 15394083,
+            "count": 1
+          },
+          {
+            "code": 40666140,
+            "count": 1
+          },
+          {
+            "code": 76348260,
+            "count": 1
+          },
+          {
+            "code": 77060848,
+            "count": 1
+          }
+        ],
+        "extra": [
+          {
+            "code": 67098114,
+            "count": 1
+          },
+          {
+            "code": 90207654,
+            "count": 1
+          }
+        ]
+      }
     },
     {
       "id": "loki--40844552",
@@ -4325,7 +4835,37 @@
         "cost": 3,
         "exposure": 3
       },
-      "minDifficulty": "hard"
+      "minDifficulty": "hard",
+      "deckRequirements": {
+        "main": [
+          {
+            "code": 15394083,
+            "count": 1
+          },
+          {
+            "code": 40844552,
+            "count": 1
+          },
+          {
+            "code": 76348260,
+            "count": 1
+          },
+          {
+            "code": 77060848,
+            "count": 1
+          }
+        ],
+        "extra": [
+          {
+            "code": 67098114,
+            "count": 1
+          },
+          {
+            "code": 90207654,
+            "count": 1
+          }
+        ]
+      }
     },
     {
       "id": "loki--41788781",
@@ -4556,7 +5096,37 @@
         "cost": 3,
         "exposure": 3
       },
-      "minDifficulty": "hard"
+      "minDifficulty": "hard",
+      "deckRequirements": {
+        "main": [
+          {
+            "code": 15394083,
+            "count": 1
+          },
+          {
+            "code": 41788781,
+            "count": 1
+          },
+          {
+            "code": 76348260,
+            "count": 1
+          },
+          {
+            "code": 77060848,
+            "count": 1
+          }
+        ],
+        "extra": [
+          {
+            "code": 67098114,
+            "count": 1
+          },
+          {
+            "code": 90207654,
+            "count": 1
+          }
+        ]
+      }
     },
     {
       "id": "loki--61777313",
@@ -4787,7 +5357,37 @@
         "cost": 3,
         "exposure": 3
       },
-      "minDifficulty": "hard"
+      "minDifficulty": "hard",
+      "deckRequirements": {
+        "main": [
+          {
+            "code": 15394083,
+            "count": 1
+          },
+          {
+            "code": 61777313,
+            "count": 1
+          },
+          {
+            "code": 76348260,
+            "count": 1
+          },
+          {
+            "code": 77060848,
+            "count": 1
+          }
+        ],
+        "extra": [
+          {
+            "code": 67098114,
+            "count": 1
+          },
+          {
+            "code": 90207654,
+            "count": 1
+          }
+        ]
+      }
     },
     {
       "id": "loki--73417207",
@@ -5018,7 +5618,37 @@
         "cost": 3,
         "exposure": 3
       },
-      "minDifficulty": "hard"
+      "minDifficulty": "hard",
+      "deckRequirements": {
+        "main": [
+          {
+            "code": 15394083,
+            "count": 1
+          },
+          {
+            "code": 73417207,
+            "count": 1
+          },
+          {
+            "code": 76348260,
+            "count": 1
+          },
+          {
+            "code": 77060848,
+            "count": 1
+          }
+        ],
+        "extra": [
+          {
+            "code": 67098114,
+            "count": 1
+          },
+          {
+            "code": 90207654,
+            "count": 1
+          }
+        ]
+      }
     },
     {
       "id": "loki--88283496",
@@ -5249,8 +5879,47 @@
         "cost": 3,
         "exposure": 3
       },
-      "minDifficulty": "hard"
+      "minDifficulty": "hard",
+      "deckRequirements": {
+        "main": [
+          {
+            "code": 15394083,
+            "count": 1
+          },
+          {
+            "code": 76348260,
+            "count": 1
+          },
+          {
+            "code": 77060848,
+            "count": 1
+          },
+          {
+            "code": 88283496,
+            "count": 1
+          }
+        ],
+        "extra": [
+          {
+            "code": 67098114,
+            "count": 1
+          },
+          {
+            "code": 90207654,
+            "count": 1
+          }
+        ]
+      }
     }
   ],
-  "coverage": "3 planos principais · 19 variações de início para o Difícil"
+  "coverage": "3 planos principais · 19 variações de início para o Difícil",
+  "engineRequirements": {
+    "main": [],
+    "extra": [
+      {
+        "code": 90207654,
+        "count": 1
+      }
+    ]
+  }
 }

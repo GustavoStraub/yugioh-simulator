@@ -1,0 +1,192 @@
+{
+  "schema": 1,
+  "revision": "3ab76a5d74f75238f05d52c585a9e274a306c86f",
+  "node": "v26.0.0",
+  "entry": "src/lib/duel/bot/bot-brain.mjs",
+  "external": [
+    "@n1xx1/ocgcore-wasm"
+  ],
+  "lockHash": "558fe6331e3183fb523403ea42446bc87a0b657cb02a8af6ec9c38a097b414ad",
+  "files": {
+    "src/lib/duel/announce-filter.mjs": {
+      "source": "src/lib/duel/announce-filter.ts",
+      "sourceHash": "b0502dbf8c8a2d1edcfbd42e0f5356a6edf93193aae405755d73a585fb5fb7d6",
+      "sha256": "e7180e6c38e5a2ccdae1609626693b5ee2ba5db4f30018f0bf21e9a6193db66d"
+    },
+    "src/lib/duel/field-places.mjs": {
+      "source": "src/lib/duel/field-places.ts",
+      "sourceHash": "244da52d93e2b55b94b56f5e31563374896a0103c3f6a8963dca1328c682124b",
+      "sha256": "b6e24be097c0d869772a081eda8145bac9a01244b55c4cae2aed8395cdae14bf"
+    },
+    "src/lib/duel/sum-selection.mjs": {
+      "source": "src/lib/duel/sum-selection.ts",
+      "sourceHash": "fddcf0a62b7689128ccc550be89538047747c83f6e75492ad7e2469da11d66b7",
+      "sha256": "ec7ae3dbd8b6a099a46e20a26a1f36df15ea9d86fcec241f070d7dc9bb60e0d0"
+    },
+    "src/lib/duel/bot-responder.mjs": {
+      "source": "src/lib/duel/bot-responder.ts",
+      "sourceHash": "5ba6b7b9c2dfc9fa7dc65f8b61e8ff2d78aad3855c4691d1701cfe4182a4ec64",
+      "sha256": "fd954a4d1700498d8e300d4fc4239412515318dfd17dff13052877520cb66a84"
+    },
+    "src/lib/duel/bot/card-intel.mjs": {
+      "source": "src/lib/duel/bot/card-intel.ts",
+      "sourceHash": "0f28a9be9ac05d3c4f7fbe3d49f27731587237b098155c7279b2d293c290d449",
+      "sha256": "d70d83f566cd0103ec392ede042167e9b6533e4c1a22c17722bea7f3296439ab"
+    },
+    "src/lib/duel/bot/combat.mjs": {
+      "source": "src/lib/duel/bot/combat.ts",
+      "sourceHash": "0862f0ffd812e39f2418f05a4200ef594100c4ddce42a1c38c3e1f96b677e50b",
+      "sha256": "53066df0ca85f8c6c1f991459574916e212f050bea5e65eabf7055b04915ac9c"
+    },
+    "src/lib/duel/bot/difficulty.mjs": {
+      "source": "src/lib/duel/bot/difficulty.ts",
+      "sourceHash": "9de393b37822c86e663bb688a0ccd65ad0a4bf93c0a91bde8c58daeab05a84bc",
+      "sha256": "ec8f2f02a099f2fef596fa62d1f395400a7a37aeb256824cbd9ac6312eae0227"
+    },
+    "src/data/bot-profiles/albaz-strike.json": {
+      "source": "src/data/bot-profiles/albaz-strike.json",
+      "sourceHash": "28c318fa8bcaeccc49b84b5a950b496410b83f856b882fa345b6b6646f8784dc",
+      "sha256": "28c318fa8bcaeccc49b84b5a950b496410b83f856b882fa345b6b6646f8784dc"
+    },
+    "src/data/deck-guides/albaz-strike.json": {
+      "source": "src/data/deck-guides/albaz-strike.json",
+      "sourceHash": "83fe5de59ca308977b625b61f49e716f00f84b74d7d3a8382d05d146a4eb471b",
+      "sha256": "83fe5de59ca308977b625b61f49e716f00f84b74d7d3a8382d05d146a4eb471b"
+    },
+    "src/data/bot-profiles/herois-lendarios-aesir.json": {
+      "source": "src/data/bot-profiles/herois-lendarios-aesir.json",
+      "sourceHash": "8adbcedb905dbe389aeff127adc051ca3ef8d2d0b3cee839269989d97c5af7c2",
+      "sha256": "8adbcedb905dbe389aeff127adc051ca3ef8d2d0b3cee839269989d97c5af7c2"
+    },
+    "src/data/deck-guides/herois-lendarios-aesir.json": {
+      "source": "src/data/deck-guides/herois-lendarios-aesir.json",
+      "sourceHash": "cee27ed7855136d74b746c21bc839f89236c202d09eddb0c5359333adfa50410",
+      "sha256": "cee27ed7855136d74b746c21bc839f89236c202d09eddb0c5359333adfa50410"
+    },
+    "src/data/bot-profiles/herois-lendarios-destiny-hero.json": {
+      "source": "src/data/bot-profiles/herois-lendarios-destiny-hero.json",
+      "sourceHash": "19b3c8fad39b235a71fae24b45f68de40e5a3bcdadd0b168aadb8d00e1201d02",
+      "sha256": "19b3c8fad39b235a71fae24b45f68de40e5a3bcdadd0b168aadb8d00e1201d02"
+    },
+    "src/data/deck-guides/herois-lendarios-destiny-hero.json": {
+      "source": "src/data/deck-guides/herois-lendarios-destiny-hero.json",
+      "sourceHash": "65dee9d7eb6418b9d1ad96f47b8564a81f5ac0f43469dda050dea34c81b9f343",
+      "sha256": "65dee9d7eb6418b9d1ad96f47b8564a81f5ac0f43469dda050dea34c81b9f343"
+    },
+    "src/data/bot-profiles/herois-lendarios-cavaleiros-fantasmas.json": {
+      "source": "src/data/bot-profiles/herois-lendarios-cavaleiros-fantasmas.json",
+      "sourceHash": "1ded778c603c107df5a0f692e8300674eb64a7d89ccfe54b2ed87f255c9e73f9",
+      "sha256": "1ded778c603c107df5a0f692e8300674eb64a7d89ccfe54b2ed87f255c9e73f9"
+    },
+    "src/data/deck-guides/herois-lendarios-cavaleiros-fantasmas.json": {
+      "source": "src/data/deck-guides/herois-lendarios-cavaleiros-fantasmas.json",
+      "sourceHash": "c3613ac712670c6d1ab46f8bc531d74c010de81f1eb4d9e8391884f4907516e9",
+      "sha256": "c3613ac712670c6d1ab46f8bc531d74c010de81f1eb4d9e8391884f4907516e9"
+    },
+    "src/data/bot-profiles/manifest.json": {
+      "source": "src/data/bot-profiles/manifest.json",
+      "sourceHash": "aa809fac61f5412fc903448f2586b7a0dbbc57c342aa8cdc158a9665b06df47b",
+      "sha256": "aa809fac61f5412fc903448f2586b7a0dbbc57c342aa8cdc158a9665b06df47b"
+    },
+    "src/lib/duel/bot/deck-profile.mjs": {
+      "source": "src/lib/duel/bot/deck-profile.ts",
+      "sourceHash": "e4240b61fd3e8db6c60191c6671b46bdf386f80a7e7002f2aa87fbaed6c7bd22",
+      "sha256": "ac45296bd0ebe8bbe6f21fb3c421cfd08478195881c458686f4cd8270637230e"
+    },
+    "src/lib/duel/bot/evaluator.mjs": {
+      "source": "src/lib/duel/bot/evaluator.ts",
+      "sourceHash": "71846c528781b2fc6e0dfff165fe53bb3aa7c1f110306d9cd3c563213f5dde09",
+      "sha256": "4e4cd00eeef13de293e59e158cfc9f7857353531264891eada0ebf2e2fe0a2e6"
+    },
+    "src/lib/duel/bot/intent.mjs": {
+      "source": "src/lib/duel/bot/intent.ts",
+      "sourceHash": "ef7e4ea21363bb42a7e0d98ee06570f5ed0f22a6de6421a18513f36ff0a5f681",
+      "sha256": "c82e3480993d53e3a2cfa51894c261623190c8d2b7aaea8f22ccc9eb5f47d1a3"
+    },
+    "src/lib/duel/bot/planner.mjs": {
+      "source": "src/lib/duel/bot/planner.ts",
+      "sourceHash": "efcac0621c8d011a6ef07846b595cdea6daf90f87128bcd442d03bec6e97c66b",
+      "sha256": "8f2aca29b49af8b03cc4f1eb406461379e2b2b3eea87882a4708ba7a16afe293"
+    },
+    "src/data/bot-guide-hints.json": {
+      "source": "src/data/bot-guide-hints.json",
+      "sourceHash": "90952ca519d866c0567501deff88b50c6795e307ec287adca0787134661f9a61",
+      "sha256": "90952ca519d866c0567501deff88b50c6795e307ec287adca0787134661f9a61"
+    },
+    "src/lib/duel/bot/guide-hints.mjs": {
+      "source": "src/lib/duel/bot/guide-hints.ts",
+      "sourceHash": "16acf9fb71cc4ff1d47336b9cf6461c24f6b4eece12a708304715ec5296d4476",
+      "sha256": "1b3f3ecb1006ffc5cc296bce61ca9a71e58b73d60c947c3120e44223ba14c6f0"
+    },
+    "src/lib/duel/bot/decision-policy.mjs": {
+      "source": "src/lib/duel/bot/decision-policy.ts",
+      "sourceHash": "a7e78e31a7c4eb5f0204f9ac8d27c2d04d2d6c61687398976c7ff8e4377a3301",
+      "sha256": "2847e38ec179dfcf66a2311dc219ccba4addcded05bf1d7f59856c94bf3b0d55"
+    },
+    "src/lib/duel/bot/effect-handlers.mjs": {
+      "source": "src/lib/duel/bot/effect-handlers.ts",
+      "sourceHash": "5b48c808ae1aa1abda3910156cdbc802635281cdf393dd81cf07359ad02d1658",
+      "sha256": "045b44f4ac20f04c43f7fc87f8ff10148887e98843346beb1b8badcf6bb38994"
+    },
+    "src/lib/duel/bot/battle-planner.mjs": {
+      "source": "src/lib/duel/bot/battle-planner.ts",
+      "sourceHash": "4d3dc751f0e493c84d662313a87590bb45b284dabdf33e2ba27cbe269f064adc",
+      "sha256": "bfc70a6f41ee097f7b6ab0b44e39e013bb90199eeb5b83cff6ab2f0b5324c1bd"
+    },
+    "src/lib/duel/bot/response-validator.mjs": {
+      "source": "src/lib/duel/bot/response-validator.ts",
+      "sourceHash": "967b240b8ee9444c6f25f1f7243f34d0e298835b99b017cfdba79b23621bdbc1",
+      "sha256": "a85724f29225bae799aaec86640bb6e7283c839fbddc80552d84f9141008694e"
+    },
+    "src/lib/duel/link-geometry.mjs": {
+      "source": "src/lib/duel/link-geometry.ts",
+      "sourceHash": "81cde6ca14d6bd97235747121c56790bb436046433fa39e80e258be466d5c665",
+      "sha256": "42efd1cac3ffd9adb2163f0e7e24f99b171bdb029b9dbff54e876a54ef0ec80b"
+    },
+    "src/lib/duel/bot/decision-trace.mjs": {
+      "source": "src/lib/duel/bot/decision-trace.ts",
+      "sourceHash": "986b53ff6433bd5f49e47ef5e1e78dd5ff9e8a4e3945fb748e8f3a24d20119e2",
+      "sha256": "2015feca82a696b6c318421e60f4b371e914a4fe43555ccd196cacf87c8184b1"
+    },
+    "src/lib/duel/bot/bot-brain.mjs": {
+      "source": "src/lib/duel/bot/bot-brain.ts",
+      "sourceHash": "992169645e441c5781adfc49d20368321e506bc56609add50ebbd60f61fcb2f8",
+      "sha256": "3954261b97af3f431b3a6ca6598311704286e8a8225351075200a30e191ab92f"
+    },
+    "src/lib/duel/auto-response.mjs": {
+      "source": "src/lib/duel/auto-response.ts",
+      "sourceHash": "277dfc91024af5b415724695187f3e2b3b1dab190a86b585e9221bd2ea000665",
+      "sha256": "03bb1c9fef695d0ed4092a22f77a9e42fb3a1cbf57342256411bf450ede632ed"
+    },
+    "src/lib/duel/attributes.mjs": {
+      "source": "src/lib/duel/attributes.ts",
+      "sourceHash": "670876b19c6bd0bafc2ce8fe011ad0037aa7d3bf4b0f7a4d22ce720b7c14866e",
+      "sha256": "8b5a827664862400ac2b90cbeb47c7f3e17a6decd098dc90187f098c6c99e6e9"
+    },
+    "src/lib/duel/board-state.mjs": {
+      "source": "src/lib/duel/board-state.ts",
+      "sourceHash": "c32ed0d419996810f88d546e41f1bf52b30e75a304aa9619ccf29525ed510a63",
+      "sha256": "aad3533aa00a560c189facb5a1846d067ff898502708c215bc872825a44bafae"
+    },
+    "src/lib/duel/official-card-data.mjs": {
+      "source": "src/lib/duel/official-card-data.ts",
+      "sourceHash": "2adbc2ee83e4c7fbc23125206202cc83a50c387fa7fc1102ae5fdb53d4304404",
+      "sha256": "22f4db0f83960a67d636c327b6f4c29b8a169827e73c05dc6928faeb1c086816"
+    },
+    "src/data/card-db.json": {
+      "source": "src/data/card-db.json",
+      "sourceHash": "97db5a475a4c97480fe3cd0a7883849e47262145428c146d14f9b8e133c74af1",
+      "sha256": "97db5a475a4c97480fe3cd0a7883849e47262145428c146d14f9b8e133c74af1"
+    },
+    "src/data/preset-decks.json": {
+      "source": "src/data/preset-decks.json",
+      "sourceHash": "3f8476e781b3c5b29f40516307c2c230df99b9818c75bcfb8e1c0ba7d53818ba",
+      "sha256": "3f8476e781b3c5b29f40516307c2c230df99b9818c75bcfb8e1c0ba7d53818ba"
+    },
+    "src/data/preset-decks-tcg.json": {
+      "source": "src/data/preset-decks-tcg.json",
+      "sourceHash": "db19796ec82770a5b78a3fc18ded8395b8461b77b36ca89d7015c34914073eee",
+      "sha256": "db19796ec82770a5b78a3fc18ded8395b8461b77b36ca89d7015c34914073eee"
+    }
+  }
+}

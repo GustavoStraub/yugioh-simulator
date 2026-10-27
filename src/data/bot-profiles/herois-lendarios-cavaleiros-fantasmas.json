@@ -245,6 +245,24 @@
         "continuation": 1,
         "cost": 0,
         "exposure": 3
+      },
+      "deckRequirements": {
+        "main": [
+          {
+            "code": 36426778,
+            "count": 1
+          },
+          {
+            "code": 90432163,
+            "count": 1
+          }
+        ],
+        "extra": [
+          {
+            "code": 62709239,
+            "count": 1
+          }
+        ]
       }
     },
     {
@@ -462,6 +480,40 @@
         "continuation": 2,
         "cost": 0,
         "exposure": 5
+      },
+      "deckRequirements": {
+        "main": [
+          {
+            "code": 19353570,
+            "count": 1
+          },
+          {
+            "code": 25542642,
+            "count": 1
+          },
+          {
+            "code": 36426778,
+            "count": 1
+          },
+          {
+            "code": 63821877,
+            "count": 1
+          },
+          {
+            "code": 90432163,
+            "count": 1
+          },
+          {
+            "code": 98431356,
+            "count": 1
+          }
+        ],
+        "extra": [
+          {
+            "code": 26692769,
+            "count": 1
+          }
+        ]
       }
     },
     {
@@ -723,6 +775,36 @@
         "continuation": 2,
         "cost": 0,
         "exposure": 7
+      },
+      "deckRequirements": {
+        "main": [
+          {
+            "code": 25542642,
+            "count": 1
+          },
+          {
+            "code": 36426778,
+            "count": 1
+          },
+          {
+            "code": 63821877,
+            "count": 1
+          },
+          {
+            "code": 81439173,
+            "count": 1
+          },
+          {
+            "code": 90432163,
+            "count": 1
+          }
+        ],
+        "extra": [
+          {
+            "code": 95992081,
+            "count": 1
+          }
+        ]
       }
     },
     {
@@ -838,8 +920,35 @@
         "cost": 0,
         "exposure": 3
       },
-      "minDifficulty": "hard"
+      "minDifficulty": "hard",
+      "deckRequirements": {
+        "main": [
+          {
+            "code": 36426778,
+            "count": 1
+          },
+          {
+            "code": 63821877,
+            "count": 1
+          }
+        ],
+        "extra": [
+          {
+            "code": 62709239,
+            "count": 1
+          }
+        ]
+      }
     }
   ],
-  "coverage": "3 rotas revisadas · Heróis Lendários — Cavaleiros Fantasmas"
+  "coverage": "3 rotas revisadas · Heróis Lendários — Cavaleiros Fantasmas",
+  "engineRequirements": {
+    "main": [
+      {
+        "code": 36426778,
+        "count": 1
+      }
+    ],
+    "extra": []
+  }
 }

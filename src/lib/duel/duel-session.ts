@@ -37,6 +37,8 @@ import {
 } from "@/lib/duel/card-adapter";
 import { findPromptMessage } from "@/lib/duel/bot-responder";
 import { BotBrain, type BotContext, type BotConfig } from "@/lib/duel/bot/bot-brain";
+import { createBotPilot } from "@/lib/duel/bot/analysis-controller";
+import type { BotPilot } from "@/lib/duel/bot/analysis-protocol";
 import { BotKnowledge } from "@/lib/duel/bot/knowledge";
 import { loadBotProfile } from "@/lib/duel/bot/deck-profile";
 import { beatFor, CUT_IN_MS, leaveBeat, phaseBeat, MAX_BEAT_PER_BATCH_MS } from "@/lib/duel/pacing";
@@ -549,7 +551,7 @@ export class DuelSession {
    * seguinte — e ser separado por assento, porque num duelo bot contra bot os
    * dois estão decidindo ao mesmo tempo.
    */
-  private readonly brains = new Map<0 | 1, BotBrain>();
+  private readonly brains = new Map<0 | 1, BotPilot>();
   private readonly botKnowledge: [BotKnowledge, BotKnowledge] = [new BotKnowledge(0), new BotKnowledge(1)];
   /**
    * Monstro sendo Invocado agora, para o bot (`BotContext.summoning`).
@@ -607,6 +609,7 @@ export class DuelSession {
   /** Libera a tentativa ao sair da mesa ou recomeçar um exercício. */
   dispose(): void {
     this.disposed = true;
+    for (const brain of this.brains.values()) brain.dispose?.();
     this.hurry();
     this.listeners.clear();
     this.eventListeners.clear();
@@ -696,8 +699,11 @@ export class DuelSession {
         if (this.seats[seat].kind !== "bot") return;
         const deck = seat === humanSeat ? config.playerDeck : config.opponentDeck;
         const options = this.seats[seat].bot ?? config.bot ?? {};
-        const profile = options.profile === undefined ? await loadBotProfile(deck, format) : options.profile;
-        if (!this.disposed) this.brains.set(seat, new BotBrain({ ...options, deck, format, profile }));
+        const profile = options.profile === undefined ? await loadBotProfile(deck, format,{allowPartial:options.partialProfiles}) : options.profile;
+        const useWorker = options.execution === "worker" || options.execution !== "inline" && typeof window !== "undefined";
+        const pilot = await createBotPilot({ ...options, deck, format, profile },cardDb,
+          useWorker ? this.assets.createBotWorker?.bind(this.assets) : undefined);
+        if (!this.disposed) this.brains.set(seat,pilot); else pilot.dispose?.();
       }));
       if (this.disposed) return;
 
@@ -1175,7 +1181,10 @@ export class DuelSession {
             this.snapshot.chainLinks.findLast((link) => link.state === "resolving")?.code ?? null,
         });
         if (automatic) {
-          this.core.duelSetResponse(this.handle, automatic);
+          const response = this.seats[promptPlayer].kind === "bot"
+            ? await this.botFor(promptPlayer).decide(this.botContext(prompt, promptPlayer)) : automatic;
+          if (this.disposed || !this.core || !this.handle || !response) break;
+          this.core.duelSetResponse(this.handle,response);
           this.selectHint = null;
           continue;
         }
@@ -1200,10 +1209,9 @@ export class DuelSession {
         }
 
         if (this.seats[promptPlayer].kind === "bot") {
-          this.core.duelSetResponse(
-            this.handle,
-            this.botFor(promptPlayer).decide(this.botContext(prompt, promptPlayer)),
-          );
+          const response = await this.botFor(promptPlayer).decide(this.botContext(prompt, promptPlayer));
+          if (this.disposed || !this.core || !this.handle || !response) break;
+          this.core.duelSetResponse(this.handle,response);
           this.selectHint = null;
           continue;
         }
@@ -2241,7 +2249,7 @@ export class DuelSession {
     this.setLifePoints(player, this.snapshot.lifePoints[player] + delta);
   }
 
-  private botFor(seat: 0 | 1): BotBrain {
+  private botFor(seat: 0 | 1): BotPilot {
     let brain = this.brains.get(seat);
     if (!brain) {
       brain = new BotBrain();
@@ -2259,9 +2267,11 @@ export class DuelSession {
    * heurística consulte o campo em vários pontos.
    */
   private botContext(prompt: OcgMessage, seat: 0 | 1): BotContext {
+    const decisionStartedAt = performance.now();
     const { core, handle } = this;
     const cache = new Map<boolean, BoardState>();
     const context: BotContext = {
+      decisionStartedAt,
       prompt,
       me: seat,
       readBoard: (full: boolean) => {

@@ -24,5 +24,8 @@ export class BotIntentStack {
       && (intent.description === undefined || intent.description === effect.description)) ?? null;
   }
   clear(): void { this.intents = []; }
-  invalidate(code: number): void { this.intents = this.intents.filter((intent) => intent.code !== code); }
+  invalidate(code: number, description?: bigint): void {
+    this.intents = this.intents.filter(intent => intent.code !== code
+      || description !== undefined && intent.description !== undefined && intent.description !== description);
+  }
 }

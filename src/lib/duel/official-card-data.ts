@@ -69,6 +69,9 @@ export class OfficialCardDb {
     this.rows = rows;
   }
 
+  /** Dados estáticos para structuredClone; nunca contém estado do duelo. */
+  serialize(): CardDb { return this.rows; }
+
   /**
    * Dados oficiais de um passcode.
    *

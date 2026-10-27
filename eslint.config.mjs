@@ -16,6 +16,8 @@ const eslintConfig = defineConfig([
     // de diagnóstico descartáveis do harness; e a biblioteca de decks.
     ".cache/**",
     ".data/**",
+    // Referência imutável gerada: sua integridade é verificada por SHA-256.
+    "tools/harness/baselines/**",
   ]),
 ]);
 

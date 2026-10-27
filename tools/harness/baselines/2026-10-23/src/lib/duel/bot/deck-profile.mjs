@@ -1,0 +1,104 @@
+/** Ordenação da lista não faz parte do conhecimento nem da compatibilidade. */
+export function deckSignature(deck, format = deck.format ?? "goat") {
+    const bag = (cards = []) => [...cards].sort((a, b) => a - b).join(",");
+    return `${format}:${bag(deck.main)}|${bag(deck.extra)}|${bag(deck.side)}`;
+}
+export function matchesBotProfile(profile, deck, format) {
+    return profile.schemaVersion === 1 && profile.format === format
+        && deckSignature(profile.deckSnapshot, profile.format) === deckSignature(deck, format);
+}
+/** Rejeita dados inválidos antes de o planejador poder executá-los. */
+export function validateBotProfile(value) {
+    try {
+        if (!value || typeof value !== "object")
+            return false;
+        const profile = value;
+        if (!profile.deckSnapshot || !Array.isArray(profile.deckSnapshot.main) || !Array.isArray(profile.deckSnapshot.extra)
+            || !Array.isArray(profile.deckSnapshot.side) || !Array.isArray(profile.routes) || !Array.isArray(profile.roles)
+            || !profile.guide || !Number.isInteger(profile.guide.revision) || profile.guide.revision <= 0
+            || !["goat", "tcg"].includes(profile.format) || typeof profile.id !== "string" || typeof profile.presetId !== "string")
+            return false;
+        const codes = new Set([...profile.deckSnapshot.main, ...profile.deckSnapshot.extra, ...profile.deckSnapshot.side]);
+        if ([...codes].some((c) => !Number.isInteger(c) || c <= 0))
+            return false;
+        const ids = new Set();
+        const zones = new Set(["hand", "monsters", "spells", "grave", "banished", "extra", "deck"]);
+        return profile.schemaVersion === 1 && Number.isInteger(profile.revision) && profile.revision > 0
+            && profile.roles.every((r) => codes.has(r.code) && r.roles.every((role) => ["starter", "extender", "interaction", "recovery", "finisher", "material"].includes(role)))
+            && profile.routes.length > 0 && profile.routes.every((route) => {
+            if (ids.has(route.id))
+                return false;
+            ids.add(route.id);
+            return (!route.minDifficulty || route.minDifficulty === "hard")
+                && typeof route.id === "string" && typeof route.lesson === "string" && Number.isInteger(route.minHand) && route.minHand >= 0
+                && Object.values(route.result).every((n) => Number.isFinite(n) && n >= 0)
+                && route.steps.length > 0 && route.requires.every((r) => codes.has(r.code) && zones.has(r.zone) && Number.isInteger(r.count) && r.count > 0)
+                && route.reserves.every((code) => codes.has(code))
+                && route.steps.every((step) => step.targets.every((t) => codes.has(t.code) && [1, 2, 4, 8, 16, 32, 64].includes(t.location))
+                    && step.effects.every((code) => codes.has(code))
+                    && (!step.action || codes.has(step.action.code) && ["summons", "special_summons", "activates"].includes(step.action.kind))
+                    && (!step.spend || ["discard", "return", "banish"].includes(step.spend))
+                    && (step.spendCount === undefined || Number.isInteger(step.spendCount) && step.spendCount > 0)
+                    && (!step.effectIndices || Object.entries(step.effectIndices).every(([code, indices]) => codes.has(Number(code))
+                        && indices.every((n) => Number.isInteger(n) && n >= 0 && n < 0x100000)))
+                    && step.completeWhen.every((c) => c.kind === "card" ? codes.has(c.code) && zones.has(c.zone)
+                        : c.kind === "offered" ? codes.has(c.code) : c.kind === "lp" && Number.isFinite(c.value)));
+        });
+    }
+    catch {
+        return false;
+    }
+}
+export function stepHasEffect(step, code, description) {
+    if (!step.effects.includes(code))
+        return false;
+    const indices = step.effectIndices?.[String(code)];
+    // SELECT_EFFECTYN também usa strings de sistema (221 = ativar efeito?).
+    // Elas não identificam o efeito; a descrição específica chega no CHAINING.
+    return !indices || description === undefined || description < 0x100000n
+        || indices.some((i) => description === (BigInt(code) << 20n) + BigInt(i));
+}
+/** Contagem da própria lista menos cartas acessíveis; não consulta o Deck do core. */
+export function remainingInDeck(deck, mine, code) {
+    const visible = [...mine.hand, ...mine.monsters, ...mine.spells, ...mine.grave, ...mine.banished];
+    return Math.max(0, deck.main.filter((c) => c === code).length - visible.filter((c) => c?.code === code).length);
+}
+const LOADERS = [
+    async () => ({ profile: (await import("../../../data/bot-profiles/albaz-strike.json", { with: { type: "json" } })).default,
+        guide: (await import("../../../data/deck-guides/albaz-strike.json", { with: { type: "json" } })).default }),
+    async () => ({ profile: (await import("../../../data/bot-profiles/herois-lendarios-aesir.json", { with: { type: "json" } })).default,
+        guide: (await import("../../../data/deck-guides/herois-lendarios-aesir.json", { with: { type: "json" } })).default }),
+    async () => ({ profile: (await import("../../../data/bot-profiles/herois-lendarios-destiny-hero.json", { with: { type: "json" } })).default,
+        guide: (await import("../../../data/deck-guides/herois-lendarios-destiny-hero.json", { with: { type: "json" } })).default }),
+    async () => ({ profile: (await import("../../../data/bot-profiles/herois-lendarios-cavaleiros-fantasmas.json", { with: { type: "json" } })).default,
+        guide: (await import("../../../data/deck-guides/herois-lendarios-cavaleiros-fantasmas.json", { with: { type: "json" } })).default }),
+];
+const LOADER_BY_ID = {
+    "albaz-strike": LOADERS[0],
+    "herois-lendarios-aesir": LOADERS[1],
+    "herois-lendarios-destiny-hero": LOADERS[2],
+    "herois-lendarios-cavaleiros-fantasmas": LOADERS[3],
+};
+// O índice só contém assinaturas e cobertura. Os roteiros e o guia de revisão
+// entram em chunks separados e só o candidato da própria lista é carregado.
+import manifest from "../../../data/bot-profiles/manifest.json" with { type: "json" };
+export function botCoverage(deck, format) {
+    return manifest.find((entry) => entry.signature === deckSignature(deck, format)) ?? null;
+}
+export async function loadBotProfile(deck, format) {
+    const candidate = manifest.find((entry) => entry.signature === deckSignature(deck, format));
+    if (!candidate || !LOADER_BY_ID[candidate.id])
+        return null;
+    try {
+        const { profile: raw, guide } = await LOADER_BY_ID[candidate.id]();
+        const profile = raw;
+        if (!validateBotProfile(profile) || !matchesBotProfile(profile, deck, format)
+            || profile.guide.id !== guide.id || profile.guide.revision !== guide.revision
+            || deckSignature(profile.deckSnapshot, format) !== deckSignature(guide.deckSnapshot, format))
+            return null;
+        return profile;
+    }
+    catch {
+        return null;
+    }
+}

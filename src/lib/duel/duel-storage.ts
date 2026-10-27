@@ -1,6 +1,6 @@
 import type { ScenarioCard } from "@/lib/duel/duel-session";
 import type { DuelDeckPayload, DuelFormat } from "@/lib/types";
-import { botDifficulty, type BotDifficulty } from "@/lib/duel/bot/difficulty";
+import type { BotDifficulty } from "@/lib/duel/bot/difficulty";
 
 export const DUEL_SETUP_STORAGE_KEY = "yugioh-goat-duel-setup-v1";
 
@@ -29,7 +29,7 @@ export interface StoredDuelSetup {
   /** Bot × bot: quem abre a página só assiste (o seu deck contra o do bot). */
   spectate?: boolean;
   botDifficulty?: BotDifficulty;
-  /** Nível independente do bot que pilota seu deck no modo espectador. */
+  /** Campo legado; o bot espectador também usa hard. */
   playerBotDifficulty?: BotDifficulty;
 }
 
@@ -56,7 +56,7 @@ export function resolveFirstTurn(choice: FirstTurnChoice | undefined): {
 
 export function saveDuelSetup(setup: StoredDuelSetup): void {
   if (typeof window === "undefined") return;
-  sessionStorage.setItem(DUEL_SETUP_STORAGE_KEY, JSON.stringify(setup));
+  sessionStorage.setItem(DUEL_SETUP_STORAGE_KEY, JSON.stringify({ ...setup, botDifficulty: "hard", playerBotDifficulty: "hard" }));
 }
 
 export function loadDuelSetup(): StoredDuelSetup | null {
@@ -66,7 +66,7 @@ export function loadDuelSetup(): StoredDuelSetup | null {
     const raw = sessionStorage.getItem(DUEL_SETUP_STORAGE_KEY);
     if (!raw) return null;
     const setup = JSON.parse(raw) as StoredDuelSetup;
-    return { ...setup, botDifficulty: botDifficulty(setup.botDifficulty), playerBotDifficulty: botDifficulty(setup.playerBotDifficulty) };
+    return { ...setup, botDifficulty: "hard", playerBotDifficulty: "hard" };
   } catch {
     return null;
   }

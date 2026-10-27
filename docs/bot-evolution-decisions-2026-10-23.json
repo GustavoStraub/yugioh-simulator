@@ -1,0 +1,725 @@
+{
+  "schema": 1,
+  "kind": "directed-observations",
+  "baseline": "c28537bdef191aab4106f67f52ca0baba1a3de16894e8b2d669215cb836aace2",
+  "cases": [
+    {
+      "id": "timing-veiler-buff",
+      "category": "timing",
+      "objective": "Guardar Veiler contra aumento de atributos sem risco imediato",
+      "consequence": "Veiler permanece na mão para uma busca posterior",
+      "evidence": "observação dirigida; resultado estratégico ainda precisa de confirmação no core",
+      "before": {
+        "accepted": false,
+        "response": {
+          "type": 8,
+          "index": 0
+        },
+        "reason": "Análise genérica"
+      },
+      "after": {
+        "accepted": true,
+        "response": {
+          "type": 8,
+          "index": null
+        },
+        "source": "heuristic",
+        "reason": "Guardar interação para outra janela"
+      }
+    },
+    {
+      "id": "timing-veiler-busca",
+      "category": "timing",
+      "objective": "Negar a busca do mesmo Manto Antigo",
+      "consequence": "A mesma carta recebe avaliação diferente por efeito",
+      "evidence": "observação dirigida; resultado estratégico ainda precisa de confirmação no core",
+      "before": {
+        "accepted": true,
+        "response": {
+          "type": 8,
+          "index": 0
+        },
+        "reason": "Análise genérica"
+      },
+      "after": {
+        "accepted": true,
+        "response": {
+          "type": 8,
+          "index": 0
+        },
+        "source": "heuristic",
+        "reason": "Valor local da ação"
+      }
+    },
+    {
+      "id": "timing-ash-compra",
+      "category": "timing",
+      "objective": "Guardar Ash contra compra de impacto baixo no modelo",
+      "consequence": "Preserva uma resposta para a extensão conhecida",
+      "evidence": "observação dirigida; resultado estratégico ainda precisa de confirmação no core",
+      "before": {
+        "accepted": false,
+        "response": {
+          "type": 8,
+          "index": 0
+        },
+        "reason": "Análise genérica"
+      },
+      "after": {
+        "accepted": true,
+        "response": {
+          "type": 8,
+          "index": null
+        },
+        "source": "heuristic",
+        "reason": "Guardar interação para outra janela"
+      }
+    },
+    {
+      "id": "timing-ash-fusao",
+      "category": "timing",
+      "objective": "Negar Fusão do Marcado",
+      "consequence": "Interrompe acesso à Fusão",
+      "evidence": "observação dirigida; resultado estratégico ainda precisa de confirmação no core",
+      "before": {
+        "accepted": true,
+        "response": {
+          "type": 8,
+          "index": 0
+        },
+        "reason": "Análise genérica"
+      },
+      "after": {
+        "accepted": true,
+        "response": {
+          "type": 8,
+          "index": 0
+        },
+        "source": "heuristic",
+        "reason": "Valor local da ação"
+      }
+    },
+    {
+      "id": "timing-ash-botas",
+      "category": "timing",
+      "objective": "Negar a busca das Botas no cemitério",
+      "consequence": "Impede acesso à armadilha",
+      "evidence": "observação dirigida; resultado estratégico ainda precisa de confirmação no core",
+      "before": {
+        "accepted": true,
+        "response": {
+          "type": 8,
+          "index": 0
+        },
+        "reason": "Análise genérica"
+      },
+      "after": {
+        "accepted": true,
+        "response": {
+          "type": 8,
+          "index": 0
+        },
+        "source": "heuristic",
+        "reason": "Valor local da ação"
+      }
+    },
+    {
+      "id": "timing-veiler-janela",
+      "category": "timing",
+      "objective": "Não gastar Veiler em janela livre sem efeito adversário",
+      "consequence": "A janela legal sozinha não justifica o custo",
+      "evidence": "observação dirigida; resultado estratégico ainda precisa de confirmação no core",
+      "before": {
+        "accepted": false,
+        "response": {
+          "type": 8,
+          "index": 0
+        },
+        "reason": "Análise genérica"
+      },
+      "after": {
+        "accepted": true,
+        "response": {
+          "type": 8,
+          "index": null
+        },
+        "source": "heuristic",
+        "reason": "Guardar interação para outra janela"
+      }
+    },
+    {
+      "id": "timing-veiler-letal",
+      "category": "timing",
+      "objective": "Gastar Veiler contra buff que ameaça letal",
+      "consequence": "A urgência supera o valor de guardar",
+      "evidence": "observação dirigida; resultado estratégico ainda precisa de confirmação no core",
+      "before": {
+        "accepted": true,
+        "response": {
+          "type": 8,
+          "index": 0
+        },
+        "reason": "Análise genérica"
+      },
+      "after": {
+        "accepted": true,
+        "response": {
+          "type": 8,
+          "index": 0
+        },
+        "source": "heuristic",
+        "reason": "Valor local da ação"
+      }
+    },
+    {
+      "id": "timing-proprio-elo",
+      "category": "timing",
+      "objective": "Não negar o próprio elo",
+      "consequence": "Preserva a própria Fusão",
+      "evidence": "observação dirigida; resultado estratégico ainda precisa de confirmação no core",
+      "before": {
+        "accepted": true,
+        "response": {
+          "type": 8,
+          "index": null
+        },
+        "reason": "Análise genérica"
+      },
+      "after": {
+        "accepted": true,
+        "response": {
+          "type": 8,
+          "index": null
+        },
+        "source": "heuristic",
+        "reason": "Guardar interação para outra janela"
+      }
+    },
+    {
+      "id": "busca-pk-luva-manto-0",
+      "category": "busca",
+      "objective": "Buscar acesso ausente em vez de repetir uma peça já na mão",
+      "consequence": "Mantém duas funções diferentes na mão; a ordem do prompt não muda o objetivo",
+      "evidence": "observação dirigida; resultado estratégico ainda precisa de confirmação no core",
+      "before": {
+        "accepted": false,
+        "response": {
+          "type": 5,
+          "indicies": [
+            0
+          ]
+        },
+        "reason": "Análise genérica"
+      },
+      "after": {
+        "accepted": true,
+        "response": {
+          "type": 5,
+          "indicies": [
+            1
+          ]
+        },
+        "source": "heuristic",
+        "reason": "Valor do alvo e custo de oportunidade"
+      }
+    },
+    {
+      "id": "busca-pk-luva-manto-1",
+      "category": "busca",
+      "objective": "Buscar acesso ausente em vez de repetir uma peça já na mão",
+      "consequence": "Mantém duas funções diferentes na mão; a ordem do prompt não muda o objetivo",
+      "evidence": "observação dirigida; resultado estratégico ainda precisa de confirmação no core",
+      "before": {
+        "accepted": true,
+        "response": {
+          "type": 5,
+          "indicies": [
+            0
+          ]
+        },
+        "reason": "Análise genérica"
+      },
+      "after": {
+        "accepted": true,
+        "response": {
+          "type": 5,
+          "indicies": [
+            0
+          ]
+        },
+        "source": "heuristic",
+        "reason": "Valor do alvo e custo de oportunidade"
+      }
+    },
+    {
+      "id": "busca-aesir-vanadis-guldfaxe-0",
+      "category": "busca",
+      "objective": "Buscar acesso ausente em vez de repetir uma peça já na mão",
+      "consequence": "Mantém duas funções diferentes na mão; a ordem do prompt não muda o objetivo",
+      "evidence": "observação dirigida; resultado estratégico ainda precisa de confirmação no core",
+      "before": {
+        "accepted": true,
+        "response": {
+          "type": 5,
+          "indicies": [
+            1
+          ]
+        },
+        "reason": "Análise genérica"
+      },
+      "after": {
+        "accepted": true,
+        "response": {
+          "type": 5,
+          "indicies": [
+            1
+          ]
+        },
+        "source": "heuristic",
+        "reason": "Valor do alvo e custo de oportunidade"
+      }
+    },
+    {
+      "id": "busca-aesir-vanadis-guldfaxe-1",
+      "category": "busca",
+      "objective": "Buscar acesso ausente em vez de repetir uma peça já na mão",
+      "consequence": "Mantém duas funções diferentes na mão; a ordem do prompt não muda o objetivo",
+      "evidence": "observação dirigida; resultado estratégico ainda precisa de confirmação no core",
+      "before": {
+        "accepted": true,
+        "response": {
+          "type": 5,
+          "indicies": [
+            0
+          ]
+        },
+        "reason": "Análise genérica"
+      },
+      "after": {
+        "accepted": true,
+        "response": {
+          "type": 5,
+          "indicies": [
+            0
+          ]
+        },
+        "source": "heuristic",
+        "reason": "Valor do alvo e custo de oportunidade"
+      }
+    },
+    {
+      "id": "busca-aesir-tyr-guldfaxe-0",
+      "category": "busca",
+      "objective": "Buscar acesso ausente em vez de repetir uma peça já na mão",
+      "consequence": "Mantém duas funções diferentes na mão; a ordem do prompt não muda o objetivo",
+      "evidence": "observação dirigida; resultado estratégico ainda precisa de confirmação no core",
+      "before": {
+        "accepted": true,
+        "response": {
+          "type": 5,
+          "indicies": [
+            1
+          ]
+        },
+        "reason": "Análise genérica"
+      },
+      "after": {
+        "accepted": true,
+        "response": {
+          "type": 5,
+          "indicies": [
+            1
+          ]
+        },
+        "source": "heuristic",
+        "reason": "Valor do alvo e custo de oportunidade"
+      }
+    },
+    {
+      "id": "busca-aesir-tyr-guldfaxe-1",
+      "category": "busca",
+      "objective": "Buscar acesso ausente em vez de repetir uma peça já na mão",
+      "consequence": "Mantém duas funções diferentes na mão; a ordem do prompt não muda o objetivo",
+      "evidence": "observação dirigida; resultado estratégico ainda precisa de confirmação no core",
+      "before": {
+        "accepted": true,
+        "response": {
+          "type": 5,
+          "indicies": [
+            0
+          ]
+        },
+        "reason": "Análise genérica"
+      },
+      "after": {
+        "accepted": true,
+        "response": {
+          "type": 5,
+          "indicies": [
+            0
+          ]
+        },
+        "source": "heuristic",
+        "reason": "Valor do alvo e custo de oportunidade"
+      }
+    },
+    {
+      "id": "recursos-mesa-pronta",
+      "category": "extensão",
+      "objective": "Comparar guardar recursos com desenvolver a mesa",
+      "consequence": "Guardar precisa de defesa existente; letal e risco de derrota são casos opostos",
+      "evidence": "observação dirigida; resultado estratégico ainda precisa de confirmação no core",
+      "before": {
+        "accepted": false,
+        "response": {
+          "type": 1,
+          "action": 0,
+          "index": 0
+        },
+        "reason": "Cenário do guia: Sem a magia inicial, use a peça que a encontra"
+      },
+      "after": {
+        "accepted": true,
+        "response": {
+          "type": 1,
+          "action": 6,
+          "index": null
+        },
+        "source": "heuristic",
+        "reason": "Valor local da ação"
+      }
+    },
+    {
+      "id": "recursos-mesa-vazia",
+      "category": "extensão",
+      "objective": "Comparar guardar recursos com desenvolver a mesa",
+      "consequence": "Guardar precisa de defesa existente; letal e risco de derrota são casos opostos",
+      "evidence": "observação dirigida; resultado estratégico ainda precisa de confirmação no core",
+      "before": {
+        "accepted": false,
+        "response": {
+          "type": 1,
+          "action": 0,
+          "index": 0
+        },
+        "reason": "Cenário do guia: Sem a magia inicial, use a peça que a encontra"
+      },
+      "after": {
+        "accepted": true,
+        "response": {
+          "type": 1,
+          "action": 6,
+          "index": null
+        },
+        "source": "heuristic",
+        "reason": "Valor local da ação"
+      }
+    },
+    {
+      "id": "recursos-extensao-letal",
+      "category": "extensão",
+      "objective": "Comparar guardar recursos com desenvolver a mesa",
+      "consequence": "Guardar precisa de defesa existente; letal e risco de derrota são casos opostos",
+      "evidence": "observação dirigida; resultado estratégico ainda precisa de confirmação no core",
+      "before": {
+        "accepted": true,
+        "response": {
+          "type": 1,
+          "action": 0,
+          "index": 0
+        },
+        "reason": "Cenário do guia: Sem a magia inicial, use a peça que a encontra"
+      },
+      "after": {
+        "accepted": true,
+        "response": {
+          "type": 1,
+          "action": 0,
+          "index": 0
+        },
+        "source": "guide",
+        "reason": "Cenário do guia: Sem a magia inicial, use a peça que a encontra"
+      }
+    },
+    {
+      "id": "recursos-ataque-ameacador",
+      "category": "extensão",
+      "objective": "Comparar guardar recursos com desenvolver a mesa",
+      "consequence": "Guardar precisa de defesa existente; letal e risco de derrota são casos opostos",
+      "evidence": "observação dirigida; resultado estratégico ainda precisa de confirmação no core",
+      "before": {
+        "accepted": true,
+        "response": {
+          "type": 1,
+          "action": 0,
+          "index": 0
+        },
+        "reason": "Cenário do guia: Sem a magia inicial, use a peça que a encontra"
+      },
+      "after": {
+        "accepted": true,
+        "response": {
+          "type": 1,
+          "action": 0,
+          "index": 0
+        },
+        "source": "guide",
+        "reason": "Cenário do guia: Sem a magia inicial, use a peça que a encontra"
+      }
+    },
+    {
+      "id": "combate-23205979-0",
+      "category": "combate",
+      "objective": "Respeitar proteção de batalha e sua negação",
+      "consequence": "Uma defesa indestrutível continua bloqueando o dano direto",
+      "evidence": "observação dirigida; resultado estratégico ainda precisa de confirmação no core",
+      "before": {
+        "accepted": false,
+        "response": {
+          "type": 0,
+          "action": 1,
+          "index": 0
+        },
+        "reason": "Análise genérica"
+      },
+      "after": {
+        "accepted": true,
+        "response": {
+          "type": 0,
+          "action": 2,
+          "index": null
+        },
+        "source": "heuristic",
+        "reason": "Encerrar batalha e preservar o campo"
+      }
+    },
+    {
+      "id": "combate-23205979-1",
+      "category": "combate",
+      "objective": "Respeitar proteção de batalha e sua negação",
+      "consequence": "Uma defesa indestrutível continua bloqueando o dano direto",
+      "evidence": "observação dirigida; resultado estratégico ainda precisa de confirmação no core",
+      "before": {
+        "accepted": true,
+        "response": {
+          "type": 0,
+          "action": 1,
+          "index": 0
+        },
+        "reason": "Análise genérica"
+      },
+      "after": {
+        "accepted": true,
+        "response": {
+          "type": 0,
+          "action": 1,
+          "index": 0
+        },
+        "source": "heuristic",
+        "reason": "Ordem de ataques e campo restante"
+      }
+    },
+    {
+      "id": "combate-31305911-0",
+      "category": "combate",
+      "objective": "Respeitar proteção de batalha e sua negação",
+      "consequence": "Uma defesa indestrutível continua bloqueando o dano direto",
+      "evidence": "observação dirigida; resultado estratégico ainda precisa de confirmação no core",
+      "before": {
+        "accepted": false,
+        "response": {
+          "type": 0,
+          "action": 1,
+          "index": 0
+        },
+        "reason": "Análise genérica"
+      },
+      "after": {
+        "accepted": true,
+        "response": {
+          "type": 0,
+          "action": 2,
+          "index": null
+        },
+        "source": "heuristic",
+        "reason": "Encerrar batalha e preservar o campo"
+      }
+    },
+    {
+      "id": "combate-31305911-1",
+      "category": "combate",
+      "objective": "Respeitar proteção de batalha e sua negação",
+      "consequence": "Uma defesa indestrutível continua bloqueando o dano direto",
+      "evidence": "observação dirigida; resultado estratégico ainda precisa de confirmação no core",
+      "before": {
+        "accepted": true,
+        "response": {
+          "type": 0,
+          "action": 1,
+          "index": 0
+        },
+        "reason": "Análise genérica"
+      },
+      "after": {
+        "accepted": true,
+        "response": {
+          "type": 0,
+          "action": 1,
+          "index": 0
+        },
+        "source": "heuristic",
+        "reason": "Ordem de ataques e campo restante"
+      }
+    },
+    {
+      "id": "descarte-starter-duplicado",
+      "category": "descarte",
+      "objective": "Conservar o único acesso e gastar recurso redundante",
+      "consequence": "O descarte deixa acesso ao motor na mão",
+      "evidence": "observação dirigida; resultado estratégico ainda precisa de confirmação no core",
+      "before": {
+        "accepted": false,
+        "response": {
+          "type": 5,
+          "indicies": [
+            2
+          ]
+        },
+        "reason": "Análise genérica"
+      },
+      "after": {
+        "accepted": true,
+        "response": {
+          "type": 5,
+          "indicies": [
+            0
+          ]
+        },
+        "source": "heuristic",
+        "reason": "Valor do alvo e custo de oportunidade"
+      }
+    },
+    {
+      "id": "descarte-starter-unico",
+      "category": "descarte",
+      "objective": "Conservar o único acesso e gastar recurso redundante",
+      "consequence": "O descarte deixa acesso ao motor na mão",
+      "evidence": "observação dirigida; resultado estratégico ainda precisa de confirmação no core",
+      "before": {
+        "accepted": true,
+        "response": {
+          "type": 5,
+          "indicies": [
+            1
+          ]
+        },
+        "reason": "Análise genérica"
+      },
+      "after": {
+        "accepted": true,
+        "response": {
+          "type": 5,
+          "indicies": [
+            1
+          ]
+        },
+        "source": "heuristic",
+        "reason": "Valor do alvo e custo de oportunidade"
+      }
+    },
+    {
+      "id": "descarte-fusao-unica",
+      "category": "descarte",
+      "objective": "Conservar o único acesso e gastar recurso redundante",
+      "consequence": "O descarte deixa acesso ao motor na mão",
+      "evidence": "observação dirigida; resultado estratégico ainda precisa de confirmação no core",
+      "before": {
+        "accepted": true,
+        "response": {
+          "type": 5,
+          "indicies": [
+            1
+          ]
+        },
+        "reason": "Análise genérica"
+      },
+      "after": {
+        "accepted": true,
+        "response": {
+          "type": 5,
+          "indicies": [
+            1
+          ]
+        },
+        "source": "heuristic",
+        "reason": "Valor do alvo e custo de oportunidade"
+      }
+    },
+    {
+      "id": "descarte-material-redundante",
+      "category": "descarte",
+      "objective": "Conservar o único acesso e gastar recurso redundante",
+      "consequence": "O descarte deixa acesso ao motor na mão",
+      "evidence": "observação dirigida; resultado estratégico ainda precisa de confirmação no core",
+      "before": {
+        "accepted": true,
+        "response": {
+          "type": 5,
+          "indicies": [
+            0
+          ]
+        },
+        "reason": "Análise genérica"
+      },
+      "after": {
+        "accepted": true,
+        "response": {
+          "type": 5,
+          "indicies": [
+            0
+          ]
+        },
+        "source": "heuristic",
+        "reason": "Valor do alvo e custo de oportunidade"
+      }
+    },
+    {
+      "id": "memoria-conhecida",
+      "category": "memória",
+      "objective": "Distinguir evidência known",
+      "after": {
+        "accepted": true
+      },
+      "evidence": "teste de observação pública; não é falha de partida atribuída"
+    },
+    {
+      "id": "memoria-vista",
+      "category": "memória",
+      "objective": "Distinguir evidência seen",
+      "after": {
+        "accepted": true
+      },
+      "evidence": "teste de observação pública; não é falha de partida atribuída"
+    },
+    {
+      "id": "memoria-sem-evidencia",
+      "category": "memória",
+      "objective": "Distinguir evidência possible",
+      "after": {
+        "accepted": true
+      },
+      "evidence": "teste de observação pública; não é falha de partida atribuída"
+    },
+    {
+      "id": "memoria-outra-carta",
+      "category": "memória",
+      "objective": "Distinguir evidência possible",
+      "after": {
+        "accepted": true
+      },
+      "evidence": "teste de observação pública; não é falha de partida atribuída"
+    }
+  ],
+  "measuredRegressions": 9,
+  "fixed": 9
+}

@@ -1,0 +1,556 @@
+{
+  "schemaVersion": 1,
+  "id": "herois-lendarios-destiny-hero",
+  "revision": 2,
+  "format": "tcg",
+  "presetId": "tcg-lehd-destiny-hero",
+  "guide": {
+    "id": "herois-lendarios-destiny-hero",
+    "revision": 1
+  },
+  "deckSnapshot": {
+    "format": "tcg",
+    "main": [
+      17132130,
+      83965310,
+      40591390,
+      9411399,
+      9411399,
+      63362460,
+      13093792,
+      36625827,
+      56570271,
+      26964762,
+      37780349,
+      91691605,
+      91691605,
+      64184058,
+      66262416,
+      99357565,
+      99357565,
+      99357565,
+      50720316,
+      63060238,
+      45809008,
+      45809008,
+      72204747,
+      72204747,
+      75041269,
+      53527835,
+      21143940,
+      21143940,
+      24094653,
+      24094653,
+      83764718,
+      98494543,
+      73628505,
+      73628505,
+      49140998,
+      35464895,
+      99075257,
+      35787450,
+      35787450,
+      26841274
+    ],
+    "extra": [
+      63813056,
+      76263644,
+      93657021,
+      93657021,
+      90579153,
+      90579153,
+      30757127,
+      58481572,
+      59642500,
+      1948619
+    ],
+    "side": []
+  },
+  "roles": [
+    {
+      "code": 63060238,
+      "roles": [
+        "starter"
+      ]
+    },
+    {
+      "code": 63362460,
+      "roles": [
+        "material"
+      ]
+    },
+    {
+      "code": 9411399,
+      "roles": [
+        "extender",
+        "material"
+      ]
+    },
+    {
+      "code": 24094653,
+      "roles": [
+        "material"
+      ]
+    },
+    {
+      "code": 90579153,
+      "roles": [
+        "finisher",
+        "interaction"
+      ]
+    },
+    {
+      "code": 50720316,
+      "roles": [
+        "starter"
+      ]
+    },
+    {
+      "code": 21143940,
+      "roles": [
+        "material"
+      ]
+    },
+    {
+      "code": 58481572,
+      "roles": [
+        "finisher",
+        "interaction"
+      ]
+    },
+    {
+      "code": 99357565,
+      "roles": [
+        "material",
+        "starter"
+      ]
+    },
+    {
+      "code": 83965310,
+      "roles": [
+        "finisher",
+        "interaction",
+        "material"
+      ]
+    }
+  ],
+  "routes": [
+    {
+      "id": "dystopia",
+      "lesson": "dystopia",
+      "objective": "Distopia, Homem em Chamas e Malicioso no campo, com 1600 de dano causado.",
+      "requires": [
+        {
+          "code": 63060238,
+          "zone": "hand",
+          "count": 1
+        },
+        {
+          "code": 63362460,
+          "zone": "hand",
+          "count": 1
+        },
+        {
+          "code": 9411399,
+          "zone": "hand",
+          "count": 1
+        },
+        {
+          "code": 24094653,
+          "zone": "deck",
+          "count": 1
+        },
+        {
+          "code": 90579153,
+          "zone": "extra",
+          "count": 1
+        }
+      ],
+      "minHand": 3,
+      "reserves": [
+        83764718
+      ],
+      "steps": [
+        {
+          "id": "dystopia-0",
+          "effects": [
+            63060238
+          ],
+          "targets": [
+            {
+              "code": 63060238,
+              "location": 2
+            },
+            {
+              "code": 63060238,
+              "location": 4
+            },
+            {
+              "code": 24094653,
+              "location": 1
+            }
+          ],
+          "completeWhen": [
+            {
+              "kind": "card",
+              "zone": "hand",
+              "code": 24094653
+            }
+          ],
+          "action": {
+            "kind": "summons",
+            "code": 63060238
+          }
+        },
+        {
+          "id": "dystopia-1",
+          "effects": [
+            24094653
+          ],
+          "targets": [
+            {
+              "code": 24094653,
+              "location": 2
+            },
+            {
+              "code": 90579153,
+              "location": 64
+            },
+            {
+              "code": 63362460,
+              "location": 2
+            },
+            {
+              "code": 9411399,
+              "location": 2
+            }
+          ],
+          "completeWhen": [
+            {
+              "kind": "card",
+              "zone": "monsters",
+              "code": 90579153
+            }
+          ],
+          "action": {
+            "kind": "activates",
+            "code": 24094653
+          }
+        },
+        {
+          "id": "dystopia-2",
+          "effects": [
+            90579153
+          ],
+          "targets": [
+            {
+              "code": 90579153,
+              "location": 4
+            },
+            {
+              "code": 63362460,
+              "location": 16
+            }
+          ],
+          "completeWhen": [
+            {
+              "kind": "lp",
+              "player": 1,
+              "value": 6400
+            }
+          ],
+          "effectIndices": {
+            "90579153": [
+              0
+            ]
+          }
+        },
+        {
+          "id": "dystopia-3",
+          "effects": [
+            9411399
+          ],
+          "targets": [
+            {
+              "code": 9411399,
+              "location": 16
+            },
+            {
+              "code": 9411399,
+              "location": 1
+            }
+          ],
+          "completeWhen": [
+            {
+              "kind": "card",
+              "zone": "banished",
+              "code": 9411399
+            },
+            {
+              "kind": "card",
+              "zone": "monsters",
+              "code": 9411399
+            }
+          ],
+          "action": {
+            "kind": "activates",
+            "code": 9411399
+          }
+        }
+      ],
+      "result": {
+        "pressure": 2800,
+        "interaction": 1,
+        "continuation": 1,
+        "cost": 0,
+        "exposure": 3
+      }
+    },
+    {
+      "id": "dark-law",
+      "lesson": "dark-law",
+      "objective": "Lei Obscura no campo e Broca-negra na mão para uma jogada futura.",
+      "requires": [
+        {
+          "code": 50720316,
+          "zone": "hand",
+          "count": 1
+        },
+        {
+          "code": 21143940,
+          "zone": "hand",
+          "count": 1
+        },
+        {
+          "code": 58481572,
+          "zone": "extra",
+          "count": 1
+        }
+      ],
+      "minHand": 2,
+      "reserves": [
+        83764718
+      ],
+      "steps": [
+        {
+          "id": "dark-law-0",
+          "effects": [
+            50720316
+          ],
+          "targets": [
+            {
+              "code": 50720316,
+              "location": 2
+            }
+          ],
+          "completeWhen": [
+            {
+              "kind": "card",
+              "zone": "monsters",
+              "code": 50720316
+            }
+          ],
+          "action": {
+            "kind": "summons",
+            "code": 50720316
+          }
+        },
+        {
+          "id": "dark-law-1",
+          "effects": [
+            21143940
+          ],
+          "targets": [
+            {
+              "code": 21143940,
+              "location": 2
+            },
+            {
+              "code": 50720316,
+              "location": 4
+            },
+            {
+              "code": 58481572,
+              "location": 64
+            }
+          ],
+          "completeWhen": [
+            {
+              "kind": "card",
+              "zone": "monsters",
+              "code": 58481572
+            }
+          ],
+          "action": {
+            "kind": "activates",
+            "code": 21143940
+          }
+        },
+        {
+          "id": "dark-law-2",
+          "effects": [
+            50720316
+          ],
+          "targets": [
+            {
+              "code": 50720316,
+              "location": 16
+            },
+            {
+              "code": 91691605,
+              "location": 1
+            }
+          ],
+          "completeWhen": [
+            {
+              "kind": "card",
+              "zone": "hand",
+              "code": 91691605
+            }
+          ]
+        }
+      ],
+      "result": {
+        "pressure": 2800,
+        "interaction": 2,
+        "continuation": 1,
+        "cost": 0,
+        "exposure": 2
+      }
+    },
+    {
+      "id": "plasma",
+      "lesson": "plasma",
+      "objective": "Plasma no campo, três D ao Cubo no Cemitério e Monstro que Renasce preservado.",
+      "requires": [
+        {
+          "code": 99357565,
+          "zone": "hand",
+          "count": 1
+        },
+        {
+          "code": 83965310,
+          "zone": "hand",
+          "count": 1
+        },
+        {
+          "code": 99357565,
+          "zone": "deck",
+          "count": 2
+        }
+      ],
+      "minHand": 4,
+      "reserves": [
+        83764718
+      ],
+      "steps": [
+        {
+          "id": "plasma-0",
+          "effects": [
+            99357565
+          ],
+          "targets": [
+            {
+              "code": 99357565,
+              "location": 2
+            },
+            {
+              "code": 99357565,
+              "location": 4
+            }
+          ],
+          "completeWhen": [
+            {
+              "kind": "card",
+              "zone": "monsters",
+              "code": 99357565
+            }
+          ],
+          "action": {
+            "kind": "summons",
+            "code": 99357565
+          }
+        },
+        {
+          "id": "plasma-1",
+          "effects": [
+            99357565
+          ],
+          "targets": [
+            {
+              "code": 99357565,
+              "location": 4
+            },
+            {
+              "code": 75041269,
+              "location": 2
+            },
+            {
+              "code": 35787450,
+              "location": 2
+            },
+            {
+              "code": 99357565,
+              "location": 1
+            }
+          ],
+          "completeWhen": [
+            {
+              "kind": "card",
+              "zone": "monsters",
+              "code": 99357565,
+              "count": 3
+            }
+          ],
+          "action": {
+            "kind": "activates",
+            "code": 99357565
+          },
+          "spend": "discard",
+          "spendCount": 2
+        },
+        {
+          "id": "plasma-2",
+          "effects": [
+            83965310
+          ],
+          "targets": [
+            {
+              "code": 83965310,
+              "location": 2
+            },
+            {
+              "code": 99357565,
+              "location": 4
+            }
+          ],
+          "completeWhen": [
+            {
+              "kind": "card",
+              "zone": "monsters",
+              "code": 83965310
+            },
+            {
+              "kind": "card",
+              "zone": "grave",
+              "code": 99357565,
+              "count": 3
+            }
+          ],
+          "action": {
+            "kind": "special_summons",
+            "code": 83965310
+          }
+        }
+      ],
+      "result": {
+        "pressure": 2800,
+        "interaction": 2,
+        "continuation": 1,
+        "cost": 3,
+        "exposure": 3
+      }
+    }
+  ],
+  "coverage": "3 rotas revisadas · Heróis Lendários — Destiny HERO"
+}
