@@ -1,12 +1,12 @@
 {
   "schemaVersion": 1,
   "id": "herois-lendarios-destiny-hero",
-  "revision": 2,
+  "revision": 3,
   "format": "tcg",
   "presetId": "tcg-lehd-destiny-hero",
   "guide": {
     "id": "herois-lendarios-destiny-hero",
-    "revision": 1
+    "revision": 2
   },
   "deckSnapshot": {
     "format": "tcg",

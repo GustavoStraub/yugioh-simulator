@@ -1,10 +1,10 @@
 # Aprender os decks
 
-A área `/aprender` apresenta 92 guias e 219 lições para os decks TCG
-selecionados do catálogo. Albaz Strike e os três decks de Heróis Lendários
-de 2018 mantêm seus três exercícios validados no motor e recebem cinco
-lições de estratégia cada. Slifer tem 13 lições revisadas em profundidade; os demais 87 guias oferecem duas estratégias
-por deck. Cada guia mantém a lista exata de seu preset.
+A área `/aprender` apresenta 92 guias e 224 lições para os decks TCG
+selecionados do catálogo. HERO tem 13 lições, com 12 exercícios na mesa;
+Slifer tem 13 lições revisadas em profundidade. Albaz Strike, Aesir e
+Cavaleiros Fantasmas mantêm três exercícios e cinco estratégias cada;
+os demais 87 guias oferecem duas estratégias por deck.
 O conteúdo é carregado dos JSONs do projeto; pesquisar as fontes é uma etapa
 de autoria, sem consulta ou geração de aulas durante a navegação do jogador.
 
@@ -12,16 +12,17 @@ de autoria, sem consulta ou geração de aulas durante a navegação do jogador.
 
 Este processo reúne pesquisa individual da lista e dos efeitos, revisão das
 estratégias no `/aprender`, integração dessas estratégias às decisões do bot e
-validação das jogadas no motor e no navegador. **Somente Slifer concluiu este
-processo até agora.**
+validação das jogadas no motor e no navegador. **Slifer e HERO concluíram esta revisão individual.**
 
 | Deck | Revisão | Guia e integração | Evidências |
 | --- | --- | --- | --- |
 | Slifer — `tcg-egs1` | 2, em 27/10/2026 | 13 lições, 38 cartas distintas e 8 decisões de estudo; política do bot vinculada à lista oficial, inclusive no modo de assistir. | 14 situações roteirizadas no motor, 17 cenários com decisões do próprio bot e testes de worker e navegador. |
+| HERO — `tcg-lehd-destiny-hero` | 2, em 28/10/2026 | 13 lições, 12 exercícios e 38 cartas distintas; política do bot vinculada à lista oficial no Difícil, inclusive no modo de assistir. | Nove sequências novas no motor, nove cenários do próprio bot e testes no Chrome desktop e celular. |
 
 Detalhes, fontes, estratégias implementadas e limites estão no
-[registro da revisão do Slifer](slifer-revisao-2026-10-27.md).
-Os outros 91 decks ainda não passaram por este processo completo. Seus guias,
+[registro do Slifer](slifer-revisao-2026-10-27.md) e no
+[registro do HERO](hero-revisao-2026-10-28.md).
+Os outros 90 decks ainda não passaram por este processo completo. Seus guias,
 exercícios e comportamentos existentes não representam conclusão desta revisão
 individual com integração ao bot. Atualizar este registro conforme cada próximo
 deck for concluído.
@@ -37,10 +38,11 @@ do deck nem a duração da leitura.
 ## Organização
 
 - `src/data/deck-guides/<slug>.json`: os quatro guias com exercícios na mesa.
-- `src/data/deck-learning-base.json`: conteúdo e fontes das 207 novas
+- `src/data/deck-learning-base.json`: conteúdo e fontes das 203
   estratégias, além do registro das 18 exclusões editoriais.
 - `src/lib/data/deck-learning-adapter.ts`: adapta a base para o leitor e
-  preserva os exercícios, IDs, revisão e conteúdo dos quatro guias históricos.
+  preserva os exercícios e IDs dos quatro guias históricos; revisões individuais
+  como HERO incrementam sua revisão e ampliam os exercícios.
 - `src/lib/data/deck-guide-index.ts`: índice leve de URLs usado no seletor
   de decks, sem carregar os roteiros completos no cliente.
 - `src/lib/domain/deck-guide.ts`: contrato do conteúdo, comparação com a lista
@@ -181,7 +183,7 @@ livre com compras aleatórias.
 A [base editorial de decks](deck-learning-base.md) documenta
 `src/data/deck-learning-base.json`, com a cobertura dos presets TCG e os
 roteiros publicados pelo adaptador. Ela fornece conteúdo de leitura;
-as 12 práticas executáveis continuam vindo dos quatro JSONs históricos.
+as 21 práticas executáveis continuam vindo dos quatro JSONs históricos.
 A biblioteca recebe resumos pelo servidor, mostra 12 guias inicialmente,
 permite carregar os demais e busca por nomes de cartas em português e inglês.
 

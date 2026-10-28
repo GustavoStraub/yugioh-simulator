@@ -20285,7 +20285,7 @@
       "difficulty": "Intermediário",
       "presetId": "tcg-lehd-destiny-hero",
       "title": "Decks de Heróis Lendários — Destiny HERO",
-      "gamePlan": "Usar buscas, Fusões e Malicious para gerar corpos, alternando Dark Law, Dystopia e Plasma conforme a partida; preservar reciclagem por Wonder Driver.",
+      "gamePlan": "Fusões, Máscaras e gestão do Cemitério com a lista de 2018: aprenda a gerar recursos, respeitar bloqueios e escolher entre pressão e controle.",
       "coreCards": [
         {
           "code": 63060238,
@@ -20657,134 +20657,6 @@
           }
         },
         {
-          "id": "dynatag-habilita-a-destruicao-de-dystopia",
-          "title": "Dynatag habilita a destruição de Dystopia",
-          "scenario": "Dystopia no campo com seu ATK original; Dynatag no Cemitério; uma carta no campo para escolher como alvo.",
-          "steps": [
-            {
-              "action": "Bana Dynatag do Cemitério para aumentar o ATK de Dystopia em 1000.",
-              "cardCodes": []
-            },
-            {
-              "action": "Com o ATK diferente do original, ative o efeito rápido de Dystopia para destruir uma carta.",
-              "cardCodes": []
-            },
-            {
-              "action": "Após a destruição, Dystopia retorna ao próprio ATK original e a condição precisa ser refeita em outro turno.",
-              "cardCodes": []
-            }
-          ],
-          "outcome": "Uma mudança de ATK convertida em interação.",
-          "cautions": [
-            "A destruição de Dystopia não fica permanentemente disponível depois do primeiro aumento; Dynatag banido já foi gasto."
-          ],
-          "sourceIds": [
-            "official-card-63060238",
-            "official-card-50720316",
-            "official-card-21143940",
-            "official-card-58481572",
-            "official-card-9411399",
-            "official-card-90579153",
-            "official-card-37780349",
-            "official-card-30757127",
-            "official-card-91691605",
-            "official-card-1948619",
-            "official-card-63813056",
-            "official-card-63362460",
-            "official-card-45809008"
-          ],
-          "validationStatus": "editorial-not-engine-tested",
-          "startingHand": null,
-          "practice": null
-        },
-        {
-          "id": "wonder-driver-recupera-a-magia-usada",
-          "title": "Wonder Driver recupera a magia usada",
-          "scenario": "Wonder Driver corretamente Invocado e zona apontada livre; Polymerization ou Mask Change no Cemitério; uma forma legal de invocar HERO para essa zona.",
-          "steps": [
-            {
-              "action": "Invoque o HERO na zona para a qual Wonder Driver aponta.",
-              "cardCodes": []
-            },
-            {
-              "action": "Ative Wonder Driver escolhendo a Magia elegível no Cemitério e Baixe-a.",
-              "cardCodes": []
-            },
-            {
-              "action": "Planeje o uso de Polymerization no seu turno ou aguarde o turno permitido para uma Mask Change Baixada.",
-              "cardCodes": [
-                21143940,
-                24094653
-              ]
-            }
-          ],
-          "outcome": "Reciclagem de um feitiço de Fusão ou transformação.",
-          "cautions": [
-            "A exigência é invocar na zona apontada, não em qualquer zona. Magia Rápida Baixada não pode ser usada no mesmo turno sem permissão."
-          ],
-          "sourceIds": [
-            "official-card-63060238",
-            "official-card-50720316",
-            "official-card-21143940",
-            "official-card-58481572",
-            "official-card-9411399",
-            "official-card-90579153",
-            "official-card-37780349",
-            "official-card-30757127",
-            "official-card-91691605",
-            "official-card-1948619",
-            "official-card-63813056",
-            "official-card-63362460",
-            "official-card-45809008"
-          ],
-          "validationStatus": "editorial-not-engine-tested",
-          "startingHand": null,
-          "practice": null
-        },
-        {
-          "id": "destiny-draw-transforma-malicious-em-desenvolvimento",
-          "title": "Destiny Draw transforma Malicious em desenvolvimento",
-          "scenario": "Destiny Draw e Malicious na mão; a outra cópia de Malicious no Deck.",
-          "steps": [
-            {
-              "action": "Descarte Malicious para Destiny Draw e compre duas cartas.",
-              "cardCodes": [
-                45809008
-              ]
-            },
-            {
-              "action": "Bana Malicious do Cemitério para invocar a outra cópia do Deck.",
-              "cardCodes": []
-            },
-            {
-              "action": "Use o corpo como material HERO ou preserve-o para um plano declarado de Tributos.",
-              "cardCodes": []
-            }
-          ],
-          "outcome": "Compra e um corpo sem gastar a Invocação-Normal.",
-          "cautions": [
-            "Com a segunda cópia já na mão, o efeito de Malicious não a invoca do Deck. A lista tem apenas duas cópias."
-          ],
-          "sourceIds": [
-            "official-card-63060238",
-            "official-card-50720316",
-            "official-card-21143940",
-            "official-card-58481572",
-            "official-card-9411399",
-            "official-card-90579153",
-            "official-card-37780349",
-            "official-card-30757127",
-            "official-card-91691605",
-            "official-card-1948619",
-            "official-card-63813056",
-            "official-card-63362460",
-            "official-card-45809008"
-          ],
-          "validationStatus": "editorial-not-engine-tested",
-          "startingHand": null,
-          "practice": null
-        },
-        {
           "id": "celestial-recompensa-um-turno-de-recursos-esgotados",
           "title": "Celestial recompensa um turno de recursos esgotados",
           "scenario": "Mão vazia; Celestial e outro Destiny HERO no Cemitério, ambos elegíveis para banimento; Celestial não foi enviada nesse turno.",
@@ -20820,50 +20692,12 @@
           "validationStatus": "editorial-not-engine-tested",
           "startingHand": null,
           "practice": null
-        },
-        {
-          "id": "drilldark-amplia-a-rota-de-wonder-driver",
-          "title": "Drilldark amplia a rota de Wonder Driver",
-          "scenario": "Drilldark e um Destiny HERO de ATK menor ou igual ao seu na mão.",
-          "steps": [
-            {
-              "action": "Invoque Drilldark e invoque o Destiny HERO elegível da mão pelo seu efeito.",
-              "cardCodes": []
-            },
-            {
-              "action": "Use os dois HEROs para Wonder Driver, se a reciclagem futura for mais valiosa que atacar com os dois.",
-              "cardCodes": []
-            },
-            {
-              "action": "Prepare uma próxima invocação para a seta de Wonder Driver antes de contar sua recuperação como garantida.",
-              "cardCodes": []
-            }
-          ],
-          "outcome": "Uma abertura alternativa de Link com custos e continuação claros.",
-          "cautions": [
-            "Não misturar com o efeito de D Cubed no mesmo turno se ele já tiver restringido invocações a Destiny HERO."
-          ],
-          "sourceIds": [
-            "official-card-63060238",
-            "official-card-50720316",
-            "official-card-21143940",
-            "official-card-58481572",
-            "official-card-9411399",
-            "official-card-90579153",
-            "official-card-37780349",
-            "official-card-30757127",
-            "official-card-91691605",
-            "official-card-1948619",
-            "official-card-63813056",
-            "official-card-63362460",
-            "official-card-45809008"
-          ],
-          "validationStatus": "editorial-not-engine-tested",
-          "startingHand": null,
-          "practice": null
         }
       ],
-      "publishedSources": []
+      "publishedSources": [],
+      "revision": 2,
+      "reviewedAt": "2026-10-28",
+      "botTactics": "hero"
     },
     {
       "id": "tcg-lehd-phantom-knights",

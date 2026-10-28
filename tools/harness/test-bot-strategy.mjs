@@ -23,7 +23,7 @@ for (const guide of DECK_GUIDES.filter(g => g.lessons.some(l=>l.practice))) {
   assert.equal(deckSignature(deck,'tcg'),deckSignature({...deck,main:[...deck.main].reverse()},'tcg'));
   assert.equal(await loadBotProfile({...deck,main:[...deck.main,deck.main[0]]},'tcg'),null,'quantidades incompatíveis');
   assert.equal(await loadBotProfile({...deck,side:[deck.main[0]]},'tcg'),null,'Side também revisado');
-  for (const difficulty of ['medium','hard']) for (const lesson of [...guide.lessons.filter(l=>l.practice),...variants.filter(v=>v.profile===guide.id&&difficulty==='hard').map(v=>({id:v.route,validationRoute:v.route,startingHand:v.hand,practice:{goal:v.goal}}))]) {
+  for (const difficulty of ['medium','hard']) for (const lesson of [...guide.lessons.filter(l=>l.practice&&profile.routes.some(r=>r.id===l.id)),...variants.filter(v=>v.profile===guide.id&&difficulty==='hard').map(v=>({id:v.route,validationRoute:v.route,startingHand:v.hand,practice:{goal:v.goal}}))]) {
     if (process.env.ONLY_ROUTE && lesson.id !== process.env.ONLY_ROUTE) continue;
     // Uma rota por caso comprova cada ramo do modelo. Os testes de escolha
     // entre rotas usam o perfil integral e mãos alternativas, abaixo.

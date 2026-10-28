@@ -39,7 +39,7 @@ export function hasLessonPractice(lesson: GuideLesson): lesson is PracticeGuideL
 }
 
 export type PracticeCondition =
-  | { kind: "card"; zone: "monsters" | "spells" | "hand" | "grave" | "banished" | "extra"; code: number; count?: number; absent?: boolean }
+  | { kind: "card"; zone: "field" | "monsters" | "spells" | "hand" | "grave" | "banished" | "extra"; code: number; count?: number; absent?: boolean; attack?: number }
   | { kind: "lp"; player: 0 | 1; value: number }
   | { kind: "offered"; code: number; location: number };
 

@@ -22,7 +22,7 @@ const actions = {
   leviair: [['activates',81439173],['activates',90432163],['summons',63821877],['special_summons',36426778],['special_summons',95992081],['activates',95992081],['activates',36426778]],
 };
 const actionType={summons:A.SELECT_SUMMON,special_summons:A.SELECT_SPECIAL_SUMMON,activates:A.SELECT_ACTIVATE};
-for(const guide of DECK_GUIDES.filter(g=>g.id.startsWith('herois-lendarios-'))) for(const lesson of guide.lessons.filter(hasLessonPractice)){
+for(const guide of DECK_GUIDES.filter(g=>g.id.startsWith('herois-lendarios-'))) for(const lesson of guide.lessons.filter(l=>hasLessonPractice(l)&&actions[l.id])){
  const preset=getPresetDeck(guide.presetId);
  const duel=await createDuel({mode:OcgDuelMode.MODE_MR5,decks:[deckAfterOpeningHand(preset,lesson.startingHand,5).main,preset.main],place:[...lesson.startingHand.map(code=>({player:0,zone:Zone.HAND,code})),...preset.extra.map(code=>({player:0,zone:Zone.EXTRA,code}))]});
  let practice=EMPTY_PRACTICE, move=0, prompts=0;
@@ -89,3 +89,5 @@ for(const guide of DECK_GUIDES.filter(g=>g.id.startsWith('herois-lendarios-'))) 
   throw error;
  }finally{duel.destroy();}
 }
+
+await import('./test-hero-guide.mjs');

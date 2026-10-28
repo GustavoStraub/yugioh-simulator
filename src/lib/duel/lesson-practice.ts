@@ -9,7 +9,8 @@ export function practiceConditionMet(condition: PracticeCondition, snapshot: Due
   const player = snapshot.boards[0]?.players[0];
   if (!player) return false;
   if (condition.kind === "card") {
-    const count = player[condition.zone].filter((card) => card?.code === condition.code).length;
+    const cards = condition.zone === "field" ? [player.field] : player[condition.zone];
+    const count = cards.filter((card) => card?.code === condition.code && (condition.attack === undefined || card.attack === condition.attack)).length;
     return condition.absent ? count === 0 : count >= (condition.count ?? 1);
   }
   const prompt = snapshot.pendingPrompt;

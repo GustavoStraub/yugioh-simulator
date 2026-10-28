@@ -258,7 +258,7 @@ const select=(cards,min=1,max=1)=>({type:M.SELECT_CARD,player:0,min,max,can_canc
   assert.equal(sequenceOpening.action,A.SELECT_SUMMON);
   assert.equal(sequenceOpening.index,1,'Difícil prefere a sequência Broca-negra + Malicioso a Homem Diamante isolado');
   assert.match(sequenceBrain.lastTrace.reason,/Sequência prevista pelo guia/);
-  assert.equal(new BotBrain({difficulty:'hard',deck:destiny,format:'tcg',sequencePlanning:false})
+  assert.equal(new BotBrain({difficulty:'hard',deck:destiny,format:'tcg',sequencePlanning:false,heroStrategy:false})
     .decide(ctx({...idle(),summons:[card(13093792,L.HAND,2),card(91691605,L.HAND)]},sequenceBoard)).index,0,
     'o mesmo estado sem projeção escolheria apenas pelo valor imediato');
   destinyBoard.players[0].hand=[card(26964762,L.HAND)];
@@ -667,7 +667,7 @@ const select=(cards,min=1,max=1)=>({type:M.SELECT_CARD,player:0,min,max,can_canc
       openingHands:[[91691605,21143940,75041269,35787450,26964762],foe.main.slice(0,5)],
       seats:[{kind:'bot',name:'Bot',bot:{difficulty:'hard',onDecision(t){trace.push(t);}}},{kind:'local',name:'Parceiro'}]});
     const board=readBoardState(session.core,session.handle,0);
-    assert.ok(trace.some(t=>t.guideDecision==='broca-negra-vira-lei-obscura'),'bot usou a variação ensinada');
+    assert.ok(trace.some(t=>t.guideDecision==='broca-negra-vira-lei-obscura'||t.guideLesson==='dark-law'),'bot usou a variação ensinada');
     assert.ok(trace.some(t=>t.prompt===M.SELECT_EFFECTYN&&t.observation.prompt.code===91691605&&t.response.yes===false),
       'bot preserva as Magias quando o único alvo de Broca-negra é Anjo Negro');
     assert.ok(board.players[0].monsters.some(c=>c?.code===58481572),'Mudar a Máscara invocou Lei Obscura de Broca-negra');
@@ -684,9 +684,9 @@ const select=(cards,min=1,max=1)=>({type:M.SELECT_CARD,player:0,min,max,can_canc
       seats:[{kind:'bot',name:'Bot',bot:{difficulty:'hard',onDecision(t){trace.push(t);}}},{kind:'local',name:'Parceiro'}]});
     const normal=trace.find(t=>t.prompt===M.SELECT_IDLECMD&&t.response.action===A.SELECT_SUMMON);
     assert.equal(normal?.observation.prompt.summons[normal.response.index].code,63060238,
-      'sem rota completa, o bot invoca Homem em Chamas para usar a busca');
-    assert.equal(readBoardState(session.core,session.handle,0).players[0].hand.filter(c=>c.code===24094653).length,2,
-      'a Invocação-Normal realmente buscou a segunda Polimerização');
+      'sem rota completa, o bot invoca Homem em Chamas para preparar recursos');
+    assert.ok(readBoardState(session.core,session.handle,0).players[0].grave.some(c=>c.code===50720316),
+      'com Polimerização na mão, o envio de Névoa prepara recursos em vez de buscar uma cópia redundante');
     console.log('✓ Destiny HERO: Homem em Chamas recebe a Invocação-Normal no motor real');
   }finally{session.dispose();}
 }

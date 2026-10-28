@@ -2,13 +2,13 @@
   "schemaVersion": 1,
   "id": "herois-lendarios-destiny-hero",
   "presetId": "tcg-lehd-destiny-hero",
-  "revision": 1,
-  "reviewedAt": "2026-10-16",
+  "revision": 2,
+  "reviewedAt": "2026-10-28",
   "title": "Heróis Lendários — Destiny HERO",
   "subtitle": "Funda, transforme e aproveite seus materiais.",
-  "description": "Aprenda três planos da lista original: Distopia com Malicioso, Lei Obscura com Mudar a Máscara e Plasma com D ao Cubo.",
+  "description": "Fusões, Máscaras e gestão do Cemitério com a lista de 2018: aprenda a gerar recursos, respeitar bloqueios e escolher entre pressão e controle.",
   "difficulty": "Intermediário",
-  "minutes": 16,
+  "minutes": 64,
   "tags": [
     "Fusão",
     "HERO",
@@ -82,9 +82,18 @@
   "overview": {
     "goal": "Escolher entre pressão por Fusão e os efeitos de controle de Lei Obscura ou Plasma.",
     "plan": [
-      "Identifique o plano que sua mão permite antes de gastar a Invocação-Normal.",
-      "Use Homem em Chamas para a Fusão ou preserve a busca de Névoa Sombria para a transformação.",
-      "Conte os recursos no Deck e no Cemitério antes de usar Malicioso ou D ao Cubo."
+      "Fusão e continuação com Malicioso",
+      "Mudar a Máscara e manter recursos",
+      "Três corpos para Plasma",
+      "Sacar o Destino sem gastar a Normal",
+      "Homem em Chamas: TREVAS para Lei Obscura",
+      "Perigoso: descarte e envio são recursos diferentes",
+      "Dinatag e Distopia: habilitar e gastar a remoção",
+      "Condutor Maravilha e a zona apontada",
+      "Além do Destino completa os três Tributos",
+      "Dragão Final: chefes da mão viram materiais",
+      "Dusktopia: duas Fusões e proteção seletiva",
+      "Dizimador: setas que habilitam Distopia"
     ],
     "strengths": [
       "Materiais de Fusão podem iniciar outras jogadas no Cemitério.",
@@ -102,7 +111,7 @@
       "code": 63060238,
       "name": "Homem em Chamas, o HERÓI do Elemento",
       "role": "Encontra a Fusão",
-      "explanation": "Busca Polimerização quando é invocado. Você só pode usar um de seus dois efeitos por turno.",
+      "explanation": "Escolha busca de Polimerização OU envio de HERÓI do Elemento por turno. Enviar Névoa gera busca de HERO e muda Atributo para TREVAS, mas bloqueia Especiais que não sejam Fusões pelo resto do turno.",
       "sourceIds": [
         "blazeman"
       ]
@@ -111,7 +120,7 @@
       "code": 90579153,
       "name": "HERÓI do Destino - Distopia",
       "role": "Pressão e dano",
-      "explanation": "Dois HERÓIS do Destino bastam como materiais. Ao ser Invocado por Invocação-Especial, pode usar o ATK de um HERÓI do Destino de Nível 4 ou menos no Cemitério para causar dano.",
+      "explanation": "Na Especial causa ATK de um HERÓI do Destino de Nível 4 ou menor do Cemitério. Com ATK alterado, fora da Etapa de Dano, destrói uma carta e volta ao original se destruir. Dinatag ou a seta de Dizimador habilitam a condição.",
       "sourceIds": [
         "dystopia"
       ]
@@ -120,7 +129,7 @@
       "code": 9411399,
       "name": "HERÓI do Destino - Malicioso",
       "role": "Material que continua jogando",
-      "explanation": "Bane-se do Cemitério para invocar outra cópia do Deck. A lista traz duas cópias: confira onde estão.",
+      "explanation": "Descarte/material que vira outro corpo do Deck. A lista tem apenas duas cópias; use Além do Destino antes de bani-lo se precisar do alvo de Nível 6.",
       "sourceIds": [
         "malicious"
       ]
@@ -129,7 +138,7 @@
       "code": 91691605,
       "name": "HERÓI do Destino - Broca-negra",
       "role": "Estende a mão",
-      "explanation": "Ao ser Invocado, pode trazer da mão um HERÓI do Destino com ATK até o seu ATK atual. Escolha o alvo antes da Invocação-Normal: Decisor e Celestial fornecem outro corpo, enquanto Malicioso pode continuar no Cemitério depois de usado como material. Evite trazer Anjo Negro para o seu campo: ele anularia as suas Magias.",
+      "explanation": "Na Normal ou Especial estende com HERÓI do Destino da mão cujo ATK não supera o seu atual. Malicioso, Celestial e Decisor são alvos úteis; não invoca Névoa Sombria, que não é HERÓI do Destino.",
       "sourceIds": [
         "set-list",
         "malicious"
@@ -139,7 +148,7 @@
       "code": 26964762,
       "name": "HERÓI do Destino - Anjo Negro",
       "role": "Interferência que exige cuidado",
-      "explanation": "Seu efeito de negar Magias vale enquanto está no campo: se Broca-negra o colocar no seu lado, ele também anulará Mudar a Máscara e outras Magias suas. Só o use com uma finalidade concreta.",
+      "explanation": "Com três HERÓIS do Destino no Cemitério, pode entregar a si mesmo ao adversário e atrapalhar as Magias de quem o controla. Só faça depois das suas Magias; ele também oferece um corpo que o adversário pode remover ou usar.",
       "sourceIds": [
         "set-list"
       ]
@@ -148,7 +157,7 @@
       "code": 50720316,
       "name": "Névoa Sombria, o HERÓI do Elemento",
       "role": "Busca conforme a situação",
-      "explanation": "Busca uma Magia Rápida de Mudança ao ser Invocado por Invocação-Especial, ou um outro HERO ao ir ao Cemitério. Só um desses efeitos por turno.",
+      "explanation": "Especial busca uma Magia Rápida de Mudança; envio ao Cemitério busca outro HERO. Só um desses efeitos por turno, mesmo usando outras cópias; escolha qual recurso a linha precisa.",
       "sourceIds": [
         "shadow-mist"
       ]
@@ -157,7 +166,7 @@
       "code": 58481572,
       "name": "Lei Obscura, o HERÓI Mascarado",
       "role": "Controle com a máscara",
-      "explanation": "Mudar a Máscara sobre um HERO de TREVAS pode invocá-lo. Troca o destino das cartas adversárias que iriam ao Cemitério e pode punir certas adições do Deck à mão.",
+      "explanation": "Bane cartas que iriam ao Cemitério adversário e pode banir aleatoriamente uma carta da mão depois de busca/compra fora da Draw e Etapa de Dano. Não nega a busca e não escolhe a carta banida.",
       "sourceIds": [
         "mask-change",
         "dark-law"
@@ -167,7 +176,7 @@
       "code": 99357565,
       "name": "D ao Cubo",
       "role": "Prepara Tributos",
-      "explanation": "Descarta até duas cartas e invoca o mesmo número de cópias. Depois, suas Invocações ficam limitadas a HERÓIS do Destino no turno.",
+      "explanation": "Só a cópia Invocada por Normal vira HERÓI do Destino. As outras não viram HERO por serem cópias; servem de Tributos para Plasma, mas não de materiais HERO. Seu efeito restringe Normais e Especiais seguintes a HERÓIS do Destino.",
       "sourceIds": [
         "d-cubed"
       ]
@@ -176,9 +185,270 @@
       "code": 83965310,
       "name": "HERÓI do Destino - Plasma",
       "role": "Controle com três Tributos",
-      "explanation": "Seu procedimento exige três monstros. Nega efeitos de monstros adversários com a face para cima e pode equipar um deles a si.",
+      "explanation": "Troca três corpos por negação dos monstros face para cima adversários e equipa um monstro por alvo. Equipar é remoção sem destruir; preserva apenas um monstro equipado pelo efeito.",
       "sourceIds": [
         "plasma"
+      ]
+    },
+    {
+      "code": 17132130,
+      "name": "HERÓI do Destino - Dogma",
+      "role": "Recurso e condição de uso",
+      "explanation": "Exige três Tributos incluindo um HERÓI do Destino e só reduz LP na próxima Standby adversária. Também é material exato de Dragão Final sem precisar ser Invocado.",
+      "sourceIds": [
+        "set-list"
+      ]
+    },
+    {
+      "code": 40591390,
+      "name": "HERÓI do Destino - Mestre do Horror",
+      "role": "Recurso e condição de uso",
+      "explanation": "Ao entrar pela Torre, preserva HERÓIS do Destino, destrói seus outros monstros e pode reanimar dois HERÓIS do Destino. Reanimado por outro meio não recebe essa parte do efeito.",
+      "sourceIds": [
+        "set-list"
+      ]
+    },
+    {
+      "code": 63362460,
+      "name": "HERÓI do Destino - Celestial",
+      "role": "Recurso e condição de uso",
+      "explanation": "Atacando remove uma Magia face para cima e causa 500 se destruir. A compra do Cemitério exige mão vazia e um turno diferente do envio; bana um parceiro que não tenha extensão melhor.",
+      "sourceIds": [
+        "set-list"
+      ]
+    },
+    {
+      "code": 13093792,
+      "name": "HERÓI do Destino - Homem Diamante",
+      "role": "Recurso e condição de uso",
+      "explanation": "Escava o topo sem informação prévia: Magia Normal enviada permite usar seu efeito na sua próxima Main Phase. Não conte esse resultado aleatório como acesso garantido.",
+      "sourceIds": [
+        "set-list"
+      ]
+    },
+    {
+      "code": 36625827,
+      "name": "HERÓI do Destino - Servo do Horror",
+      "role": "Recurso e condição de uso",
+      "explanation": "Sua Normal acelera a Torre em um marcador. Sua destruição em batalha pode destruir sua própria Torre já com quatro marcadores para acessar Mestre do Medo.",
+      "sourceIds": [
+        "set-list"
+      ]
+    },
+    {
+      "code": 56570271,
+      "name": "HERÓI do Destino - Comandante dos Discos",
+      "role": "Recurso e condição de uso",
+      "explanation": "Não pode ser reanimado no turno em que foi enviado ao Cemitério. Sua compra ao ser reanimado é uma vez por Duelo, conforme a errata atual.",
+      "sourceIds": [
+        "set-list"
+      ]
+    },
+    {
+      "code": 37780349,
+      "name": "HERÓI do Destino - Dínatag",
+      "role": "Recurso e condição de uso",
+      "explanation": "No Cemitério, dá 1000 ATK a um HERÓI do Destino até o fim do próximo turno adversário. Em Distopia habilita remoção; da mão pode evitar dano de batalha, mas causa 1000 a ambos e exige cuidado com seus LP.",
+      "sourceIds": [
+        "set-list"
+      ]
+    },
+    {
+      "code": 64184058,
+      "name": "HERÓI do Destino - Decisor",
+      "role": "Recurso e condição de uso",
+      "explanation": "Sua Invocação prepara recuperação de HERO na End Phase uma vez por Duelo. Impede ataques de monstros adversários de Nível 6 ou maior, mas não de Xyz/Links sem Nível.",
+      "sourceIds": [
+        "set-list"
+      ]
+    },
+    {
+      "code": 66262416,
+      "name": "HERÓI do Destino - Devaneador",
+      "role": "Recurso e condição de uso",
+      "explanation": "Do Cemitério, protege uma batalha de HERÓI do Destino e entra como corpo, sendo banido ao sair. Além do Destino pode buscá-lo; use esse corpo temporário antes da End Phase.",
+      "sourceIds": [
+        "set-list"
+      ]
+    },
+    {
+      "code": 45809008,
+      "name": "Sacar o Destino",
+      "role": "Recurso e condição de uso",
+      "explanation": "Descarta HERÓI do Destino como custo e compra duas. Malicioso e Dinatag costumam aproveitar o Cemitério; não descarte automaticamente Plasma se a mão já reúne três corpos.",
+      "sourceIds": [
+        "set-list"
+      ]
+    },
+    {
+      "code": 72204747,
+      "name": "Além do Destino",
+      "role": "Recurso e condição de uso",
+      "explanation": "O alvo é um HERÓI do Destino no Cemitério, mas quem entra vem do Deck com até metade desse Nível. Malicioso permite Nível 3 ou menos; Plasma/Dogma permitem Nível 4. O corpo é destruído na End Phase.",
+      "sourceIds": [
+        "set-list"
+      ]
+    },
+    {
+      "code": 75041269,
+      "name": "Prisão da Torre do Relógio",
+      "role": "Recurso e condição de uso",
+      "explanation": "Quatro marcadores evitam dano de batalha; só destruída e enviada ao Cemitério com quatro acessa Mestre do Medo. Retorno à mão, banimento e substituição de Campo não são a mesma condição.",
+      "sourceIds": [
+        "set-list"
+      ]
+    },
+    {
+      "code": 53527835,
+      "name": "Cidade de Trevas",
+      "role": "Recurso e condição de uso",
+      "explanation": "Só aumenta o atacante durante o cálculo de dano quando ele tem menos ATK que o alvo. Não habilita a remoção de Distopia fora da Etapa de Dano.",
+      "sourceIds": [
+        "set-list"
+      ]
+    },
+    {
+      "code": 21143940,
+      "name": "Mudar a Máscara",
+      "role": "Recurso e condição de uso",
+      "explanation": "Transforma um HERO do campo em Mascarado do mesmo Atributo. TREVAS acessa Lei Obscura ou Anki; Homem em Chamas FOGO não tem Mascarado compatível nesta lista sem mudar Atributo.",
+      "sourceIds": [
+        "set-list"
+      ]
+    },
+    {
+      "code": 24094653,
+      "name": "Polimerização",
+      "role": "Recurso e condição de uso",
+      "explanation": "Usa mão e campo para Fusão; enviar Malicioso, Névoa ou Dinatag pode gerar continuidade. Os materiais e os bloqueios precisam combinar com a receita.",
+      "sourceIds": [
+        "set-list"
+      ]
+    },
+    {
+      "code": 83764718,
+      "name": "Reviver Monstro",
+      "role": "Recurso e condição de uso",
+      "explanation": "Reanima um monstro elegível de qualquer Cemitério. Pode dar a Especial de Névoa para buscar Máscara; não ignora procedimentos de Plasma, Dogma ou Mascarados nem a restrição de Comandante do Disco.",
+      "sourceIds": [
+        "set-list"
+      ]
+    },
+    {
+      "code": 98494543,
+      "name": "Escavação da Pedra Mágica",
+      "role": "Recurso e condição de uso",
+      "explanation": "Recupera Magia do Cemitério pagando dois descartes. Só compensa quando o acesso recuperado justifica três cartas comprometidas; Malicioso e Dinatag podem amenizar o custo.",
+      "sourceIds": [
+        "set-list"
+      ]
+    },
+    {
+      "code": 73628505,
+      "name": "Transformação Campal",
+      "role": "Recurso e condição de uso",
+      "explanation": "Busca Torre ou Cidade Obscura. Escolha um Campo pela mão e pelo estado de jogo; o acesso ao Campo não substitui acesso à Fusão ou Máscara.",
+      "sourceIds": [
+        "set-list"
+      ]
+    },
+    {
+      "code": 49140998,
+      "name": "Uma Pena da Fénix",
+      "role": "Recurso e condição de uso",
+      "explanation": "Paga um descarte para colocar uma carta do Cemitério no topo. É recuperação lenta: precisa de compra posterior e não acrescenta a carta diretamente à mão.",
+      "sourceIds": [
+        "set-list"
+      ]
+    },
+    {
+      "code": 35464895,
+      "name": "Sinal do Destino",
+      "role": "Recurso e condição de uso",
+      "explanation": "Exige destruição em batalha e envio ao Cemitério de monstro seu. Busca um HERÓI do Destino de Nível 4 ou menor; não responde a Tributo nem a material de Fusão.",
+      "sourceIds": [
+        "set-list"
+      ]
+    },
+    {
+      "code": 99075257,
+      "name": "D - Tempo",
+      "role": "Recurso e condição de uso",
+      "explanation": "Quando um HERÓI do Elemento seu face para cima sai do campo, busca HERÓI do Destino até o Nível original dele. Precisa estar Baixada desde um turno anterior; não é busca imediata da mão.",
+      "sourceIds": [
+        "set-list"
+      ]
+    },
+    {
+      "code": 35787450,
+      "name": "Horror Eterno",
+      "role": "Recurso e condição de uso",
+      "explanation": "Adiciona dois marcadores à Torre. Sem Torre ativa não desenvolve a mão; é possível descarte para Perigoso ou D ao Cubo quando esse plano for melhor.",
+      "sourceIds": [
+        "set-list"
+      ]
+    },
+    {
+      "code": 26841274,
+      "name": "D-Fusão",
+      "role": "Recurso e condição de uso",
+      "explanation": "Fusão de Armadilha usa apenas monstros do seu campo e apenas HERÓIS do Destino como materiais. Protege a Fusão contra destruição nesse turno; não usa a mão como Polimerização.",
+      "sourceIds": [
+        "set-list"
+      ]
+    },
+    {
+      "code": 63813056,
+      "name": "Dizimador Horrífico, o HERÓI Xtra",
+      "role": "Recurso e condição de uso",
+      "explanation": "Link 3 que usa dois ou mais HERO e fortalece a si e HERO apontados por nomes HERO distintos no Cemitério. Sua seta pode alterar Distopia e habilitar remoção; não conte cópias repetidas como nomes novos.",
+      "sourceIds": [
+        "set-list"
+      ]
+    },
+    {
+      "code": 76263644,
+      "name": "Dragoon do Destino Final",
+      "role": "Recurso e condição de uso",
+      "explanation": "Exige exatamente Plasma e Dogma como materiais. Pode destruir monstro adversário e causar seu ATK em dano, mas impede toda sua Fase de Batalha no turno. Reanima na sua Standby banindo um HERÓI do Destino se foi Invocado corretamente.",
+      "sourceIds": [
+        "set-list"
+      ]
+    },
+    {
+      "code": 93657021,
+      "name": "HERÓI do Destino - Diluculotopia",
+      "role": "Recurso e condição de uso",
+      "explanation": "Exige uma Fusão HERÓI do Destino e outro HERÓI do Destino. A Fusão adicional só usa mão/campo. Sua proteção de destruição também elimina dano de batalhas do alvo, inclusive se escolher monstro adversário.",
+      "sourceIds": [
+        "set-list"
+      ]
+    },
+    {
+      "code": 30757127,
+      "name": "HERÓI do Destino - Perigoso",
+      "role": "Recurso e condição de uso",
+      "explanation": "Transforma um descarte em envio de um HERÓI do Destino da mão/Deck. Priorize Malicioso ainda com cópia no Deck ou Dinatag com Distopia disponível, não aumento de ATK sem objetivo.",
+      "sourceIds": [
+        "set-list"
+      ]
+    },
+    {
+      "code": 59642500,
+      "name": "Anki, o HERÓI Mascarado",
+      "role": "Recurso e condição de uso",
+      "explanation": "Alternativa de pressão à Lei Obscura: ataque direto causa metade do dano. Ao destruir e enviar monstro ao Cemitério em batalha, busca Mudança; sob Lei Obscura o envio adversário pode virar banimento e impedir esse gatilho.",
+      "sourceIds": [
+        "set-list"
+      ]
+    },
+    {
+      "code": 1948619,
+      "name": "Condutor Maravilha, o HERÓI Xtra",
+      "role": "Recurso e condição de uso",
+      "explanation": "Recupera Polimerização ou Mudar a Máscara quando um HERO é Invocado na zona apontada. Planeje a seta e uma extensão antes de gastar dois corpos no Link.",
+      "sourceIds": [
+        "set-list"
       ]
     }
   ],
@@ -709,6 +979,2187 @@
           }
         ]
       }
+    },
+    {
+      "id": "destiny-draw-transforma-malicious-em-desenvolvimento",
+      "title": "Sacar o Destino sem gastar a Normal",
+      "summary": "Converta Malicioso em duas compras e um monstro, preservando a Normal.",
+      "minutes": 4,
+      "sourceIds": [
+        "set-list",
+        "hero-draw",
+        "hero-mal"
+      ],
+      "preparation": [
+        "Sua Fase Principal do primeiro turno; campo vazio e parceiro sem interrupções.",
+        "Use a mão indicada e a lista completa da caixa. Escolha as zonas apontadas quando a etapa pedir."
+      ],
+      "startingHand": [
+        45809008,
+        9411399,
+        63060238,
+        75041269,
+        35787450
+      ],
+      "steps": [
+        {
+          "title": "Compre com propósito",
+          "action": "Ative Sacar o Destino e descarte Malicioso.",
+          "why": "O descarte é custo: mesmo se a compra for negada, Malicioso já foi ao Cemitério.",
+          "cardCodes": [
+            45809008,
+            9411399
+          ]
+        },
+        {
+          "title": "Reaproveite o custo",
+          "action": "Bana Malicioso para invocar a segunda cópia do Deck.",
+          "why": "A lista tem duas cópias; confira se a outra ainda está no Deck antes de descartar.",
+          "cardCodes": [
+            9411399
+          ]
+        }
+      ],
+      "outcome": "Converta Malicioso em duas compras e um monstro, preservando a Normal.",
+      "cautions": [
+        "Não descarte o único acesso necessário à sua jogada só para comprar. Com ambos os Maliciosos fora do Deck, não há extensão."
+      ],
+      "practice": {
+        "goal": [
+          {
+            "kind": "card",
+            "zone": "monsters",
+            "code": 9411399
+          },
+          {
+            "kind": "card",
+            "zone": "banished",
+            "code": 9411399
+          },
+          {
+            "kind": "card",
+            "zone": "hand",
+            "code": 63060238
+          }
+        ],
+        "stages": [
+          {
+            "title": "Compre com propósito",
+            "instruction": "Ative Sacar o Destino e descarte Malicioso.",
+            "why": "O descarte é custo: mesmo se a compra for negada, Malicioso já foi ao Cemitério.",
+            "targets": [
+              {
+                "code": 45809008,
+                "location": 1
+              },
+              {
+                "code": 45809008,
+                "location": 2
+              },
+              {
+                "code": 45809008,
+                "location": 8
+              },
+              {
+                "code": 45809008,
+                "location": 16
+              },
+              {
+                "code": 9411399,
+                "location": 1
+              },
+              {
+                "code": 9411399,
+                "location": 2
+              },
+              {
+                "code": 9411399,
+                "location": 4
+              },
+              {
+                "code": 9411399,
+                "location": 16
+              }
+            ],
+            "completeWhen": [
+              {
+                "kind": "card",
+                "zone": "grave",
+                "code": 9411399
+              }
+            ]
+          },
+          {
+            "title": "Reaproveite o custo",
+            "instruction": "Bana Malicioso para invocar a segunda cópia do Deck.",
+            "why": "A lista tem duas cópias; confira se a outra ainda está no Deck antes de descartar.",
+            "targets": [
+              {
+                "code": 9411399,
+                "location": 1
+              },
+              {
+                "code": 9411399,
+                "location": 2
+              },
+              {
+                "code": 9411399,
+                "location": 4
+              },
+              {
+                "code": 9411399,
+                "location": 16
+              }
+            ],
+            "completeWhen": [
+              {
+                "kind": "card",
+                "zone": "banished",
+                "code": 9411399
+              },
+              {
+                "kind": "card",
+                "zone": "monsters",
+                "code": 9411399
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "blazeman-envia-nevoa-e-renasce",
+      "title": "Homem em Chamas: TREVAS para Lei Obscura",
+      "summary": "Lei Obscura no campo e Broca-negra na mão, usando o envio de Névoa Sombria.",
+      "minutes": 5,
+      "sourceIds": [
+        "set-list",
+        "hero-blaze",
+        "hero-drill",
+        "hero-mist",
+        "hero-reborn",
+        "hero-mask",
+        "hero-law"
+      ],
+      "preparation": [
+        "Sua Fase Principal do primeiro turno; campo vazio e parceiro sem interrupções.",
+        "Use a mão indicada e a lista completa da caixa. Escolha as zonas apontadas quando a etapa pedir."
+      ],
+      "startingHand": [
+        63060238,
+        21143940,
+        24094653,
+        75041269,
+        35787450
+      ],
+      "steps": [
+        {
+          "title": "Escolha o segundo efeito",
+          "action": "Invoque Homem em Chamas. Recuse a busca de Polimerização; ative seu efeito de enviar Névoa Sombria do Deck ao Cemitério.",
+          "why": "Você já tem Polimerização. O envio muda Homem em Chamas para TREVAS, mas restringe suas Especiais a Fusões pelo resto do turno.",
+          "cardCodes": [
+            63060238,
+            50720316
+          ]
+        },
+        {
+          "title": "Busque a continuação",
+          "action": "Aceite Névoa Sombria e busque Broca-negra.",
+          "why": "O envio permite buscar qualquer outro HERO; reserve esta busca antes de tentar usar o outro efeito de Névoa.",
+          "cardCodes": [
+            50720316,
+            91691605
+          ]
+        },
+        {
+          "title": "Transforme o novo Atributo",
+          "action": "Ative Mudar a Máscara escolhendo Homem em Chamas, agora de TREVAS, e invoque Lei Obscura.",
+          "why": "Lei Obscura é Fusão: Mudar a Máscara continua compatível com o bloqueio. Monstro que Renasce em Névoa Sombria não seria permitido, pois Névoa não é Fusão.",
+          "cardCodes": [
+            21143940,
+            63060238,
+            58481572
+          ]
+        }
+      ],
+      "outcome": "Lei Obscura no campo e Broca-negra na mão, usando o envio de Névoa Sombria.",
+      "cautions": [
+        "A busca de Polimerização e o envio de Homem em Chamas são mutuamente exclusivos no turno.",
+        "Homem em Chamas FOGO não acessa os Mascarados TREVAS da lista. O envio de Névoa muda seu Atributo e cria essa rota."
+      ],
+      "practice": {
+        "goal": [
+          {
+            "kind": "card",
+            "zone": "monsters",
+            "code": 58481572
+          },
+          {
+            "kind": "card",
+            "zone": "grave",
+            "code": 63060238
+          },
+          {
+            "kind": "card",
+            "zone": "grave",
+            "code": 50720316
+          },
+          {
+            "kind": "card",
+            "zone": "hand",
+            "code": 91691605
+          }
+        ],
+        "stages": [
+          {
+            "title": "Escolha o segundo efeito",
+            "instruction": "Invoque Homem em Chamas. Recuse a busca de Polimerização; ative seu efeito de enviar Névoa Sombria do Deck ao Cemitério.",
+            "why": "Você já tem Polimerização. O envio muda Homem em Chamas para TREVAS, mas restringe suas Especiais a Fusões pelo resto do turno.",
+            "targets": [
+              {
+                "code": 63060238,
+                "location": 1
+              },
+              {
+                "code": 63060238,
+                "location": 2
+              },
+              {
+                "code": 63060238,
+                "location": 4
+              },
+              {
+                "code": 63060238,
+                "location": 16
+              },
+              {
+                "code": 50720316,
+                "location": 1
+              },
+              {
+                "code": 50720316,
+                "location": 2
+              },
+              {
+                "code": 50720316,
+                "location": 4
+              },
+              {
+                "code": 50720316,
+                "location": 16
+              }
+            ],
+            "completeWhen": [
+              {
+                "kind": "card",
+                "zone": "grave",
+                "code": 50720316
+              }
+            ]
+          },
+          {
+            "title": "Busque a continuação",
+            "instruction": "Aceite Névoa Sombria e busque Broca-negra.",
+            "why": "O envio permite buscar qualquer outro HERO; reserve esta busca antes de tentar usar o outro efeito de Névoa.",
+            "targets": [
+              {
+                "code": 50720316,
+                "location": 1
+              },
+              {
+                "code": 50720316,
+                "location": 2
+              },
+              {
+                "code": 50720316,
+                "location": 4
+              },
+              {
+                "code": 50720316,
+                "location": 16
+              },
+              {
+                "code": 91691605,
+                "location": 1
+              },
+              {
+                "code": 91691605,
+                "location": 2
+              },
+              {
+                "code": 91691605,
+                "location": 4
+              },
+              {
+                "code": 91691605,
+                "location": 16
+              }
+            ],
+            "completeWhen": [
+              {
+                "kind": "card",
+                "zone": "hand",
+                "code": 91691605
+              }
+            ]
+          },
+          {
+            "title": "Transforme o novo Atributo",
+            "instruction": "Ative Mudar a Máscara escolhendo Homem em Chamas, agora de TREVAS, e invoque Lei Obscura.",
+            "why": "Lei Obscura é Fusão: Mudar a Máscara continua compatível com o bloqueio. Monstro que Renasce em Névoa Sombria não seria permitido, pois Névoa não é Fusão.",
+            "targets": [
+              {
+                "code": 21143940,
+                "location": 2
+              },
+              {
+                "code": 63060238,
+                "location": 4
+              },
+              {
+                "code": 58481572,
+                "location": 64
+              }
+            ],
+            "completeWhen": [
+              {
+                "kind": "card",
+                "zone": "monsters",
+                "code": 58481572
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "perigoso-prepara-malicioso",
+      "title": "Perigoso: descarte e envio são recursos diferentes",
+      "summary": "Perigoso prepara Malicioso do Deck e gera uma extensão sem gastar a Normal.",
+      "minutes": 5,
+      "sourceIds": [
+        "set-list",
+        "hero-cel",
+        "hero-danger",
+        "hero-drill",
+        "hero-eternal",
+        "hero-mal",
+        "hero-poly"
+      ],
+      "preparation": [
+        "Sua Fase Principal do primeiro turno; campo vazio e parceiro sem interrupções.",
+        "Use a mão indicada e a lista completa da caixa. Escolha as zonas apontadas quando a etapa pedir."
+      ],
+      "startingHand": [
+        24094653,
+        63362460,
+        91691605,
+        75041269,
+        35787450
+      ],
+      "steps": [
+        {
+          "title": "Faça Perigoso",
+          "action": "Ative Polimerização usando Celestial e Broca-negra da mão para Perigoso.",
+          "why": "A receita pede um HERÓI do Destino e um monstro de Efeito TREVAS; ambos satisfazem.",
+          "cardCodes": [
+            24094653,
+            63362460,
+            91691605,
+            30757127
+          ]
+        },
+        {
+          "title": "Prepare o Cemitério",
+          "action": "Ative Perigoso, descarte Pavor Eterno e envie Malicioso do Deck ao Cemitério.",
+          "why": "O descarte é custo; o envio do Deck faz parte do efeito. Isso evita depender de comprar Malicioso.",
+          "cardCodes": [
+            30757127,
+            35787450,
+            9411399
+          ]
+        },
+        {
+          "title": "Converta envio em corpo",
+          "action": "Bana Malicioso para invocar a outra cópia.",
+          "why": "Você mantém Perigoso e a Normal disponível; não gaste outro descarte sem retorno.",
+          "cardCodes": [
+            9411399
+          ]
+        }
+      ],
+      "outcome": "Perigoso prepara Malicioso do Deck e gera uma extensão sem gastar a Normal.",
+      "cautions": [
+        "O aumento de Perigoso depende do número de HERÓIS do Destino no Cemitério na resolução. Banir materiais depois não recalcula esse aumento."
+      ],
+      "practice": {
+        "goal": [
+          {
+            "kind": "card",
+            "zone": "monsters",
+            "code": 30757127
+          },
+          {
+            "kind": "card",
+            "zone": "monsters",
+            "code": 9411399
+          },
+          {
+            "kind": "card",
+            "zone": "banished",
+            "code": 9411399
+          }
+        ],
+        "stages": [
+          {
+            "title": "Faça Perigoso",
+            "instruction": "Ative Polimerização usando Celestial e Broca-negra da mão para Perigoso.",
+            "why": "A receita pede um HERÓI do Destino e um monstro de Efeito TREVAS; ambos satisfazem.",
+            "targets": [
+              {
+                "code": 24094653,
+                "location": 1
+              },
+              {
+                "code": 24094653,
+                "location": 2
+              },
+              {
+                "code": 24094653,
+                "location": 8
+              },
+              {
+                "code": 24094653,
+                "location": 16
+              },
+              {
+                "code": 63362460,
+                "location": 1
+              },
+              {
+                "code": 63362460,
+                "location": 2
+              },
+              {
+                "code": 63362460,
+                "location": 4
+              },
+              {
+                "code": 63362460,
+                "location": 16
+              },
+              {
+                "code": 91691605,
+                "location": 1
+              },
+              {
+                "code": 91691605,
+                "location": 2
+              },
+              {
+                "code": 91691605,
+                "location": 4
+              },
+              {
+                "code": 91691605,
+                "location": 16
+              },
+              {
+                "code": 30757127,
+                "location": 4
+              },
+              {
+                "code": 30757127,
+                "location": 64
+              }
+            ],
+            "completeWhen": [
+              {
+                "kind": "card",
+                "zone": "monsters",
+                "code": 30757127
+              }
+            ]
+          },
+          {
+            "title": "Prepare o Cemitério",
+            "instruction": "Ative Perigoso, descarte Pavor Eterno e envie Malicioso do Deck ao Cemitério.",
+            "why": "O descarte é custo; o envio do Deck faz parte do efeito. Isso evita depender de comprar Malicioso.",
+            "targets": [
+              {
+                "code": 30757127,
+                "location": 4
+              },
+              {
+                "code": 30757127,
+                "location": 64
+              },
+              {
+                "code": 35787450,
+                "location": 1
+              },
+              {
+                "code": 35787450,
+                "location": 2
+              },
+              {
+                "code": 35787450,
+                "location": 4
+              },
+              {
+                "code": 35787450,
+                "location": 8
+              },
+              {
+                "code": 35787450,
+                "location": 16
+              },
+              {
+                "code": 9411399,
+                "location": 1
+              },
+              {
+                "code": 9411399,
+                "location": 2
+              },
+              {
+                "code": 9411399,
+                "location": 4
+              },
+              {
+                "code": 9411399,
+                "location": 16
+              }
+            ],
+            "completeWhen": [
+              {
+                "kind": "card",
+                "zone": "grave",
+                "code": 9411399
+              }
+            ]
+          },
+          {
+            "title": "Converta envio em corpo",
+            "instruction": "Bana Malicioso para invocar a outra cópia.",
+            "why": "Você mantém Perigoso e a Normal disponível; não gaste outro descarte sem retorno.",
+            "targets": [
+              {
+                "code": 9411399,
+                "location": 1
+              },
+              {
+                "code": 9411399,
+                "location": 2
+              },
+              {
+                "code": 9411399,
+                "location": 4
+              },
+              {
+                "code": 9411399,
+                "location": 16
+              }
+            ],
+            "completeWhen": [
+              {
+                "kind": "card",
+                "zone": "monsters",
+                "code": 9411399
+              },
+              {
+                "kind": "card",
+                "zone": "banished",
+                "code": 9411399
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "dynatag-habilita-a-destruicao-de-dystopia",
+      "title": "Dinatag e Distopia: habilitar e gastar a remoção",
+      "summary": "Altere o ATK de Distopia e converta o aumento em destruição.",
+      "minutes": 6,
+      "sourceIds": [
+        "set-list",
+        "hero-cel",
+        "hero-clock",
+        "hero-dyna",
+        "hero-dyst",
+        "hero-poly"
+      ],
+      "preparation": [
+        "Sua Fase Principal do primeiro turno; campo vazio e parceiro sem interrupções.",
+        "Use a mão indicada e a lista completa da caixa. Escolha as zonas apontadas quando a etapa pedir."
+      ],
+      "startingHand": [
+        24094653,
+        63362460,
+        37780349,
+        75041269,
+        35787450
+      ],
+      "steps": [
+        {
+          "title": "Estabeleça um alvo de treino",
+          "action": "Ative Prisão da Torre do Relógio.",
+          "why": "No duelo livre o alvo desejável é uma ameaça adversária; aqui o Campo serve para demonstrar a remoção sem um oponente ativo.",
+          "cardCodes": [
+            75041269
+          ]
+        },
+        {
+          "title": "Faça Distopia",
+          "action": "Use Polimerização com Celestial e Dinatag para Distopia; aceite o dano escolhendo Celestial.",
+          "why": "Dinatag é Nível 5 e não é alvo para o dano; Celestial causa 1600.",
+          "cardCodes": [
+            24094653,
+            63362460,
+            37780349,
+            90579153
+          ]
+        },
+        {
+          "title": "Habilite a interação",
+          "action": "Bana Dinatag do Cemitério escolhendo Distopia.",
+          "why": "O aumento de 1000 deixa o ATK atual diferente do original, pré-requisito do efeito rápido.",
+          "cardCodes": [
+            37780349,
+            90579153
+          ]
+        },
+        {
+          "title": "Gaste a remoção",
+          "action": "Ative a destruição de Distopia e escolha a sua Torre como alvo de demonstração.",
+          "why": "Distopia volta ao ATK original se destruir o alvo. Não destrua seus próprios recursos em uma partida sem uma razão concreta.",
+          "cardCodes": [
+            90579153,
+            75041269
+          ]
+        }
+      ],
+      "outcome": "Altere o ATK de Distopia e converta o aumento em destruição.",
+      "cautions": [
+        "Din tag não habilita remoção permanente: Distopia volta ao original após destruir.",
+        "A Torre sem quatro marcadores não invoca Mestre do Medo ao ser destruída.",
+        "Fora do exercício, guarde a remoção para cartas adversárias relevantes; não troque 1000 ATK por destruição inútil."
+      ],
+      "practice": {
+        "goal": [
+          {
+            "kind": "card",
+            "zone": "monsters",
+            "code": 90579153
+          },
+          {
+            "kind": "card",
+            "zone": "banished",
+            "code": 37780349
+          },
+          {
+            "kind": "card",
+            "zone": "grave",
+            "code": 75041269
+          }
+        ],
+        "stages": [
+          {
+            "title": "Estabeleça um alvo de treino",
+            "instruction": "Ative Prisão da Torre do Relógio.",
+            "why": "No duelo livre o alvo desejável é uma ameaça adversária; aqui o Campo serve para demonstrar a remoção sem um oponente ativo.",
+            "targets": [
+              {
+                "code": 75041269,
+                "location": 1
+              },
+              {
+                "code": 75041269,
+                "location": 2
+              },
+              {
+                "code": 75041269,
+                "location": 4
+              },
+              {
+                "code": 75041269,
+                "location": 8
+              },
+              {
+                "code": 75041269,
+                "location": 16
+              }
+            ],
+            "completeWhen": [
+              {
+                "kind": "card",
+                "zone": "field",
+                "code": 75041269
+              }
+            ]
+          },
+          {
+            "title": "Faça Distopia",
+            "instruction": "Use Polimerização com Celestial e Dinatag para Distopia; aceite o dano escolhendo Celestial.",
+            "why": "Din tag é Nível 5 e não é alvo para o dano; Celestial causa 1600.",
+            "targets": [
+              {
+                "code": 24094653,
+                "location": 1
+              },
+              {
+                "code": 24094653,
+                "location": 2
+              },
+              {
+                "code": 24094653,
+                "location": 8
+              },
+              {
+                "code": 24094653,
+                "location": 16
+              },
+              {
+                "code": 63362460,
+                "location": 1
+              },
+              {
+                "code": 63362460,
+                "location": 2
+              },
+              {
+                "code": 63362460,
+                "location": 4
+              },
+              {
+                "code": 63362460,
+                "location": 16
+              },
+              {
+                "code": 37780349,
+                "location": 1
+              },
+              {
+                "code": 37780349,
+                "location": 2
+              },
+              {
+                "code": 37780349,
+                "location": 4
+              },
+              {
+                "code": 37780349,
+                "location": 16
+              },
+              {
+                "code": 90579153,
+                "location": 4
+              },
+              {
+                "code": 90579153,
+                "location": 64
+              }
+            ],
+            "completeWhen": [
+              {
+                "kind": "card",
+                "zone": "monsters",
+                "code": 90579153
+              },
+              {
+                "kind": "lp",
+                "player": 1,
+                "value": 6400
+              }
+            ]
+          },
+          {
+            "title": "Habilite a interação",
+            "instruction": "Bana Dinatag do Cemitério escolhendo Distopia.",
+            "why": "O aumento de 1000 deixa o ATK atual diferente do original, pré-requisito do efeito rápido.",
+            "targets": [
+              {
+                "code": 37780349,
+                "location": 1
+              },
+              {
+                "code": 37780349,
+                "location": 2
+              },
+              {
+                "code": 37780349,
+                "location": 4
+              },
+              {
+                "code": 37780349,
+                "location": 16
+              },
+              {
+                "code": 90579153,
+                "location": 4
+              },
+              {
+                "code": 90579153,
+                "location": 64
+              }
+            ],
+            "completeWhen": [
+              {
+                "kind": "card",
+                "zone": "banished",
+                "code": 37780349
+              }
+            ]
+          },
+          {
+            "title": "Gaste a remoção",
+            "instruction": "Ative a destruição de Distopia e escolha a sua Torre como alvo de demonstração.",
+            "why": "Distopia volta ao ATK original se destruir o alvo. Não destrua seus próprios recursos em uma partida sem uma razão concreta.",
+            "targets": [
+              {
+                "code": 90579153,
+                "location": 4
+              },
+              {
+                "code": 90579153,
+                "location": 64
+              },
+              {
+                "code": 75041269,
+                "location": 1
+              },
+              {
+                "code": 75041269,
+                "location": 2
+              },
+              {
+                "code": 75041269,
+                "location": 4
+              },
+              {
+                "code": 75041269,
+                "location": 8
+              },
+              {
+                "code": 75041269,
+                "location": 16
+              }
+            ],
+            "completeWhen": [
+              {
+                "kind": "card",
+                "zone": "grave",
+                "code": 75041269
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "wonder-driver-recupera-a-magia-usada",
+      "title": "Condutor Maravilha e a zona apontada",
+      "summary": "Recupere Polimerização depois de uma Invocação na seta inferior do Link.",
+      "minutes": 6,
+      "sourceIds": [
+        "set-list",
+        "hero-cel",
+        "hero-drill",
+        "hero-dyst",
+        "hero-mal",
+        "hero-poly",
+        "hero-reborn",
+        "hero-wonder"
+      ],
+      "preparation": [
+        "Sua Fase Principal do primeiro turno; campo vazio e parceiro sem interrupções.",
+        "Use a mão indicada e a lista completa da caixa. Escolha as zonas apontadas quando a etapa pedir."
+      ],
+      "startingHand": [
+        91691605,
+        9411399,
+        24094653,
+        63362460,
+        83764718
+      ],
+      "steps": [
+        {
+          "title": "Crie dois HERO",
+          "action": "Invoque Broca-negra e aceite seu efeito para invocar Malicioso da mão.",
+          "why": "Malicioso tem 800 ATK, abaixo dos 1600 de Broca-negra.",
+          "cardCodes": [
+            91691605,
+            9411399
+          ]
+        },
+        {
+          "title": "Posicione o Condutor",
+          "action": "Use os dois HERO para invocar Condutor Maravilha na Zona de Monstro Adicional.",
+          "why": "São dois HERO, não quaisquer monstros. A seta inferior aponta para uma zona sua.",
+          "cardCodes": [
+            1948619,
+            91691605,
+            9411399
+          ]
+        },
+        {
+          "title": "Faça uma Fusão",
+          "action": "Use Polimerização com Celestial da mão e o Malicioso restante (invoque-o do Deck pelo Cemitério primeiro). Invoque Distopia em uma zona que NÃO seja a seta do Condutor; aceite o dano em Celestial.",
+          "why": "Assim Polimerização já estará no Cemitério quando ocorrer a próxima invocação na seta.",
+          "cardCodes": [
+            9411399,
+            24094653,
+            63362460,
+            90579153
+          ]
+        },
+        {
+          "title": "Recupere na seta",
+          "action": "Ative Monstro que Renasce em Broca-negra. Coloque-o na zona imediatamente abaixo de Condutor Maravilha; aceite o efeito do Link e Baixe Polimerização.",
+          "why": "A zona é o gatilho. Polimerização é Magia Normal e pode ser ativada no turno em que foi Baixada; Mudar a Máscara é Rápida e precisa esperar.",
+          "cardCodes": [
+            83764718,
+            91691605,
+            1948619,
+            24094653
+          ]
+        }
+      ],
+      "outcome": "Recupere Polimerização depois de uma Invocação na seta inferior do Link.",
+      "cautions": [
+        "O Link não recupera uma carta só por existir: um HERO deve ser Invocado na zona apontada.",
+        "D ao Cubo bloquearia a Invocação deste Link; o envio de Homem em Chamas também bloqueia Links pelo resto do turno."
+      ],
+      "practice": {
+        "goal": [
+          {
+            "kind": "card",
+            "zone": "monsters",
+            "code": 1948619
+          },
+          {
+            "kind": "card",
+            "zone": "monsters",
+            "code": 91691605
+          },
+          {
+            "kind": "card",
+            "zone": "monsters",
+            "code": 90579153
+          },
+          {
+            "kind": "card",
+            "zone": "spells",
+            "code": 24094653
+          }
+        ],
+        "stages": [
+          {
+            "title": "Crie dois HERO",
+            "instruction": "Invoque Broca-negra e aceite seu efeito para invocar Malicioso da mão.",
+            "why": "Malicioso tem 800 ATK, abaixo dos 1600 de Broca-negra.",
+            "targets": [
+              {
+                "code": 91691605,
+                "location": 1
+              },
+              {
+                "code": 91691605,
+                "location": 2
+              },
+              {
+                "code": 91691605,
+                "location": 4
+              },
+              {
+                "code": 91691605,
+                "location": 16
+              },
+              {
+                "code": 9411399,
+                "location": 1
+              },
+              {
+                "code": 9411399,
+                "location": 2
+              },
+              {
+                "code": 9411399,
+                "location": 4
+              },
+              {
+                "code": 9411399,
+                "location": 16
+              }
+            ],
+            "completeWhen": [
+              {
+                "kind": "card",
+                "zone": "monsters",
+                "code": 91691605
+              },
+              {
+                "kind": "card",
+                "zone": "monsters",
+                "code": 9411399
+              }
+            ]
+          },
+          {
+            "title": "Posicione o Condutor",
+            "instruction": "Use os dois HERO para invocar Condutor Maravilha na Zona de Monstro Adicional.",
+            "why": "São dois HERO, não quaisquer monstros. A seta inferior aponta para uma zona sua.",
+            "targets": [
+              {
+                "code": 1948619,
+                "location": 4
+              },
+              {
+                "code": 1948619,
+                "location": 64
+              },
+              {
+                "code": 91691605,
+                "location": 1
+              },
+              {
+                "code": 91691605,
+                "location": 2
+              },
+              {
+                "code": 91691605,
+                "location": 4
+              },
+              {
+                "code": 91691605,
+                "location": 16
+              },
+              {
+                "code": 9411399,
+                "location": 1
+              },
+              {
+                "code": 9411399,
+                "location": 2
+              },
+              {
+                "code": 9411399,
+                "location": 4
+              },
+              {
+                "code": 9411399,
+                "location": 16
+              }
+            ],
+            "completeWhen": [
+              {
+                "kind": "card",
+                "zone": "monsters",
+                "code": 1948619
+              }
+            ]
+          },
+          {
+            "title": "Faça uma Fusão",
+            "instruction": "Use Polimerização com Celestial da mão e o Malicioso restante (invoque-o do Deck pelo Cemitério primeiro). Invoque Distopia em uma zona que NÃO seja a seta do Condutor; aceite o dano em Celestial.",
+            "why": "Assim Polimerização já estará no Cemitério quando ocorrer a próxima invocação na seta.",
+            "targets": [
+              {
+                "code": 9411399,
+                "location": 1
+              },
+              {
+                "code": 9411399,
+                "location": 2
+              },
+              {
+                "code": 9411399,
+                "location": 4
+              },
+              {
+                "code": 9411399,
+                "location": 16
+              },
+              {
+                "code": 24094653,
+                "location": 1
+              },
+              {
+                "code": 24094653,
+                "location": 2
+              },
+              {
+                "code": 24094653,
+                "location": 8
+              },
+              {
+                "code": 24094653,
+                "location": 16
+              },
+              {
+                "code": 63362460,
+                "location": 1
+              },
+              {
+                "code": 63362460,
+                "location": 2
+              },
+              {
+                "code": 63362460,
+                "location": 4
+              },
+              {
+                "code": 63362460,
+                "location": 16
+              },
+              {
+                "code": 90579153,
+                "location": 4
+              },
+              {
+                "code": 90579153,
+                "location": 64
+              }
+            ],
+            "completeWhen": [
+              {
+                "kind": "card",
+                "zone": "monsters",
+                "code": 90579153
+              },
+              {
+                "kind": "card",
+                "zone": "grave",
+                "code": 24094653
+              }
+            ]
+          },
+          {
+            "title": "Recupere na seta",
+            "instruction": "Ative Monstro que Renasce em Broca-negra. Coloque-o na zona imediatamente abaixo de Condutor Maravilha; aceite o efeito do Link e Baixe Polimerização.",
+            "why": "A zona é o gatilho. Polimerização é Magia Normal e pode ser ativada no turno em que foi Baixada; Mudar a Máscara é Rápida e precisa esperar.",
+            "targets": [
+              {
+                "code": 83764718,
+                "location": 1
+              },
+              {
+                "code": 83764718,
+                "location": 2
+              },
+              {
+                "code": 83764718,
+                "location": 8
+              },
+              {
+                "code": 83764718,
+                "location": 16
+              },
+              {
+                "code": 91691605,
+                "location": 1
+              },
+              {
+                "code": 91691605,
+                "location": 2
+              },
+              {
+                "code": 91691605,
+                "location": 4
+              },
+              {
+                "code": 91691605,
+                "location": 16
+              },
+              {
+                "code": 1948619,
+                "location": 4
+              },
+              {
+                "code": 1948619,
+                "location": 64
+              },
+              {
+                "code": 24094653,
+                "location": 1
+              },
+              {
+                "code": 24094653,
+                "location": 2
+              },
+              {
+                "code": 24094653,
+                "location": 8
+              },
+              {
+                "code": 24094653,
+                "location": 16
+              }
+            ],
+            "completeWhen": [
+              {
+                "kind": "card",
+                "zone": "spells",
+                "code": 24094653
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "over-destiny-completa-plasma",
+      "title": "Além do Destino completa os três Tributos",
+      "summary": "Use o Nível de Malicioso no Cemitério para buscar o terceiro corpo de Plasma.",
+      "minutes": 6,
+      "sourceIds": [
+        "set-list",
+        "hero-cel",
+        "hero-dream",
+        "hero-dyst",
+        "hero-mal",
+        "hero-over",
+        "hero-plasma",
+        "hero-poly"
+      ],
+      "preparation": [
+        "Sua Fase Principal do primeiro turno; campo vazio e parceiro sem interrupções.",
+        "Use a mão indicada e a lista completa da caixa. Escolha as zonas apontadas quando a etapa pedir."
+      ],
+      "startingHand": [
+        24094653,
+        9411399,
+        63362460,
+        72204747,
+        83965310
+      ],
+      "steps": [
+        {
+          "title": "Faça a Fusão inicial",
+          "action": "Use Polimerização com Malicioso e Celestial para Distopia; aceite o dano de Celestial.",
+          "why": "Você cria o primeiro corpo e prepara um HERÓI do Destino de Nível 6 no Cemitério.",
+          "cardCodes": [
+            24094653,
+            9411399,
+            63362460,
+            90579153
+          ]
+        },
+        {
+          "title": "Invoque antes de banir",
+          "action": "Ative Além do Destino escolhendo Malicioso no Cemitério e invoque Sonhador do Deck.",
+          "why": "Metade de 6 é 3: Sonhador de Nível 1 serve. Se banir Malicioso primeiro, perde esse alvo.",
+          "cardCodes": [
+            72204747,
+            9411399,
+            66262416
+          ]
+        },
+        {
+          "title": "Gere o terceiro corpo",
+          "action": "Agora bana Malicioso para invocar a outra cópia.",
+          "why": "A ordem permite extrair dois recursos da mesma carta. Sonhador seria destruído na End Phase; use-o antes.",
+          "cardCodes": [
+            9411399
+          ]
+        },
+        {
+          "title": "Decida pelo controle",
+          "action": "Invoque Plasma por seu procedimento oferecendo os três monstros.",
+          "why": "Nesta mão você troca inclusive Distopia por negação contínua. Em partida real, compare a ameaça adversária antes de pagar esse custo.",
+          "cardCodes": [
+            83965310,
+            90579153,
+            9411399,
+            66262416
+          ]
+        }
+      ],
+      "outcome": "Use o Nível de Malicioso no Cemitério para buscar o terceiro corpo de Plasma.",
+      "cautions": [
+        "Além do Destino não revive o alvo: invoca outro HERÓI do Destino do Deck.",
+        "Plasma equipa por efeito que escolhe alvo; não destrói nem nega efeitos de mão ou Cemitério."
+      ],
+      "practice": {
+        "goal": [
+          {
+            "kind": "card",
+            "zone": "monsters",
+            "code": 83965310
+          },
+          {
+            "kind": "card",
+            "zone": "grave",
+            "code": 66262416
+          },
+          {
+            "kind": "card",
+            "zone": "grave",
+            "code": 90579153
+          },
+          {
+            "kind": "card",
+            "zone": "banished",
+            "code": 9411399
+          }
+        ],
+        "stages": [
+          {
+            "title": "Faça a Fusão inicial",
+            "instruction": "Use Polimerização com Malicioso e Celestial para Distopia; aceite o dano de Celestial.",
+            "why": "Você cria o primeiro corpo e prepara um HERÓI do Destino de Nível 6 no Cemitério.",
+            "targets": [
+              {
+                "code": 24094653,
+                "location": 1
+              },
+              {
+                "code": 24094653,
+                "location": 2
+              },
+              {
+                "code": 24094653,
+                "location": 8
+              },
+              {
+                "code": 24094653,
+                "location": 16
+              },
+              {
+                "code": 9411399,
+                "location": 1
+              },
+              {
+                "code": 9411399,
+                "location": 2
+              },
+              {
+                "code": 9411399,
+                "location": 4
+              },
+              {
+                "code": 9411399,
+                "location": 16
+              },
+              {
+                "code": 63362460,
+                "location": 1
+              },
+              {
+                "code": 63362460,
+                "location": 2
+              },
+              {
+                "code": 63362460,
+                "location": 4
+              },
+              {
+                "code": 63362460,
+                "location": 16
+              },
+              {
+                "code": 90579153,
+                "location": 4
+              },
+              {
+                "code": 90579153,
+                "location": 64
+              }
+            ],
+            "completeWhen": [
+              {
+                "kind": "card",
+                "zone": "monsters",
+                "code": 90579153
+              },
+              {
+                "kind": "card",
+                "zone": "grave",
+                "code": 9411399
+              }
+            ]
+          },
+          {
+            "title": "Invoque antes de banir",
+            "instruction": "Ative Além do Destino escolhendo Malicioso no Cemitério e invoque Sonhador do Deck.",
+            "why": "Metade de 6 é 3: Sonhador de Nível 1 serve. Se banir Malicioso primeiro, perde esse alvo.",
+            "targets": [
+              {
+                "code": 72204747,
+                "location": 1
+              },
+              {
+                "code": 72204747,
+                "location": 2
+              },
+              {
+                "code": 72204747,
+                "location": 8
+              },
+              {
+                "code": 72204747,
+                "location": 16
+              },
+              {
+                "code": 9411399,
+                "location": 1
+              },
+              {
+                "code": 9411399,
+                "location": 2
+              },
+              {
+                "code": 9411399,
+                "location": 4
+              },
+              {
+                "code": 9411399,
+                "location": 16
+              },
+              {
+                "code": 66262416,
+                "location": 1
+              },
+              {
+                "code": 66262416,
+                "location": 2
+              },
+              {
+                "code": 66262416,
+                "location": 4
+              },
+              {
+                "code": 66262416,
+                "location": 16
+              }
+            ],
+            "completeWhen": [
+              {
+                "kind": "card",
+                "zone": "monsters",
+                "code": 66262416
+              }
+            ]
+          },
+          {
+            "title": "Gere o terceiro corpo",
+            "instruction": "Agora bana Malicioso para invocar a outra cópia.",
+            "why": "A ordem permite extrair dois recursos da mesma carta. Sonhador seria destruído na End Phase; use-o antes.",
+            "targets": [
+              {
+                "code": 9411399,
+                "location": 1
+              },
+              {
+                "code": 9411399,
+                "location": 2
+              },
+              {
+                "code": 9411399,
+                "location": 4
+              },
+              {
+                "code": 9411399,
+                "location": 16
+              }
+            ],
+            "completeWhen": [
+              {
+                "kind": "card",
+                "zone": "monsters",
+                "code": 9411399
+              },
+              {
+                "kind": "card",
+                "zone": "banished",
+                "code": 9411399
+              }
+            ]
+          },
+          {
+            "title": "Decida pelo controle",
+            "instruction": "Invoque Plasma por seu procedimento oferecendo os três monstros.",
+            "why": "Nesta mão você troca inclusive Distopia por negação contínua. Em partida real, compare a ameaça adversária antes de pagar esse custo.",
+            "targets": [
+              {
+                "code": 83965310,
+                "location": 1
+              },
+              {
+                "code": 83965310,
+                "location": 2
+              },
+              {
+                "code": 83965310,
+                "location": 4
+              },
+              {
+                "code": 83965310,
+                "location": 16
+              },
+              {
+                "code": 90579153,
+                "location": 4
+              },
+              {
+                "code": 90579153,
+                "location": 64
+              },
+              {
+                "code": 9411399,
+                "location": 1
+              },
+              {
+                "code": 9411399,
+                "location": 2
+              },
+              {
+                "code": 9411399,
+                "location": 4
+              },
+              {
+                "code": 9411399,
+                "location": 16
+              },
+              {
+                "code": 66262416,
+                "location": 1
+              },
+              {
+                "code": 66262416,
+                "location": 2
+              },
+              {
+                "code": 66262416,
+                "location": 4
+              },
+              {
+                "code": 66262416,
+                "location": 16
+              }
+            ],
+            "completeWhen": [
+              {
+                "kind": "card",
+                "zone": "monsters",
+                "code": 83965310
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "dragao-final-sem-tres-tributos",
+      "title": "Dragão Final: chefes da mão viram materiais",
+      "summary": "Converta Plasma e Dogma da mão em Dragão Final sem reunir três Tributos.",
+      "minutes": 3,
+      "sourceIds": [
+        "set-list",
+        "hero-dogma",
+        "hero-dragoon",
+        "hero-plasma",
+        "hero-poly"
+      ],
+      "preparation": [
+        "Sua Fase Principal do primeiro turno; campo vazio e parceiro sem interrupções.",
+        "Use a mão indicada e a lista completa da caixa. Escolha as zonas apontadas quando a etapa pedir."
+      ],
+      "startingHand": [
+        24094653,
+        83965310,
+        17132130,
+        75041269,
+        35787450
+      ],
+      "steps": [
+        {
+          "title": "Use a receita exata",
+          "action": "Ative Polimerização e escolha Dragão Final do Destino, usando Plasma e Dogma da mão.",
+          "why": "As restrições de Invocação dos dois materiais não impedem usá-los em uma Fusão. Isso aproveita uma mão pesada.",
+          "cardCodes": [
+            24094653,
+            83965310,
+            17132130,
+            76263644
+          ]
+        }
+      ],
+      "outcome": "Converta Plasma e Dogma da mão em Dragão Final sem reunir três Tributos.",
+      "cautions": [
+        "A destruição de Dragão Final impede sua Fase de Batalha no turno inteiro; não conte remoção e ataques juntos.",
+        "Sua recuperação exige a própria Standby e um HERÓI do Destino para banir; uma Fusão enviada direto do Extra ao Cemitério não foi Invocada corretamente."
+      ],
+      "practice": {
+        "goal": [
+          {
+            "kind": "card",
+            "zone": "monsters",
+            "code": 76263644
+          },
+          {
+            "kind": "card",
+            "zone": "grave",
+            "code": 83965310
+          },
+          {
+            "kind": "card",
+            "zone": "grave",
+            "code": 17132130
+          }
+        ],
+        "stages": [
+          {
+            "title": "Use a receita exata",
+            "instruction": "Ative Polimerização e escolha Dragão Final do Destino, usando Plasma e Dogma da mão.",
+            "why": "As restrições de Invocação dos dois materiais não impedem usá-los em uma Fusão. Isso aproveita uma mão pesada.",
+            "targets": [
+              {
+                "code": 24094653,
+                "location": 1
+              },
+              {
+                "code": 24094653,
+                "location": 2
+              },
+              {
+                "code": 24094653,
+                "location": 8
+              },
+              {
+                "code": 24094653,
+                "location": 16
+              },
+              {
+                "code": 83965310,
+                "location": 1
+              },
+              {
+                "code": 83965310,
+                "location": 2
+              },
+              {
+                "code": 83965310,
+                "location": 4
+              },
+              {
+                "code": 83965310,
+                "location": 16
+              },
+              {
+                "code": 17132130,
+                "location": 1
+              },
+              {
+                "code": 17132130,
+                "location": 2
+              },
+              {
+                "code": 17132130,
+                "location": 4
+              },
+              {
+                "code": 17132130,
+                "location": 16
+              },
+              {
+                "code": 76263644,
+                "location": 4
+              },
+              {
+                "code": 76263644,
+                "location": 64
+              }
+            ],
+            "completeWhen": [
+              {
+                "kind": "card",
+                "zone": "monsters",
+                "code": 76263644
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "dusktopia-recicla-fusao",
+      "title": "Dusktopia: duas Fusões e proteção seletiva",
+      "summary": "Dusktopia Invocado por Fusão usando Distopia e Malicioso.",
+      "minutes": 5,
+      "sourceIds": [
+        "set-list",
+        "hero-cel",
+        "hero-dusk",
+        "hero-dyna",
+        "hero-dyst",
+        "hero-mal",
+        "hero-poly"
+      ],
+      "preparation": [
+        "Sua Fase Principal do primeiro turno; campo vazio e parceiro sem interrupções.",
+        "Use a mão indicada e a lista completa da caixa. Escolha as zonas apontadas quando a etapa pedir."
+      ],
+      "startingHand": [
+        24094653,
+        24094653,
+        63362460,
+        37780349,
+        9411399
+      ],
+      "steps": [
+        {
+          "title": "Prepare a primeira Fusão",
+          "action": "Ative uma Polimerização com Celestial e Dinatag para Distopia; aceite 1600 de dano em Celestial.",
+          "why": "Dusktopia precisa de um monstro de Fusão HERÓI do Destino; não pode ser a primeira Fusão com dois monstros comuns.",
+          "cardCodes": [
+            24094653,
+            63362460,
+            37780349,
+            90579153
+          ]
+        },
+        {
+          "title": "Faça Dusktopia",
+          "action": "Use a segunda Polimerização com Distopia e Malicioso da mão para Dusktopia. Recuse a Fusão adicional por enquanto.",
+          "why": "O efeito ao ser Invocado pode fazer outra Fusão com a mão/campo, mas não inventa materiais nem usa o Cemitério.",
+          "cardCodes": [
+            24094653,
+            90579153,
+            9411399,
+            93657021
+          ]
+        }
+      ],
+      "outcome": "Dusktopia Invocado por Fusão usando Distopia e Malicioso.",
+      "cautions": [
+        "Até o fim do turno o alvo não é destruído por batalha/efeitos, mas nenhum jogador recebe dano de batalhas envolvendo-o. Use para sobreviver, não para aumentar dano.",
+        "Proteção não impede Tributo, banimento, devolução à mão ou envio ao Cemitério sem destruição.",
+        "Não gaste uma Fusão forte nesta subida se a proteção não justificar os materiais."
+      ],
+      "practice": {
+        "goal": [
+          {
+            "kind": "card",
+            "zone": "monsters",
+            "code": 93657021
+          },
+          {
+            "kind": "card",
+            "zone": "grave",
+            "code": 90579153
+          },
+          {
+            "kind": "card",
+            "zone": "grave",
+            "code": 9411399
+          }
+        ],
+        "stages": [
+          {
+            "title": "Prepare a primeira Fusão",
+            "instruction": "Ative uma Polimerização com Celestial e Dinatag para Distopia; aceite 1600 de dano em Celestial.",
+            "why": "Dusktopia precisa de um monstro de Fusão HERÓI do Destino; não pode ser a primeira Fusão com dois monstros comuns.",
+            "targets": [
+              {
+                "code": 24094653,
+                "location": 1
+              },
+              {
+                "code": 24094653,
+                "location": 2
+              },
+              {
+                "code": 24094653,
+                "location": 8
+              },
+              {
+                "code": 24094653,
+                "location": 16
+              },
+              {
+                "code": 63362460,
+                "location": 1
+              },
+              {
+                "code": 63362460,
+                "location": 2
+              },
+              {
+                "code": 63362460,
+                "location": 4
+              },
+              {
+                "code": 63362460,
+                "location": 16
+              },
+              {
+                "code": 37780349,
+                "location": 1
+              },
+              {
+                "code": 37780349,
+                "location": 2
+              },
+              {
+                "code": 37780349,
+                "location": 4
+              },
+              {
+                "code": 37780349,
+                "location": 16
+              },
+              {
+                "code": 90579153,
+                "location": 4
+              },
+              {
+                "code": 90579153,
+                "location": 64
+              }
+            ],
+            "completeWhen": [
+              {
+                "kind": "card",
+                "zone": "monsters",
+                "code": 90579153
+              }
+            ]
+          },
+          {
+            "title": "Faça Dusktopia",
+            "instruction": "Use a segunda Polimerização com Distopia e Malicioso da mão para Dusktopia. Recuse a Fusão adicional por enquanto.",
+            "why": "O efeito ao ser Invocado pode fazer outra Fusão com a mão/campo, mas não inventa materiais nem usa o Cemitério.",
+            "targets": [
+              {
+                "code": 24094653,
+                "location": 1
+              },
+              {
+                "code": 24094653,
+                "location": 2
+              },
+              {
+                "code": 24094653,
+                "location": 8
+              },
+              {
+                "code": 24094653,
+                "location": 16
+              },
+              {
+                "code": 90579153,
+                "location": 4
+              },
+              {
+                "code": 90579153,
+                "location": 64
+              },
+              {
+                "code": 9411399,
+                "location": 1
+              },
+              {
+                "code": 9411399,
+                "location": 2
+              },
+              {
+                "code": 9411399,
+                "location": 4
+              },
+              {
+                "code": 9411399,
+                "location": 16
+              },
+              {
+                "code": 93657021,
+                "location": 4
+              },
+              {
+                "code": 93657021,
+                "location": 64
+              }
+            ],
+            "completeWhen": [
+              {
+                "kind": "card",
+                "zone": "monsters",
+                "code": 93657021
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "dizimador-altera-distopia",
+      "title": "Dizimador: setas que habilitam Distopia",
+      "summary": "Mantenha Distopia e coloque Dizimador na Zona Adicional para alterar seu ATK.",
+      "minutes": 8,
+      "sourceIds": [
+        "hero-decim",
+        "hero-dyst",
+        "hero-reborn",
+        "hero-mal",
+        "hero-blaze"
+      ],
+      "preparation": [
+        "Sua Fase Principal, campo vazio e sem interrupções.",
+        "A lista completa da caixa é usada; as cinco cartas abaixo já começam na sua mão."
+      ],
+      "startingHand": [
+        63060238,
+        63362460,
+        9411399,
+        83764718,
+        75041269
+      ],
+      "steps": [
+        {
+          "title": "Busque Polimerização",
+          "action": "Invoque Homem em Chamas por Invocação-Normal e aceite seu efeito para adicionar Polimerização do Deck.",
+          "why": "Escolher a busca utiliza o efeito de Homem em Chamas disponível neste turno.",
+          "cardCodes": [
+            63060238,
+            24094653
+          ]
+        },
+        {
+          "title": "Faça a Fusão",
+          "action": "Ative Polimerização, escolha HERÓI do Destino - Distopia e use Celestial e Malicioso da mão como materiais.",
+          "why": "Distopia exige dois HERÓIS do Destino; Homem em Chamas permanece no campo.",
+          "cardCodes": [
+            24094653,
+            90579153,
+            63362460,
+            9411399
+          ]
+        },
+        {
+          "title": "Aplique o dano",
+          "action": "Aceite o efeito de Distopia e escolha Celestial no Cemitério.",
+          "why": "Celestial é de Nível 4 e tem 1600 ATK: esse será o dano causado.",
+          "cardCodes": [
+            90579153,
+            63362460
+          ]
+        },
+        {
+          "title": "Reaproveite Malicioso",
+          "action": "Abra seu Cemitério e ative Malicioso. Bana essa cópia para invocar a outra do Deck.",
+          "why": "Um material já gasto gera outro monstro; a segunda cópia precisa continuar no Deck.",
+          "cardCodes": [
+            9411399
+          ]
+        },
+        {
+          "title": "Reanime o terceiro material",
+          "action": "Ative Monstro que Renasce escolhendo Celestial.",
+          "why": "Preserve Distopia: os materiais do Link serão Homem em Chamas, Malicioso e Celestial.",
+          "cardCodes": [
+            83764718,
+            63362460
+          ]
+        },
+        {
+          "title": "Faça o Link com a seta correta",
+          "action": "Invoque Dizimador na Zona de Monstro Adicional esquerda, usando Homem em Chamas, Malicioso e Celestial. Distopia deve estar na zona principal esquerda ou em outra zona apontada.",
+          "why": "Os três materiais deixam três nomes HERO distintos no Cemitério. O aumento de 300 alcança Distopia pela seta e habilita seu efeito rápido.",
+          "cardCodes": [
+            63813056,
+            63060238,
+            9411399,
+            63362460
+          ]
+        }
+      ],
+      "outcome": "Dizimador no campo e Distopia apontado com 3100 ATK: três nomes HERO distintos no Cemitério.",
+      "cautions": [
+        "Apenas HERO apontados recebem o aumento. Conte nomes distintos no Cemitério, não o número de cartas.",
+        "Se Distopia destruir uma carta e voltar ao original, o mesmo aumento contínuo não garante outra remoção: confira o ATK atual e o limite por turno.",
+        "Preserve Lei Obscura ou Plasma quando seus efeitos forem mais úteis que subir a um Link."
+      ],
+      "practice": {
+        "goal": [
+          {
+            "kind": "card",
+            "zone": "monsters",
+            "code": 63813056
+          },
+          {
+            "kind": "card",
+            "zone": "monsters",
+            "code": 90579153,
+            "attack": 3100
+          }
+        ],
+        "stages": [
+          {
+            "title": "Busque Polimerização",
+            "instruction": "Invoque Homem em Chamas por Invocação-Normal e aceite seu efeito para adicionar Polimerização do Deck.",
+            "why": "Escolher a busca utiliza o efeito de Homem em Chamas disponível neste turno.",
+            "targets": [
+              {
+                "code": 63060238,
+                "location": 2
+              },
+              {
+                "code": 63060238,
+                "location": 4
+              },
+              {
+                "code": 24094653,
+                "location": 1
+              }
+            ],
+            "completeWhen": [
+              {
+                "kind": "card",
+                "zone": "hand",
+                "code": 24094653
+              }
+            ]
+          },
+          {
+            "title": "Faça a Fusão",
+            "instruction": "Ative Polimerização, escolha HERÓI do Destino - Distopia e use Celestial e Malicioso da mão como materiais.",
+            "why": "Distopia exige dois HERÓIS do Destino; Homem em Chamas permanece no campo.",
+            "targets": [
+              {
+                "code": 24094653,
+                "location": 2
+              },
+              {
+                "code": 90579153,
+                "location": 64
+              },
+              {
+                "code": 63362460,
+                "location": 2
+              },
+              {
+                "code": 9411399,
+                "location": 2
+              }
+            ],
+            "completeWhen": [
+              {
+                "kind": "card",
+                "zone": "monsters",
+                "code": 90579153
+              }
+            ]
+          },
+          {
+            "title": "Aplique o dano",
+            "instruction": "Aceite o efeito de Distopia e escolha Celestial no Cemitério.",
+            "why": "Celestial é de Nível 4 e tem 1600 ATK: esse será o dano causado.",
+            "targets": [
+              {
+                "code": 90579153,
+                "location": 4
+              },
+              {
+                "code": 63362460,
+                "location": 16
+              }
+            ],
+            "completeWhen": [
+              {
+                "kind": "lp",
+                "player": 1,
+                "value": 6400
+              }
+            ]
+          },
+          {
+            "title": "Reaproveite Malicioso",
+            "instruction": "Abra seu Cemitério e ative Malicioso. Bana essa cópia para invocar a outra do Deck.",
+            "why": "Um material já gasto gera outro monstro; a segunda cópia precisa continuar no Deck.",
+            "targets": [
+              {
+                "code": 9411399,
+                "location": 16
+              },
+              {
+                "code": 9411399,
+                "location": 1
+              }
+            ],
+            "completeWhen": [
+              {
+                "kind": "card",
+                "zone": "banished",
+                "code": 9411399
+              },
+              {
+                "kind": "card",
+                "zone": "monsters",
+                "code": 9411399
+              }
+            ]
+          },
+          {
+            "title": "Reanime o terceiro material",
+            "instruction": "Ative Monstro que Renasce escolhendo Celestial.",
+            "why": "Preserve Distopia: os materiais do Link serão Homem em Chamas, Malicioso e Celestial.",
+            "targets": [
+              {
+                "code": 83764718,
+                "location": 2
+              },
+              {
+                "code": 63362460,
+                "location": 16
+              }
+            ],
+            "completeWhen": [
+              {
+                "kind": "card",
+                "zone": "monsters",
+                "code": 63362460
+              }
+            ]
+          },
+          {
+            "title": "Faça o Link com a seta correta",
+            "instruction": "Invoque Dizimador na Zona de Monstro Adicional esquerda, usando Homem em Chamas, Malicioso e Celestial. Distopia deve estar na zona principal esquerda ou em outra zona apontada.",
+            "why": "Os três materiais deixam três nomes HERO distintos no Cemitério. O aumento de 300 alcança Distopia pela seta e habilita seu efeito rápido.",
+            "targets": [
+              {
+                "code": 63813056,
+                "location": 64
+              },
+              {
+                "code": 63060238,
+                "location": 4
+              },
+              {
+                "code": 9411399,
+                "location": 4
+              },
+              {
+                "code": 63362460,
+                "location": 4
+              }
+            ],
+            "completeWhen": [
+              {
+                "kind": "card",
+                "zone": "monsters",
+                "code": 63813056
+              },
+              {
+                "kind": "card",
+                "zone": "monsters",
+                "code": 90579153,
+                "attack": 3100
+              }
+            ]
+          }
+        ]
+      }
     }
   ],
   "sources": [
@@ -761,6 +3212,121 @@
       "id": "plasma",
       "title": "HERÓI do Destino - Plasma — texto oficial",
       "url": "https://www.db.yugioh-card.com/yugiohdb/card_search.action?cid=7096&ope=2&request_locale=pt"
+    },
+    {
+      "id": "hero-poly",
+      "title": "poly — texto oficial",
+      "url": "https://www.db.yugioh-card.com/yugiohdb/card_search.action?ope=1&pid=18812002&request_locale=pt&rp=99999&sess=1"
+    },
+    {
+      "id": "hero-mal",
+      "title": "Destiny HERO - Malicious",
+      "url": "https://www.db.yugioh-card.com/yugiohdb/card_search.action?cid=6949&ope=2&request_locale=en"
+    },
+    {
+      "id": "hero-mist",
+      "title": "Elemental HERO Shadow Mist",
+      "url": "https://www.db.yugioh-card.com/yugiohdb/card_search.action?cid=11308&ope=2&request_locale=en"
+    },
+    {
+      "id": "hero-blaze",
+      "title": "Elemental HERO Blazeman",
+      "url": "https://www.db.yugioh-card.com/yugiohdb/card_search.action?cid=11419&ope=2&request_locale=en"
+    },
+    {
+      "id": "hero-drill",
+      "title": "Destiny HERO - Drilldark",
+      "url": "https://www.db.yugioh-card.com/yugiohdb/card_search.action?cid=12702&ope=2&request_locale=en"
+    },
+    {
+      "id": "hero-cel",
+      "title": "Destiny HERO - Celestial",
+      "url": "https://www.db.yugioh-card.com/yugiohdb/card_search.action?cid=12707&ope=2&request_locale=en"
+    },
+    {
+      "id": "hero-dyna",
+      "title": "Destiny HERO - Dynatag",
+      "url": "https://www.db.yugioh-card.com/yugiohdb/card_search.action?cid=12703&ope=2&request_locale=en"
+    },
+    {
+      "id": "hero-danger",
+      "title": "Destiny HERO - Dangerous",
+      "url": "https://www.db.yugioh-card.com/yugiohdb/card_search.action?cid=12694&ope=2&request_locale=en"
+    },
+    {
+      "id": "hero-dyst",
+      "title": "Destiny HERO - Dystopia",
+      "url": "https://www.db.yugioh-card.com/yugiohdb/card_search.action?cid=12705&ope=2&request_locale=en"
+    },
+    {
+      "id": "hero-mask",
+      "title": "Mask Change",
+      "url": "https://www.db.yugioh-card.com/yugiohdb/card_search.action?cid=9066&ope=2&request_locale=en"
+    },
+    {
+      "id": "hero-law",
+      "title": "Masked HERO Dark Law",
+      "url": "https://www.db.yugioh-card.com/yugiohdb/card_search.action?cid=11313&ope=2&request_locale=en"
+    },
+    {
+      "id": "hero-reborn",
+      "title": "Monster Reborn",
+      "url": "https://www.db.yugioh-card.com/yugiohdb/card_search.action?cid=4842&ope=2&request_locale=en"
+    },
+    {
+      "id": "hero-draw",
+      "title": "Destiny Draw",
+      "url": "https://www.db.yugioh-card.com/yugiohdb/card_search.action?cid=6950&ope=2&request_locale=en"
+    },
+    {
+      "id": "hero-clock",
+      "title": "clock — texto oficial",
+      "url": "https://www.db.yugioh-card.com/yugiohdb/card_search.action?ope=1&pid=18812002&request_locale=pt&rp=99999&sess=1"
+    },
+    {
+      "id": "hero-eternal",
+      "title": "eternal — texto oficial",
+      "url": "https://www.db.yugioh-card.com/yugiohdb/card_search.action?ope=1&pid=18812002&request_locale=pt&rp=99999&sess=1"
+    },
+    {
+      "id": "hero-wonder",
+      "title": "Xtra HERO Wonder Driver",
+      "url": "https://www.db.yugioh-card.com/yugiohdb/card_search.action?cid=13543&ope=2&request_locale=en"
+    },
+    {
+      "id": "hero-decim",
+      "title": "Xtra HERO Dread Decimator",
+      "url": "https://www.db.yugioh-card.com/yugiohdb/card_search.action?cid=14052&ope=2&request_locale=en"
+    },
+    {
+      "id": "hero-over",
+      "title": "over — texto oficial",
+      "url": "https://www.db.yugioh-card.com/yugiohdb/card_search.action?ope=1&pid=18812002&request_locale=pt&rp=99999&sess=1"
+    },
+    {
+      "id": "hero-dream",
+      "title": "dream — texto oficial",
+      "url": "https://www.db.yugioh-card.com/yugiohdb/card_search.action?ope=1&pid=18812002&request_locale=pt&rp=99999&sess=1"
+    },
+    {
+      "id": "hero-plasma",
+      "title": "plasma — texto oficial",
+      "url": "https://www.db.yugioh-card.com/yugiohdb/card_search.action?ope=1&pid=18812002&request_locale=pt&rp=99999&sess=1"
+    },
+    {
+      "id": "hero-dogma",
+      "title": "dogma — texto oficial",
+      "url": "https://www.db.yugioh-card.com/yugiohdb/card_search.action?ope=1&pid=18812002&request_locale=pt&rp=99999&sess=1"
+    },
+    {
+      "id": "hero-dragoon",
+      "title": "dragoon — texto oficial",
+      "url": "https://www.db.yugioh-card.com/yugiohdb/card_search.action?ope=1&pid=18812002&request_locale=pt&rp=99999&sess=1"
+    },
+    {
+      "id": "hero-dusk",
+      "title": "dusk — texto oficial",
+      "url": "https://www.db.yugioh-card.com/yugiohdb/card_search.action?ope=1&pid=18812002&request_locale=pt&rp=99999&sess=1"
     }
   ]
 }
