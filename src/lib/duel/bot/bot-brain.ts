@@ -60,6 +60,7 @@ import { linkedZones, pointedZones } from "@/lib/duel/link-geometry";
 import { newBotDiagnostics, type BotActionIdentity, type BotCandidateTrace, type BotDecisionSource, type BotDecisionTrace } from "@/lib/duel/bot/decision-trace";
 import type { BotEffect, BotFact } from "@/lib/duel/bot/knowledge";
 import { effectValue, effectTargetValue } from "@/lib/duel/bot/effect-value";
+import { PhantomStrategy } from "@/lib/duel/bot/phantom-strategy";
 import { HeroStrategy } from "@/lib/duel/bot/hero-strategy";
 import { SliferStrategy } from "@/lib/duel/bot/slifer-strategy";
 
@@ -124,6 +125,7 @@ export interface BotConfig {
   /** Desliga apenas em comparações com a política anterior. */
   sliferStrategy?: boolean;
   heroStrategy?: boolean;
+  phantomStrategy?: boolean;
   /** Desliga a projeção de duas ações apenas em avaliações A/B. */
   sequencePlanning?: boolean;
   /** Comparação conjunta em calibração; só promover após a bateria de força. */
@@ -262,6 +264,7 @@ export class BotBrain {
   private readonly deck: DuelDeckPayload | null;
   private readonly slifer: SliferStrategy | null;
   private readonly hero: HeroStrategy | null;
+  private readonly phantom: PhantomStrategy | null;
   private guideLesson: string | null = null;
   lastTrace: BotDecisionTrace | null = null;
   private readonly random: () => number;
@@ -289,6 +292,7 @@ export class BotBrain {
     this.recoveryPlanning = config.recoveryPlanning ?? true;
     this.deck = config.deck ?? null;
     this.slifer = config.sliferStrategy !== false && guide?.tactics === "slifer" && this.deck ? new SliferStrategy(this.deck) : null;
+    this.phantom = config.phantomStrategy !== false && guide?.tactics === "phantom-knights" && this.deck ? new PhantomStrategy(this.deck) : null;
     this.hero = config.heroStrategy !== false && guide?.tactics === "hero" && this.deck ? new HeroStrategy(this.deck) : null;
     this.planner = new BotPlanner(profile, this.deck, profile ? null : guide, this.recoveryPlanning);
     this.onDecision = config.onDecision;
@@ -370,7 +374,7 @@ export class BotBrain {
         this.observeProgress(ctx);
         this.planner.observe(ctx, policy, this.deadline);
         this.slifer?.prepare(ctx);
-        const guided = this.slifer?.respond(ctx) ?? this.hero?.respond(ctx);
+        const guided = this.slifer?.respond(ctx) ?? this.hero?.respond(ctx) ?? this.phantom?.respond(ctx);
         if (guided) {
           response = guided.response; this.decisionSource = "guide"; this.guideLesson = guided.lessonId;
           this.candidates.push(this.candidate(ctx, response, 100, "guide", guided.reason));
@@ -395,6 +399,7 @@ export class BotBrain {
     response = this.safeResponse(ctx, response);
     this.slifer?.record(ctx, response);
     this.hero?.record(ctx, response);
+    this.phantom?.record(ctx, response);
     if (ctx.retryCount) this.decisionSource = "rejected-recovery";
     if (this.usedGuideDecision && this.decisionSource === "heuristic") this.decisionSource = "guide";
     if (!fallback && this.decisionSource === "fallback-unmodeled") fallback = "Escolha sem modelo específico; respondedor genérico ou ordem obrigatória";
@@ -420,7 +425,7 @@ export class BotBrain {
       source: this.decisionSource, candidates: this.candidates, selected: selected.id, replacement: this.replacement,
       capabilities: { candidateComparison: this.candidateComparison, stateEvaluation: this.stateEvaluation,
         sequencePlanning: this.sequencePlanning, opponentMemory: this.opponentMemory, recoveryPlanning: this.recoveryPlanning,
-        sliferStrategy: this.slifer !== null, heroStrategy: this.hero !== null },
+        sliferStrategy: this.slifer !== null, heroStrategy: this.hero !== null, phantomStrategy: this.phantom !== null },
       guideDecision: this.usedGuideDecision,
       guideLesson: this.guideLesson,
       reason: (this.decisionSource === "guide" && this.usedGuideDecision ? this.planner.reason : selected.reason)
@@ -850,19 +855,19 @@ export class BotBrain {
     }
 
     // As políticas revisadas comparam cada ação legal aos custos e continuações.
-    if (this.slifer || this.hero) for (const [cards, action] of [
+    if (this.slifer || this.hero || this.phantom) for (const [cards, action] of [
       [message.activates, SelectIdleCMDAction.SELECT_ACTIVATE], [message.summons, SelectIdleCMDAction.SELECT_SUMMON],
       [message.special_summons, SelectIdleCMDAction.SELECT_SPECIAL_SUMMON], [message.monster_sets, SelectIdleCMDAction.SELECT_MONSTER_SET],
       [message.spell_sets, SelectIdleCMDAction.SELECT_SPELL_SET],
     ] as const) cards.forEach((card, index) => {
-      const value = this.slifer?.idle(action, card, ctx) ?? this.hero?.idle(action, card, ctx);
+      const value = this.slifer?.idle(action, card, ctx) ?? this.hero?.idle(action, card, ctx) ?? this.phantom?.idle(action, card, ctx);
       if (!value) return;
       if (action === SelectIdleCMDAction.SELECT_ACTIVATE && (this.activations.get(chave(card, this.tacticalModel)) ?? 0) >= SAME_CARD_ACTIVATIONS) return;
       const existing = plans.findIndex(plan => plan.response.type === OcgResponseType.SELECT_IDLECMD
         && plan.response.action === action && plan.response.index === index);
       if (value.score <= 0) { if (existing >= 0) plans.splice(existing, 1); return; }
       const plan: Plan = { ...(existing >= 0 ? plans[existing] : {}), score: value.score, response: idle(action, index),
-        source: "guide", reason: value.reason, lessonId: value.lessonId, components: { [this.hero ? "heroStrategy" : "sliferStrategy"]: value.score },
+        source: "guide", reason: value.reason, lessonId: value.lessonId, components: { [this.phantom ? "phantomStrategy" : this.hero ? "heroStrategy" : "sliferStrategy"]: value.score },
         activated: action === SelectIdleCMDAction.SELECT_ACTIVATE ? card : undefined,
         setsBackrow: action === SelectIdleCMDAction.SELECT_SPELL_SET };
       if (existing >= 0) plans[existing] = plan; else plans.push(plan);
@@ -1372,7 +1377,7 @@ export class BotBrain {
       planned.lethal === "modeled" ? "modeled" : planned.lethal === "uncertain" ? "unknown" : "heuristic");
 
     message.chains.forEach((card, index) => {
-      const guided = this.slifer?.effect(card, ctx) ?? this.hero?.effect(card, ctx);
+      const guided = this.slifer?.effect(card, ctx) ?? this.hero?.effect(card, ctx) ?? this.phantom?.effect(card, ctx);
       const score = (effectValue(card, ctx) ?? 1) <= 0 ? -1 : guided?.score ?? this.scoreActivation(card, ctx, mine, foe);
       const option = record({
           score,
@@ -1439,7 +1444,7 @@ export class BotBrain {
     let lessonId: string | null = null;
 
     message.selects.forEach((card, index) => {
-      const guided = this.slifer?.effect(card, ctx) ?? this.hero?.effect(card, ctx);
+      const guided = this.slifer?.effect(card, ctx) ?? this.hero?.effect(card, ctx) ?? this.phantom?.effect(card, ctx);
       const score = (effectValue(card, ctx) ?? 1) <= 0 ? -1 : guided?.score ?? this.scoreChain(card, ctx, mine, foe);
       this.candidates.push(this.candidate(ctx, responder(index), score, guided ? "guide" : "heuristic", guided?.reason));
       this.candidates.push(this.candidate(ctx,{type:OcgResponseType.SELECT_UNSELECT_CARD,index},score,"heuristic","Custo marginal do material selecionável"));

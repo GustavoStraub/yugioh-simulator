@@ -2,13 +2,13 @@
   "schemaVersion": 1,
   "id": "herois-lendarios-cavaleiros-fantasmas",
   "presetId": "tcg-lehd-phantom-knights",
-  "revision": 1,
-  "reviewedAt": "2026-10-16",
+  "revision": 2,
+  "reviewedAt": "2026-10-28",
   "title": "Heróis Lendários — Cavaleiros Fantasmas",
   "subtitle": "O material de hoje é o recurso da próxima jogada.",
-  "description": "Aprenda Xyz com Espada Quebrada, prepare a defesa com Bardiche Enferrujado e recupere cartas banidas com Leviar.",
+  "description": "Planeje materiais Xyz, buscas e reanimação; transforme Espada Quebrada em Classe 4, alcance Réquiem e use as setas de Bardiche para ganhar recursos e interação.",
   "difficulty": "Intermediário",
-  "minutes": 17,
+  "minutes": 84,
   "tags": [
     "Xyz",
     "Link",
@@ -83,9 +83,19 @@
   "overview": {
     "goal": "Converter monstros de Nível 3 em Extra Deck, buscas no Cemitério e Armadilhas.",
     "plan": [
-      "Junte monstros de Nível 3 para Xyz ou três monstros de TREVAS para Bardiche Enferrujado.",
-      "Decida quais cartas precisam ir ao Cemitério e quais ainda estarão associadas ao Xyz.",
-      "Use os efeitos de Cemitério e recupere recursos banidos quando a sequência permitir."
+      "Sua primeira Espada Quebrada",
+      "Bardiche Enferrujado prepara sua defesa",
+      "O Cemitério também é sua mão",
+      "Espada Quebrada abre o Classe 4",
+      "Rebelião sem materiais vira Réquiem",
+      "Bardiche destrói Espada e abre defesa",
+      "Luvas envia Lâmina e prepara reanimação",
+      "Sombra Brigandina dá acesso ao Classe 4",
+      "Luvas dá 1000 ATK a Espada Quebrada",
+      "Furão converte as setas em dois Níveis 3",
+      "Launch no Cemitério recarrega Pesadelo",
+      "Lâmina de Névoa: negação e material",
+      "Manopla Perdida abre Lança Amaldiçoada"
     ],
     "strengths": [
       "Manto Antigo e Botas Silenciosas continuam úteis depois de sair do campo.",
@@ -94,7 +104,7 @@
     "watchOut": [
       "40 cartas no Principal e 10 no Extra do produto de 2018. Sem suportes de expansões posteriores.",
       "Materiais Xyz associados não são cartas no Cemitério. O efeito de busca só fica disponível depois do envio e da resolução das correntes.",
-      "As aulas cobrem aberturas e recursos. Os efeitos de resposta ao adversário devem ser praticados depois em duelo livre."
+      "Os exercícios incluem aberturas e mesas preparadas para praticar remoção, negação e reanimação com cópias reais das listas."
     ]
   },
   "keyCards": [
@@ -102,54 +112,360 @@
       "code": 90432163,
       "name": "Os Cavaleiros Fantasmas do Manto Antigo",
       "role": "Busca um Cavaleiro",
-      "explanation": "Bana Manto Antigo do Cemitério para buscar outra carta com o nome exigido. Aqui, ele encontra Botas Silenciosas.",
+      "explanation": "No Cemitério, busca outra carta com o nome Os Cavaleiros Fantasmas, normalmente Botas para completar uma mão. No campo, vira-se para Defesa para dar 800 ATK/DEF a TREVAS; não troque um atacante necessário por aumento sem propósito.",
       "sourceIds": [
-        "ancient-cloak"
+        "pk-90432163"
       ]
     },
     {
       "code": 36426778,
       "name": "Os Cavaleiros Fantasmas das Botas Silenciosas",
       "role": "Estende e busca Armadilha",
-      "explanation": "Invoca-se da mão enquanto você controla um Cavaleiro Fantasma. No Cemitério, pode se banir para buscar uma Magia/Armadilha Cavaleiros Fantasmas.",
+      "explanation": "Especial da mão se controla um Cavaleiro; só uma vez por turno por esse procedimento. No Cemitério busca Magia/Armadilha Cavaleiros Fantasmas. Como material Xyz ainda não oferece busca; desassociar a cópia certa prepara a continuação.",
       "sourceIds": [
-        "silent-boots"
+        "pk-36426778"
       ]
     },
     {
-      "code": 62709239,
-      "name": "Os Cavaleiros Fantasmas da Espada Quebrada",
-      "role": "Xyz de entrada",
-      "explanation": "Usa dois Níveis 3. Pode destruir uma carta de cada lado; sua própria destruição pode trazer dois Cavaleiros do mesmo Nível como monstros um Nível maior.",
+      "code": 63821877,
+      "name": "Os Cavaleiros Fantasmas das Luvas Gastas",
+      "role": "Recurso e condição de uso",
+      "explanation": "Usado do campo em Xyz TREVAS concede o efeito de ganhar 1000 ATK na Invocação-Xyz. Leviar e Dante não recebem. Do Cemitério, bana Luvas para enviar uma carta Cavaleiros Fantasmas, inclusive Lâmina, Asa ou Manto, conforme o recurso que falta.",
       "sourceIds": [
-        "break-sword"
+        "pk-63821877"
       ]
     },
     {
-      "code": 26692769,
-      "name": "Os Cavaleiros Fantasmas do Bardiche Enferrujado",
-      "role": "Prepara a defesa",
-      "explanation": "Envia um Cavaleiro do Deck ao Cemitério e Baixa uma Magia/Armadilha do arquétipo. Não pode ser Material Link.",
+      "code": 99315585,
+      "name": "Os Cavaleiros Fantasmas do Elmo Fendido",
+      "role": "Recurso e condição de uso",
+      "explanation": "Ganha 500 ATK quando uma carta Cavaleiros Fantasmas chega ao seu Cemitério. Banido do Cemitério, agenda recuperar uma carta do arquétipo na End Phase; não entrega essa carta imediatamente para o combo da Main Phase.",
       "sourceIds": [
-        "rusty"
+        "pk-99315585"
+      ]
+    },
+    {
+      "code": 36704180,
+      "name": "Os Cavaleiros Fantasmas da Armadura Frágil",
+      "role": "Recurso e condição de uso",
+      "explanation": "Da mão, entra se um Cavaleiro seu face para cima é destruído. Do Cemitério, bane-se e envia uma carta do arquétipo da mão como custo para comprar uma. Não consuma a última reanimação necessária só por uma compra.",
+      "sourceIds": [
+        "pk-36704180"
+      ]
+    },
+    {
+      "code": 28985331,
+      "name": "Cavaleiro do Armagedom",
+      "role": "Recurso e condição de uso",
+      "explanation": "Na Invocação, envia qualquer TREVAS do Deck ao Cemitério. Manto busca Botas; Luvas prepara uma Armadilha. Seu Nível 4 combina com Brigandina, mas não com dois Níveis 3 para Espada.",
+      "sourceIds": [
+        "pk-28985331"
+      ]
+    },
+    {
+      "code": 54582424,
+      "name": "Borbolespiã Imperadora Azul",
+      "role": "Recurso e condição de uso",
+      "explanation": "Não pode ser Invocada por Normal/Baixada. Responde à Normal de um Guerreiro e entra como Nível 4. Pode fazer dupla com Armagedom ou Brigandina; não precisa de um Guerreiro de Nível 3 como Kagemucha.",
+      "sourceIds": [
+        "pk-54582424"
+      ]
+    },
+    {
+      "code": 56343672,
+      "name": "Furão de Socorro",
+      "role": "Recurso e condição de uso",
+      "explanation": "Retorna ao Deck como custo para invocar monstros cujo total de Níveis seja exatamente 6 nas zonas apontadas por Links. Com as duas setas de Bardiche livres, Manto e Botas somam 6. Negação no campo e destruição na End Phase incentivam usá-los como materiais.",
+      "sourceIds": [
+        "pk-56343672"
+      ]
+    },
+    {
+      "code": 56410040,
+      "name": "Corredor Sucata",
+      "role": "Recurso e condição de uso",
+      "explanation": "Especial antes da Normal se seu campo não tem monstros. É TREVAS de Nível 3 e estende Xyz/Bardiche, mas não é Cavaleiro e não habilita Botas sozinho. Use-o antes de ocupar o campo.",
+      "sourceIds": [
+        "pk-56410040"
+      ]
+    },
+    {
+      "code": 19353570,
+      "name": "Cavaleiro Kagemucha",
+      "role": "Recurso e condição de uso",
+      "explanation": "Especial da mão em resposta à sua Normal de Nível 3. É TREVAS e ajuda Bardiche, mas não é Cavaleiro Fantasma e não serve para o par reanimado de Espada Quebrada.",
+      "sourceIds": [
+        "pk-19353570"
+      ]
+    },
+    {
+      "code": 42338879,
+      "name": "Corococó",
+      "role": "Recurso e condição de uso",
+      "explanation": "Com os dois campos sem monstros, entra como Nível 3. Com monstro adversário e seu campo sem cartas, entra como Nível 4. Confira o Nível atual: é VENTO, não serve como material TREVAS para Bardiche e é banido ao sair.",
+      "sourceIds": [
+        "pk-42338879"
+      ]
+    },
+    {
+      "code": 97268402,
+      "name": "Ocultador de Efeitos",
+      "role": "Recurso e condição de uso",
+      "explanation": "Envia-se da mão ao Cemitério como custo na Main Phase adversária para negar efeitos de um Monstro de Efeito face para cima até o fim do turno. Não use fora dessa janela nem trate como resposta que destrói ou nega a Invocação.",
+      "sourceIds": [
+        "pk-97268402"
+      ]
+    },
+    {
+      "code": 3298689,
+      "name": "Lançar Magia de Aumento de Classe de Os Cavaleiros Fantasmas",
+      "role": "Recurso e condição de uso",
+      "explanation": "Da mão/campo, durante uma Main Phase, aumenta em uma Classe um Xyz TREVAS sem materiais e vira material adicional. Do Cemitério, bane-se para associar um Cavaleiro Fantasma da mão a um Xyz TREVAS: escolha entre subir Classe e recarregar.",
+      "sourceIds": [
+        "pk-3298689"
+      ]
+    },
+    {
+      "code": 98153934,
+      "name": "Cavaleiros Fantasmas - Lança",
+      "role": "Recurso e condição de uso",
+      "explanation": "Pune em 500 LP efeitos adversários que escolham seus Cavaleiros como alvo. Do Cemitério substitui destruição de TREVAS por batalha ou efeito adversário ao se banir; não protege a autodestruição provocada pelo próprio jogador.",
+      "sourceIds": [
+        "pk-98153934"
+      ]
+    },
+    {
+      "code": 53129443,
+      "name": "Buraco Negro",
+      "role": "Recurso e condição de uso",
+      "explanation": "Destrói todos os monstros, inclusive os seus. Pode ativar a recuperação de Espada corretamente Invocada por Xyz e deixar Cavaleiros no Cemitério; compare os dois lados antes de gastar a limpeza.",
+      "sourceIds": [
+        "pk-53129443"
+      ]
+    },
+    {
+      "code": 83764718,
+      "name": "Reviver Monstro",
+      "role": "Recurso e condição de uso",
+      "explanation": "Revive um monstro elegível de qualquer Cemitério. Pode reconstruir pares de Nível ou colocar Furão numa seta livre. Um Xyz corretamente Invocado pode voltar sem materiais; isso não o torna uma nova Invocação-Xyz para o efeito de Espada.",
+      "sourceIds": [
+        "pk-83764718"
+      ]
+    },
+    {
+      "code": 81439173,
+      "name": "Enterro Tolo",
+      "role": "Recurso e condição de uso",
+      "explanation": "Envia um monstro como efeito. Manto oferece busca; Luvas oferece envio de Armadilha; cada escolha depende da mão. O envio não é custo: uma negação da Magia pode impedir que o recurso chegue ao Cemitério.",
+      "sourceIds": [
+        "pk-81439173"
+      ]
+    },
+    {
+      "code": 32807846,
+      "name": "Reforço do Exército",
+      "role": "Recurso e condição de uso",
+      "explanation": "Busca Guerreiro de Nível até 4. Busque Botas se já tem um Cavaleiro para a Normal; escolha Manto ou Luvas se falta o primeiro corpo. Não busca Furão, que é Besta.",
+      "sourceIds": [
+        "pk-32807846"
+      ]
+    },
+    {
+      "code": 674561,
+      "name": "Erupção Negra",
+      "role": "Recurso e condição de uso",
+      "explanation": "Recupera um TREVAS de até 1500 ATK do Cemitério. Manto, Botas e Luvas são alvos; Bardiche e Rebelião não são. Compare recuperar para a mão com deixar um alvo disponível para reanimação.",
+      "sourceIds": [
+        "pk-674561"
+      ]
+    },
+    {
+      "code": 43898403,
+      "name": "Tornados Gêmeos",
+      "role": "Recurso e condição de uso",
+      "explanation": "Descarta uma carta como custo e destrói até duas Magias/Armadilhas. Descartar Manto ou Launch pode preparar outro efeito. Não destrua cartas suas sem ganho nem gaste a única extensão só para remover uma ameaça pequena.",
+      "sourceIds": [
+        "pk-43898403"
       ]
     },
     {
       "code": 25542642,
       "name": "Cavaleiros Fantasmas - Lâmina de Névoa",
       "role": "Interação e recuperação",
-      "explanation": "No campo, nega um Monstro de Efeito e impede ataques com ele ou contra ele. No Cemitério, tem um efeito de recuperação de Cavaleiro com banimento posterior.",
+      "explanation": "No campo, nega o alvo e impede que ele ataque ou seja atacado; proteger um adversário de ataques pode atrapalhar seu letal. Do Cemitério, bane-se e revive um Cavaleiro, banido ao sair. Virar material Xyz evita esse banimento ao deixar o campo.",
       "sourceIds": [
-        "fog-blade"
+        "pk-25542642"
+      ]
+    },
+    {
+      "code": 61936647,
+      "name": "Cavaleiros Fantasmas - Espada",
+      "role": "Recurso e condição de uso",
+      "explanation": "Aumenta 800 ATK e pode destruir a si mesma em vez do alvo. No Cemitério revive Cavaleiro ao se banir. Sua proteção pode impedir a autodestruição planejada de Espada, então decida se quer preservar ou converter o Xyz.",
+      "sourceIds": [
+        "pk-61936647"
+      ]
+    },
+    {
+      "code": 98431356,
+      "name": "Cavaleiros Fantasmas - Asa",
+      "role": "Recurso e condição de uso",
+      "explanation": "No campo aumenta 500 ATK e protege a primeira destruição naquele turno. No Cemitério revive um Cavaleiro ao se banir. Como Espada e Lâmina, permite transformar o monstro recuperado em material Xyz para evitar seu banimento ao sair.",
+      "sourceIds": [
+        "pk-98431356"
+      ]
+    },
+    {
+      "code": 77462146,
+      "name": "Os Cavaleiros Fantasmas do Véu Sombrio",
+      "role": "Recurso e condição de uso",
+      "explanation": "Como Armadilha, dá 300 ATK/DEF a um monstro seu. Do Cemitério, só entra quando o adversário declara ataque direto, como Normal Nível 4. Não conte esse corpo como extensão de Main Phase.",
+      "sourceIds": [
+        "pk-77462146"
+      ]
+    },
+    {
+      "code": 98827725,
+      "name": "Os Cavaleiros Fantasmas da Sombra Brigandina",
+      "role": "Recurso e condição de uso",
+      "explanation": "Pode ser ativada no turno em que foi Baixada apenas sem Armadilhas no seu Cemitério. Vira Normal TREVAS Guerreiro de Nível 4, deixando de ser Armadilha. Resolva-a antes de enviar Lâmina ou outra Armadilha ao Cemitério se pretende usar a exceção.",
+      "sourceIds": [
+        "pk-98827725"
+      ]
+    },
+    {
+      "code": 24212820,
+      "name": "Os Cavaleiros Fantasmas das Manoplas Negras",
+      "role": "Recurso e condição de uso",
+      "explanation": "Envia uma Magia/Armadilha Cavaleiros Fantasmas do Deck ao Cemitério, preparando reanimação ou defesa. Sua entrada do Cemitério exige ataque direto e você sem cartas no campo; não é extensão irrestrita.",
+      "sourceIds": [
+        "pk-24212820"
+      ]
+    },
+    {
+      "code": 51606429,
+      "name": "Os Cavaleiros Fantasmas do Escudo Sepulcral",
+      "role": "Recurso e condição de uso",
+      "explanation": "Armadilha que entra como Normal TREVAS de Nível 3. Do Cemitério, no seu turno, exceto no turno do envio, pode banir-se para negar uma Armadilha adversária face para cima. Não ofereça essa negação imediatamente após enviar.",
+      "sourceIds": [
+        "pk-51606429"
+      ]
+    },
+    {
+      "code": 36247316,
+      "name": "Os Cavaleiros Fantasmas da Manopla Perdida",
+      "role": "Recurso e condição de uso",
+      "explanation": "Ao resolver, reduz o alvo em 600 ATK, muda seu Nível para 2 e entra como Normal de Nível 2, protegendo seus Cavaleiros em batalha no turno. Pode criar o par para Lança Amaldiçoada; precisa de um alvo adequado e ativação legal da Armadilha.",
+      "sourceIds": [
+        "pk-36247316"
+      ]
+    },
+    {
+      "code": 62645025,
+      "name": "Os Cavaleiros Fantasmas do Imãnel Errôneo",
+      "role": "Recurso e condição de uso",
+      "explanation": "Responde a ataque adversário, nega o ataque e entra como Efeito de Nível 2. Pode enviar a si e outro Cavaleiro ou Magia/Armadilha Contínua do arquétipo face para cima ao Cemitério para comprar duas. Não gera corpo de graça na Main Phase.",
+      "sourceIds": [
+        "pk-62645025"
+      ]
+    },
+    {
+      "code": 9336190,
+      "name": "Os Cavaleiros Fantasmas das Garras de Névoas",
+      "role": "Recurso e condição de uso",
+      "explanation": "No campo como Armadilha, recupera um Cavaleiro banido para a mão. No Cemitério, responde a ataque direto reanimando um Cavaleiro de Nível até 4 e entrando como outro corpo do mesmo Nível original. Não é reanimação livre na Main Phase.",
+      "sourceIds": [
+        "pk-9336190"
+      ]
+    },
+    {
+      "code": 26692769,
+      "name": "Os Cavaleiros Fantasmas do Bardiche Enferrujado",
+      "role": "Prepara a defesa",
+      "explanation": "Link 3 de dois ou mais TREVAS. Envia um Cavaleiro e Baixa Magia/Armadilha do Deck por efeito, sem tratar o envio como custo. Um Xyz TREVAS Invocado por Especial na seta gera destruição uma vez por turno; pode destruir Espada para abrir Classe 4. Não pode ser Material Link.",
+      "sourceIds": [
+        "pk-26692769"
+      ]
+    },
+    {
+      "code": 62709239,
+      "name": "Os Cavaleiros Fantasmas da Espada Quebrada",
+      "role": "Xyz de entrada",
+      "explanation": "Dois Níveis 3 formam o Xyz. Sua remoção paga um material e destrói um alvo seu e um adversário. Se foi Invocado por Xyz e for destruído, revive dois Cavaleiros de mesmo Nível, aumenta em 1 e bloqueia Especiais que não sejam TREVAS pelo resto do turno.",
+      "sourceIds": [
+        "pk-62709239"
+      ]
+    },
+    {
+      "code": 12219047,
+      "name": "Os Cavaleiros Fantasmas da Lança Amaldiçoada",
+      "role": "Recurso e condição de uso",
+      "explanation": "Classe 2 que zera ATK e nega efeitos de um alvo até o fim do turno. Ter carta Cavaleiros Fantasmas como material torna o efeito rápido. Manopla Perdida pode ajustar um monstro para Nível 2 e gerar o segundo material.",
+      "sourceIds": [
+        "pk-12219047"
+      ]
+    },
+    {
+      "code": 16195942,
+      "name": "Dragão Xyz da Rebelião Negra",
+      "role": "Recurso e condição de uso",
+      "explanation": "Dois Níveis 4 viram pressão: desassocie dois materiais para reduzir à metade o ATK atual de um adversário e ganhar a diferença. Depois fica sem materiais, pronto para Launch e Réquiem. Não confunda o ganho com o ATK original usado por Réquiem.",
+      "sourceIds": [
+        "pk-16195942"
+      ]
+    },
+    {
+      "code": 1621413,
+      "name": "Dragão Xyz do Réquiem Negro",
+      "role": "Recurso e condição de uso",
+      "explanation": "Precisa manter Rebelião Negra como material para ter seus efeitos. Preserve esse material ao pagar Launch ou outro material. A negação responde a ativação de efeito de monstro e cada uso consome um material; a recuperação de Xyz depende de destruir o que foi negado.",
+      "sourceIds": [
+        "pk-1621413"
+      ]
+    },
+    {
+      "code": 359563,
+      "name": "Hordeum Maligno Pesadelo",
+      "role": "Recurso e condição de uso",
+      "explanation": "Classe 4 com dois TREVAS. Quando o adversário Invoca por Especial, desassocia um material para virar os monstros daquela Invocação com a face para baixo, fora da Etapa de Dano. Não afeta Links que não podem ficar em Defesa.",
+      "sourceIds": [
+        "pk-359563"
+      ]
+    },
+    {
+      "code": 65884091,
+      "name": "Hordeum Maligno Tânatos",
+      "role": "Recurso e condição de uso",
+      "explanation": "Classe 4 de dois TREVAS que paga um material para ficar imune a efeitos de outros monstros naquele turno. Não nega efeitos nem protege contra Magias/Armadilhas. É uma alternativa contextual aos dois dragões e Pesadelo.",
+      "sourceIds": [
+        "pk-65884091"
+      ]
+    },
+    {
+      "code": 63504681,
+      "name": "Número 86: Campeão Heroico - Rhongomyniad",
+      "role": "Recurso e condição de uso",
+      "explanation": "Exige dois a cinco Guerreiros de Nível 4. Com dois materiais só ganha proteção de batalha e 1500 ATK/DEF; imunidade a efeitos exige três, bloqueio de Invocações exige quatro. Perde material na End Phase adversária: não atribua o bloqueio a um Xyz de dois materiais.",
+      "sourceIds": [
+        "pk-63504681"
       ]
     },
     {
       "code": 95992081,
       "name": "Leviar, o Dragão Marinho",
       "role": "Recupera o que foi banido",
-      "explanation": "Desassocia um material para invocar um monstro banido de Nível 4 ou menos. É de VENTO: considere as restrições de Atributo antes de escolher esta rota.",
+      "explanation": "Paga um material para invocar um monstro banido de Nível até 4. Recupere Manto ou Luvas para recompor corpos, desassociando Botas se precisa da busca. É VENTO e fica indisponível após a reanimação de Espada; recuperar Manto não reinicia seu limite por turno.",
       "sourceIds": [
-        "leviair"
+        "pk-95992081"
+      ]
+    },
+    {
+      "code": 83531441,
+      "name": "Dante, Viajante do Abismo Ardente",
+      "role": "Recurso e condição de uso",
+      "explanation": "Classe 3 de LUZ: paga um material para enviar até três cartas do topo e ganhar ATK. O envio é aleatório, não uma busca garantida. A recuperação de Abismo Ardente tem poucos usos nesta lista sem outros alvos do arquétipo; depois do bloqueio de Espada, Dante não pode ser Invocado.",
+      "sourceIds": [
+        "pk-83531441"
       ]
     }
   ],
@@ -832,6 +1148,2433 @@
           }
         ]
       }
+    },
+    {
+      "id": "espada-quebrada-abre-o-classe-4",
+      "title": "Espada Quebrada abre o Classe 4",
+      "summary": "Execute espada Quebrada abre o Classe 4.",
+      "minutes": 7,
+      "sourceIds": [
+        "set-list",
+        "pk-16195942",
+        "pk-36426778",
+        "pk-62709239",
+        "pk-90432163",
+        "pk-99315585"
+      ],
+      "startingHand": [
+        90432163,
+        36426778,
+        83764718,
+        3298689,
+        98153934
+      ],
+      "preparation": [
+        "Sua Fase Principal do primeiro turno; parceiro sem interrupções. A mesa preparada está descrita abaixo.",
+        "As cartas da mão e da mesa são retiradas das listas completas da caixa; não há cópias extras.",
+        "Mesa inicial: campo adversário: Os Cavaleiros Fantasmas do Elmo Fendido face para cima."
+      ],
+      "steps": [
+        {
+          "title": "Comece com um Cavaleiro",
+          "action": "Invoque Manto Antigo por Invocação-Normal.",
+          "why": "Um Cavaleiro Fantasma no campo habilita Botas sem gastar outra Normal.",
+          "cardCodes": [
+            90432163
+          ]
+        },
+        {
+          "title": "Complete o par",
+          "action": "Invoque Botas Silenciosas por Invocação-Especial da mão.",
+          "why": "Dois Níveis 3 permitem a Classe 3.",
+          "cardCodes": [
+            36426778
+          ]
+        },
+        {
+          "title": "Faça Espada Quebrada",
+          "action": "Invoque Espada Quebrada com Manto Antigo e Botas.",
+          "why": "Os materiais ainda não estão no Cemitério; a destruição do Xyz os libera.",
+          "cardCodes": [
+            62709239,
+            90432163,
+            36426778
+          ]
+        },
+        {
+          "title": "Troque o Xyz por remoção",
+          "action": "Ative Espada Quebrada: desassocie Botas e escolha o próprio Xyz e o Elmo Fendido adversário. Aceite o efeito após a destruição e reviva Manto e Botas.",
+          "why": "A autodestruição de um Xyz corretamente Invocado permite recuperar dois Cavaleiros do mesmo Nível. Ambos sobem para Nível 4; a partir daqui, só Especiais de TREVAS.",
+          "cardCodes": [
+            62709239,
+            36426778,
+            90432163,
+            99315585
+          ]
+        },
+        {
+          "title": "Escolha o Classe 4",
+          "action": "Invoque Dragão Xyz da Rebelião Negra com os dois Cavaleiros de Nível 4.",
+          "why": "Rebelião é TREVAS, compatível com o bloqueio. Leviar é VENTO e não estaria disponível.",
+          "cardCodes": [
+            16195942,
+            90432163,
+            36426778
+          ]
+        }
+      ],
+      "outcome": "Espada Quebrada abre o Classe 4 com os recursos finais conferidos pelo motor.",
+      "cautions": [
+        "Não bana Manto ou Botas antes de resolver a reanimação: os dois precisam continuar no Cemitério.",
+        "Se Espada Quebrada for apenas reanimada e depois destruída, não foi Invocada por Xyz nessa permanência no campo e não oferece a mesma reanimação."
+      ],
+      "practice": {
+        "goal": [
+          {
+            "kind": "card",
+            "zone": "monsters",
+            "code": 16195942,
+            "overlays": [
+              90432163,
+              36426778
+            ]
+          },
+          {
+            "kind": "card",
+            "zone": "grave",
+            "code": 62709239
+          },
+          {
+            "kind": "card",
+            "zone": "grave",
+            "code": 99315585,
+            "player": 1
+          }
+        ],
+        "stages": [
+          {
+            "title": "Comece com um Cavaleiro",
+            "instruction": "Invoque Manto Antigo por Invocação-Normal.",
+            "why": "Um Cavaleiro Fantasma no campo habilita Botas sem gastar outra Normal.",
+            "targets": [
+              {
+                "code": 90432163,
+                "location": 2
+              }
+            ],
+            "completeWhen": [
+              {
+                "kind": "card",
+                "zone": "monsters",
+                "code": 90432163
+              }
+            ]
+          },
+          {
+            "title": "Complete o par",
+            "instruction": "Invoque Botas Silenciosas por Invocação-Especial da mão.",
+            "why": "Dois Níveis 3 permitem a Classe 3.",
+            "targets": [
+              {
+                "code": 36426778,
+                "location": 2
+              }
+            ],
+            "completeWhen": [
+              {
+                "kind": "card",
+                "zone": "monsters",
+                "code": 36426778
+              }
+            ]
+          },
+          {
+            "title": "Faça Espada Quebrada",
+            "instruction": "Invoque Espada Quebrada com Manto Antigo e Botas.",
+            "why": "Os materiais ainda não estão no Cemitério; a destruição do Xyz os libera.",
+            "targets": [
+              {
+                "code": 62709239,
+                "location": 64
+              },
+              {
+                "code": 90432163,
+                "location": 4,
+                "scope": "selection"
+              },
+              {
+                "code": 36426778,
+                "location": 4,
+                "scope": "selection"
+              }
+            ],
+            "completeWhen": [
+              {
+                "kind": "card",
+                "zone": "monsters",
+                "code": 62709239,
+                "overlays": [
+                  90432163,
+                  36426778
+                ]
+              }
+            ]
+          },
+          {
+            "title": "Troque o Xyz por remoção",
+            "instruction": "Ative Espada Quebrada: desassocie Botas e escolha o próprio Xyz e o Elmo Fendido adversário. Aceite o efeito após a destruição e reviva Manto e Botas.",
+            "why": "A autodestruição de um Xyz corretamente Invocado permite recuperar dois Cavaleiros do mesmo Nível. Ambos sobem para Nível 4; a partir daqui, só Especiais de TREVAS.",
+            "targets": [
+              {
+                "code": 62709239,
+                "location": 4
+              },
+              {
+                "code": 36426778,
+                "location": 4,
+                "scope": "selection"
+              },
+              {
+                "code": 62709239,
+                "location": 16
+              },
+              {
+                "code": 90432163,
+                "location": 16
+              },
+              {
+                "code": 36426778,
+                "location": 16
+              },
+              {
+                "code": 99315585,
+                "location": 4,
+                "controller": 1
+              }
+            ],
+            "completeWhen": [
+              {
+                "kind": "card",
+                "zone": "monsters",
+                "code": 90432163,
+                "level": 4
+              },
+              {
+                "kind": "card",
+                "zone": "monsters",
+                "code": 36426778,
+                "level": 4
+              },
+              {
+                "kind": "card",
+                "zone": "grave",
+                "code": 99315585,
+                "player": 1
+              }
+            ]
+          },
+          {
+            "title": "Escolha o Classe 4",
+            "instruction": "Invoque Dragão Xyz da Rebelião Negra com os dois Cavaleiros de Nível 4.",
+            "why": "Rebelião é TREVAS, compatível com o bloqueio. Leviar é VENTO e não estaria disponível.",
+            "targets": [
+              {
+                "code": 16195942,
+                "location": 64
+              },
+              {
+                "code": 90432163,
+                "location": 4,
+                "scope": "selection"
+              },
+              {
+                "code": 36426778,
+                "location": 4,
+                "scope": "selection"
+              }
+            ],
+            "completeWhen": [
+              {
+                "kind": "card",
+                "zone": "monsters",
+                "code": 16195942,
+                "overlays": [
+                  90432163,
+                  36426778
+                ]
+              }
+            ]
+          }
+        ],
+        "scenario": [
+          {
+            "code": 99315585,
+            "player": 1,
+            "location": 4,
+            "sequence": 0,
+            "position": 1
+          }
+        ]
+      }
+    },
+    {
+      "id": "rebeliao-sem-materiais-vira-requiem",
+      "title": "Rebelião sem materiais vira Réquiem",
+      "summary": "Execute rebelião sem materiais vira Réquiem.",
+      "minutes": 10,
+      "sourceIds": [
+        "set-list",
+        "pk-1621413",
+        "pk-3298689",
+        "pk-16195942",
+        "pk-36426778",
+        "pk-36704180",
+        "pk-62709239",
+        "pk-90432163",
+        "pk-99315585"
+      ],
+      "startingHand": [
+        90432163,
+        36426778,
+        3298689,
+        83764718,
+        98153934
+      ],
+      "preparation": [
+        "Sua Fase Principal do primeiro turno; parceiro sem interrupções. A mesa preparada está descrita abaixo.",
+        "As cartas da mão e da mesa são retiradas das listas completas da caixa; não há cópias extras.",
+        "Mesa inicial: campo adversário: Os Cavaleiros Fantasmas do Elmo Fendido face para cima, campo adversário: Os Cavaleiros Fantasmas da Armadura Frágil face para cima."
+      ],
+      "steps": [
+        {
+          "title": "Comece com um Cavaleiro",
+          "action": "Invoque Manto Antigo por Invocação-Normal.",
+          "why": "Um Cavaleiro Fantasma no campo habilita Botas sem gastar outra Normal.",
+          "cardCodes": [
+            90432163
+          ]
+        },
+        {
+          "title": "Complete o par",
+          "action": "Invoque Botas Silenciosas por Invocação-Especial da mão.",
+          "why": "Dois Níveis 3 permitem a Classe 3.",
+          "cardCodes": [
+            36426778
+          ]
+        },
+        {
+          "title": "Faça Espada Quebrada",
+          "action": "Invoque Espada Quebrada com Manto Antigo e Botas.",
+          "why": "Os materiais ainda não estão no Cemitério; a destruição do Xyz os libera.",
+          "cardCodes": [
+            62709239,
+            90432163,
+            36426778
+          ]
+        },
+        {
+          "title": "Troque o Xyz por remoção",
+          "action": "Ative Espada Quebrada: desassocie Botas e escolha o próprio Xyz e o Elmo Fendido adversário. Aceite o efeito após a destruição e reviva Manto e Botas.",
+          "why": "A autodestruição de um Xyz corretamente Invocado permite recuperar dois Cavaleiros do mesmo Nível. Ambos sobem para Nível 4; a partir daqui, só Especiais de TREVAS.",
+          "cardCodes": [
+            62709239,
+            36426778,
+            90432163,
+            99315585
+          ]
+        },
+        {
+          "title": "Escolha o Classe 4",
+          "action": "Invoque Dragão Xyz da Rebelião Negra com os dois Cavaleiros de Nível 4.",
+          "why": "Rebelião é TREVAS, compatível com o bloqueio. Leviar é VENTO e não estaria disponível.",
+          "cardCodes": [
+            16195942,
+            90432163,
+            36426778
+          ]
+        },
+        {
+          "title": "Esvazie os materiais com ganho",
+          "action": "Ative Rebelião, desassocie os dois materiais e escolha Armadura Frágil adversária.",
+          "why": "Armadura tem 1000 ATK: cai para 500 e Rebelião sobe de 2500 para 3000. Launch exige zero materiais.",
+          "cardCodes": [
+            16195942,
+            90432163,
+            36426778,
+            36704180
+          ]
+        },
+        {
+          "title": "Suba com o material correto",
+          "action": "Ative Lançar Magia de Aumento de Classe em Rebelião e escolha Réquiem Negro.",
+          "why": "Réquiem recebe Rebelião e a própria Magia como materiais. Ter Rebelião associado é o que habilita seus efeitos.",
+          "cardCodes": [
+            3298689,
+            16195942,
+            1621413
+          ]
+        },
+        {
+          "title": "Preserve Rebelião ao pagar",
+          "action": "Ative a redução de ATK de Réquiem; desassocie Launch, mantendo Rebelião, e escolha Armadura Frágil.",
+          "why": "O alvo vai a zero e Réquiem ganha seu ATK original de 1000. Desassociar Rebelião faria Réquiem perder os efeitos concedidos.",
+          "cardCodes": [
+            1621413,
+            3298689,
+            36704180
+          ]
+        }
+      ],
+      "outcome": "Rebelião sem materiais vira Réquiem com os recursos finais conferidos pelo motor.",
+      "cautions": [
+        "Não bana Manto ou Botas antes de resolver a reanimação: os dois precisam continuar no Cemitério.",
+        "Se Espada Quebrada for apenas reanimada e depois destruída, não foi Invocada por Xyz nessa permanência no campo e não oferece a mesma reanimação.",
+        "A negação de Réquiem não tem limite escrito de uma vez por turno, mas cada uso exige um material e Rebelião ainda associado. Não equivale a negações infinitas."
+      ],
+      "practice": {
+        "goal": [
+          {
+            "kind": "card",
+            "zone": "monsters",
+            "code": 1621413,
+            "attack": 4000,
+            "overlays": [
+              16195942
+            ]
+          },
+          {
+            "kind": "card",
+            "zone": "monsters",
+            "code": 36704180,
+            "attack": 0,
+            "player": 1
+          }
+        ],
+        "stages": [
+          {
+            "title": "Comece com um Cavaleiro",
+            "instruction": "Invoque Manto Antigo por Invocação-Normal.",
+            "why": "Um Cavaleiro Fantasma no campo habilita Botas sem gastar outra Normal.",
+            "targets": [
+              {
+                "code": 90432163,
+                "location": 2
+              }
+            ],
+            "completeWhen": [
+              {
+                "kind": "card",
+                "zone": "monsters",
+                "code": 90432163
+              }
+            ]
+          },
+          {
+            "title": "Complete o par",
+            "instruction": "Invoque Botas Silenciosas por Invocação-Especial da mão.",
+            "why": "Dois Níveis 3 permitem a Classe 3.",
+            "targets": [
+              {
+                "code": 36426778,
+                "location": 2
+              }
+            ],
+            "completeWhen": [
+              {
+                "kind": "card",
+                "zone": "monsters",
+                "code": 36426778
+              }
+            ]
+          },
+          {
+            "title": "Faça Espada Quebrada",
+            "instruction": "Invoque Espada Quebrada com Manto Antigo e Botas.",
+            "why": "Os materiais ainda não estão no Cemitério; a destruição do Xyz os libera.",
+            "targets": [
+              {
+                "code": 62709239,
+                "location": 64
+              },
+              {
+                "code": 90432163,
+                "location": 4,
+                "scope": "selection"
+              },
+              {
+                "code": 36426778,
+                "location": 4,
+                "scope": "selection"
+              }
+            ],
+            "completeWhen": [
+              {
+                "kind": "card",
+                "zone": "monsters",
+                "code": 62709239,
+                "overlays": [
+                  90432163,
+                  36426778
+                ]
+              }
+            ]
+          },
+          {
+            "title": "Troque o Xyz por remoção",
+            "instruction": "Ative Espada Quebrada: desassocie Botas e escolha o próprio Xyz e o Elmo Fendido adversário. Aceite o efeito após a destruição e reviva Manto e Botas.",
+            "why": "A autodestruição de um Xyz corretamente Invocado permite recuperar dois Cavaleiros do mesmo Nível. Ambos sobem para Nível 4; a partir daqui, só Especiais de TREVAS.",
+            "targets": [
+              {
+                "code": 62709239,
+                "location": 4
+              },
+              {
+                "code": 36426778,
+                "location": 4,
+                "scope": "selection"
+              },
+              {
+                "code": 62709239,
+                "location": 16
+              },
+              {
+                "code": 90432163,
+                "location": 16
+              },
+              {
+                "code": 36426778,
+                "location": 16
+              },
+              {
+                "code": 99315585,
+                "location": 4,
+                "controller": 1
+              }
+            ],
+            "completeWhen": [
+              {
+                "kind": "card",
+                "zone": "monsters",
+                "code": 90432163,
+                "level": 4
+              },
+              {
+                "kind": "card",
+                "zone": "monsters",
+                "code": 36426778,
+                "level": 4
+              },
+              {
+                "kind": "card",
+                "zone": "grave",
+                "code": 99315585,
+                "player": 1
+              }
+            ]
+          },
+          {
+            "title": "Escolha o Classe 4",
+            "instruction": "Invoque Dragão Xyz da Rebelião Negra com os dois Cavaleiros de Nível 4.",
+            "why": "Rebelião é TREVAS, compatível com o bloqueio. Leviar é VENTO e não estaria disponível.",
+            "targets": [
+              {
+                "code": 16195942,
+                "location": 64
+              },
+              {
+                "code": 90432163,
+                "location": 4,
+                "scope": "selection"
+              },
+              {
+                "code": 36426778,
+                "location": 4,
+                "scope": "selection"
+              }
+            ],
+            "completeWhen": [
+              {
+                "kind": "card",
+                "zone": "monsters",
+                "code": 16195942,
+                "overlays": [
+                  90432163,
+                  36426778
+                ]
+              }
+            ]
+          },
+          {
+            "title": "Esvazie os materiais com ganho",
+            "instruction": "Ative Rebelião, desassocie os dois materiais e escolha Armadura Frágil adversária.",
+            "why": "Armadura tem 1000 ATK: cai para 500 e Rebelião sobe de 2500 para 3000. Launch exige zero materiais.",
+            "targets": [
+              {
+                "code": 16195942,
+                "location": 4
+              },
+              {
+                "code": 90432163,
+                "location": 4,
+                "scope": "selection"
+              },
+              {
+                "code": 36426778,
+                "location": 4,
+                "scope": "selection"
+              },
+              {
+                "code": 36704180,
+                "location": 4,
+                "controller": 1
+              }
+            ],
+            "completeWhen": [
+              {
+                "kind": "card",
+                "zone": "monsters",
+                "code": 16195942,
+                "attack": 3000,
+                "overlays": []
+              }
+            ]
+          },
+          {
+            "title": "Suba com o material correto",
+            "instruction": "Ative Lançar Magia de Aumento de Classe em Rebelião e escolha Réquiem Negro.",
+            "why": "Réquiem recebe Rebelião e a própria Magia como materiais. Ter Rebelião associado é o que habilita seus efeitos.",
+            "targets": [
+              {
+                "code": 3298689,
+                "location": 2
+              },
+              {
+                "code": 16195942,
+                "location": 4,
+                "scope": "selection"
+              },
+              {
+                "code": 1621413,
+                "location": 64
+              }
+            ],
+            "completeWhen": [
+              {
+                "kind": "card",
+                "zone": "monsters",
+                "code": 1621413,
+                "overlays": [
+                  16195942,
+                  3298689
+                ]
+              }
+            ]
+          },
+          {
+            "title": "Preserve Rebelião ao pagar",
+            "instruction": "Ative a redução de ATK de Réquiem; desassocie Launch, mantendo Rebelião, e escolha Armadura Frágil.",
+            "why": "O alvo vai a zero e Réquiem ganha seu ATK original de 1000. Desassociar Rebelião faria Réquiem perder os efeitos concedidos.",
+            "targets": [
+              {
+                "code": 1621413,
+                "location": 4
+              },
+              {
+                "code": 3298689,
+                "location": 4,
+                "scope": "selection"
+              },
+              {
+                "code": 36704180,
+                "location": 4,
+                "controller": 1
+              }
+            ],
+            "completeWhen": [
+              {
+                "kind": "card",
+                "zone": "monsters",
+                "code": 1621413,
+                "attack": 4000,
+                "overlays": [
+                  16195942
+                ]
+              }
+            ]
+          }
+        ],
+        "scenario": [
+          {
+            "code": 99315585,
+            "player": 1,
+            "location": 4,
+            "sequence": 0,
+            "position": 1
+          },
+          {
+            "code": 36704180,
+            "player": 1,
+            "location": 4,
+            "sequence": 1,
+            "position": 1
+          }
+        ]
+      }
+    },
+    {
+      "id": "a-seta-de-bardiche-transforma-xyz-em-remocao",
+      "title": "Bardiche destrói Espada e abre defesa",
+      "summary": "Execute bardiche destrói Espada e abre defesa.",
+      "minutes": 6,
+      "sourceIds": [
+        "set-list",
+        "pk-359563",
+        "pk-26692769",
+        "pk-36426778",
+        "pk-62709239",
+        "pk-90432163"
+      ],
+      "startingHand": [
+        90432163,
+        36426778,
+        83764718,
+        3298689,
+        98153934
+      ],
+      "preparation": [
+        "Sua Fase Principal do primeiro turno; parceiro sem interrupções. A mesa preparada está descrita abaixo.",
+        "As cartas da mão e da mesa são retiradas das listas completas da caixa; não há cópias extras.",
+        "Mesa inicial: seu campo: Os Cavaleiros Fantasmas do Bardiche Enferrujado face para cima."
+      ],
+      "steps": [
+        {
+          "title": "Comece com um Cavaleiro",
+          "action": "Invoque Manto Antigo por Invocação-Normal.",
+          "why": "Um Cavaleiro Fantasma no campo habilita Botas sem gastar outra Normal.",
+          "cardCodes": [
+            90432163
+          ]
+        },
+        {
+          "title": "Complete o par",
+          "action": "Invoque Botas Silenciosas por Invocação-Especial da mão.",
+          "why": "Dois Níveis 3 permitem a Classe 3.",
+          "cardCodes": [
+            36426778
+          ]
+        },
+        {
+          "title": "Use a seta inferior esquerda",
+          "action": "Invoque Espada Quebrada na zona principal esquerda, apontada por Bardiche. Aceite Bardiche e destrua sua Espada. Aceite Espada e reviva Manto e Botas.",
+          "why": "O gatilho exige um Xyz TREVAS invocado na seta. Destruir sua própria Espada é útil aqui porque converte dois materiais em dois Níveis 4.",
+          "cardCodes": [
+            62709239,
+            90432163,
+            36426778,
+            26692769
+          ]
+        },
+        {
+          "title": "Monte uma resposta de turno adversário",
+          "action": "Invoque Hordeum Maligno Pesadelo com os dois Níveis 4.",
+          "why": "Pesadelo pode desassociar material para virar monstros Invocados por Especial pelo adversário, fora da Etapa de Dano.",
+          "cardCodes": [
+            359563,
+            90432163,
+            36426778
+          ]
+        }
+      ],
+      "outcome": "Bardiche destrói Espada e abre defesa com os recursos finais conferidos pelo motor.",
+      "cautions": [
+        "Não use a remoção de Bardiche em uma carta sua sem retorno. Aqui a reanimação de Espada justifica o custo.",
+        "O gatilho de destruição de Bardiche é uma vez por turno; não conte outra destruição com o segundo Xyz no mesmo turno.",
+        "Bardiche não pode ser Material Link."
+      ],
+      "practice": {
+        "goal": [
+          {
+            "kind": "card",
+            "zone": "monsters",
+            "code": 26692769
+          },
+          {
+            "kind": "card",
+            "zone": "monsters",
+            "code": 359563,
+            "overlays": [
+              90432163,
+              36426778
+            ]
+          },
+          {
+            "kind": "card",
+            "zone": "grave",
+            "code": 62709239
+          }
+        ],
+        "stages": [
+          {
+            "title": "Comece com um Cavaleiro",
+            "instruction": "Invoque Manto Antigo por Invocação-Normal.",
+            "why": "Um Cavaleiro Fantasma no campo habilita Botas sem gastar outra Normal.",
+            "targets": [
+              {
+                "code": 90432163,
+                "location": 2
+              }
+            ],
+            "completeWhen": [
+              {
+                "kind": "card",
+                "zone": "monsters",
+                "code": 90432163
+              }
+            ]
+          },
+          {
+            "title": "Complete o par",
+            "instruction": "Invoque Botas Silenciosas por Invocação-Especial da mão.",
+            "why": "Dois Níveis 3 permitem a Classe 3.",
+            "targets": [
+              {
+                "code": 36426778,
+                "location": 2
+              }
+            ],
+            "completeWhen": [
+              {
+                "kind": "card",
+                "zone": "monsters",
+                "code": 36426778
+              }
+            ]
+          },
+          {
+            "title": "Use a seta inferior esquerda",
+            "instruction": "Invoque Espada Quebrada na zona principal esquerda, apontada por Bardiche. Aceite Bardiche e destrua sua Espada. Aceite Espada e reviva Manto e Botas.",
+            "why": "O gatilho exige um Xyz TREVAS invocado na seta. Destruir sua própria Espada é útil aqui porque converte dois materiais em dois Níveis 4.",
+            "targets": [
+              {
+                "code": 62709239,
+                "location": 64
+              },
+              {
+                "code": 90432163,
+                "location": 4,
+                "scope": "selection"
+              },
+              {
+                "code": 36426778,
+                "location": 4,
+                "scope": "selection"
+              },
+              {
+                "code": 26692769,
+                "location": 4,
+                "scope": "trigger"
+              },
+              {
+                "code": 62709239,
+                "location": 4,
+                "scope": "selection"
+              },
+              {
+                "code": 62709239,
+                "location": 16,
+                "scope": "trigger"
+              },
+              {
+                "code": 90432163,
+                "location": 16
+              },
+              {
+                "code": 36426778,
+                "location": 16
+              }
+            ],
+            "completeWhen": [
+              {
+                "kind": "card",
+                "zone": "monsters",
+                "code": 90432163,
+                "level": 4
+              },
+              {
+                "kind": "card",
+                "zone": "monsters",
+                "code": 36426778,
+                "level": 4
+              }
+            ]
+          },
+          {
+            "title": "Monte uma resposta de turno adversário",
+            "instruction": "Invoque Hordeum Maligno Pesadelo com os dois Níveis 4.",
+            "why": "Pesadelo pode desassociar material para virar monstros Invocados por Especial pelo adversário, fora da Etapa de Dano.",
+            "targets": [
+              {
+                "code": 359563,
+                "location": 64
+              },
+              {
+                "code": 90432163,
+                "location": 4,
+                "scope": "selection"
+              },
+              {
+                "code": 36426778,
+                "location": 4,
+                "scope": "selection"
+              }
+            ],
+            "completeWhen": [
+              {
+                "kind": "card",
+                "zone": "monsters",
+                "code": 359563,
+                "overlays": [
+                  90432163,
+                  36426778
+                ]
+              }
+            ]
+          }
+        ],
+        "scenario": [
+          {
+            "code": 26692769,
+            "player": 0,
+            "location": 4,
+            "sequence": 5,
+            "position": 1
+          }
+        ]
+      }
+    },
+    {
+      "id": "ragged-gloves-prepara-a-armadilha-certa",
+      "title": "Luvas envia Lâmina e prepara reanimação",
+      "summary": "Execute luvas envia Lâmina e prepara reanimação.",
+      "minutes": 9,
+      "sourceIds": [
+        "set-list",
+        "pk-25542642",
+        "pk-36426778",
+        "pk-53129443",
+        "pk-62709239",
+        "pk-63821877",
+        "pk-81439173",
+        "pk-90432163"
+      ],
+      "startingHand": [
+        81439173,
+        90432163,
+        36426778,
+        53129443,
+        98153934
+      ],
+      "preparation": [
+        "Sua Fase Principal do primeiro turno; parceiro sem interrupções. A mesa preparada está descrita abaixo.",
+        "As cartas da mão e da mesa são retiradas das listas completas da caixa; não há cópias extras.",
+        "Campo inicial vazio."
+      ],
+      "steps": [
+        {
+          "title": "Prepare Luvas",
+          "action": "Ative Enterro Tolo e envie Luvas Gastas.",
+          "why": "Luvas pode enviar qualquer carta Cavaleiros Fantasmas elegível, incluindo uma Armadilha.",
+          "cardCodes": [
+            81439173,
+            63821877
+          ]
+        },
+        {
+          "title": "Envie a recuperação certa",
+          "action": "Bana Luvas para enviar Lâmina de Névoa do Deck ao Cemitério.",
+          "why": "Enviada direto, a Armadilha já oferece sua reanimação; não precisa ter sido ativada no campo.",
+          "cardCodes": [
+            63821877,
+            25542642
+          ]
+        },
+        {
+          "title": "Comece com um Cavaleiro",
+          "action": "Invoque Manto Antigo por Invocação-Normal.",
+          "why": "Um Cavaleiro Fantasma no campo habilita Botas sem gastar outra Normal.",
+          "cardCodes": [
+            90432163
+          ]
+        },
+        {
+          "title": "Prepare o alvo de treino",
+          "action": "Ative Buraco Negro, destruindo seu Manto.",
+          "why": "Esta é uma demonstração controlada: em partida real, use Buraco Negro por vantagem na mesa, não só para destruir seu monstro.",
+          "cardCodes": [
+            53129443
+          ]
+        },
+        {
+          "title": "Reanime antes de buscar",
+          "action": "Bana Lâmina de Névoa e reviva Manto Antigo.",
+          "why": "Banir Manto para uma busca agora consumiria o alvo que precisa voltar.",
+          "cardCodes": [
+            25542642,
+            90432163
+          ]
+        },
+        {
+          "title": "Complete o par",
+          "action": "Invoque Botas Silenciosas por Invocação-Especial da mão.",
+          "why": "Dois Níveis 3 permitem a Classe 3.",
+          "cardCodes": [
+            36426778
+          ]
+        },
+        {
+          "title": "Faça Espada Quebrada",
+          "action": "Invoque Espada Quebrada com Manto Antigo e Botas.",
+          "why": "Os materiais ainda não estão no Cemitério; a destruição do Xyz os libera.",
+          "cardCodes": [
+            62709239,
+            90432163,
+            36426778
+          ]
+        }
+      ],
+      "outcome": "Luvas envia Lâmina e prepara reanimação com os recursos finais conferidos pelo motor.",
+      "cautions": [
+        "O monstro reanimado seria banido ao sair do campo, mas virar material Xyz não conta como sair do campo. Depois de desassociado, pode chegar ao Cemitério normalmente."
+      ],
+      "practice": {
+        "goal": [
+          {
+            "kind": "card",
+            "zone": "monsters",
+            "code": 62709239,
+            "overlays": [
+              90432163,
+              36426778
+            ]
+          },
+          {
+            "kind": "card",
+            "zone": "banished",
+            "code": 25542642
+          },
+          {
+            "kind": "card",
+            "zone": "banished",
+            "code": 63821877
+          }
+        ],
+        "stages": [
+          {
+            "title": "Prepare Luvas",
+            "instruction": "Ative Enterro Tolo e envie Luvas Gastas.",
+            "why": "Luvas pode enviar qualquer carta Cavaleiros Fantasmas elegível, incluindo uma Armadilha.",
+            "targets": [
+              {
+                "code": 81439173,
+                "location": 2
+              },
+              {
+                "code": 63821877,
+                "location": 1
+              }
+            ],
+            "completeWhen": [
+              {
+                "kind": "card",
+                "zone": "grave",
+                "code": 63821877
+              }
+            ]
+          },
+          {
+            "title": "Envie a recuperação certa",
+            "instruction": "Bana Luvas para enviar Lâmina de Névoa do Deck ao Cemitério.",
+            "why": "Enviada direto, a Armadilha já oferece sua reanimação; não precisa ter sido ativada no campo.",
+            "targets": [
+              {
+                "code": 63821877,
+                "location": 16
+              },
+              {
+                "code": 25542642,
+                "location": 1
+              }
+            ],
+            "completeWhen": [
+              {
+                "kind": "card",
+                "zone": "grave",
+                "code": 25542642
+              }
+            ]
+          },
+          {
+            "title": "Comece com um Cavaleiro",
+            "instruction": "Invoque Manto Antigo por Invocação-Normal.",
+            "why": "Um Cavaleiro Fantasma no campo habilita Botas sem gastar outra Normal.",
+            "targets": [
+              {
+                "code": 90432163,
+                "location": 2
+              }
+            ],
+            "completeWhen": [
+              {
+                "kind": "card",
+                "zone": "monsters",
+                "code": 90432163
+              }
+            ]
+          },
+          {
+            "title": "Prepare o alvo de treino",
+            "instruction": "Ative Buraco Negro, destruindo seu Manto.",
+            "why": "Esta é uma demonstração controlada: em partida real, use Buraco Negro por vantagem na mesa, não só para destruir seu monstro.",
+            "targets": [
+              {
+                "code": 53129443,
+                "location": 2
+              }
+            ],
+            "completeWhen": [
+              {
+                "kind": "card",
+                "zone": "grave",
+                "code": 90432163
+              }
+            ]
+          },
+          {
+            "title": "Reanime antes de buscar",
+            "instruction": "Bana Lâmina de Névoa e reviva Manto Antigo.",
+            "why": "Banir Manto para uma busca agora consumiria o alvo que precisa voltar.",
+            "targets": [
+              {
+                "code": 25542642,
+                "location": 16
+              },
+              {
+                "code": 90432163,
+                "location": 16
+              }
+            ],
+            "completeWhen": [
+              {
+                "kind": "card",
+                "zone": "monsters",
+                "code": 90432163
+              },
+              {
+                "kind": "card",
+                "zone": "banished",
+                "code": 25542642
+              }
+            ]
+          },
+          {
+            "title": "Complete o par",
+            "instruction": "Invoque Botas Silenciosas por Invocação-Especial da mão.",
+            "why": "Dois Níveis 3 permitem a Classe 3.",
+            "targets": [
+              {
+                "code": 36426778,
+                "location": 2
+              }
+            ],
+            "completeWhen": [
+              {
+                "kind": "card",
+                "zone": "monsters",
+                "code": 36426778
+              }
+            ]
+          },
+          {
+            "title": "Faça Espada Quebrada",
+            "instruction": "Invoque Espada Quebrada com Manto Antigo e Botas.",
+            "why": "Os materiais ainda não estão no Cemitério; a destruição do Xyz os libera.",
+            "targets": [
+              {
+                "code": 62709239,
+                "location": 64
+              },
+              {
+                "code": 90432163,
+                "location": 4,
+                "scope": "selection"
+              },
+              {
+                "code": 36426778,
+                "location": 4,
+                "scope": "selection"
+              }
+            ],
+            "completeWhen": [
+              {
+                "kind": "card",
+                "zone": "monsters",
+                "code": 62709239,
+                "overlays": [
+                  90432163,
+                  36426778
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "brigandina-antes-das-armadilhas-no-cemiterio",
+      "title": "Sombra Brigandina dá acesso ao Classe 4",
+      "summary": "Execute sombra Brigandina dá acesso ao Classe 4.",
+      "minutes": 5,
+      "sourceIds": [
+        "set-list",
+        "pk-359563",
+        "pk-28985331",
+        "pk-90432163",
+        "pk-98827725"
+      ],
+      "startingHand": [
+        28985331,
+        98827725,
+        36426778,
+        3298689,
+        98153934
+      ],
+      "preparation": [
+        "Sua Fase Principal do primeiro turno; parceiro sem interrupções. A mesa preparada está descrita abaixo.",
+        "As cartas da mão e da mesa são retiradas das listas completas da caixa; não há cópias extras.",
+        "Campo inicial vazio."
+      ],
+      "steps": [
+        {
+          "title": "Prepare busca de Cemitério",
+          "action": "Invoque Cavaleiro do Armagedom e envie Manto Antigo.",
+          "why": "Ele tem Nível 4; Brigandina pode ser seu par sem usar a busca de Manto agora.",
+          "cardCodes": [
+            28985331,
+            90432163
+          ]
+        },
+        {
+          "title": "Baixe e ative Brigandina",
+          "action": "Baixe Sombra Brigandina e ative-a ainda neste turno.",
+          "why": "Isso só é permitido sem Armadilhas no seu Cemitério. Manto é monstro, então não atrapalha.",
+          "cardCodes": [
+            98827725
+          ]
+        },
+        {
+          "title": "Transforme o par em defesa",
+          "action": "Invoque Hordeum Maligno Pesadelo com Armagedom e Brigandina.",
+          "why": "Brigandina no campo é Monstro Normal de TREVAS, não Armadilha. Ambos têm Nível 4.",
+          "cardCodes": [
+            359563,
+            28985331,
+            98827725
+          ]
+        }
+      ],
+      "outcome": "Sombra Brigandina dá acesso ao Classe 4 com os recursos finais conferidos pelo motor.",
+      "cautions": [
+        "Se enviar Lâmina, Asa ou outra Armadilha ao Cemitério primeiro, Brigandina não pode ser ativada no turno em que foi Baixada.",
+        "Um Rhongomyniad de dois materiais só recebe proteção de batalha e aumento de ATK/DEF: não bloqueia Invocações."
+      ],
+      "practice": {
+        "goal": [
+          {
+            "kind": "card",
+            "zone": "monsters",
+            "code": 359563,
+            "overlays": [
+              28985331,
+              98827725
+            ]
+          }
+        ],
+        "stages": [
+          {
+            "title": "Prepare busca de Cemitério",
+            "instruction": "Invoque Cavaleiro do Armagedom e envie Manto Antigo.",
+            "why": "Ele tem Nível 4; Brigandina pode ser seu par sem usar a busca de Manto agora.",
+            "targets": [
+              {
+                "code": 28985331,
+                "location": 2
+              },
+              {
+                "code": 90432163,
+                "location": 1
+              }
+            ],
+            "completeWhen": [
+              {
+                "kind": "card",
+                "zone": "monsters",
+                "code": 28985331
+              },
+              {
+                "kind": "card",
+                "zone": "grave",
+                "code": 90432163
+              }
+            ]
+          },
+          {
+            "title": "Baixe e ative Brigandina",
+            "instruction": "Baixe Sombra Brigandina e ative-a ainda neste turno.",
+            "why": "Isso só é permitido sem Armadilhas no seu Cemitério. Manto é monstro, então não atrapalha.",
+            "targets": [
+              {
+                "code": 98827725,
+                "location": 2
+              },
+              {
+                "code": 98827725,
+                "location": 8
+              }
+            ],
+            "completeWhen": [
+              {
+                "kind": "card",
+                "zone": "monsters",
+                "code": 98827725,
+                "level": 4
+              }
+            ]
+          },
+          {
+            "title": "Transforme o par em defesa",
+            "instruction": "Invoque Hordeum Maligno Pesadelo com Armagedom e Brigandina.",
+            "why": "Brigandina no campo é Monstro Normal de TREVAS, não Armadilha. Ambos têm Nível 4.",
+            "targets": [
+              {
+                "code": 359563,
+                "location": 64
+              },
+              {
+                "code": 28985331,
+                "location": 4,
+                "scope": "selection"
+              },
+              {
+                "code": 98827725,
+                "location": 4,
+                "scope": "selection"
+              }
+            ],
+            "completeWhen": [
+              {
+                "kind": "card",
+                "zone": "monsters",
+                "code": 359563,
+                "overlays": [
+                  28985331,
+                  98827725
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "luvas-concede-mil-ao-xyz-de-trevas",
+      "title": "Luvas dá 1000 ATK a Espada Quebrada",
+      "summary": "Execute luvas dá 1000 ATK a Espada Quebrada.",
+      "minutes": 5,
+      "sourceIds": [
+        "set-list",
+        "pk-36426778",
+        "pk-62709239",
+        "pk-63821877"
+      ],
+      "startingHand": [
+        63821877,
+        36426778,
+        83764718,
+        3298689,
+        98153934
+      ],
+      "preparation": [
+        "Sua Fase Principal do primeiro turno; parceiro sem interrupções. A mesa preparada está descrita abaixo.",
+        "As cartas da mão e da mesa são retiradas das listas completas da caixa; não há cópias extras.",
+        "Campo inicial vazio."
+      ],
+      "steps": [
+        {
+          "title": "Invoque Luvas",
+          "action": "Invoque Luvas Gastas por Invocação-Normal.",
+          "why": "Seu efeito de material exige que Luvas esteja no campo e seja usado em um Xyz TREVAS.",
+          "cardCodes": [
+            63821877
+          ]
+        },
+        {
+          "title": "Complete o par",
+          "action": "Invoque Botas Silenciosas por Invocação-Especial da mão.",
+          "why": "Dois Níveis 3 permitem a Classe 3.",
+          "cardCodes": [
+            36426778
+          ]
+        },
+        {
+          "title": "Use o bônus na Invocação",
+          "action": "Invoque Espada Quebrada com Luvas e Botas e aceite o aumento de ATK.",
+          "why": "Espada sobe de 2000 para 3000. O bônus é recebido pelo Xyz e não desaparece só porque Luvas for desassociado.",
+          "cardCodes": [
+            62709239,
+            63821877,
+            36426778
+          ]
+        }
+      ],
+      "outcome": "Luvas dá 1000 ATK a Espada Quebrada com os recursos finais conferidos pelo motor.",
+      "cautions": [
+        "Leviar é VENTO e Dante é LUZ: não recebem os 1000 ATK de Luvas."
+      ],
+      "practice": {
+        "goal": [
+          {
+            "kind": "card",
+            "zone": "monsters",
+            "code": 62709239,
+            "attack": 3000,
+            "overlays": [
+              63821877,
+              36426778
+            ]
+          }
+        ],
+        "stages": [
+          {
+            "title": "Invoque Luvas",
+            "instruction": "Invoque Luvas Gastas por Invocação-Normal.",
+            "why": "Seu efeito de material exige que Luvas esteja no campo e seja usado em um Xyz TREVAS.",
+            "targets": [
+              {
+                "code": 63821877,
+                "location": 2
+              }
+            ],
+            "completeWhen": [
+              {
+                "kind": "card",
+                "zone": "monsters",
+                "code": 63821877
+              }
+            ]
+          },
+          {
+            "title": "Complete o par",
+            "instruction": "Invoque Botas Silenciosas por Invocação-Especial da mão.",
+            "why": "Dois Níveis 3 permitem a Classe 3.",
+            "targets": [
+              {
+                "code": 36426778,
+                "location": 2
+              }
+            ],
+            "completeWhen": [
+              {
+                "kind": "card",
+                "zone": "monsters",
+                "code": 36426778
+              }
+            ]
+          },
+          {
+            "title": "Use o bônus na Invocação",
+            "instruction": "Invoque Espada Quebrada com Luvas e Botas e aceite o aumento de ATK.",
+            "why": "Espada sobe de 2000 para 3000. O bônus é recebido pelo Xyz e não desaparece só porque Luvas for desassociado.",
+            "targets": [
+              {
+                "code": 62709239,
+                "location": 64
+              },
+              {
+                "code": 63821877,
+                "location": 4,
+                "scope": "selection"
+              },
+              {
+                "code": 36426778,
+                "location": 4,
+                "scope": "selection"
+              }
+            ],
+            "completeWhen": [
+              {
+                "kind": "card",
+                "zone": "monsters",
+                "code": 62709239,
+                "attack": 3000,
+                "overlays": [
+                  63821877,
+                  36426778
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "furao-usa-as-duas-setas",
+      "title": "Furão converte as setas em dois Níveis 3",
+      "summary": "Execute furão converte as setas em dois Níveis 3.",
+      "minutes": 5,
+      "sourceIds": [
+        "set-list",
+        "pk-26692769",
+        "pk-36426778",
+        "pk-56343672",
+        "pk-62709239",
+        "pk-90432163",
+        "pk-99315585"
+      ],
+      "startingHand": [
+        56343672,
+        83764718,
+        3298689,
+        98153934,
+        81439173
+      ],
+      "preparation": [
+        "Sua Fase Principal do primeiro turno; parceiro sem interrupções. A mesa preparada está descrita abaixo.",
+        "As cartas da mão e da mesa são retiradas das listas completas da caixa; não há cópias extras.",
+        "Mesa inicial: seu campo: Os Cavaleiros Fantasmas do Bardiche Enferrujado face para cima, campo adversário: Os Cavaleiros Fantasmas do Elmo Fendido face para cima."
+      ],
+      "steps": [
+        {
+          "title": "Preserve as zonas apontadas",
+          "action": "Invoque Furão de Socorro na zona principal central, fora das setas inferiores de Bardiche.",
+          "why": "As duas zonas apontadas precisam estar livres durante a resolução.",
+          "cardCodes": [
+            56343672
+          ]
+        },
+        {
+          "title": "Troque Furão por materiais",
+          "action": "Ative Furão, devolva-o ao Deck e escolha Manto Antigo e Botas Silenciosas. Coloque-os nas duas zonas apontadas.",
+          "why": "3 + 3 soma exatamente 6. Os efeitos ficam negados no campo e os monstros seriam destruídos na End Phase, mas ainda servem como materiais.",
+          "cardCodes": [
+            56343672,
+            90432163,
+            36426778
+          ]
+        },
+        {
+          "title": "Converta antes da End Phase",
+          "action": "Invoque Espada Quebrada na seta esquerda de Bardiche. Aceite o gatilho do Link e destrua o Elmo Fendido adversário.",
+          "why": "A Invocação do Xyz TREVAS gera remoção; materiais enviados ao Cemitério depois não continuam com a negação aplicada no campo.",
+          "cardCodes": [
+            62709239,
+            90432163,
+            36426778,
+            26692769,
+            99315585
+          ]
+        }
+      ],
+      "outcome": "Furão converte as setas em dois Níveis 3 com os recursos finais conferidos pelo motor.",
+      "cautions": [
+        "Não conte a Especial da mão de Botas para esta resolução: Furão invoca do Deck e nega os efeitos no campo.",
+        "Com apenas uma zona apontada livre, a combinação de dois monstros não cabe."
+      ],
+      "practice": {
+        "goal": [
+          {
+            "kind": "card",
+            "zone": "monsters",
+            "code": 26692769
+          },
+          {
+            "kind": "card",
+            "zone": "monsters",
+            "code": 62709239,
+            "overlays": [
+              90432163,
+              36426778
+            ]
+          },
+          {
+            "kind": "card",
+            "zone": "grave",
+            "code": 99315585,
+            "player": 1
+          }
+        ],
+        "stages": [
+          {
+            "title": "Preserve as zonas apontadas",
+            "instruction": "Invoque Furão de Socorro na zona principal central, fora das setas inferiores de Bardiche.",
+            "why": "As duas zonas apontadas precisam estar livres durante a resolução.",
+            "targets": [
+              {
+                "code": 56343672,
+                "location": 2
+              }
+            ],
+            "completeWhen": [
+              {
+                "kind": "card",
+                "zone": "monsters",
+                "code": 56343672
+              }
+            ]
+          },
+          {
+            "title": "Troque Furão por materiais",
+            "instruction": "Ative Furão, devolva-o ao Deck e escolha Manto Antigo e Botas Silenciosas. Coloque-os nas duas zonas apontadas.",
+            "why": "3 + 3 soma exatamente 6. Os efeitos ficam negados no campo e os monstros seriam destruídos na End Phase, mas ainda servem como materiais.",
+            "targets": [
+              {
+                "code": 56343672,
+                "location": 4
+              },
+              {
+                "code": 90432163,
+                "location": 1
+              },
+              {
+                "code": 36426778,
+                "location": 1
+              }
+            ],
+            "completeWhen": [
+              {
+                "kind": "card",
+                "zone": "monsters",
+                "code": 90432163,
+                "negated": true
+              },
+              {
+                "kind": "card",
+                "zone": "monsters",
+                "code": 36426778,
+                "negated": true
+              }
+            ]
+          },
+          {
+            "title": "Converta antes da End Phase",
+            "instruction": "Invoque Espada Quebrada na seta esquerda de Bardiche. Aceite o gatilho do Link e destrua o Elmo Fendido adversário.",
+            "why": "A Invocação do Xyz TREVAS gera remoção; materiais enviados ao Cemitério depois não continuam com a negação aplicada no campo.",
+            "targets": [
+              {
+                "code": 62709239,
+                "location": 64
+              },
+              {
+                "code": 90432163,
+                "location": 4,
+                "scope": "selection"
+              },
+              {
+                "code": 36426778,
+                "location": 4,
+                "scope": "selection"
+              },
+              {
+                "code": 26692769,
+                "location": 4,
+                "scope": "trigger"
+              },
+              {
+                "code": 99315585,
+                "location": 4,
+                "controller": 1,
+                "scope": "selection"
+              }
+            ],
+            "completeWhen": [
+              {
+                "kind": "card",
+                "zone": "monsters",
+                "code": 62709239,
+                "overlays": [
+                  90432163,
+                  36426778
+                ]
+              },
+              {
+                "kind": "card",
+                "zone": "grave",
+                "code": 99315585,
+                "player": 1
+              }
+            ]
+          }
+        ],
+        "scenario": [
+          {
+            "code": 26692769,
+            "player": 0,
+            "location": 4,
+            "sequence": 5,
+            "position": 1
+          },
+          {
+            "code": 99315585,
+            "player": 1,
+            "location": 4,
+            "sequence": 0,
+            "position": 1
+          }
+        ]
+      }
+    },
+    {
+      "id": "launch-no-cemiterio-recarrega-o-xyz",
+      "title": "Launch no Cemitério recarrega Pesadelo",
+      "summary": "Execute launch no Cemitério recarrega Pesadelo.",
+      "minutes": 6,
+      "sourceIds": [
+        "set-list",
+        "pk-359563",
+        "pk-3298689",
+        "pk-28985331",
+        "pk-36426778",
+        "pk-43898403",
+        "pk-61936647",
+        "pk-90432163",
+        "pk-98153934",
+        "pk-98827725"
+      ],
+      "startingHand": [
+        28985331,
+        98827725,
+        3298689,
+        43898403,
+        36426778
+      ],
+      "preparation": [
+        "Sua Fase Principal do primeiro turno; parceiro sem interrupções. A mesa preparada está descrita abaixo.",
+        "As cartas da mão e da mesa são retiradas das listas completas da caixa; não há cópias extras.",
+        "Mesa inicial: campo adversário: Cavaleiros Fantasmas - Lança face para cima, campo adversário: Cavaleiros Fantasmas - Espada Baixado."
+      ],
+      "steps": [
+        {
+          "title": "Prepare dois Níveis 4",
+          "action": "Invoque Armagedom, envie Manto ao Cemitério, Baixe e ative Brigandina.",
+          "why": "Sem Armadilha no Cemitério, Brigandina ainda pode ser usada agora.",
+          "cardCodes": [
+            28985331,
+            90432163,
+            98827725
+          ]
+        },
+        {
+          "title": "Faça o Xyz",
+          "action": "Invoque Pesadelo com Armagedom e Brigandina.",
+          "why": "O Xyz começa com duas oportunidades de pagar um material, conforme as janelas legais.",
+          "cardCodes": [
+            359563,
+            28985331,
+            98827725
+          ]
+        },
+        {
+          "title": "Use o descarte para preparar o próximo efeito",
+          "action": "Ative Tornados Gêmeos, descarte Launch e destrua Lança e Espada adversárias.",
+          "why": "O descarte é custo. Launch no Cemitério tem outra função além de aumentar Classe.",
+          "cardCodes": [
+            43898403,
+            3298689,
+            98153934,
+            61936647
+          ]
+        },
+        {
+          "title": "Adicione um material",
+          "action": "Bana Launch do Cemitério, escolha Pesadelo e associe Botas da mão.",
+          "why": "A carta da mão vira material, não monstro Invocado. Botas não ativa busca enquanto continua associado.",
+          "cardCodes": [
+            3298689,
+            359563,
+            36426778
+          ]
+        }
+      ],
+      "outcome": "Launch no Cemitério recarrega Pesadelo com os recursos finais conferidos pelo motor.",
+      "cautions": [
+        "Não recarregue um Rebelião que você pretende subir imediatamente por Launch: a ativação da Magia exige zero materiais."
+      ],
+      "practice": {
+        "goal": [
+          {
+            "kind": "card",
+            "zone": "monsters",
+            "code": 359563,
+            "overlays": [
+              28985331,
+              98827725,
+              36426778
+            ]
+          },
+          {
+            "kind": "card",
+            "zone": "banished",
+            "code": 3298689
+          }
+        ],
+        "stages": [
+          {
+            "title": "Prepare dois Níveis 4",
+            "instruction": "Invoque Armagedom, envie Manto ao Cemitério, Baixe e ative Brigandina.",
+            "why": "Sem Armadilha no Cemitério, Brigandina ainda pode ser usada agora.",
+            "targets": [
+              {
+                "code": 28985331,
+                "location": 2
+              },
+              {
+                "code": 90432163,
+                "location": 1
+              },
+              {
+                "code": 98827725,
+                "location": 2
+              },
+              {
+                "code": 98827725,
+                "location": 8
+              }
+            ],
+            "completeWhen": [
+              {
+                "kind": "card",
+                "zone": "monsters",
+                "code": 28985331
+              },
+              {
+                "kind": "card",
+                "zone": "monsters",
+                "code": 98827725
+              }
+            ]
+          },
+          {
+            "title": "Faça o Xyz",
+            "instruction": "Invoque Pesadelo com Armagedom e Brigandina.",
+            "why": "O Xyz começa com duas oportunidades de pagar um material, conforme as janelas legais.",
+            "targets": [
+              {
+                "code": 359563,
+                "location": 64
+              },
+              {
+                "code": 28985331,
+                "location": 4,
+                "scope": "selection"
+              },
+              {
+                "code": 98827725,
+                "location": 4,
+                "scope": "selection"
+              }
+            ],
+            "completeWhen": [
+              {
+                "kind": "card",
+                "zone": "monsters",
+                "code": 359563,
+                "overlays": [
+                  28985331,
+                  98827725
+                ]
+              }
+            ]
+          },
+          {
+            "title": "Use o descarte para preparar o próximo efeito",
+            "instruction": "Ative Tornados Gêmeos, descarte Launch e destrua Lança e Espada adversárias.",
+            "why": "O descarte é custo. Launch no Cemitério tem outra função além de aumentar Classe.",
+            "targets": [
+              {
+                "code": 43898403,
+                "location": 2
+              },
+              {
+                "code": 3298689,
+                "location": 2
+              },
+              {
+                "code": 98153934,
+                "location": 8,
+                "controller": 1
+              },
+              {
+                "code": 61936647,
+                "location": 8,
+                "controller": 1
+              }
+            ],
+            "completeWhen": [
+              {
+                "kind": "card",
+                "zone": "grave",
+                "code": 3298689
+              },
+              {
+                "kind": "card",
+                "zone": "grave",
+                "code": 98153934,
+                "player": 1
+              },
+              {
+                "kind": "card",
+                "zone": "grave",
+                "code": 61936647,
+                "player": 1
+              }
+            ]
+          },
+          {
+            "title": "Adicione um material",
+            "instruction": "Bana Launch do Cemitério, escolha Pesadelo e associe Botas da mão.",
+            "why": "A carta da mão vira material, não monstro Invocado. Botas não ativa busca enquanto continua associado.",
+            "targets": [
+              {
+                "code": 3298689,
+                "location": 16
+              },
+              {
+                "code": 359563,
+                "location": 4
+              },
+              {
+                "code": 36426778,
+                "location": 2
+              }
+            ],
+            "completeWhen": [
+              {
+                "kind": "card",
+                "zone": "monsters",
+                "code": 359563,
+                "overlays": [
+                  28985331,
+                  98827725,
+                  36426778
+                ]
+              }
+            ]
+          }
+        ],
+        "scenario": [
+          {
+            "code": 98153934,
+            "player": 1,
+            "location": 8,
+            "sequence": 0,
+            "position": 1
+          },
+          {
+            "code": 61936647,
+            "player": 1,
+            "location": 8,
+            "sequence": 1,
+            "position": 8
+          }
+        ]
+      }
+    },
+    {
+      "id": "fog-blade-tem-duas-funcoes-em-turnos-diferentes",
+      "title": "Lâmina de Névoa: negação e material",
+      "summary": "Execute lâmina de Névoa: negação e material.",
+      "minutes": 8,
+      "sourceIds": [
+        "set-list",
+        "pk-25542642",
+        "pk-36426778",
+        "pk-53129443",
+        "pk-62709239",
+        "pk-90432163",
+        "pk-99315585"
+      ],
+      "startingHand": [
+        90432163,
+        36426778,
+        53129443,
+        3298689,
+        98153934
+      ],
+      "preparation": [
+        "Sua Fase Principal do primeiro turno; parceiro sem interrupções. A mesa preparada está descrita abaixo.",
+        "As cartas da mão e da mesa são retiradas das listas completas da caixa; não há cópias extras.",
+        "Mesa inicial: seu campo: Cavaleiros Fantasmas - Lâmina de Névoa Baixado, campo adversário: Os Cavaleiros Fantasmas do Elmo Fendido face para cima."
+      ],
+      "steps": [
+        {
+          "title": "Pratique a negação no campo",
+          "action": "Ative sua Lâmina de Névoa já Baixada, escolhendo Elmo Fendido adversário.",
+          "why": "O alvo fica negado e não pode atacar nem ser escolhido como alvo de ataques: isso também pode atrapalhar seus ataques.",
+          "cardCodes": [
+            25542642,
+            99315585
+          ]
+        },
+        {
+          "title": "Comece com um Cavaleiro",
+          "action": "Invoque Manto Antigo por Invocação-Normal.",
+          "why": "Um Cavaleiro Fantasma no campo habilita Botas sem gastar outra Normal.",
+          "cardCodes": [
+            90432163
+          ]
+        },
+        {
+          "title": "Libere a Armadilha",
+          "action": "Ative Buraco Negro.",
+          "why": "A destruição do alvo faz Lâmina destruir a si mesma; Manto também chega ao Cemitério e vira alvo para recuperação.",
+          "cardCodes": [
+            53129443
+          ]
+        },
+        {
+          "title": "Converta a segunda função",
+          "action": "Bana Lâmina e reviva Manto.",
+          "why": "O efeito de Cemitério pode ser usado mesmo no turno em que a Armadilha saiu do campo.",
+          "cardCodes": [
+            25542642,
+            90432163
+          ]
+        },
+        {
+          "title": "Complete o par",
+          "action": "Invoque Botas Silenciosas por Invocação-Especial da mão.",
+          "why": "Dois Níveis 3 permitem a Classe 3.",
+          "cardCodes": [
+            36426778
+          ]
+        },
+        {
+          "title": "Faça Espada Quebrada",
+          "action": "Invoque Espada Quebrada com Manto Antigo e Botas.",
+          "why": "Os materiais ainda não estão no Cemitério; a destruição do Xyz os libera.",
+          "cardCodes": [
+            62709239,
+            90432163,
+            36426778
+          ]
+        }
+      ],
+      "outcome": "Lâmina de Névoa: negação e material com os recursos finais conferidos pelo motor.",
+      "cautions": [
+        "A mesa inicial representa uma Armadilha Baixada antes do turno atual. Uma Lâmina recém-Baixada não pode ser ativada assim.",
+        "O banimento ao sair não acontece ao transformar o monstro reanimado em material Xyz."
+      ],
+      "practice": {
+        "goal": [
+          {
+            "kind": "card",
+            "zone": "monsters",
+            "code": 62709239,
+            "overlays": [
+              90432163,
+              36426778
+            ]
+          },
+          {
+            "kind": "card",
+            "zone": "banished",
+            "code": 25542642
+          },
+          {
+            "kind": "card",
+            "zone": "grave",
+            "code": 99315585,
+            "player": 1
+          }
+        ],
+        "stages": [
+          {
+            "title": "Pratique a negação no campo",
+            "instruction": "Ative sua Lâmina de Névoa já Baixada, escolhendo Elmo Fendido adversário.",
+            "why": "O alvo fica negado e não pode atacar nem ser escolhido como alvo de ataques: isso também pode atrapalhar seus ataques.",
+            "targets": [
+              {
+                "code": 25542642,
+                "location": 8
+              },
+              {
+                "code": 99315585,
+                "location": 4,
+                "controller": 1
+              }
+            ],
+            "completeWhen": [
+              {
+                "kind": "card",
+                "zone": "monsters",
+                "code": 99315585,
+                "player": 1,
+                "negated": true
+              }
+            ]
+          },
+          {
+            "title": "Comece com um Cavaleiro",
+            "instruction": "Invoque Manto Antigo por Invocação-Normal.",
+            "why": "Um Cavaleiro Fantasma no campo habilita Botas sem gastar outra Normal.",
+            "targets": [
+              {
+                "code": 90432163,
+                "location": 2
+              }
+            ],
+            "completeWhen": [
+              {
+                "kind": "card",
+                "zone": "monsters",
+                "code": 90432163
+              }
+            ]
+          },
+          {
+            "title": "Libere a Armadilha",
+            "instruction": "Ative Buraco Negro.",
+            "why": "A destruição do alvo faz Lâmina destruir a si mesma; Manto também chega ao Cemitério e vira alvo para recuperação.",
+            "targets": [
+              {
+                "code": 53129443,
+                "location": 2
+              }
+            ],
+            "completeWhen": [
+              {
+                "kind": "card",
+                "zone": "grave",
+                "code": 25542642
+              },
+              {
+                "kind": "card",
+                "zone": "grave",
+                "code": 90432163
+              }
+            ]
+          },
+          {
+            "title": "Converta a segunda função",
+            "instruction": "Bana Lâmina e reviva Manto.",
+            "why": "O efeito de Cemitério pode ser usado mesmo no turno em que a Armadilha saiu do campo.",
+            "targets": [
+              {
+                "code": 25542642,
+                "location": 16
+              },
+              {
+                "code": 90432163,
+                "location": 16
+              }
+            ],
+            "completeWhen": [
+              {
+                "kind": "card",
+                "zone": "monsters",
+                "code": 90432163
+              },
+              {
+                "kind": "card",
+                "zone": "banished",
+                "code": 25542642
+              }
+            ]
+          },
+          {
+            "title": "Complete o par",
+            "instruction": "Invoque Botas Silenciosas por Invocação-Especial da mão.",
+            "why": "Dois Níveis 3 permitem a Classe 3.",
+            "targets": [
+              {
+                "code": 36426778,
+                "location": 2
+              }
+            ],
+            "completeWhen": [
+              {
+                "kind": "card",
+                "zone": "monsters",
+                "code": 36426778
+              }
+            ]
+          },
+          {
+            "title": "Faça Espada Quebrada",
+            "instruction": "Invoque Espada Quebrada com Manto Antigo e Botas.",
+            "why": "Os materiais ainda não estão no Cemitério; a destruição do Xyz os libera.",
+            "targets": [
+              {
+                "code": 62709239,
+                "location": 64
+              },
+              {
+                "code": 90432163,
+                "location": 4,
+                "scope": "selection"
+              },
+              {
+                "code": 36426778,
+                "location": 4,
+                "scope": "selection"
+              }
+            ],
+            "completeWhen": [
+              {
+                "kind": "card",
+                "zone": "monsters",
+                "code": 62709239,
+                "overlays": [
+                  90432163,
+                  36426778
+                ]
+              }
+            ]
+          }
+        ],
+        "scenario": [
+          {
+            "code": 25542642,
+            "player": 0,
+            "location": 8,
+            "sequence": 0,
+            "position": 8
+          },
+          {
+            "code": 99315585,
+            "player": 1,
+            "location": 4,
+            "sequence": 0,
+            "position": 1
+          }
+        ]
+      }
+    },
+    {
+      "id": "bracadeira-abre-dardo-amaldicoado",
+      "title": "Manopla Perdida abre Lança Amaldiçoada",
+      "summary": "Execute braçadeira Perdida abre Lança Amaldiçoada.",
+      "minutes": 6,
+      "sourceIds": [
+        "set-list",
+        "pk-12219047",
+        "pk-36247316",
+        "pk-90432163",
+        "pk-99315585"
+      ],
+      "startingHand": [
+        90432163,
+        36426778,
+        83764718,
+        3298689,
+        98153934
+      ],
+      "preparation": [
+        "Sua Fase Principal do primeiro turno; parceiro sem interrupções. A mesa preparada está descrita abaixo.",
+        "As cartas da mão e da mesa são retiradas das listas completas da caixa; não há cópias extras.",
+        "Mesa inicial: seu campo: Os Cavaleiros Fantasmas da Manopla Perdida Baixado, campo adversário: Os Cavaleiros Fantasmas do Elmo Fendido face para cima."
+      ],
+      "steps": [
+        {
+          "title": "Comece com um Cavaleiro",
+          "action": "Invoque Manto Antigo por Invocação-Normal.",
+          "why": "Um Cavaleiro Fantasma no campo habilita Botas sem gastar outra Normal.",
+          "cardCodes": [
+            90432163
+          ]
+        },
+        {
+          "title": "Ajuste o Nível e gere outro corpo",
+          "action": "Ative Manopla Perdida já Baixada escolhendo seu Manto.",
+          "why": "Manto perde 600 ATK e vira Nível 2; Manopla entra como Monstro Normal de Nível 2. A proteção de batalha dura este turno.",
+          "cardCodes": [
+            36247316,
+            90432163
+          ]
+        },
+        {
+          "title": "Faça Lança Amaldiçoada",
+          "action": "Invoque Lança Amaldiçoada com Manto e Manopla.",
+          "why": "Com carta Cavaleiros Fantasmas como material, o efeito de Lança Amaldiçoada é rápido. Sem esse material, seria de ignição.",
+          "cardCodes": [
+            12219047,
+            90432163,
+            36247316
+          ]
+        },
+        {
+          "title": "Negue e abra o ataque",
+          "action": "Ative Lança Amaldiçoada, desassocie Manopla e escolha Elmo Fendido adversário.",
+          "why": "O alvo fica com ATK zero e efeitos negados até o fim do turno. Manto permanece como material e mantém a condição de efeito rápido.",
+          "cardCodes": [
+            12219047,
+            36247316,
+            99315585
+          ]
+        }
+      ],
+      "outcome": "Manopla Perdida abre Lança Amaldiçoada com os recursos finais conferidos pelo motor.",
+      "cautions": [
+        "Manopla precisa ter sido Baixada antes do turno atual, como na mesa preparada.",
+        "Links e Xyz não ganham um Nível que não possuem; o exercício usa Manto, que tem Nível."
+      ],
+      "practice": {
+        "goal": [
+          {
+            "kind": "card",
+            "zone": "monsters",
+            "code": 12219047,
+            "overlays": [
+              90432163
+            ]
+          },
+          {
+            "kind": "card",
+            "zone": "monsters",
+            "code": 99315585,
+            "player": 1,
+            "attack": 0,
+            "negated": true
+          }
+        ],
+        "stages": [
+          {
+            "title": "Comece com um Cavaleiro",
+            "instruction": "Invoque Manto Antigo por Invocação-Normal.",
+            "why": "Um Cavaleiro Fantasma no campo habilita Botas sem gastar outra Normal.",
+            "targets": [
+              {
+                "code": 90432163,
+                "location": 2
+              }
+            ],
+            "completeWhen": [
+              {
+                "kind": "card",
+                "zone": "monsters",
+                "code": 90432163
+              }
+            ]
+          },
+          {
+            "title": "Ajuste o Nível e gere outro corpo",
+            "instruction": "Ative Manopla Perdida já Baixada escolhendo seu Manto.",
+            "why": "Manto perde 600 ATK e vira Nível 2; Manopla entra como Monstro Normal de Nível 2. A proteção de batalha dura este turno.",
+            "targets": [
+              {
+                "code": 36247316,
+                "location": 8
+              },
+              {
+                "code": 90432163,
+                "location": 4
+              }
+            ],
+            "completeWhen": [
+              {
+                "kind": "card",
+                "zone": "monsters",
+                "code": 90432163,
+                "level": 2
+              },
+              {
+                "kind": "card",
+                "zone": "monsters",
+                "code": 36247316,
+                "level": 2
+              }
+            ]
+          },
+          {
+            "title": "Faça Lança Amaldiçoada",
+            "instruction": "Invoque Lança Amaldiçoada com Manto e Manopla.",
+            "why": "Com carta Cavaleiros Fantasmas como material, o efeito de Lança Amaldiçoada é rápido. Sem esse material, seria de ignição.",
+            "targets": [
+              {
+                "code": 12219047,
+                "location": 64
+              },
+              {
+                "code": 90432163,
+                "location": 4,
+                "scope": "selection"
+              },
+              {
+                "code": 36247316,
+                "location": 4,
+                "scope": "selection"
+              }
+            ],
+            "completeWhen": [
+              {
+                "kind": "card",
+                "zone": "monsters",
+                "code": 12219047,
+                "overlays": [
+                  90432163,
+                  36247316
+                ]
+              }
+            ]
+          },
+          {
+            "title": "Negue e abra o ataque",
+            "instruction": "Ative Lança Amaldiçoada, desassocie Manopla e escolha Elmo Fendido adversário.",
+            "why": "O alvo fica com ATK zero e efeitos negados até o fim do turno. Manto permanece como material e mantém a condição de efeito rápido.",
+            "targets": [
+              {
+                "code": 12219047,
+                "location": 4
+              },
+              {
+                "code": 36247316,
+                "location": 4,
+                "scope": "selection"
+              },
+              {
+                "code": 99315585,
+                "location": 4,
+                "controller": 1
+              }
+            ],
+            "completeWhen": [
+              {
+                "kind": "card",
+                "zone": "monsters",
+                "code": 99315585,
+                "player": 1,
+                "attack": 0,
+                "negated": true
+              }
+            ]
+          }
+        ],
+        "scenario": [
+          {
+            "code": 36247316,
+            "player": 0,
+            "location": 8,
+            "sequence": 0,
+            "position": 8
+          },
+          {
+            "code": 99315585,
+            "player": 1,
+            "location": 4,
+            "sequence": 0,
+            "position": 1
+          }
+        ]
+      }
     }
   ],
   "sources": [
@@ -879,6 +3622,206 @@
       "id": "leviair",
       "title": "Leviar, o Dragão Marinho — texto oficial",
       "url": "https://www.db.yugioh-card.com/yugiohdb/card_search.action?cid=9660&ope=2&request_locale=pt"
+    },
+    {
+      "id": "pk-90432163",
+      "title": "The Phantom Knights of Ancient Cloak — texto oficial",
+      "url": "https://www.db.yugioh-card.com/yugiohdb/card_search.action?cid=12198&ope=2&request_locale=en"
+    },
+    {
+      "id": "pk-36426778",
+      "title": "The Phantom Knights of Silent Boots — texto oficial",
+      "url": "https://www.db.yugioh-card.com/yugiohdb/card_search.action?cid=12199&ope=2&request_locale=en"
+    },
+    {
+      "id": "pk-63821877",
+      "title": "The Phantom Knights of Ragged Gloves — texto oficial",
+      "url": "https://www.db.yugioh-card.com/yugiohdb/card_search.action?cid=12200&ope=2&request_locale=en"
+    },
+    {
+      "id": "pk-99315585",
+      "title": "The Phantom Knights of Cloven Helm — texto oficial",
+      "url": "https://www.db.yugioh-card.com/yugiohdb/card_search.action?ope=1&pid=18812002&request_locale=pt&rp=99999&sess=1"
+    },
+    {
+      "id": "pk-36704180",
+      "title": "The Phantom Knights of Fragile Armor — texto oficial",
+      "url": "https://www.db.yugioh-card.com/yugiohdb/card_search.action?ope=1&pid=18812002&request_locale=pt&rp=99999&sess=1"
+    },
+    {
+      "id": "pk-28985331",
+      "title": "Armageddon Knight — texto oficial",
+      "url": "https://www.db.yugioh-card.com/yugiohdb/card_search.action?ope=1&pid=18812002&request_locale=pt&rp=99999&sess=1"
+    },
+    {
+      "id": "pk-54582424",
+      "title": "Blue Mountain Butterspy — texto oficial",
+      "url": "https://www.db.yugioh-card.com/yugiohdb/card_search.action?ope=1&pid=18812002&request_locale=pt&rp=99999&sess=1"
+    },
+    {
+      "id": "pk-56343672",
+      "title": "Rescue Ferret — texto oficial",
+      "url": "https://www.db.yugioh-card.com/yugiohdb/card_search.action?cid=13068&ope=2&request_locale=en"
+    },
+    {
+      "id": "pk-56410040",
+      "title": "Junk Forward — texto oficial",
+      "url": "https://www.db.yugioh-card.com/yugiohdb/card_search.action?ope=1&pid=18812002&request_locale=pt&rp=99999&sess=1"
+    },
+    {
+      "id": "pk-19353570",
+      "title": "Kagemucha Knight — texto oficial",
+      "url": "https://www.db.yugioh-card.com/yugiohdb/card_search.action?ope=1&pid=18812002&request_locale=pt&rp=99999&sess=1"
+    },
+    {
+      "id": "pk-42338879",
+      "title": "Cockadoodledoo — texto oficial",
+      "url": "https://www.db.yugioh-card.com/yugiohdb/card_search.action?ope=1&pid=18812002&request_locale=pt&rp=99999&sess=1"
+    },
+    {
+      "id": "pk-97268402",
+      "title": "Effect Veiler — texto oficial",
+      "url": "https://www.db.yugioh-card.com/yugiohdb/card_search.action?ope=1&pid=18812002&request_locale=pt&rp=99999&sess=1"
+    },
+    {
+      "id": "pk-3298689",
+      "title": "The Phantom Knights' Rank-Up-Magic Launch — texto oficial",
+      "url": "https://www.db.yugioh-card.com/yugiohdb/card_search.action?cid=12644&ope=2&request_locale=en"
+    },
+    {
+      "id": "pk-98153934",
+      "title": "Phantom Knights' Spear — texto oficial",
+      "url": "https://www.db.yugioh-card.com/yugiohdb/card_search.action?ope=1&pid=18812002&request_locale=pt&rp=99999&sess=1"
+    },
+    {
+      "id": "pk-53129443",
+      "title": "Dark Hole — texto oficial",
+      "url": "https://www.db.yugioh-card.com/yugiohdb/card_search.action?ope=1&pid=18812002&request_locale=pt&rp=99999&sess=1"
+    },
+    {
+      "id": "pk-83764718",
+      "title": "Monster Reborn — texto oficial",
+      "url": "https://www.db.yugioh-card.com/yugiohdb/card_search.action?cid=4842&ope=2&request_locale=en"
+    },
+    {
+      "id": "pk-81439173",
+      "title": "Foolish Burial — texto oficial",
+      "url": "https://www.db.yugioh-card.com/yugiohdb/card_search.action?cid=5236&ope=2&request_locale=en"
+    },
+    {
+      "id": "pk-32807846",
+      "title": "Reinforcement of the Army — texto oficial",
+      "url": "https://www.db.yugioh-card.com/yugiohdb/card_search.action?cid=5328&ope=2&request_locale=en"
+    },
+    {
+      "id": "pk-674561",
+      "title": "Dark Eruption — texto oficial",
+      "url": "https://www.db.yugioh-card.com/yugiohdb/card_search.action?ope=1&pid=18812002&request_locale=pt&rp=99999&sess=1"
+    },
+    {
+      "id": "pk-43898403",
+      "title": "Twin Twisters — texto oficial",
+      "url": "https://www.db.yugioh-card.com/yugiohdb/card_search.action?ope=1&pid=18812002&request_locale=pt&rp=99999&sess=1"
+    },
+    {
+      "id": "pk-25542642",
+      "title": "Phantom Knights' Fog Blade — texto oficial",
+      "url": "https://www.db.yugioh-card.com/yugiohdb/card_search.action?cid=12205&ope=2&request_locale=en"
+    },
+    {
+      "id": "pk-61936647",
+      "title": "Phantom Knights' Sword — texto oficial",
+      "url": "https://www.db.yugioh-card.com/yugiohdb/card_search.action?ope=1&pid=18812002&request_locale=pt&rp=99999&sess=1"
+    },
+    {
+      "id": "pk-98431356",
+      "title": "Phantom Knights' Wing — texto oficial",
+      "url": "https://www.db.yugioh-card.com/yugiohdb/card_search.action?cid=12207&ope=2&request_locale=en"
+    },
+    {
+      "id": "pk-77462146",
+      "title": "The Phantom Knights of Shadow Veil — texto oficial",
+      "url": "https://www.db.yugioh-card.com/yugiohdb/card_search.action?ope=1&pid=18812002&request_locale=pt&rp=99999&sess=1"
+    },
+    {
+      "id": "pk-98827725",
+      "title": "The Phantom Knights of Shade Brigandine — texto oficial",
+      "url": "https://www.db.yugioh-card.com/yugiohdb/card_search.action?cid=12267&ope=2&request_locale=en"
+    },
+    {
+      "id": "pk-24212820",
+      "title": "The Phantom Knights of Dark Gauntlets — texto oficial",
+      "url": "https://www.db.yugioh-card.com/yugiohdb/card_search.action?ope=1&pid=18812002&request_locale=pt&rp=99999&sess=1"
+    },
+    {
+      "id": "pk-51606429",
+      "title": "The Phantom Knights of Tomb Shield — texto oficial",
+      "url": "https://www.db.yugioh-card.com/yugiohdb/card_search.action?ope=1&pid=18812002&request_locale=pt&rp=99999&sess=1"
+    },
+    {
+      "id": "pk-36247316",
+      "title": "The Phantom Knights of Lost Vambrace — texto oficial",
+      "url": "https://www.db.yugioh-card.com/yugiohdb/card_search.action?cid=12980&ope=2&request_locale=en"
+    },
+    {
+      "id": "pk-62645025",
+      "title": "The Phantom Knights of Wrong Magnetring — texto oficial",
+      "url": "https://www.db.yugioh-card.com/yugiohdb/card_search.action?ope=1&pid=18812002&request_locale=pt&rp=99999&sess=1"
+    },
+    {
+      "id": "pk-9336190",
+      "title": "The Phantom Knights of Mist Claws — texto oficial",
+      "url": "https://www.db.yugioh-card.com/yugiohdb/card_search.action?ope=1&pid=18812002&request_locale=pt&rp=99999&sess=1"
+    },
+    {
+      "id": "pk-26692769",
+      "title": "The Phantom Knights of Rusty Bardiche — texto oficial",
+      "url": "https://www.db.yugioh-card.com/yugiohdb/card_search.action?cid=14054&ope=2&request_locale=en"
+    },
+    {
+      "id": "pk-62709239",
+      "title": "The Phantom Knights of Break Sword — texto oficial",
+      "url": "https://www.db.yugioh-card.com/yugiohdb/card_search.action?cid=12203&ope=2&request_locale=en"
+    },
+    {
+      "id": "pk-12219047",
+      "title": "The Phantom Knights of Cursed Javelin — texto oficial",
+      "url": "https://www.db.yugioh-card.com/yugiohdb/card_search.action?ope=1&pid=18812002&request_locale=pt&rp=99999&sess=1"
+    },
+    {
+      "id": "pk-16195942",
+      "title": "Dark Rebellion Xyz Dragon — texto oficial",
+      "url": "https://www.db.yugioh-card.com/yugiohdb/card_search.action?cid=11385&ope=2&request_locale=en"
+    },
+    {
+      "id": "pk-1621413",
+      "title": "Dark Requiem Xyz Dragon — texto oficial",
+      "url": "https://www.db.yugioh-card.com/yugiohdb/card_search.action?cid=12639&ope=2&request_locale=en"
+    },
+    {
+      "id": "pk-359563",
+      "title": "Evilswarm Nightmare — texto oficial",
+      "url": "https://www.db.yugioh-card.com/yugiohdb/card_search.action?ope=1&pid=18812002&request_locale=pt&rp=99999&sess=1"
+    },
+    {
+      "id": "pk-65884091",
+      "title": "Evilswarm Thanatos — texto oficial",
+      "url": "https://www.db.yugioh-card.com/yugiohdb/card_search.action?ope=1&pid=18812002&request_locale=pt&rp=99999&sess=1"
+    },
+    {
+      "id": "pk-63504681",
+      "title": "Number 86: Heroic Champion - Rhongomyniad — texto oficial",
+      "url": "https://www.db.yugioh-card.com/yugiohdb/card_search.action?ope=1&pid=18812002&request_locale=pt&rp=99999&sess=1"
+    },
+    {
+      "id": "pk-95992081",
+      "title": "Leviair the Sea Dragon — texto oficial",
+      "url": "https://www.db.yugioh-card.com/yugiohdb/card_search.action?cid=9660&ope=2&request_locale=en"
+    },
+    {
+      "id": "pk-83531441",
+      "title": "Dante, Traveler of the Burning Abyss — texto oficial",
+      "url": "https://www.db.yugioh-card.com/yugiohdb/card_search.action?ope=1&pid=18812002&request_locale=pt&rp=99999&sess=1"
     }
   ]
 }

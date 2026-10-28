@@ -5,7 +5,7 @@ import type { DuelDeckPayload, DuelFormat } from "@/lib/types";
 
 export interface BotGuideHints {
   id: string;
-  tactics?: "slifer" | "hero";
+  tactics?: "slifer" | "hero" | "phantom-knights";
   core: readonly number[];
   extra: readonly number[];
   opening: readonly number[];

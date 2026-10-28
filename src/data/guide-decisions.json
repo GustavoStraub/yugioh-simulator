@@ -340,6 +340,154 @@
       ],
       "correctChoice": 0,
       "sourceIds": ["official-card-63821877", "official-card-98431356"]
+    },
+    {
+      "id": "requiem-preserva-rebeliao",
+      "botEligible": false,
+      "lessonId": "rebeliao-sem-materiais-vira-requiem",
+      "title": "Qual material pagar com Réquiem?",
+      "situation": "Réquiem tem Rebelião e Launch associados e pode ativar um de seus efeitos. Qual material preserva as próximas interações?",
+      "signals": [
+        {
+          "zone": "monsters",
+          "code": 1621413,
+          "present": true
+        }
+      ],
+      "choices": [
+        {
+          "label": "Desassociar Launch",
+          "explanation": "Rebelião precisa continuar associado para conceder os efeitos. Launch pode ir ao Cemitério e oferecer uma recarga depois.",
+          "action": {
+            "kind": "effect",
+            "code": 1621413,
+            "targetCode": 3298689
+          }
+        },
+        {
+          "label": "Desassociar Rebelião",
+          "explanation": "Você consome a carta que concede os efeitos, comprometendo as próximas ativações de Réquiem.",
+          "action": {
+            "kind": "hold",
+            "code": 1621413
+          }
+        }
+      ],
+      "correctChoice": 0,
+      "sourceIds": [
+        "pk-1621413"
+      ]
+    },
+    {
+      "id": "brigandina-antes-da-lamina",
+      "botEligible": false,
+      "lessonId": "brigandina-antes-das-armadilhas-no-cemiterio",
+      "title": "A ordem de Brigandina muda a abertura",
+      "situation": "Brigandina está Baixada neste turno e ainda não há Armadilhas no seu Cemitério. Você também pode enviar Lâmina por Luvas. Qual ordem preserva a extensão imediata?",
+      "signals": [
+        {
+          "zone": "hand",
+          "code": 98827725,
+          "present": true
+        }
+      ],
+      "choices": [
+        {
+          "label": "Resolver Brigandina antes do envio",
+          "explanation": "Sem Armadilhas no Cemitério ela pode ser ativada no turno da Baixada. Depois de virar monstro, o envio de Lâmina não desfaz a Invocação.",
+          "action": {
+            "kind": "effect",
+            "code": 98827725,
+            "targetCode": 98827725
+          }
+        },
+        {
+          "label": "Enviar Lâmina primeiro",
+          "explanation": "Ter uma Armadilha no Cemitério remove a exceção que permitiria ativar Brigandina recém-Baixada.",
+          "action": {
+            "kind": "hold",
+            "code": 98827725
+          }
+        }
+      ],
+      "correctChoice": 0,
+      "sourceIds": [
+        "pk-98827725"
+      ]
+    },
+    {
+      "id": "espada-preserva-par-do-cemiterio",
+      "botEligible": false,
+      "lessonId": "espada-quebrada-abre-o-classe-4",
+      "title": "Buscas podem consumir a sua recuperação",
+      "situation": "Espada foi destruída e você pretende reviver Manto e Botas. Eles são seus únicos dois Cavaleiros compatíveis no Cemitério. Vale bani-los para buscar antes de resolver a recuperação?",
+      "signals": [
+        {
+          "zone": "monsters",
+          "code": 62709239,
+          "present": true
+        }
+      ],
+      "choices": [
+        {
+          "label": "Preservar o par para a reanimação",
+          "explanation": "A recuperação exige os dois alvos no Cemitério. Eles voltam como Níveis 4 e podem continuar em um Xyz TREVAS.",
+          "action": {
+            "kind": "effect",
+            "code": 62709239,
+            "targetCode": 62709239
+          }
+        },
+        {
+          "label": "Banir um dos dois para buscar",
+          "explanation": "A busca pode eliminar um dos alvos da linha que você pretendia completar. Os recursos precisam ser contados na ordem real da corrente.",
+          "action": {
+            "kind": "hold",
+            "code": 62709239
+          }
+        }
+      ],
+      "correctChoice": 0,
+      "sourceIds": [
+        "pk-62709239"
+      ]
+    },
+    {
+      "id": "furao-reserva-setas",
+      "botEligible": false,
+      "lessonId": "furao-usa-as-duas-setas",
+      "title": "Furão precisa de espaço para os dois corpos",
+      "situation": "Bardiche está na Zona Adicional e você quer invocar Manto e Botas pelo Furão. Onde colocar Furão para manter as duas zonas apontadas livres?",
+      "signals": [
+        {
+          "zone": "monsters",
+          "code": 56343672,
+          "present": true
+        }
+      ],
+      "choices": [
+        {
+          "label": "Em uma zona fora das duas setas inferiores",
+          "explanation": "A resolução precisa de espaço para os dois monstros. Devolver Furão abre a zona dele, mas ocupar as setas com outros monstros pode inviabilizar o par.",
+          "action": {
+            "kind": "effect",
+            "code": 56343672,
+            "targetCode": 56343672
+          }
+        },
+        {
+          "label": "Ocupar previamente uma seta com outro monstro",
+          "explanation": "A dupla não cabe se apenas uma zona apontada estiver disponível na resolução.",
+          "action": {
+            "kind": "hold",
+            "code": 56343672
+          }
+        }
+      ],
+      "correctChoice": 0,
+      "sourceIds": [
+        "pk-56343672"
+      ]
     }
   ],
   "tcg-sr13": [

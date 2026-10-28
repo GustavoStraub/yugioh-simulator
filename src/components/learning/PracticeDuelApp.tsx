@@ -14,6 +14,7 @@ import { presetToDuelPayload, type PresetDeckDefinition } from "@/lib/domain/pre
 import { DEFAULT_DUEL_PREFS } from "@/lib/duel/duel-prefs";
 import type { DuelSessionConfig, DuelSnapshot } from "@/lib/duel/duel-session";
 import { advancePractice, EMPTY_PRACTICE, practiceCardTargets } from "@/lib/duel/lesson-practice";
+import { practiceSetup } from "@/lib/duel/practice-setup";
 import styles from "./practice.module.css";
 
 type Props = { guide: DeckGuide; lesson: PracticeGuideLesson; preset: PresetDeckDefinition };
@@ -43,11 +44,9 @@ function PracticeAttempt({ guide, lesson, preset, onRestart }: Props & { onResta
   const config = useMemo<DuelSessionConfig | null>(() => registry && compatible ? {
     playerName: profile?.name ?? "Aprendiz",
     opponentName: "Parceiro de treino",
-    playerDeck: presetToDuelPayload(preset),
-    opponentDeck: presetToDuelPayload(preset),
+    ...practiceSetup(presetToDuelPayload(preset), lesson),
     registry,
     format: preset.format,
-    openingHands: [lesson.startingHand, preset.main.slice(0, 5)],
     // O parceiro espera: o exercício acontece no primeiro turno do aluno.
     seats: [{ kind: "local", name: "Você" }, { kind: "local", name: "Parceiro de treino" }],
     pace: 0.4,

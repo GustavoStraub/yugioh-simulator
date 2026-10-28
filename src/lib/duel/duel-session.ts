@@ -136,12 +136,12 @@ export interface DuelSessionConfig {
    */
   format?: DuelFormat;
   /**
-   * Mesa de teste: cartas que já começam em jogo, além dos decks.
+   * Mesa preparada de teste ou exercício: cartas que já começam em jogo.
    *
    * Existe para os testes de navegador e as capturas chegarem direto a uma
    * situação (um Link na Zona Extra, escalas armadas) sem jogar dez turnos —
-   * o mesmo `place` do harness. Não há caminho para isto na interface nem no
-   * duelo online: só quem monta o duelo por código.
+   * o mesmo `place` do harness. O Aprender usa somente cenários publicados e
+   * retira suas cópias das listas; o lobby e o duelo online não os configuram.
    */
   scenario?: ScenarioCard[];
   /** Mãos de exercício, jogador e adversário. As cópias saem dos decks. */

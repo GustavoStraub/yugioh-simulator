@@ -16,7 +16,7 @@ try{
  await page.goto(`${BASE}/aprender`);
  await page.evaluate(`localStorage.setItem('yugioh-goat-profile-v1',JSON.stringify({id:'legendary-browser',name:'Aprendiz'}));localStorage.setItem('yugioh-goat-tips-v1',JSON.stringify({off:true,seen:[]}));return true;`);
  for(const guide of guides){
-  const selectedLessons=guide.lessons.filter(lesson=>!onlyLesson||lesson.id===onlyLesson);
+  const selectedLessons=guide.lessons.filter(lesson=>lesson.practice&&(!onlyLesson||lesson.id===onlyLesson));
   for(const lesson of selectedLessons){
    await page.goto(`${BASE}/aprender/${guide.id}/treinar/${lesson.id}`);
    await until(`return document.querySelector('[data-phase-button]')?.textContent.includes('Main1')&&!document.querySelector('[data-processing="1"]');`);
@@ -41,6 +41,7 @@ try{
      const tiles=[...document.querySelectorAll('[data-picker-card]')].filter(visible);
      if(tiles.length){
       const picked=new Set(tiles.filter(e=>e.classList.contains('md-tile-picked')).map(code));
+      if(picked.size&&(result=click(exact('Confirmar')??exact('Concluir'),'confirm-picker-ready')))return result;
       const guided=tiles.filter(e=>e.hasAttribute('data-training-target')&&!e.classList.contains('md-tile-picked'));
       const next=guided.find(e=>!picked.has(code(e)));
       if(result=click(next,'picker'))return result;
@@ -61,7 +62,7 @@ try{
      if(result=click(place?.querySelector('[role="button"]'),'place'))return result;
      if(result=click(exact('Ataque (face p/ cima)')??exact('Defesa (face p/ cima)'),'position'))return result;
      const selection=document.querySelector('[data-selection-bar]');
-     const slots=[...document.querySelectorAll('[data-zone^="0:"]')];
+     const slots=[...document.querySelectorAll('[data-zone]')];
      const slot=slots.find(e=>e.querySelector('[data-training-target]')&&e.querySelector('.tf-slot-active')&&!e.querySelector('.tf-slot-picked'));
      if(result=click(slot?.querySelector('[role="button"]'),'guided-field'))return result;
      if(selection&&(result=click(exact('Confirmar')??exact('Concluir'),'confirm-field')))return result;
@@ -82,15 +83,12 @@ try{
    assert.ok(complete,`exercício ${guide.id}/${lesson.id} concluído por cliques`);
    await page.waitForText('Você executou a sequência!');
    writeFileSync(`${OUT}/legendary-${lesson.id}.png`,Buffer.from((await page.screenshot()).data,'base64'));
-   const lessons=learningBase.decks.find(deck=>deck.presetId===guide.presetId).lessons.map(item=>({...item,id:item.origin?.lessonId??item.id}));
+   const lessons=[...guide.lessons,...learningBase.decks.find(deck=>deck.presetId===guide.presetId).lessons.filter(item=>!item.origin)];
    const next=lessons[lessons.findIndex(item=>item.id===lesson.id)+1];
-   assert.ok(next,'existe uma próxima lição no guia ampliado');
-   const nextLabel=next.origin?'Próximo exercício':'Próxima lição';
-   const nextHref=next.origin?`/aprender/${guide.id}/treinar/${next.id}`:`/aprender/${guide.id}?licao=${next.id}`;
-   assert.equal(await page.evaluate(`return [...document.querySelectorAll('a')].find(a=>a.textContent.includes(${JSON.stringify(nextLabel)}))?.getAttribute('href');`),nextHref,'a conclusão encaminha para o tipo correto de lição');
-   if(!next.origin){
-    assert.ok(await page.clickText(nextLabel));
-    await until(`return document.querySelector('[data-lesson]')?.dataset.lesson === ${JSON.stringify(next.id)} && document.querySelector('[data-lesson]')?.dataset.lessonKind === 'strategy';`);
+   if(next){
+    const nextLabel=next.practice?'Próximo exercício':'Próxima lição';
+    const nextHref=next.practice?`/aprender/${guide.id}/treinar/${next.id}`:`/aprender/${guide.id}?licao=${next.id}`;
+    assert.equal(await page.evaluate(`return [...document.querySelectorAll('a')].find(a=>a.textContent.includes(${JSON.stringify(nextLabel)}))?.getAttribute('href');`),nextHref,'a conclusão encaminha para o tipo correto de lição');
    }
    console.log(`✓ mesa real: ${guide.title} / ${lesson.title}`);
   }

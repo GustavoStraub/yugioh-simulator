@@ -198,10 +198,10 @@ const select=(cards,min=1,max=1)=>({type:M.SELECT_CARD,player:0,min,max,can_canc
   breakSwordBoard.players[0].monsters[0]={...card(62709239,L.MZONE),overlays:[56410040,36426778]};
   breakSwordBoard.players[1].monsters[0]=card(63821877,L.MZONE,0,1);
   const breakSwordPrompt=idle([card(62709239,L.MZONE)]);
-  assert.equal(new BotBrain({difficulty:'hard',deck:knights,format:'tcg'}).decide(ctx(breakSwordPrompt,breakSwordBoard)).action,A.TO_EP,
+  assert.equal(new BotBrain({difficulty:'hard',deck:knights,format:'tcg',phantomStrategy:false}).decide(ctx(breakSwordPrompt,breakSwordBoard)).action,A.TO_EP,
     'Espada Quebrada sem duas matérias Cavaleiro não se autodestrói por monstro pequeno');
   breakSwordBoard.players[0].monsters[0].overlays=[90432163,36426778];
-  assert.equal(new BotBrain({difficulty:'hard',deck:knights,format:'tcg'}).decide(ctx(breakSwordPrompt,breakSwordBoard)).action,A.SELECT_ACTIVATE,
+  assert.equal(new BotBrain({difficulty:'hard',deck:knights,format:'tcg',phantomStrategy:false}).decide(ctx(breakSwordPrompt,breakSwordBoard)).action,A.SELECT_ACTIVATE,
     'Espada Quebrada pode trocar quando os materiais permitem reviver dois Cavaleiros');
   knightsBoard.players[0].hand.push(card(36426778,L.HAND,3));
   assert.equal(decisionApplies(knightsGuide.decisions.find(d=>d.id==='kagemucha-sem-botas'),knightsBoard,0,knights),false,

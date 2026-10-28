@@ -91,3 +91,5 @@ for(const guide of DECK_GUIDES.filter(g=>g.id.startsWith('herois-lendarios-'))) 
 }
 
 await import('./test-hero-guide.mjs');
+
+await import('./test-phantom-guide.mjs');

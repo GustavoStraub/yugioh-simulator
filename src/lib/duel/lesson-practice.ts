@@ -6,11 +6,14 @@ import { buildPromptPlan } from "@/lib/duel/duel-actions";
 
 export function practiceConditionMet(condition: PracticeCondition, snapshot: DuelSnapshot): boolean {
   if (condition.kind === "lp") return snapshot.lifePoints[condition.player] === condition.value;
-  const player = snapshot.boards[0]?.players[0];
+  const player = snapshot.boards[0]?.players[condition.kind === "card" ? condition.player ?? 0 : 0];
   if (!player) return false;
   if (condition.kind === "card") {
     const cards = condition.zone === "field" ? [player.field] : player[condition.zone];
-    const count = cards.filter((card) => card?.code === condition.code && (condition.attack === undefined || card.attack === condition.attack)).length;
+    const count = cards.filter((card) => card?.code === condition.code && (condition.attack === undefined || card.attack === condition.attack)
+      && (condition.level === undefined || card.level === condition.level)
+      && (condition.negated === undefined || card.negated === condition.negated)
+      && (condition.overlays === undefined || [...card.overlays].sort((a,b)=>a-b).join(',') === [...condition.overlays].sort((a,b)=>a-b).join(','))).length;
     return condition.absent ? count === 0 : count >= (condition.count ?? 1);
   }
   const prompt = snapshot.pendingPrompt;
@@ -35,7 +38,8 @@ export function practiceCardTargets(lesson: PracticeGuideLesson, snapshot: DuelS
     for (const action of actions) offered.push({ code: action.code, location: action.location, controller });
   }
   if (plan.subject) offered.push({ ...plan.subject, controller: 0 });
-  return stage.targets.filter((target) => (target.scope !== "action" || !plan.selection)
+  return stage.targets.filter((target) => (target.scope !== "trigger" || snapshot.pendingPrompt?.type === OcgMessageType.SELECT_CHAIN || snapshot.pendingPrompt?.type === OcgMessageType.SELECT_EFFECTYN)
+    && (target.scope !== "action" || !plan.selection)
     && (target.scope !== "selection" || Boolean(plan.selection))
     && offered.some((card) => card.code > 0 && card.code === target.code
     && card.location === target.location && (card.controller ?? 0) === (target.controller ?? 0)));

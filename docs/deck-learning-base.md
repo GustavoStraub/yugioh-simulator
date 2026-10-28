@@ -1,21 +1,22 @@
 # Base editorial de aprendizado dos decks
 
-Esta base reúne planos e roteiros em português publicados na área `/aprender` pelo adaptador `src/lib/data/deck-learning-adapter.ts`. O arquivo `src/data/deck-learning-base.json` conserva o contrato de autoria editorial (schemaVersion 1, revisão 2026-10-16), com mãos e prática nulas para as novas estratégias. O adaptador preserva as 12 práticas executáveis dos quatro JSONs históricos e acrescenta as 207 leituras, sem inventar objetivos de execução.
+Esta base reúne planos e roteiros em português publicados na área `/aprender` pelo adaptador `src/lib/data/deck-learning-adapter.ts`. O JSON conserva o contrato editorial (`schemaVersion: 1`) e suas datas globais originais; revisões individuais têm data e revisão próprias. O conteúdo executável vem dos quatro JSONs históricos: hoje são 31 práticas, junto de 198 leituras fornecidas pela base.
 
 ## Escopo e critérios
 
 A cobertura contém exatamente 110 presets TCG: 92 selecionados e 18 excluídos. Não inclui presets GOAT; as cópias TCG com equivalente GOAT são explicitamente excluídas. A seleção é editorial: uma exclusão não significa que o deck não tenha qualquer jogada possível, apenas que não foi aceito no recorte de estratégia da base. A seleção editorial privilegia motores estratégicos presentes na lista exata; listas introdutórias, produtos de tutorial ou listas sem motor suficiente recebem justificativa individual. Não se acrescentam cartas de versões posteriores ou de múltiplas caixas.
 
-São 219 lições: 12 importadas dos quatro guias ativos e 207 leituras de estratégia. Os quatro guias existentes têm oito lições cada (três importadas, seguidas de cinco novas); Slifer tem 13 e os demais 87 têm duas. Há 528 referências globais, incluindo fontes oficiais de efeitos verificadas e fontes preservadas dos guias ativos. A revisão individual do Slifer é de 27/10/2026; a data dos outros decks permanece preservada.
+O app reúne 229 lições. HERO tem 13 (12 práticas e uma leitura), Cavaleiros Fantasmas tem 13 práticas e Slifer tem 13 leituras revisadas. Albaz e Aesir têm oito lições cada; os demais 87 guias têm duas. As fontes globais incluem efeitos oficiais e referências preservadas dos guias ativos. O acompanhamento das revisões individuais e suas evidências está em [Aprender os decks](deck-learning.md).
 
 ## Fontes e limites
 
-Os efeitos oficiais verificados têm URL e data de acesso por carta, sem reprodução integral do efeito. Os roteiros são adaptações autorais baseadas nesses efeitos, não combos atribuídos a publicações. O Slifer tem oito lições com evidência de sequências no motor em `test-slifer-guide.mjs`; as demais estratégias não passam a ser validadas por essa revisão. Fontes publicadas indicadas por deck são referências complementares; não se afirma revisão integral. Os passos novos identificam apenas nomes completos explicitamente escritos na ação, em inglês ou português; abreviações podem resultar em cardCodes vazio. Mãos iniciais e prática das novas lições são nulas. As lições importadas preservam suas mãos, preparação, passos e fontes, mas também têm prática nula nesta base.
+Os efeitos oficiais verificados têm URL e data de acesso por carta, sem reprodução integral do efeito. Os roteiros são adaptações autorais baseadas nesses efeitos, não combos atribuídos a publicações. Slifer, HERO e Cavaleiros Fantasmas têm evidências individuais registradas nos seus relatórios; essa validação não se estende automaticamente aos outros decks. Fontes publicadas indicadas por deck são referências complementares; não se afirma revisão integral. Os passos novos identificam apenas nomes completos explicitamente escritos na ação, em inglês ou português; abreviações podem resultar em cardCodes vazio. Mãos iniciais e prática das novas lições são nulas. As lições importadas preservam suas mãos, preparação, passos e fontes, mas também têm prática nula nesta base.
 
 No app, uma estratégia apresenta seu cenário e etapas, permite consultar cartas
 e fontes, retomar a etapa e concluir explicitamente a leitura. Essa conclusão
 fica separada da execução dos exercícios na mesa. Os quatro guias históricos
-mantêm suas URLs e chaves de progresso. O seletor de decks usa um índice leve
+mantêm suas URLs; revisões substanciais, como HERO e Cavaleiros Fantasmas,
+incrementam a revisão usada na chave de progresso. O seletor de decks usa um índice leve
 de rotas e a biblioteca recebe resumos do servidor, com busca e carregamento
 de 12 guias por vez.
 
@@ -594,29 +595,39 @@ Gullveig concentra a abertura, mas escolher materiais, posição e Regulador no 
 
 ### Decks de Heróis Lendários — Destiny HERO (`tcg-lehd-destiny-hero`)
 
-Usar buscas, Fusões e Malicious para gerar corpos, alternando Dark Law, Dystopia e Plasma conforme a partida; preservar reciclagem por Wonder Driver.
+Fusões, Máscaras e gestão do Cemitério com a lista de 2018: aprenda a gerar recursos, respeitar bloqueios e escolher entre pressão e controle.
 
 - Fusão e continuação com Malicioso
 - Mudar a Máscara e manter recursos
 - Três corpos para Plasma
-- Dynatag habilita a destruição de Dystopia
-- Wonder Driver recupera a magia usada
-- Destiny Draw transforma Malicious em desenvolvimento
+- Sacar o Destino sem gastar a Normal
+- Homem em Chamas: TREVAS para Lei Obscura
+- Perigoso: descarte e envio são recursos diferentes
+- Dinatag e Distopia: habilitar e gastar a remoção
+- Condutor Maravilha e a zona apontada
+- Além do Destino completa os três Tributos
+- Dragão Final: chefes da mão viram materiais
+- Dusktopia: duas Fusões e proteção seletiva
+- Dizimador: setas que habilitam Distopia
 - Celestial recompensa um turno de recursos esgotados
-- Drilldark amplia a rota de Wonder Driver
 
 ### Decks de Heróis Lendários — Phantom Knights (`tcg-lehd-phantom-knights`)
 
-Usar o Cemitério como motor de buscas e reanimação; Broken Sword abre Classe 4 e Bardiche transforma Xyz de TREVAS em remoção.
+Planeje materiais Xyz, buscas e reanimação; transforme Espada Quebrada em Classe 4, alcance Réquiem e use as setas de Bardiche para ganhar recursos e interação.
 
 - Sua primeira Espada Quebrada
 - Bardiche Enferrujado prepara sua defesa
 - O Cemitério também é sua mão
 - Espada Quebrada abre o Classe 4
 - Rebelião sem materiais vira Réquiem
-- A seta de Bardiche transforma Xyz em remoção
-- Fog Blade tem duas funções em turnos diferentes
-- Ragged Gloves prepara a Armadilha certa
+- Bardiche destrói Espada e abre defesa
+- Luvas envia Lâmina e prepara reanimação
+- Sombra Brigandina dá acesso ao Classe 4
+- Luvas dá 1000 ATK a Espada Quebrada
+- Furão converte as setas em dois Níveis 3
+- Launch no Cemitério recarrega Pesadelo
+- Lâmina de Névoa: negação e material
+- Manopla Perdida abre Lança Amaldiçoada
 
 ### Decks Lendários 5D's — Akiza (`tcg-l5dd-akiza`)
 

@@ -43,7 +43,7 @@ export interface BotDecisionTrace {
   alternatives: { id: string; score: number; reason: string }[];
   source: BotDecisionSource;
   candidates: BotCandidateTrace[];
-  capabilities: { candidateComparison: boolean; stateEvaluation: boolean; sequencePlanning: boolean; opponentMemory: boolean; recoveryPlanning: boolean; sliferStrategy?: boolean; heroStrategy?: boolean };
+  capabilities: { candidateComparison: boolean; stateEvaluation: boolean; sequencePlanning: boolean; opponentMemory: boolean; recoveryPlanning: boolean; sliferStrategy?: boolean; heroStrategy?: boolean; phantomStrategy?: boolean };
   selected: string;
   replacement: { reason: string; preferred: OcgResponse | null } | null;
   response: OcgResponse;

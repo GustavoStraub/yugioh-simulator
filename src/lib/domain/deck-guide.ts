@@ -39,14 +39,16 @@ export function hasLessonPractice(lesson: GuideLesson): lesson is PracticeGuideL
 }
 
 export type PracticeCondition =
-  | { kind: "card"; zone: "field" | "monsters" | "spells" | "hand" | "grave" | "banished" | "extra"; code: number; count?: number; absent?: boolean; attack?: number }
+  | { kind: "card"; zone: "field" | "monsters" | "spells" | "hand" | "grave" | "banished" | "extra"; code: number; count?: number; absent?: boolean; attack?: number; player?: 0 | 1; overlays?: number[]; level?: number; negated?: boolean }
   | { kind: "lp"; player: 0 | 1; value: number }
   | { kind: "offered"; code: number; location: number };
 
 /** Identidade da carta indicada, sem depender da ordem ou do nome traduzido. */
-export interface GuideCardTarget { code: number; location: number; controller?: number; scope?: "action" | "selection" }
+export interface GuideCardTarget { code: number; location: number; controller?: number; scope?: "action" | "selection" | "trigger" }
 
 export interface LessonPractice {
+  /** Estado preparado; cada cópia é retirada da lista antes de montar a mesa. */
+  scenario?: { player: 0 | 1; code: number; location: 4 | 8 | 16 | 32; sequence?: number; position?: number }[];
   goal: PracticeCondition[];
   stages: { title: string; instruction: string; why: string; targets: GuideCardTarget[]; completeWhen: PracticeCondition[] }[];
 }

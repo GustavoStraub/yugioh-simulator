@@ -1,12 +1,12 @@
 {
   "schemaVersion": 1,
   "id": "herois-lendarios-cavaleiros-fantasmas",
-  "revision": 2,
+  "revision": 3,
   "format": "tcg",
   "presetId": "tcg-lehd-phantom-knights",
   "guide": {
     "id": "herois-lendarios-cavaleiros-fantasmas",
-    "revision": 1
+    "revision": 2
   },
   "deckSnapshot": {
     "format": "tcg",

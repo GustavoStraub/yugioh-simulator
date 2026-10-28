@@ -18,9 +18,9 @@ assert.deepEqual(new Set(base.coverage.map(item => item.presetId)), new Set(pres
 assert.deepEqual(new Set(DECK_GUIDES.map(guide => guide.presetId)), new Set(selected));
 assert.equal(DECK_GUIDES.length, 92);
 assert.equal(new Set(DECK_GUIDES.map(guide => guide.id)).size, DECK_GUIDES.length);
-assert.equal(DECK_GUIDES.flatMap(guide => guide.lessons).length, 224);
-assert.equal(DECK_GUIDES.flatMap(guide => guide.lessons).filter(hasLessonPractice).length, 21);
-assert.equal(DECK_GUIDES.flatMap(guide => guide.lessons).filter(lesson => !hasLessonPractice(lesson)).length, 203);
+assert.equal(DECK_GUIDES.flatMap(guide => guide.lessons).length, 229);
+assert.equal(DECK_GUIDES.flatMap(guide => guide.lessons).filter(hasLessonPractice).length, 31);
+assert.equal(DECK_GUIDES.flatMap(guide => guide.lessons).filter(lesson => !hasLessonPractice(lesson)).length, 198);
 for (const [id, tag] of [['tcg-sdgr', 'Xyz'], ['tcg-sr13', 'Fusão'], ['tcg-l26d-mitsurugi', 'Ritual'], ['tcg-sdpd', 'Pêndulo']]) {
   assert.ok(getDeckGuide(id).tags.includes(tag), `mecânica pesquisável derivada das cartas: ${id}/${tag}`);
 }
@@ -35,7 +35,7 @@ for (const id of ['albaz-strike', 'herois-lendarios-aesir', 'herois-lendarios-de
   assert.ok(guide, `URL histórica continua válida: ${id}`);
   assert.equal(guide.revision, previous.revision, 'conteúdo prático original mantém sua revisão de progresso');
   assert.equal(guideProgressKey('existing-player', guide), guideProgressKey('existing-player', previous));
-  assert.equal(guide.lessons.length, id === 'herois-lendarios-destiny-hero' ? 13 : 8);
+  assert.equal(guide.lessons.length, ['herois-lendarios-destiny-hero','herois-lendarios-cavaleiros-fantasmas'].includes(id) ? 13 : 8);
   assert.deepEqual(guide.overview.plan, previous.overview.plan, 'o aprofundamento preserva o plano anterior');
   assert.deepEqual(guide.overview.strengths, previous.overview.strengths, 'o aprofundamento preserva as vantagens explicadas');
   for (const card of previous.keyCards) {
@@ -95,7 +95,7 @@ for (const guide of DECK_GUIDES) {
   }
 }
 assert.deepEqual(new Set(Object.keys(authoredDecisions)), new Set(DECK_GUIDES.filter(guide => guide.decisions?.length).map(guide => guide.presetId)));
-assert.equal(DECK_GUIDES.flatMap(guide => guide.decisions ?? []).length, 36);
+assert.equal(DECK_GUIDES.flatMap(guide => guide.decisions ?? []).length, 40);
 for (const [presetId, notes] of Object.entries(authoredCardNotes)) {
   const guide = DECK_GUIDES.find(item => item.presetId === presetId);
   assert.ok(guide, `notas ligadas a um guia: ${presetId}`);
@@ -121,5 +121,5 @@ for (const malformed of ['bad', ['a'], 1, null]) {
   assert.equal(progress.currentLesson, first.id, 'dados inválidos de etapa não apagam uma lição válida');
   assert.equal(progress.steps, undefined, 'dados inválidos não viram progresso de etapa');
 }
-console.log('✓ 92 guias, 224 lições e 18 exclusões integrados com listas e referências válidas');
-console.log('✓ 21 práticas e progresso dos quatro guias históricos preservados; 203 estratégias sem objetivos inventados');
+console.log('✓ 92 guias, 229 lições e 18 exclusões integrados com listas e referências válidas');
+console.log('✓ 31 práticas e progresso dos quatro guias históricos preservados; 198 estratégias sem objetivos inventados');
